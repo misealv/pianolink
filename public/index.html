@@ -166,12 +166,6 @@
         border-radius: 4px;
       }
 
-      .note-title {
-        font-size: 13px;
-        margin-bottom: 4px;
-        color: #444;
-      }
-
       .hidden {
         display: none;
       }
@@ -213,25 +207,26 @@
         font-size: 13px;
       }
 
-      /* Piano 88 teclas – sin scroll, ajustado al ancho */
+      /* Piano 88 teclas – más grande, casi sin scroll */
 
       .piano-wrapper {
         border: 1px solid #999;
-        overflow: hidden;
-        height: 120px;
+        overflow-x: auto;          /* solo aparece scroll si la pantalla es muy pequeña */
+        overflow-y: hidden;
+        height: 180px;
         background: #dde1eb;
         border-radius: 4px;
       }
 
       .piano {
         position: relative;
-        width: 100%;
         height: 100%;
       }
 
       .key {
         position: absolute;
         box-sizing: border-box;
+        transition: transform 0.06s ease, background 0.08s ease, box-shadow 0.08s ease;
       }
 
       .white-key {
@@ -240,18 +235,30 @@
         border: 1px solid #000;
         bottom: 0;
         z-index: 1;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
       }
 
       .black-key {
-        height: 65%;
+        height: 55%; /* más corta que la blanca */
         background: #000000;
         border: 1px solid #000;
         top: 0;
         z-index: 5;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
       }
 
-      .key.active {
-        background: var(--accent) !important;
+      /* Animación de tecla hundida */
+
+      .white-key.active {
+        transform: translateY(4px);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        background: #ffe9b3;
+      }
+
+      .black-key.active {
+        transform: translateY(3px);
+        box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.25);
+        background: #444;
       }
 
       .note-label {
@@ -281,6 +288,10 @@
         .hero-right {
           text-align: left;
         }
+
+        .piano-wrapper {
+          height: 150px;
+        }
       }
 
       /* Footer */
@@ -303,7 +314,7 @@
           Conexión MIDI remota en tiempo real entre profesor y alumno.
         </p>
         <p class="hero-tagline">
-          Escucha en tu propio piano lo que tu alumno toca a distancia, con un piano visual de 88 teclas y control de pedales y matices.
+          Escucha en tu propio piano lo que tu alumno toca a distancia, con un piano visual de 88 teclas, pedales y matices.
         </p>
         <span class="hero-badge">Compatible con navegadores con Web MIDI (Chrome / Edge)</span>
       </div>
@@ -363,7 +374,7 @@
             <div id="piano" class="piano"></div>
           </div>
           <div class="inline-help">
-            Las teclas Do (C) están etiquetadas (C2, C3, C4…). Todo el teclado entra sin hacer scroll.
+            Las teclas Do (C) están etiquetadas (C2, C3, C4…). El teclado se adapta al ancho y solo hace scroll si la pantalla es muy pequeña.
           </div>
         </div>
       </div>
@@ -433,8 +444,6 @@
       // mapa nota → elemento DOM
       const keyElementsByNote = {};
 
-      // Helpers
-
       function noteNumberToName(note) {
         const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
         const pc = note % 12;
@@ -456,14 +465,11 @@
         } else {
           roleHelp.textContent =
             "Alumno: 1) Elige 'Alumno'. 2) Escribe el código que te entregó el profesor. 3) Haz clic en 'Unirse'. 4) Si quieres, elige una salida MIDI para escuchar al profesor en tu propio teclado. 5) Si no entiendes estas opciones, puedes dejarlas tal como están.";
-          // el alumno también puede configurar salida MIDI
           advancedCard.classList.remove("hidden");
-          // si quisieras ocultar el log para el alumno, aquí podrías:
+          // Si quisieras ocultar el log para el alumno, podrías:
           // logCard.classList.add("hidden");
         }
       }
-
-      // Cambio de rol
 
       document.querySelectorAll('input[name="rol"]').forEach((r) => {
         r.addEventListener("change", (e) => {
@@ -473,9 +479,7 @@
         });
       });
 
-      updateRoleUI(); // inicial
-
-      // Activar/desactivar salida MIDI
+      updateRoleUI();
 
       toggleMidiOut.addEventListener("change", (e) => {
         enableMidiOut = e.target.checked;
@@ -484,8 +488,6 @@
             (enableMidiOut ? "ACTIVADA" : "desactivada")
         );
       });
-
-      // Selección de salida MIDI
 
       midiOutputSelect.addEventListener("change", (e) => {
         const idx = e.target.value;
@@ -498,13 +500,16 @@
         }
       });
 
-      // Construir piano 88 teclas – ajustado a 100% de ancho sin scroll
+      // Construir piano 88 teclas en píxeles, más grande
 
       function build88KeyPiano() {
         const WHITE_PITCH_CLASSES = [0, 2, 4, 5, 7, 9, 11]; // C, D, E, F, G, A, B
+        const WHITE_KEY_WIDTH = 26; // ancho más grande
+        const BLACK_KEY_WIDTH = 16;
+
         const totalWhiteKeys = 52;
-        const whiteWidthPercent = 100 / totalWhiteKeys;
-        const blackWidthPercent = whiteWidthPercent * 0.6;
+        const totalWidth = totalWhiteKeys * WHITE_KEY_WIDTH;
+        piano.style.width = totalWidth + "px";
 
         let whiteIndex = 0;
 
@@ -517,10 +522,9 @@
 
           if (isWhite) {
             key.classList.add("white-key");
-
-            const leftPercent = whiteIndex * whiteWidthPercent;
-            key.style.left = leftPercent + "%";
-            key.style.width = whiteWidthPercent + "%";
+            const leftPx = whiteIndex * WHITE_KEY_WIDTH;
+            key.style.left = leftPx + "px";
+            key.style.width = WHITE_KEY_WIDTH + "px";
 
             // Etiquetar solo los Do (C)
             if (pitchClass === 0) {
@@ -533,13 +537,11 @@
             whiteIndex++;
           } else {
             key.classList.add("black-key");
-
-            // posición centrada entre blancas
-            const leftCenter = (whiteIndex - 0.5) * whiteWidthPercent;
-            const leftPercent = leftCenter - blackWidthPercent / 2;
-
-            key.style.left = leftPercent + "%";
-            key.style.width = blackWidthPercent + "%";
+            // centrada entre dos blancas
+            const leftCenter = (whiteIndex - 0.5) * WHITE_KEY_WIDTH;
+            const leftPx = leftCenter - BLACK_KEY_WIDTH / 2;
+            key.style.left = leftPx + "px";
+            key.style.width = BLACK_KEY_WIDTH + "px";
           }
 
           piano.appendChild(key);
@@ -561,13 +563,11 @@
         midiAccessGlobal = midiAccess;
         log("✅ Acceso MIDI concedido.");
 
-        // Entradas locales
         for (let input of midiAccess.inputs.values()) {
           input.onmidimessage = handleMIDIMessageFromDevice;
           log("Entrada MIDI: " + input.name);
         }
 
-        // Salidas
         midiOutputs = Array.from(midiAccess.outputs.values());
         midiOutputSelect.innerHTML =
           '<option value="">(ninguna / automático)</option>';
@@ -591,10 +591,6 @@
       }
 
       // Entrada MIDI local (lo que toco YO)
-      // Enviamos:
-      // - Notas (Note On/Off, con velocidad)
-      // - Control Change (ej. pedales, volumen, etc.)
-      // - Pitch Bend
 
       function handleMIDIMessageFromDevice(event) {
         const [status, data1, data2] = event.data;
@@ -626,14 +622,14 @@
           return;
         }
 
-        // Control Change (ej. pedales, volumen, etc.)
+        // Control Change (pedales, volumen, etc.)
         if (command === 0xb0) {
           const controller = data1;
           const value = data2;
 
           const message = {
             type: "cc",
-            status, // mantenemos el status original (canal real)
+            status,
             controller,
             value,
             fromRole: rol,
@@ -666,7 +662,7 @@
           return;
         }
 
-        // Otros tipos de mensaje se ignoran por ahora (aftertouch, sysEx, etc.)
+        // Otros tipos de mensaje se ignoran por ahora
       }
 
       // Salas
@@ -734,13 +730,12 @@
           const nombreNota = noteNumberToName(msg.note);
           log(`🎵 MIDI (${origen}) -> ${nombreNota} (nota ${msg.note}), vel ${msg.velocity}`);
 
-          // actualizar display de nota
           noteDisplay.textContent = `${origen}: ${nombreNota} (MIDI ${msg.note})`;
 
           const keyEl = keyElementsByNote[msg.note];
           if (keyEl) {
             keyEl.classList.add("active");
-            setTimeout(() => keyEl.classList.remove("active"), 200);
+            setTimeout(() => keyEl.classList.remove("active"), 180);
           }
 
           if (deboReproducir) {
@@ -801,7 +796,6 @@
           return;
         }
 
-        // Otros mensajes genéricos
         log("Mensaje recibido: " + JSON.stringify(msg));
       });
     </script>
