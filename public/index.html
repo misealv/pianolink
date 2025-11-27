@@ -198,15 +198,6 @@
       }
 
       input[type="text"],
-      input[type="number"],
-      input[type="search"],
-      input[type="password"],
-      input[type="email"],
-      input[type="url"],
-      input[type="tel"],
-      input[type="time"],
-      input[type="date"],
-      input[type="datetime-local"],
       #codigoSala {
         padding: 5px 7px;
         border-radius: 4px;
@@ -399,8 +390,8 @@
               Activar salida MIDI a mi teclado (BETA)
             </label>
             <div class="inline-help">
-              Si la activas y eliges tu teclado como salida, escucharás en tu instrumento lo que toque la otra persona.
-              No la uses en el mismo puerto que un teclado virtual como VMPK, puede generar loop externo.
+              Si la activas y eliges tu teclado como salida, escucharás en tu instrumento lo que toque la otra persona
+              (notas y pedal). No la uses en el mismo puerto que un teclado virtual como VMPK, puede generar loop externo.
             </div>
           </div>
         </div>
@@ -595,32 +586,61 @@
       }
 
       // Entrada MIDI local (lo que toco YO)
+      // Ahora enviamos:
+      // - Notas (Note On/Off, con velocidad)
+      // - Control Change (ej. pedal sustain CC64)
 
       function handleMIDIMessageFromDevice(event) {
-        const [status, note, velocity] = event.data;
-
+        const [status, data1, data2] = event.data;
         const command = status & 0xf0;
-        if (command !== 0x90 && command !== 0x80) {
-          return;
-        }
 
         if (!salaActual) return;
 
-        // canales distintos
-        const targetChannel = rol === "teacher" ? 1 : 0; // profe -> canal 2, alumno -> canal 1
-        const outStatus = (command | targetChannel) & 0xff;
+        // Notas
+        if (command === 0x90 || command === 0x80) {
+          const note = data1;
+          const velocity = data2;
 
-        const message = {
-          command: outStatus,
-          note,
-          velocity,
-          fromRole: rol,
-        };
+          // canales distintos para profe y alumno
+          const targetChannel = rol === "teacher" ? 1 : 0; // profe -> canal 2, alumno -> canal 1
+          const outStatus = (command | targetChannel) & 0xff;
 
-        socket.emit("midi-message", {
-          roomCode: salaActual,
-          message,
-        });
+          const message = {
+            type: "note",
+            command: outStatus,
+            note,
+            velocity,
+            fromRole: rol,
+          };
+
+          socket.emit("midi-message", {
+            roomCode: salaActual,
+            message,
+          });
+          return;
+        }
+
+        // Control Change (ej. pedal)
+        if (command === 0xb0) {
+          const controller = data1;
+          const value = data2;
+
+          const message = {
+            type: "cc",
+            status,
+            controller,
+            value,
+            fromRole: rol,
+          };
+
+          socket.emit("midi-message", {
+            roomCode: salaActual,
+            message,
+          });
+          return;
+        }
+
+        // Otros tipos de mensaje se ignoran por ahora
       }
 
       // Salas
@@ -668,6 +688,10 @@
       });
 
       // Recibir mensajes del servidor
+      // msg puede ser:
+      // - { isText: true, ... }
+      // - { type: "note", ... }
+      // - { type: "cc", ... }
 
       socket.on("midi-message", (msg) => {
         if (msg.isText) {
@@ -675,7 +699,14 @@
           return;
         }
 
-        if (typeof msg.note === "number") {
+        const soyProfe = rol === "teacher";
+        const vieneDeProfe = msg.fromRole === "teacher";
+        const deboReproducir =
+          enableMidiOut &&
+          midiOutput &&
+          ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
+
+        if (msg.type === "note" && typeof msg.note === "number") {
           const origen = msg.fromRole === "teacher" ? "PROFESOR" : "ALUMNO";
           const nombreNota = noteNumberToName(msg.note);
           log(`🎵 MIDI (${origen}) -> ${nombreNota} (nota ${msg.note}), vel ${msg.velocity}`);
@@ -689,25 +720,38 @@
             setTimeout(() => keyEl.classList.remove("active"), 200);
           }
 
-          // regla anti-loop: sólo reproduzco al otro
-          const soyProfe = rol === "teacher";
-          const vieneDeProfe = msg.fromRole === "teacher";
-
-          const deboReproducir =
-            enableMidiOut &&
-            midiOutput &&
-            ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
-
           if (deboReproducir) {
             try {
               midiOutput.send([msg.command, msg.note, msg.velocity]);
             } catch (e) {
-              log("⚠️ Error MIDI OUT: " + e.message);
+              log("⚠️ Error MIDI OUT (note): " + e.message);
             }
           }
-        } else {
-          log("Mensaje recibido: " + JSON.stringify(msg));
+          return;
         }
+
+        if (msg.type === "cc") {
+          const origen = msg.fromRole === "teacher" ? "PROFESOR" : "ALUMNO";
+
+          if (msg.controller === 64) {
+            const estado = msg.value >= 64 ? "SUSTAIN ON" : "sustain off";
+            log(`🎹 CC (${origen}) -> Pedal sustain (CC64) ${estado}, value ${msg.value}`);
+          } else {
+            log(`CC (${origen}) -> controlador ${msg.controller}, valor ${msg.value}`);
+          }
+
+          if (deboReproducir) {
+            try {
+              midiOutput.send([msg.status, msg.controller, msg.value]);
+            } catch (e) {
+              log("⚠️ Error MIDI OUT (CC): " + e.message);
+            }
+          }
+          return;
+        }
+
+        // Otros mensajes genéricos
+        log("Mensaje recibido: " + JSON.stringify(msg));
       });
     </script>
   </body>
