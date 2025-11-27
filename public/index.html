@@ -307,7 +307,7 @@
           Conexión MIDI remota en tiempo real entre profesor y alumno.
         </p>
         <p class="hero-tagline">
-          Escucha en tu propio piano lo que tu alumno toca a distancia, con un piano visual de 88 teclas y notas en tiempo real.
+          Escucha en tu propio piano lo que tu alumno toca a distancia, con un piano visual de 88 teclas y control de pedales y matices.
         </p>
         <span class="hero-badge">Compatible con navegadores con Web MIDI (Chrome / Edge)</span>
       </div>
@@ -391,7 +391,7 @@
             </label>
             <div class="inline-help">
               Si la activas y eliges tu teclado como salida, escucharás en tu instrumento lo que toque la otra persona
-              (notas y pedal). No la uses en el mismo puerto que un teclado virtual como VMPK, puede generar loop externo.
+              (notas y pedales). No la uses en el mismo puerto que un teclado virtual como VMPK, puede generar loop externo.
             </div>
           </div>
         </div>
@@ -454,7 +454,7 @@
       function updateRoleUI() {
         if (rol === "teacher") {
           roleHelp.textContent =
-            "Profesor: 1) Deja seleccionado 'Profesor'. 2) Haz clic en 'Crear sala'. 3) Envía el código al alumno (WhatsApp, correo, etc.). 4) Opcional: elige tu salida MIDI y activa la casilla para escuchar al alumno en tu teclado. 5) Puedes usar el log para ver toda la actividad técnica.";
+            "Profesor: 1) Deja seleccionado 'Profesor'. 2) Haz clic en 'Crear sala'. 3) Envía el código al alumno (WhatsApp, correo, etc.). 4) Opcional: elige tu salida MIDI y activa la casilla para escuchar al alumno en tu teclado. 5) Puedes usar el log para ver toda la actividad técnica (notas, pedales, etc.).";
           advancedCard.classList.remove("hidden");
           logCard.classList.remove("hidden");
         } else {
@@ -586,9 +586,10 @@
       }
 
       // Entrada MIDI local (lo que toco YO)
-      // Ahora enviamos:
+      // Enviamos:
       // - Notas (Note On/Off, con velocidad)
-      // - Control Change (ej. pedal sustain CC64)
+      // - Control Change (ej. pedales, volumen, etc.)
+      // - Pitch Bend
 
       function handleMIDIMessageFromDevice(event) {
         const [status, data1, data2] = event.data;
@@ -620,14 +621,14 @@
           return;
         }
 
-        // Control Change (ej. pedal)
+        // Control Change (ej. pedales, volumen, etc.)
         if (command === 0xb0) {
           const controller = data1;
           const value = data2;
 
           const message = {
             type: "cc",
-            status,
+            status,       // mantenemos el status original (canal real)
             controller,
             value,
             fromRole: rol,
@@ -640,7 +641,27 @@
           return;
         }
 
-        // Otros tipos de mensaje se ignoran por ahora
+        // Pitch Bend
+        if (command === 0xe0) {
+          const lsb = data1;
+          const msb = data2;
+          const value14 = (msb << 7) | lsb; // 0–16383, centro ~8192
+
+          const message = {
+            type: "pitchbend",
+            status,
+            value14,
+            fromRole: rol,
+          };
+
+          socket.emit("midi-message", {
+            roomCode: salaActual,
+            message,
+          });
+          return;
+        }
+
+        // Otros tipos de mensaje se ignoran por ahora (aftertouch, sysEx, etc.)
       }
 
       // Salas
@@ -692,6 +713,7 @@
       // - { isText: true, ... }
       // - { type: "note", ... }
       // - { type: "cc", ... }
+      // - { type: "pitchbend", ... }
 
       socket.on("midi-message", (msg) => {
         if (msg.isText) {
@@ -706,6 +728,7 @@
           midiOutput &&
           ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
 
+        // Notas
         if (msg.type === "note" && typeof msg.note === "number") {
           const origen = msg.fromRole === "teacher" ? "PROFESOR" : "ALUMNO";
           const nombreNota = noteNumberToName(msg.note);
@@ -730,14 +753,23 @@
           return;
         }
 
+        // Control Change
         if (msg.type === "cc") {
           const origen = msg.fromRole === "teacher" ? "PROFESOR" : "ALUMNO";
+          const cc = msg.controller;
+          const val = msg.value;
 
-          if (msg.controller === 64) {
-            const estado = msg.value >= 64 ? "SUSTAIN ON" : "sustain off";
-            log(`🎹 CC (${origen}) -> Pedal sustain (CC64) ${estado}, value ${msg.value}`);
+          if (cc === 64) {
+            const estado = val >= 64 ? "SUSTAIN ON" : "sustain off";
+            log(`🎹 CC (${origen}) -> Pedal sustain (CC64) ${estado}, valor ${val}`);
+          } else if (cc === 66) {
+            const estado = val >= 64 ? "SOSTENUTO ON" : "sostenuto off";
+            log(`🎹 CC (${origen}) -> Pedal sostenuto (CC66) ${estado}, valor ${val}`);
+          } else if (cc === 67) {
+            const estado = val >= 64 ? "SOFT PEDAL ON" : "soft pedal off";
+            log(`🎹 CC (${origen}) -> Soft pedal (CC67) ${estado}, valor ${val}`);
           } else {
-            log(`CC (${origen}) -> controlador ${msg.controller}, valor ${msg.value}`);
+            log(`CC (${origen}) -> controlador ${cc}, valor ${val}`);
           }
 
           if (deboReproducir) {
@@ -745,6 +777,25 @@
               midiOutput.send([msg.status, msg.controller, msg.value]);
             } catch (e) {
               log("⚠️ Error MIDI OUT (CC): " + e.message);
+            }
+          }
+          return;
+        }
+
+        // Pitch Bend
+        if (msg.type === "pitchbend") {
+          const origen = msg.fromRole === "teacher" ? "PROFESOR" : "ALUMNO";
+          log(
+            `🎻 Pitch Bend (${origen}) -> valor 14 bits: ${msg.value14} (centro ~8192)`
+          );
+
+          if (deboReproducir) {
+            try {
+              const lsb = msg.value14 & 0x7f;
+              const msb = (msg.value14 >> 7) & 0x7f;
+              midiOutput.send([msg.status, lsb, msb]);
+            } catch (e) {
+              log("⚠️ Error MIDI OUT (pitchbend): " + e.message);
             }
           }
           return;
