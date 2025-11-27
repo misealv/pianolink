@@ -192,12 +192,17 @@
       }
 
       input[type="text"],
-      #codigoSala {
+      #codigoSala,
+      #inviteLink {
         padding: 5px 7px;
         border-radius: 4px;
         border: 1px solid #c5cad3;
         font-size: 13px;
         min-width: 120px;
+      }
+
+      #inviteLink {
+        width: 100%;
       }
 
       select {
@@ -211,7 +216,7 @@
 
       .piano-wrapper {
         border: 1px solid #999;
-        overflow-x: auto;          /* solo aparece scroll si la pantalla es muy pequeña */
+        overflow-x: auto;
         overflow-y: hidden;
         height: 180px;
         background: #dde1eb;
@@ -239,15 +244,13 @@
       }
 
       .black-key {
-        height: 55%; /* más corta que la blanca */
+        height: 55%;
         background: #000000;
         border: 1px solid #000;
         top: 0;
         z-index: 5;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
       }
-
-      /* Animación de tecla hundida */
 
       .white-key.active {
         transform: translateY(4px);
@@ -294,8 +297,6 @@
         }
       }
 
-      /* Footer */
-
       .footer {
         margin-top: 18px;
         font-size: 11px;
@@ -306,7 +307,6 @@
   </head>
 
   <body>
-    <!-- HERO / HEADER -->
     <header class="hero">
       <div class="hero-left">
         <h1 class="hero-title">PianoLink</h1>
@@ -324,7 +324,6 @@
       </div>
     </header>
 
-    <!-- Tarjeta: rol e instrucciones -->
     <div class="card" id="roleCard">
       <h2 class="section-title">1. Elige tu rol</h2>
       <div class="section">
@@ -335,7 +334,6 @@
       <div id="roleHelp" class="role-help"></div>
     </div>
 
-    <!-- Tarjeta: sala y mensajes -->
     <div class="card" id="roomCard">
       <h2 class="section-title">2. Conectarse a la misma sala</h2>
       <div class="section">
@@ -347,18 +345,21 @@
         </div>
       </div>
 
-      <div class="section">
-        <h3 class="section-title">Mensaje de prueba (texto)</h3>
-        <button id="enviarPrueba" disabled>Enviar mensaje</button>
+      <div class="section" id="inviteSection">
+        <h3 class="section-title">Generador de link para el alumno</h3>
         <div class="inline-help">
-          Úsalo para comprobar que ambos están conectados antes de tocar MIDI.
+          1) Crea la sala. 2) Copia y envía este link al alumno. 3) El alumno solo abre el link y presiona “Unirse”.
+        </div>
+        <div style="margin-top:6px;">
+          <input id="inviteLink" readonly placeholder="Crea una sala para generar el link" />
+        </div>
+        <div style="margin-top:6px;">
+          <button id="copyInviteBtn">Copiar link</button>
         </div>
       </div>
     </div>
 
-    <!-- Layout 2 columnas: izquierda (nota + piano), derecha (MIDI out + log) -->
     <div class="layout-grid">
-      <!-- Columna izquierda -->
       <div>
         <div class="card" id="noteCard">
           <h2 class="section-title">3. Nota actual</h2>
@@ -379,7 +380,6 @@
         </div>
       </div>
 
-      <!-- Columna derecha -->
       <div>
         <div class="card" id="advancedCard">
           <h2 class="section-title">Opciones avanzadas de salida MIDI</h2>
@@ -422,7 +422,6 @@
       const crearSala = document.getElementById("crearSala");
       const unirseSala = document.getElementById("unirseSala");
       const codigoSala = document.getElementById("codigoSala");
-      const enviarPrueba = document.getElementById("enviarPrueba");
       const logDiv = document.getElementById("log");
       const toggleMidiOut = document.getElementById("toggleMidiOut");
       const midiOutputSelect = document.getElementById("midiOutputSelect");
@@ -431,9 +430,16 @@
       const noteDisplay = document.getElementById("noteDisplay");
       const advancedCard = document.getElementById("advancedCard");
       const logCard = document.getElementById("logCard");
+      const inviteLinkInput = document.getElementById("inviteLink");
+      const copyInviteBtn = document.getElementById("copyInviteBtn");
+      const inviteSection = document.getElementById("inviteSection");
+
+      const teacherRadio = document.querySelector('input[name="rol"][value="teacher"]');
+      const studentRadio = document.querySelector('input[name="rol"][value="student"]');
 
       let rol = "teacher";
       let salaActual = null;
+      let lockStudentFromLink = false; // si entra por link de alumno, bloqueamos cambio a profesor
 
       // MIDI global
       let midiAccessGlobal = null;
@@ -441,13 +447,12 @@
       let midiOutputs = [];
       let enableMidiOut = false;
 
-      // mapa nota → elemento DOM
       const keyElementsByNote = {};
 
       function noteNumberToName(note) {
         const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
         const pc = note % 12;
-        const oct = Math.floor(note / 12) - 1; // C4 = 60
+        const oct = Math.floor(note / 12) - 1;
         return names[pc] + oct;
       }
 
@@ -459,27 +464,71 @@
       function updateRoleUI() {
         if (rol === "teacher") {
           roleHelp.textContent =
-            "Profesor: 1) Deja seleccionado 'Profesor'. 2) Haz clic en 'Crear sala'. 3) Envía el código al alumno (WhatsApp, correo, etc.). 4) Opcional: elige tu salida MIDI y activa la casilla para escuchar al alumno en tu teclado. 5) Puedes usar el log para ver toda la actividad técnica (notas, pedales, etc.).";
+            "Profesor: 1) Deja seleccionado 'Profesor'. 2) Haz clic en 'Crear sala'. 3) Envía el código o el link al alumno. 4) Opcional: elige tu salida MIDI y activa la casilla para escuchar al alumno en tu teclado. 5) Usa el log para ver la actividad técnica (notas, pedales, etc.).";
           advancedCard.classList.remove("hidden");
           logCard.classList.remove("hidden");
+          inviteSection.classList.remove("hidden");
         } else {
           roleHelp.textContent =
-            "Alumno: 1) Elige 'Alumno'. 2) Escribe el código que te entregó el profesor. 3) Haz clic en 'Unirse'. 4) Si quieres, elige una salida MIDI para escuchar al profesor en tu propio teclado. 5) Si no entiendes estas opciones, puedes dejarlas tal como están.";
+            "Alumno: 1) Entra desde el link que te envió tu profesor o elige 'Alumno'. 2) Verifica que el código de sala esté escrito. 3) Haz clic en 'Unirse'. 4) Si quieres, elige una salida MIDI para escuchar al profesor en tu propio teclado.";
           advancedCard.classList.remove("hidden");
-          // Si quisieras ocultar el log para el alumno, podrías:
-          // logCard.classList.add("hidden");
+          inviteSection.classList.add("hidden"); // 👈 el alumno no ve el generador de link
         }
       }
 
+      function updateInviteLink() {
+        if (rol !== "teacher" || !salaActual) {
+          inviteLinkInput.value = "";
+          return;
+        }
+        const url = new URL(window.location.href);
+        url.searchParams.set("role", "student");
+        url.searchParams.set("room", salaActual);
+        inviteLinkInput.value = url.toString();
+      }
+
+      // URL params (link de invitación)
+      (function initFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const urlRole = params.get("role");
+        const urlRoom = params.get("room");
+
+        if (urlRole === "student") {
+          rol = "student";
+          if (studentRadio) studentRadio.checked = true;
+          if (teacherRadio) teacherRadio.checked = false;
+
+          // bloquea que el alumno cambie a profesor si entró por link
+          lockStudentFromLink = true;
+          if (teacherRadio) teacherRadio.disabled = true;
+        }
+
+        if (urlRoom) {
+          codigoSala.value = urlRoom;
+          salaActual = null;
+        }
+
+        updateRoleUI();
+
+        if (urlRole === "student" && urlRoom) {
+          log("Link de invitación detectado: rol alumno, sala " + urlRoom + ". Solo falta presionar 'Unirse'.");
+        }
+      })();
+
+      // Cambio de rol
       document.querySelectorAll('input[name="rol"]').forEach((r) => {
         r.addEventListener("change", (e) => {
+          // si entró como alumno por link, no dejamos cambiar a profesor
+          if (lockStudentFromLink && e.target.value === "teacher") {
+            if (studentRadio) studentRadio.checked = true;
+            return;
+          }
           rol = e.target.value;
           log("Rol cambiado: " + rol);
           updateRoleUI();
+          updateInviteLink();
         });
       });
-
-      updateRoleUI();
 
       toggleMidiOut.addEventListener("change", (e) => {
         enableMidiOut = e.target.checked;
@@ -500,11 +549,33 @@
         }
       });
 
-      // Construir piano 88 teclas en píxeles, más grande
+      copyInviteBtn.addEventListener("click", () => {
+        const value = inviteLinkInput.value.trim();
+        if (!value) {
+          alert("Primero crea una sala para generar el link.");
+          return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard
+            .writeText(value)
+            .then(() => log("Link copiado al portapapeles."))
+            .catch((err) => {
+              log("No se pudo copiar automáticamente el link: " + err.message);
+            });
+        } else {
+          inviteLinkInput.select();
+          try {
+            document.execCommand("copy");
+            log("Link copiado al portapapeles (método clásico).");
+          } catch (e) {
+            log("No se pudo copiar el link automáticamente.");
+          }
+        }
+      });
 
       function build88KeyPiano() {
-        const WHITE_PITCH_CLASSES = [0, 2, 4, 5, 7, 9, 11]; // C, D, E, F, G, A, B
-        const WHITE_KEY_WIDTH = 26; // ancho más grande
+        const WHITE_PITCH_CLASSES = [0, 2, 4, 5, 7, 9, 11];
+        const WHITE_KEY_WIDTH = 26;
         const BLACK_KEY_WIDTH = 16;
 
         const totalWhiteKeys = 52;
@@ -526,7 +597,6 @@
             key.style.left = leftPx + "px";
             key.style.width = WHITE_KEY_WIDTH + "px";
 
-            // Etiquetar solo los Do (C)
             if (pitchClass === 0) {
               const label = document.createElement("div");
               label.className = "note-label";
@@ -537,7 +607,6 @@
             whiteIndex++;
           } else {
             key.classList.add("black-key");
-            // centrada entre dos blancas
             const leftCenter = (whiteIndex - 0.5) * WHITE_KEY_WIDTH;
             const leftPx = leftCenter - BLACK_KEY_WIDTH / 2;
             key.style.left = leftPx + "px";
@@ -550,8 +619,6 @@
       }
 
       build88KeyPiano();
-
-      // MIDI en el navegador
 
       if (navigator.requestMIDIAccess) {
         navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
@@ -590,21 +657,17 @@
         log("❌ No se pudo acceder al MIDI.");
       }
 
-      // Entrada MIDI local (lo que toco YO)
-
       function handleMIDIMessageFromDevice(event) {
         const [status, data1, data2] = event.data;
         const command = status & 0xf0;
 
         if (!salaActual) return;
 
-        // Notas
         if (command === 0x90 || command === 0x80) {
           const note = data1;
           const velocity = data2;
 
-          // canales distintos para profe y alumno
-          const targetChannel = rol === "teacher" ? 1 : 0; // profe -> canal 2, alumno -> canal 1
+          const targetChannel = rol === "teacher" ? 1 : 0;
           const outStatus = (command | targetChannel) & 0xff;
 
           const message = {
@@ -622,7 +685,6 @@
           return;
         }
 
-        // Control Change (pedales, volumen, etc.)
         if (command === 0xb0) {
           const controller = data1;
           const value = data2;
@@ -642,11 +704,10 @@
           return;
         }
 
-        // Pitch Bend
         if (command === 0xe0) {
           const lsb = data1;
           const msb = data2;
-          const value14 = (msb << 7) | lsb; // 0–16383, centro ~8192
+          const value14 = (msb << 7) | lsb;
 
           const message = {
             type: "pitchbend",
@@ -661,11 +722,7 @@
           });
           return;
         }
-
-        // Otros tipos de mensaje se ignoran por ahora
       }
-
-      // Salas
 
       crearSala.addEventListener("click", () => {
         if (rol !== "teacher") {
@@ -678,8 +735,9 @@
         codigoSala.value = codigo;
         salaActual = codigo;
         socket.emit("join-room", codigo);
-        enviarPrueba.disabled = false;
         log("Sala creada: " + codigo);
+
+        updateInviteLink();
       });
 
       unirseSala.addEventListener("click", () => {
@@ -687,36 +745,10 @@
         if (!codigo) return alert("Ingresa código");
         salaActual = codigo;
         socket.emit("join-room", codigo);
-        enviarPrueba.disabled = false;
         log("Unido a sala: " + codigo);
       });
 
-      enviarPrueba.addEventListener("click", () => {
-        if (!salaActual) return alert("Primero crea o únete a una sala.");
-
-        const mensaje = {
-          from: rol,
-          time: Date.now(),
-          text: "Hola desde " + rol,
-          isText: true,
-        };
-
-        socket.emit("midi-message", {
-          roomCode: salaActual,
-          message: mensaje,
-        });
-
-        log("Enviado texto: " + JSON.stringify(mensaje));
-      });
-
-      // Recibir mensajes del servidor
-
       socket.on("midi-message", (msg) => {
-        if (msg.isText) {
-          log("Mensaje texto: " + JSON.stringify(msg));
-          return;
-        }
-
         const soyProfe = rol === "teacher";
         const vieneDeProfe = msg.fromRole === "teacher";
         const deboReproducir =
@@ -724,7 +756,6 @@
           midiOutput &&
           ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
 
-        // Notas
         if (msg.type === "note" && typeof msg.note === "number") {
           const origen = msg.fromRole === "teacher" ? "PROFESOR" : "ALUMNO";
           const nombreNota = noteNumberToName(msg.note);
@@ -748,7 +779,6 @@
           return;
         }
 
-        // Control Change
         if (msg.type === "cc") {
           const origen = msg.fromRole === "teacher" ? "PROFESOR" : "ALUMNO";
           const cc = msg.controller;
@@ -777,7 +807,6 @@
           return;
         }
 
-        // Pitch Bend
         if (msg.type === "pitchbend") {
           const origen = msg.fromRole === "teacher" ? "PROFESOR" : "ALUMNO";
           log(
