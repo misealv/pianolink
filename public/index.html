@@ -213,22 +213,20 @@
         font-size: 13px;
       }
 
-      /* Piano 88 teclas */
+      /* Piano 88 teclas – sin scroll, ajustado al ancho */
 
       .piano-wrapper {
         border: 1px solid #999;
-        overflow-x: auto;
-        overflow-y: hidden;
-        height: 160px;
+        overflow: hidden;
+        height: 120px;
         background: #dde1eb;
         border-radius: 4px;
       }
 
       .piano {
         position: relative;
-        height: 140px;
-        min-width: 800px;
-        margin-top: 8px;
+        width: 100%;
+        height: 100%;
       }
 
       .key {
@@ -237,8 +235,7 @@
       }
 
       .white-key {
-        width: 18px;
-        height: 120px;
+        height: 100%;
         background: #ffffff;
         border: 1px solid #000;
         bottom: 0;
@@ -246,8 +243,7 @@
       }
 
       .black-key {
-        width: 12px;
-        height: 80px;
+        height: 65%;
         background: #000000;
         border: 1px solid #000;
         top: 0;
@@ -367,7 +363,7 @@
             <div id="piano" class="piano"></div>
           </div>
           <div class="inline-help">
-            Las teclas Do (C) están etiquetadas (C2, C3, C4…). Puedes desplazarte horizontalmente para ver todo el teclado.
+            Las teclas Do (C) están etiquetadas (C2, C3, C4…). Todo el teclado entra sin hacer scroll.
           </div>
         </div>
       </div>
@@ -459,9 +455,10 @@
           logCard.classList.remove("hidden");
         } else {
           roleHelp.textContent =
-            "Alumno: 1) Elige 'Alumno'. 2) Escribe el código que te entregó el profesor. 3) Haz clic en 'Unirse'. 4) Si tienes un teclado MIDI, conéctalo antes de entrar. 5) No necesitas tocar las opciones avanzadas: solo toca y escucha.";
-          advancedCard.classList.add("hidden");
-          // Si quieres esconder también el log, descomenta:
+            "Alumno: 1) Elige 'Alumno'. 2) Escribe el código que te entregó el profesor. 3) Haz clic en 'Unirse'. 4) Si quieres, elige una salida MIDI para escuchar al profesor en tu propio teclado. 5) Si no entiendes estas opciones, puedes dejarlas tal como están.";
+          // el alumno también puede configurar salida MIDI
+          advancedCard.classList.remove("hidden");
+          // si quisieras ocultar el log para el alumno, aquí podrías:
           // logCard.classList.add("hidden");
         }
       }
@@ -501,11 +498,14 @@
         }
       });
 
-      // Construir piano 88 teclas
+      // Construir piano 88 teclas – ajustado a 100% de ancho sin scroll
 
       function build88KeyPiano() {
         const WHITE_PITCH_CLASSES = [0, 2, 4, 5, 7, 9, 11]; // C, D, E, F, G, A, B
-        const whiteKeyWidth = 18;
+        const totalWhiteKeys = 52;
+        const whiteWidthPercent = 100 / totalWhiteKeys;
+        const blackWidthPercent = whiteWidthPercent * 0.6;
+
         let whiteIndex = 0;
 
         for (let note = 21; note <= 108; note++) {
@@ -517,8 +517,10 @@
 
           if (isWhite) {
             key.classList.add("white-key");
-            const left = whiteIndex * whiteKeyWidth;
-            key.style.left = left + "px";
+
+            const leftPercent = whiteIndex * whiteWidthPercent;
+            key.style.left = leftPercent + "%";
+            key.style.width = whiteWidthPercent + "%";
 
             // Etiquetar solo los Do (C)
             if (pitchClass === 0) {
@@ -531,15 +533,18 @@
             whiteIndex++;
           } else {
             key.classList.add("black-key");
-            const left = (whiteIndex - 0.5) * whiteKeyWidth;
-            key.style.left = left - 6 + "px";
+
+            // posición centrada entre blancas
+            const leftCenter = (whiteIndex - 0.5) * whiteWidthPercent;
+            const leftPercent = leftCenter - blackWidthPercent / 2;
+
+            key.style.left = leftPercent + "%";
+            key.style.width = blackWidthPercent + "%";
           }
 
           piano.appendChild(key);
           keyElementsByNote[note] = key;
         }
-
-        piano.style.width = whiteIndex * whiteKeyWidth + "px";
       }
 
       build88KeyPiano();
@@ -628,7 +633,7 @@
 
           const message = {
             type: "cc",
-            status,       // mantenemos el status original (canal real)
+            status, // mantenemos el status original (canal real)
             controller,
             value,
             fromRole: rol,
@@ -709,11 +714,6 @@
       });
 
       // Recibir mensajes del servidor
-      // msg puede ser:
-      // - { isText: true, ... }
-      // - { type: "note", ... }
-      // - { type: "cc", ... }
-      // - { type: "pitchbend", ... }
 
       socket.on("midi-message", (msg) => {
         if (msg.isText) {
