@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>PianoLink – Conexión MIDI remota</title>
+    <style>
+      :root {
+        --bg-main: #f5f7fa;
+        --primary: #1976d2;
+        --primary-dark: #0d47a1;
+        --accent: #ffc107;
+        --text-main: #222222;
+        --text-muted: #555555;
+        --card-bg: #ffffff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 20px 16px 40px;
+        background: var(--bg-main);
+        color: var(--text-main);
+      }
+
+      a {
+        color: var(--primary-dark);
+        text-decoration: none;
+      }
+
+      /* Header / Hero */
+
+      .hero {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: #ffffff;
+        border-radius: 14px;
+        padding: 18px 20px 18px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .hero-left {
+        max-width: 520px;
+      }
+
+      .hero-title {
+        margin: 0 0 4px;
+        font-size: 26px;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+      }
+
+      .hero-subtitle {
+        margin: 0 0 8px;
+        font-size: 14px;
+        color: #e3f2fd;
+      }
+
+      .hero-tagline {
+        margin: 0 0 12px;
+        font-size: 13px;
+        color: #bbdefb;
+      }
+
+      .hero-badge {
+        display: inline-block;
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+      }
+
+      .hero-right {
+        text-align: right;
+        min-width: 160px;
+      }
+
+      .hero-project {
+        font-size: 12px;
+        margin-bottom: 6px;
+        opacity: 0.9;
+      }
+
+      .hero-pill {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.15);
+        font-size: 11px;
+      }
+
+      /* Cards / Layout */
+
+      .card {
+        background: var(--card-bg);
+        border-radius: 10px;
+        padding: 12px 16px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        margin-bottom: 16px;
+        border: 1px solid #dde3ec;
+      }
+
+      .section-title {
+        margin-top: 0;
+        margin-bottom: 8px;
+        font-size: 15px;
+        color: var(--primary-dark);
+      }
+
+      .section {
+        margin-bottom: 10px;
+      }
+
+      label {
+        cursor: pointer;
+      }
+
+      .role-help {
+        font-size: 13px;
+        background: #e8f1ff;
+        border-left: 3px solid var(--primary);
+        padding: 8px;
+        margin-top: 6px;
+        border-radius: 4px;
+        color: #143a66;
+      }
+
+      .inline-help {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .log {
+        border: 1px solid #d0d5de;
+        height: 150px;
+        padding: 8px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-size: 12px;
+        background: #fafbff;
+        border-radius: 4px;
+      }
+
+      .log-title {
+        font-size: 13px;
+        margin-bottom: 4px;
+        color: #444;
+      }
+
+      .note-box {
+        border: 1px solid #d0d5de;
+        padding: 6px;
+        font-size: 14px;
+        background: #ffffff;
+        border-radius: 4px;
+      }
+
+      .note-title {
+        font-size: 13px;
+        margin-bottom: 4px;
+        color: #444;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      /* Buttons & inputs */
+
+      button {
+        background: var(--primary);
+        color: #ffffff;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 10px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        background: #b0bec5;
+        cursor: default;
+      }
+
+      button:hover:not(:disabled) {
+        background: var(--primary-dark);
+      }
+
+      input[type="text"],
+      input[type="number"],
+      input[type="search"],
+      input[type="password"],
+      input[type="email"],
+      input[type="url"],
+      input[type="tel"],
+      input[type="time"],
+      input[type="date"],
+      input[type="datetime-local"],
+      #codigoSala {
+        padding: 5px 7px;
+        border-radius: 4px;
+        border: 1px solid #c5cad3;
+        font-size: 13px;
+        min-width: 120px;
+      }
+
+      select {
+        padding: 5px 7px;
+        border-radius: 4px;
+        border: 1px solid #c5cad3;
+        font-size: 13px;
+      }
+
+      /* Piano 88 teclas */
+
+      .piano-wrapper {
+        border: 1px solid #999;
+        overflow-x: auto;
+        overflow-y: hidden;
+        height: 160px;
+        background: #dde1eb;
+        border-radius: 4px;
+      }
+
+      .piano {
+        position: relative;
+        height: 140px;
+        min-width: 800px;
+        margin-top: 8px;
+      }
+
+      .key {
+        position: absolute;
+        box-sizing: border-box;
+      }
+
+      .white-key {
+        width: 18px;
+        height: 120px;
+        background: #ffffff;
+        border: 1px solid #000;
+        bottom: 0;
+        z-index: 1;
+      }
+
+      .black-key {
+        width: 12px;
+        height: 80px;
+        background: #000000;
+        border: 1px solid #000;
+        top: 0;
+        z-index: 5;
+      }
+
+      .key.active {
+        background: var(--accent) !important;
+      }
+
+      .note-label {
+        position: absolute;
+        bottom: 2px;
+        left: 2px;
+        font-size: 8px;
+        color: #333;
+        pointer-events: none;
+      }
+
+      .layout-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+        gap: 16px;
+      }
+
+      @media (max-width: 768px) {
+        .layout-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          text-align: left;
+        }
+
+        .hero-right {
+          text-align: left;
+        }
+      }
+
+      /* Footer */
+
+      .footer {
+        margin-top: 18px;
+        font-size: 11px;
+        text-align: center;
+        color: #777;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- HERO / HEADER -->
+    <header class="hero">
+      <div class="hero-left">
+        <h1 class="hero-title">PianoLink</h1>
+        <p class="hero-subtitle">
+          Conexión MIDI remota en tiempo real entre profesor y alumno.
+        </p>
+        <p class="hero-tagline">
+          Escucha en tu propio piano lo que tu alumno toca a distancia, con un piano visual de 88 teclas y notas en tiempo real.
+        </p>
+        <span class="hero-badge">Compatible con navegadores con Web MIDI (Chrome / Edge)</span>
+      </div>
+      <div class="hero-right">
+        <div class="hero-project">Un proyecto de Miguel Antonio</div>
+        <div class="hero-pill">Clases de instrumento con tecnología MIDI remota</div>
+      </div>
+    </header>
+
+    <!-- Tarjeta: rol e instrucciones -->
+    <div class="card" id="roleCard">
+      <h2 class="section-title">1. Elige tu rol</h2>
+      <div class="section">
+        <label><input type="radio" name="rol" value="teacher" checked /> Profesor</label>
+        &nbsp;&nbsp;
+        <label><input type="radio" name="rol" value="student" /> Alumno</label>
+      </div>
+      <div id="roleHelp" class="role-help"></div>
+    </div>
+
+    <!-- Tarjeta: sala y mensajes -->
+    <div class="card" id="roomCard">
+      <h2 class="section-title">2. Conectarse a la misma sala</h2>
+      <div class="section">
+        <button id="crearSala">Crear sala (solo profesor)</button>
+        <input id="codigoSala" placeholder="Código de sala" />
+        <button id="unirseSala">Unirse</button>
+        <div class="inline-help">
+          El profesor crea la sala y comparte el código con el alumno (WhatsApp, correo, etc.).
+        </div>
+      </div>
+
+      <div class="section">
+        <h3 class="section-title">Mensaje de prueba (texto)</h3>
+        <button id="enviarPrueba" disabled>Enviar mensaje</button>
+        <div class="inline-help">
+          Úsalo para comprobar que ambos están conectados antes de tocar MIDI.
+        </div>
+      </div>
+    </div>
+
+    <!-- Layout 2 columnas: izquierda (nota + piano), derecha (MIDI out + log) -->
+    <div class="layout-grid">
+      <!-- Columna izquierda -->
+      <div>
+        <div class="card" id="noteCard">
+          <h2 class="section-title">3. Nota actual</h2>
+          <div class="note-box" id="noteDisplay">—</div>
+          <div class="inline-help">
+            Aquí verás la nota que está sonando (C4, D#5, etc.) y quién la está tocando (Profesor / Alumno).
+          </div>
+        </div>
+
+        <div class="card" id="pianoCard">
+          <h2 class="section-title">Piano visual (88 teclas A0–C8)</h2>
+          <div class="piano-wrapper">
+            <div id="piano" class="piano"></div>
+          </div>
+          <div class="inline-help">
+            Las teclas Do (C) están etiquetadas (C2, C3, C4…). Puedes desplazarte horizontalmente para ver todo el teclado.
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna derecha -->
+      <div>
+        <div class="card" id="advancedCard">
+          <h2 class="section-title">Opciones avanzadas de salida MIDI</h2>
+          <div class="section">
+            <label>
+              Salida MIDI:
+              <select id="midiOutputSelect">
+                <option value="">(ninguna / automático)</option>
+              </select>
+            </label>
+          </div>
+          <div class="section">
+            <label>
+              <input type="checkbox" id="toggleMidiOut" />
+              Activar salida MIDI a mi teclado (BETA)
+            </label>
+            <div class="inline-help">
+              Si la activas y eliges tu teclado como salida, escucharás en tu instrumento lo que toque la otra persona.
+              No la uses en el mismo puerto que un teclado virtual como VMPK, puede generar loop externo.
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="logCard">
+          <h2 class="section-title">Actividad de la sesión</h2>
+          <div class="log-title">Log</div>
+          <div id="log" class="log"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      PianoLink · Conexión MIDI remota · Un proyecto de Miguel Antonio
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+
+      const crearSala = document.getElementById("crearSala");
+      const unirseSala = document.getElementById("unirseSala");
+      const codigoSala = document.getElementById("codigoSala");
+      const enviarPrueba = document.getElementById("enviarPrueba");
+      const logDiv = document.getElementById("log");
+      const toggleMidiOut = document.getElementById("toggleMidiOut");
+      const midiOutputSelect = document.getElementById("midiOutputSelect");
+      const piano = document.getElementById("piano");
+      const roleHelp = document.getElementById("roleHelp");
+      const noteDisplay = document.getElementById("noteDisplay");
+      const advancedCard = document.getElementById("advancedCard");
+      const logCard = document.getElementById("logCard");
+
+      let rol = "teacher";
+      let salaActual = null;
+
+      // MIDI global
+      let midiAccessGlobal = null;
+      let midiOutput = null;
+      let midiOutputs = [];
+      let enableMidiOut = false;
+
+      // mapa nota → elemento DOM
+      const keyElementsByNote = {};
+
+      // Helpers
+
+      function noteNumberToName(note) {
+        const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const pc = note % 12;
+        const oct = Math.floor(note / 12) - 1; // C4 = 60
+        return names[pc] + oct;
+      }
+
+      function log(msg) {
+        logDiv.textContent += msg + "\n";
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+
+      function updateRoleUI() {
+        if (rol === "teacher") {
+          roleHelp.textContent =
+            "Profesor: 1) Deja seleccionado 'Profesor'. 2) Haz clic en 'Crear sala'. 3) Envía el código al alumno (WhatsApp, correo, etc.). 4) Opcional: elige tu salida MIDI y activa la casilla para escuchar al alumno en tu teclado. 5) Puedes usar el log para ver toda la actividad técnica.";
+          advancedCard.classList.remove("hidden");
+          logCard.classList.remove("hidden");
+        } else {
+          roleHelp.textContent =
+            "Alumno: 1) Elige 'Alumno'. 2) Escribe el código que te entregó el profesor. 3) Haz clic en 'Unirse'. 4) Si tienes un teclado MIDI, conéctalo antes de entrar. 5) No necesitas tocar las opciones avanzadas: solo toca y escucha.";
+          advancedCard.classList.add("hidden");
+          // Si quieres esconder también el log, descomenta:
+          // logCard.classList.add("hidden");
+        }
+      }
+
+      // Cambio de rol
+
+      document.querySelectorAll('input[name="rol"]').forEach((r) => {
+        r.addEventListener("change", (e) => {
+          rol = e.target.value;
+          log("Rol cambiado: " + rol);
+          updateRoleUI();
+        });
+      });
+
+      updateRoleUI(); // inicial
+
+      // Activar/desactivar salida MIDI
+
+      toggleMidiOut.addEventListener("change", (e) => {
+        enableMidiOut = e.target.checked;
+        log(
+          "Salida MIDI a mi teclado: " +
+            (enableMidiOut ? "ACTIVADA" : "desactivada")
+        );
+      });
+
+      // Selección de salida MIDI
+
+      midiOutputSelect.addEventListener("change", (e) => {
+        const idx = e.target.value;
+        if (idx === "" || !midiOutputs[idx]) {
+          midiOutput = null;
+          log("Salida MIDI: ninguna seleccionada");
+        } else {
+          midiOutput = midiOutputs[idx];
+          log("Salida MIDI seleccionada: " + midiOutput.name);
+        }
+      });
+
+      // Construir piano 88 teclas
+
+      function build88KeyPiano() {
+        const WHITE_PITCH_CLASSES = [0, 2, 4, 5, 7, 9, 11]; // C, D, E, F, G, A, B
+        const whiteKeyWidth = 18;
+        let whiteIndex = 0;
+
+        for (let note = 21; note <= 108; note++) {
+          const pitchClass = note % 12;
+          const isWhite = WHITE_PITCH_CLASSES.includes(pitchClass);
+          const key = document.createElement("div");
+          key.dataset.note = note;
+          key.classList.add("key");
+
+          if (isWhite) {
+            key.classList.add("white-key");
+            const left = whiteIndex * whiteKeyWidth;
+            key.style.left = left + "px";
+
+            // Etiquetar solo los Do (C)
+            if (pitchClass === 0) {
+              const label = document.createElement("div");
+              label.className = "note-label";
+              label.textContent = noteNumberToName(note);
+              key.appendChild(label);
+            }
+
+            whiteIndex++;
+          } else {
+            key.classList.add("black-key");
+            const left = (whiteIndex - 0.5) * whiteKeyWidth;
+            key.style.left = left - 6 + "px";
+          }
+
+          piano.appendChild(key);
+          keyElementsByNote[note] = key;
+        }
+
+        piano.style.width = whiteIndex * whiteKeyWidth + "px";
+      }
+
+      build88KeyPiano();
+
+      // MIDI en el navegador
+
+      if (navigator.requestMIDIAccess) {
+        navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+      } else {
+        log("⚠️ Tu navegador no soporta Web MIDI API (usa Chrome).");
+      }
+
+      function onMIDISuccess(midiAccess) {
+        midiAccessGlobal = midiAccess;
+        log("✅ Acceso MIDI concedido.");
+
+        // Entradas locales
+        for (let input of midiAccess.inputs.values()) {
+          input.onmidimessage = handleMIDIMessageFromDevice;
+          log("Entrada MIDI: " + input.name);
+        }
+
+        // Salidas
+        midiOutputs = Array.from(midiAccess.outputs.values());
+        midiOutputSelect.innerHTML =
+          '<option value="">(ninguna / automático)</option>';
+
+        midiOutputs.forEach((out, index) => {
+          const opt = document.createElement("option");
+          opt.value = index;
+          opt.textContent = out.name;
+          midiOutputSelect.appendChild(opt);
+        });
+
+        if (midiOutputs.length === 0) {
+          log("⚠️ No se encontraron salidas MIDI.");
+        } else {
+          log("Salidas MIDI: " + midiOutputs.map((o) => o.name).join(", "));
+        }
+      }
+
+      function onMIDIFailure() {
+        log("❌ No se pudo acceder al MIDI.");
+      }
+
+      // Entrada MIDI local (lo que toco YO)
+
+      function handleMIDIMessageFromDevice(event) {
+        const [status, note, velocity] = event.data;
+
+        const command = status & 0xf0;
+        if (command !== 0x90 && command !== 0x80) {
+          return;
+        }
+
+        if (!salaActual) return;
+
+        // canales distintos
+        const targetChannel = rol === "teacher" ? 1 : 0; // profe -> canal 2, alumno -> canal 1
+        const outStatus = (command | targetChannel) & 0xff;
+
+        const message = {
+          command: outStatus,
+          note,
+          velocity,
+          fromRole: rol,
+        };
+
+        socket.emit("midi-message", {
+          roomCode: salaActual,
+          message,
+        });
+      }
+
+      // Salas
+
+      crearSala.addEventListener("click", () => {
+        if (rol !== "teacher") {
+          alert("La sala la debe crear el profesor.");
+          log("Intento de crear sala desde alumno: bloqueado.");
+          return;
+        }
+
+        const codigo = Math.floor(1000 + Math.random() * 9000).toString();
+        codigoSala.value = codigo;
+        salaActual = codigo;
+        socket.emit("join-room", codigo);
+        enviarPrueba.disabled = false;
+        log("Sala creada: " + codigo);
+      });
+
+      unirseSala.addEventListener("click", () => {
+        const codigo = codigoSala.value.trim();
+        if (!codigo) return alert("Ingresa código");
+        salaActual = codigo;
+        socket.emit("join-room", codigo);
+        enviarPrueba.disabled = false;
+        log("Unido a sala: " + codigo);
+      });
+
+      enviarPrueba.addEventListener("click", () => {
+        if (!salaActual) return alert("Primero crea o únete a una sala.");
+
+        const mensaje = {
+          from: rol,
+          time: Date.now(),
+          text: "Hola desde " + rol,
+          isText: true,
+        };
+
+        socket.emit("midi-message", {
+          roomCode: salaActual,
+          message: mensaje,
+        });
+
+        log("Enviado texto: " + JSON.stringify(mensaje));
+      });
+
+      // Recibir mensajes del servidor
+
+      socket.on("midi-message", (msg) => {
+        if (msg.isText) {
+          log("Mensaje texto: " + JSON.stringify(msg));
+          return;
+        }
+
+        if (typeof msg.note === "number") {
+          const origen = msg.fromRole === "teacher" ? "PROFESOR" : "ALUMNO";
+          const nombreNota = noteNumberToName(msg.note);
+          log(`🎵 MIDI (${origen}) -> ${nombreNota} (nota ${msg.note}), vel ${msg.velocity}`);
+
+          // actualizar display de nota
+          noteDisplay.textContent = `${origen}: ${nombreNota} (MIDI ${msg.note})`;
+
+          const keyEl = keyElementsByNote[msg.note];
+          if (keyEl) {
+            keyEl.classList.add("active");
+            setTimeout(() => keyEl.classList.remove("active"), 200);
+          }
+
+          // regla anti-loop: sólo reproduzco al otro
+          const soyProfe = rol === "teacher";
+          const vieneDeProfe = msg.fromRole === "teacher";
+
+          const deboReproducir =
+            enableMidiOut &&
+            midiOutput &&
+            ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
+
+          if (deboReproducir) {
+            try {
+              midiOutput.send([msg.command, msg.note, msg.velocity]);
+            } catch (e) {
+              log("⚠️ Error MIDI OUT: " + e.message);
+            }
+          }
+        } else {
+          log("Mensaje recibido: " + JSON.stringify(msg));
+        }
+      });
+    </script>
+  </body>
+</html>
