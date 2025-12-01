@@ -297,9 +297,6 @@
   <!-- ===========================  SCRIPT  ====================== -->
   <!-- ========================================================== -->
   <script>
-    /* -----------------------------------------------------------
-     *  CONNECT
-     * --------------------------------------------------------- */
     const socket = io();
 
     const statusDiv = document.getElementById("status");
@@ -312,7 +309,6 @@
     const piano = document.getElementById("piano");
     const panicBtn = document.getElementById("panicBtn");
 
-    const participantsCard = document.getElementById("participantsCard");
     const participantsList = document.getElementById("participantsList");
 
     const logDiv = document.getElementById("log");
@@ -327,6 +323,13 @@
     let participants = [];
     let listeningTo = new Set();
 
+    let midiOutput = null;
+    let midiAccess = null;
+    let enableMidiOut = false;
+
+    /* -----------------------------------------------------------
+     *  CONEXIÓN SOCKET.IO
+     * --------------------------------------------------------- */
     socket.on("connect", () => {
       mySocketId = socket.id;
       updateStatus("Conectado ✔️");
@@ -336,8 +339,17 @@
       updateStatus("Error de conexión: " + err.message);
     });
 
+    socket.on("room-users", (users) => {
+      participants = users || [];
+      renderParticipants();
+    });
+
+    socket.on("midi-message", (msg) => {
+      handleRemoteOrLocalNote(msg);
+    });
+
     /* -----------------------------------------------------------
-     *  UTILIDADES
+     *  UTILIDADES UI
      * --------------------------------------------------------- */
     function log(msg) {
       const el = document.createElement("div");
@@ -352,7 +364,20 @@
 
     function updateInviteLink() {
       if (!salaActual) return;
-      inviteLink.textContent = "Link para alumnos: " + window.location.origin + "/?sala=" + salaActual;
+      inviteLink.textContent =
+        "Link para alumnos: " + window.location.origin + "/?sala=" + salaActual;
+    }
+
+    function updateRoleIndicator() {
+      if (rol === "teacher") {
+        roleIndicator.textContent = "Profesor";
+        roleIndicator.style.background = getComputedStyle(document.documentElement)
+          .getPropertyValue("--prof-color");
+      } else {
+        roleIndicator.textContent = "Alumno";
+        roleIndicator.style.background = getComputedStyle(document.documentElement)
+          .getPropertyValue("--alum-color");
+      }
     }
 
     /* -----------------------------------------------------------
@@ -361,18 +386,16 @@
     document.querySelectorAll("input[name=rol]").forEach(r => {
       r.addEventListener("change", () => {
         rol = r.value;
-        document.getElementById("cardCrearSala").style.display = (rol === "teacher") ? "block" : "none";
+        document.getElementById("cardCrearSala").style.display =
+          (rol === "teacher") ? "block" : "none";
+        updateRoleIndicator();
       });
     });
+    updateRoleIndicator();
 
     /* -----------------------------------------------------------
-     *  SOCKET: LISTA DE USERS
+     *  PARTICIPANTES
      * --------------------------------------------------------- */
-    socket.on("room-users", (users) => {
-      participants = users || [];
-      renderParticipants();
-    });
-
     function renderParticipants() {
       participantsList.innerHTML = "";
       if (!participants.length) {
@@ -427,14 +450,13 @@
     }
 
     /* -----------------------------------------------------------
-     *  CREAR SALA
+     *  CREAR / UNIR SALA
      * --------------------------------------------------------- */
     btnCrear.addEventListener("click", () => {
       const name = inputName.value.trim();
       if (!name) return alert("Ingresa tu nombre.");
 
       myName = name;
-
       socket.emit("create-room", { username: name, userRole: "teacher" });
       log("Creando sala…");
     });
@@ -445,9 +467,6 @@
       log("Sala creada: " + roomCode);
     });
 
-    /* -----------------------------------------------------------
-     *  UNIRSE A SALA
-     * --------------------------------------------------------- */
     btnUnirse.addEventListener("click", () => {
       const name = inputName.value.trim();
       if (!name) return alert("Ingresa tu nombre.");
@@ -468,22 +487,24 @@
     });
 
     /* -----------------------------------------------------------
-     *  AUDIO / WEB MIDI
+     *  WEB MIDI
      * --------------------------------------------------------- */
-    let midiOutput = null;
-    let midiAccess = null;
-    let enableMidiOut = false;
-
     if (navigator.requestMIDIAccess) {
       navigator.requestMIDIAccess().then(onMIDISuccess, err => {
         log("No se pudo acceder al MIDI:" + err);
       });
+    } else {
+      log("Este navegador no soporta Web MIDI.");
     }
 
     function onMIDISuccess(access) {
       midiAccess = access;
       refreshOutputs();
-      access.onstatechange = refreshOutputs;
+      attachInputListeners();
+      access.onstatechange = () => {
+        refreshOutputs();
+        attachInputListeners();
+      };
     }
 
     function refreshOutputs() {
@@ -498,6 +519,13 @@
       }
     }
 
+    function attachInputListeners() {
+      if (!midiAccess) return;
+      for (let input of midiAccess.inputs.values()) {
+        input.onmidimessage = handleLocalMIDIMessage;
+      }
+    }
+
     midiOutputSelect.addEventListener("change", () => {
       const id = midiOutputSelect.value;
       midiOutput = id ? midiAccess.outputs.get(id) : null;
@@ -507,8 +535,61 @@
       enableMidiOut = toggleMidiOut.checked;
     });
 
+    function handleLocalMIDIMessage(event) {
+      const [status, data1, data2] = event.data;
+      const cmd = status & 0xf0;
+      const note = data1;
+      const velocity = data2;
+
+      // Notas
+      if (cmd === 0x90 || cmd === 0x80) {
+        const isNoteOn = (cmd === 0x90 && velocity > 0);
+        lightKey(note, isNoteOn);
+
+        // Sonar localmente en mi propio teclado
+        if (enableMidiOut && midiOutput) {
+          try {
+            midiOutput.send([cmd, note, velocity]);
+          } catch(e){}
+        }
+
+        // Enviar por la sala
+        if (salaActual) {
+          socket.emit("midi-message", {
+            type: "note",
+            command: cmd,
+            note,
+            velocity,
+            fromRole: rol,
+            roomCode: salaActual
+          });
+        }
+      }
+
+      // Control Change (ej. pedal)
+      if (cmd === 0xB0) {
+        const controller = data1;
+        const value = data2;
+
+        if (controller === 64) {
+          updatePedalVisual(value);
+        }
+
+        if (salaActual) {
+          socket.emit("midi-message", {
+            type: "cc",
+            status,
+            controller,
+            value,
+            fromRole: rol,
+            roomCode: salaActual
+          });
+        }
+      }
+    }
+
     /* -----------------------------------------------------------
-     *  PIANO UI
+     *  PIANO VISUAL
      * --------------------------------------------------------- */
     buildPiano();
 
@@ -548,12 +629,8 @@
     }
 
     /* -----------------------------------------------------------
-     *  MIDI ENTRANTE REMOTO
+     *  MIDI REMOTO (RECEPCIÓN)
      * --------------------------------------------------------- */
-    socket.on("midi-message", (msg) => {
-      handleRemoteOrLocalNote(msg);
-    });
-
     function handleRemoteOrLocalNote(msg) {
       let cmd, note, velocity, role, type, fromSocketId = msg.fromSocketId || null;
 
@@ -582,645 +659,7 @@
       let deboReproducir = enableMidiOut && midiOutput &&
         ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
 
-      if (deboReproducir && soyProfe && !vieneDeProfe) {
-        if (listeningTo.size > 0 && fromSocketId && !listeningTo.has(fromSocketId)) {
-          deboReproducir = false;
-        }
-      }
-
-      if (deboReproducir) {
-        try {
-          midiOutput.send([isNoteOn ? 0x90 : 0x80, note, velocity]);
-        } catch(e){}
-      }
-    }
-
-    function handleOtherMessages(msg) {
-      if (msg.type === "raw_midi") { 
-        if ((msg.command & 0xf0) === 0xb0 && msg.note === 64)
-          updatePedalVisual(msg.velocity);
-        return;
-      }
-
-      if (msg.type === "cc" && msg.controller === 64) {
-        updatePedalVisual(msg.value);
-      }
-
-      const soyProfe = (rol === "teacher");
-      const vieneDeProfe = (msg.fromRole === "teacher");
-
-      let deboReproducir = enableMidiOut && midiOutput &&
-        ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
-
-      if (deboReproducir && soyProfe && !vieneDeProfe) {
-        if (listeningTo.size > 0 && msg.fromSocketId && !listeningTo.has(msg.fromSocketId)) {
-          deboReproducir = false;
-        }
-      }
-
-      if (deboReproducir && msg.type === "cc") {
-        midiOutput.send([msg.status, msg.controller, msg.value]);
-      }
-    }
-
-    /* -----------------------------------------------------------
-     *  PANIC
-     * --------------------------------------------------------- */
-    panicBtn.addEventListener("click", () => {
-      if (!midiOutput) return;
-      for (let n=0; n<128; n++) {
-        midiOutput.send([0x80, n, 0]);
-      }
-      log("Panic: All Notes Off");
-    });
-  </script>
-
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PianoLink Multi-Alumno</title>
-
-  <style>
-    :root {
-      --bg: #f9f9f9;
-      --card-bg: #ffffff;
-      --border: #ddd;
-      --text: #333;
-      --text-muted: #888;
-      --accent: #087ea4;
-      --accent-hover: #066a8d;
-      --danger: #c0392b;
-      --success: #2ecc71;
-      --warning: #f39c12;
-      --prof-color: #cf6a87;  /* Profe = rosado */
-      --alum-color: #f6b93b;  /* Alumno = amarillo */
-      --piano-black: #333;
-      --piano-white: #fff;
-      --note-on-color: #ffdd57;
-    }
-
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      display: flex;
-      justify-content: center;
-    }
-
-    .container {
-      max-width: 1280px;
-      padding: 20px;
-      display: grid;
-      grid-template-columns: 1fr 350px;
-      gap: 20px;
-    }
-
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-
-    h1, h2, h3 {
-      margin: 0 0 15px;
-    }
-
-    .section {
-      margin-bottom: 20px;
-    }
-
-    input[type=text], input[type=number], select, button {
-      font-size: 16px;
-      padding: 8px;
-      margin-top: 5px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    button {
-      background: var(--accent);
-      border: none;
-      border-radius: 6px;
-      color: #fff;
-      cursor: pointer;
-      transition: 0.15s;
-    }
-
-    button:hover {
-      background: var(--accent-hover);
-    }
-
-    #status {
-      font-size: 14px;
-      margin-top: 10px;
-    }
-
-    .role-indicator {
-      font-weight: bold;
-      padding: 6px 10px;
-      border-radius: 6px;
-      color: #fff;
-      display: inline-block;
-      margin-bottom: 10px;
-    }
-
-    #piano {
-      display: flex;
-      position: relative;
-      height: 180px;
-      background: #aaa;
-      border-radius: 12px;
-    }
-
-    .key {
-      border: 1px solid #333;
-      position: relative;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .white {
-      width: 40px;
-      height: 180px;
-      background: var(--piano-white);
-      z-index: 1;
-    }
-
-    .black {
-      width: 28px;
-      height: 120px;
-      background: var(--piano-black);
-      position: absolute;
-      left: 28px;
-      z-index: 2;
-    }
-
-    .note-active {
-      background: var(--note-on-color) !important;
-    }
-
-    #pedalIndicator {
-      width: 100%;
-      height: 10px;
-      background: var(--border);
-      border-radius: 4px;
-      margin-top: 10px;
-      transition: background 0.2s;
-    }
-
-    #pedalIndicator.active {
-      background: var(--success);
-    }
-
-    .log {
-      font-family: monospace;
-      font-size: 13px;
-      height: 180px;
-      overflow-y: auto;
-      background: #fafafa;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 10px;
-    }
-
-    .inline-help {
-      color: var(--text-muted);
-      font-size: 13px;
-    }
-
-    /* --- Participantes --- */
-    #participantsCard {
-      margin-top: 10px;
-    }
-
-    .participants-list {
-      max-height: 160px;
-      overflow-y: auto;
-      font-size: 13px;
-      margin-top: 6px;
-    }
-
-    .participant-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 4px 0;
-      border-bottom: 1px solid #eee;
-    }
-
-    .participant-name {
-      font-weight: 500;
-    }
-
-    .participant-role {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-left: 6px;
-    }
-
-    .participant-controls {
-      font-size: 12px;
-      white-space: nowrap;
-    }
-  </style>
-
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-</head>
-
-<body>
-  <div class="container">
-
-    <!-- ====================================================== -->
-    <!-- =====================  COLUMNA IZQUIERDA  ============= -->
-    <!-- ====================================================== -->
-    <div>
-
-      <!-- =====================  HEADER  ======================= -->
-      <div class="card">
-        <h1>PianoLink</h1>
-        <div id="status" class="inline-help">Desconectado</div>
-      </div>
-
-      <!-- =====================  SELECCIÓN DE ROL  ============= -->
-      <div class="card">
-        <h2>Selecciona tu rol</h2>
-        <div>
-          <label><input type="radio" name="rol" value="teacher" /> Profesor</label><br>
-          <label><input type="radio" name="rol" value="student" checked /> Alumno</label>
-        </div>
-
-        <div class="section">
-          <label>Tu nombre:
-            <input type="text" id="inputName" placeholder="Ej: Miguel" />
-          </label>
-        </div>
-      </div>
-
-      <!-- =====================  CREAR SALA ==================== -->
-      <div class="card" id="cardCrearSala" style="display:none;">
-        <h2>Crear Sala</h2>
-        <button id="btnCrear">Crear sala nueva</button>
-        <div id="inviteLink" class="inline-help" style="margin-top:12px;"></div>
-      </div>
-
-      <!-- =====================  UNIRSE A SALA ================= -->
-      <div class="card" id="cardUnirseSala">
-        <h2>Unirse a una Sala</h2>
-        <label>Código:
-          <input type="text" id="codigoSala" maxlength="4" placeholder="ABCD" />
-        </label>
-        <button id="btnUnirse">Unirse</button>
-      </div>
-
-      <!-- =====================  SECCIÓN PIANO ================= -->
-      <div class="card">
-        <h2>Piano</h2>
-        <div id="roleIndicator" class="role-indicator"></div>
-        <div id="piano"></div>
-        <div id="pedalIndicator"></div>
-
-        <button id="panicBtn" style="margin-top:10px;background:var(--danger);">PANIC</button>
-      </div>
-
-    </div>
-
-    <!-- ====================================================== -->
-    <!-- =====================  COLUMNA DERECHA  ============== -->
-    <!-- ====================================================== -->
-    <div>
-
-      <!-- =====================  OPCIONES AVANZADAS ============ -->
-      <div class="card">
-        <h2>Opciones</h2>
-
-        <div class="section">
-          <label>Salida MIDI:
-            <select id="midiOutputSelect">
-              <option value="">(ninguna)</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="section">
-          <label><input type="checkbox" id="toggleMidiOut" /> Activar salida MIDI</label>
-        </div>
-      </div>
-
-      <!-- =====================  PARTICIPANTES ================= -->
-      <div class="card" id="participantsCard">
-        <h2>Participantes</h2>
-        <div id="participantsList" class="participants-list">
-          <div class="inline-help">Cuando seas profesor, aquí podrás elegir qué alumnos escuchar.</div>
-        </div>
-      </div>
-
-      <!-- =====================  LOG =========================== -->
-      <div class="card">
-        <h2>Log</h2>
-        <div id="log" class="log"></div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ========================================================== -->
-  <!-- ===========================  SCRIPT  ====================== -->
-  <!-- ========================================================== -->
-  <script>
-    /* -----------------------------------------------------------
-     *  CONNECT
-     * --------------------------------------------------------- */
-    const socket = io();
-
-    const statusDiv = document.getElementById("status");
-    const inputName = document.getElementById("inputName");
-    const codigoSala = document.getElementById("codigoSala");
-    const btnCrear = document.getElementById("btnCrear");
-    const btnUnirse = document.getElementById("btnUnirse");
-    const inviteLink = document.getElementById("inviteLink");
-    const roleIndicator = document.getElementById("roleIndicator");
-    const piano = document.getElementById("piano");
-    const panicBtn = document.getElementById("panicBtn");
-
-    const participantsCard = document.getElementById("participantsCard");
-    const participantsList = document.getElementById("participantsList");
-
-    const logDiv = document.getElementById("log");
-    const toggleMidiOut = document.getElementById("toggleMidiOut");
-    const midiOutputSelect = document.getElementById("midiOutputSelect");
-
-    let rol = "student";
-    let myName = "";
-    let salaActual = null;
-
-    let mySocketId = null;
-    let participants = [];
-    let listeningTo = new Set();
-
-    socket.on("connect", () => {
-      mySocketId = socket.id;
-      updateStatus("Conectado ✔️");
-    });
-
-    socket.on("connect_error", (err) => {
-      updateStatus("Error de conexión: " + err.message);
-    });
-
-    /* -----------------------------------------------------------
-     *  UTILIDADES
-     * --------------------------------------------------------- */
-    function log(msg) {
-      const el = document.createElement("div");
-      el.textContent = msg;
-      logDiv.appendChild(el);
-      logDiv.scrollTop = logDiv.scrollHeight;
-    }
-
-    function updateStatus(msg) {
-      statusDiv.textContent = msg;
-    }
-
-    function updateInviteLink() {
-      if (!salaActual) return;
-      inviteLink.textContent = "Link para alumnos: " + window.location.origin + "/?sala=" + salaActual;
-    }
-
-    /* -----------------------------------------------------------
-     *  ROL
-     * --------------------------------------------------------- */
-    document.querySelectorAll("input[name=rol]").forEach(r => {
-      r.addEventListener("change", () => {
-        rol = r.value;
-        document.getElementById("cardCrearSala").style.display = (rol === "teacher") ? "block" : "none";
-      });
-    });
-
-    /* -----------------------------------------------------------
-     *  SOCKET: LISTA DE USERS
-     * --------------------------------------------------------- */
-    socket.on("room-users", (users) => {
-      participants = users || [];
-      renderParticipants();
-    });
-
-    function renderParticipants() {
-      participantsList.innerHTML = "";
-      if (!participants.length) {
-        const d = document.createElement("div");
-        d.className = "inline-help";
-        d.textContent = "Aún no hay participantes.";
-        participantsList.appendChild(d);
-        return;
-      }
-
-      const soyProfe = (rol === "teacher");
-
-      participants.forEach(u => {
-        const row = document.createElement("div");
-        row.className = "participant-row";
-
-        const left = document.createElement("div");
-        const n = document.createElement("span");
-        n.className = "participant-name";
-        n.textContent = u.name;
-        const r = document.createElement("span");
-        r.className = "participant-role";
-        r.textContent = (u.role === "teacher" ? "Profesor" : "Alumno");
-        left.appendChild(n);
-        left.appendChild(r);
-
-        const right = document.createElement("div");
-        right.className = "participant-controls";
-
-        if (soyProfe && u.role !== "teacher" && u.socketId !== mySocketId) {
-          const label = document.createElement("label");
-          const cb = document.createElement("input");
-          cb.type = "checkbox";
-          cb.checked = (listeningTo.size === 0) || listeningTo.has(u.socketId);
-          cb.addEventListener("change", () => toggleListen(u.socketId, cb.checked));
-          label.appendChild(cb);
-          label.appendChild(document.createTextNode(" Escuchar"));
-          right.appendChild(label);
-        } else if (u.socketId === mySocketId) {
-          right.textContent = "Tú";
-        }
-
-        row.appendChild(left);
-        row.appendChild(right);
-        participantsList.appendChild(row);
-      });
-    }
-
-    function toggleListen(id, checked) {
-      if (checked) listeningTo.add(id);
-      else listeningTo.delete(id);
-    }
-
-    /* -----------------------------------------------------------
-     *  CREAR SALA
-     * --------------------------------------------------------- */
-    btnCrear.addEventListener("click", () => {
-      const name = inputName.value.trim();
-      if (!name) return alert("Ingresa tu nombre.");
-
-      myName = name;
-
-      socket.emit("create-room", { username: name, userRole: "teacher" });
-      log("Creando sala…");
-    });
-
-    socket.on("room-created", (roomCode) => {
-      salaActual = roomCode;
-      updateInviteLink();
-      log("Sala creada: " + roomCode);
-    });
-
-    /* -----------------------------------------------------------
-     *  UNIRSE A SALA
-     * --------------------------------------------------------- */
-    btnUnirse.addEventListener("click", () => {
-      const name = inputName.value.trim();
-      if (!name) return alert("Ingresa tu nombre.");
-      const code = codigoSala.value.trim().toUpperCase();
-      if (!code) return alert("Ingresa el código.");
-
-      myName = name;
-      salaActual = code;
-
-      socket.emit("join-room", {
-        roomCode: code,
-        username: name,
-        userRole: rol
-      });
-
-      log("Uniéndose a sala " + code + " como " + rol + "…");
-      updateInviteLink();
-    });
-
-    /* -----------------------------------------------------------
-     *  AUDIO / WEB MIDI
-     * --------------------------------------------------------- */
-    let midiOutput = null;
-    let midiAccess = null;
-    let enableMidiOut = false;
-
-    if (navigator.requestMIDIAccess) {
-      navigator.requestMIDIAccess().then(onMIDISuccess, err => {
-        log("No se pudo acceder al MIDI:" + err);
-      });
-    }
-
-    function onMIDISuccess(access) {
-      midiAccess = access;
-      refreshOutputs();
-      access.onstatechange = refreshOutputs;
-    }
-
-    function refreshOutputs() {
-      midiOutputSelect.innerHTML = '<option value="">(ninguna)</option>';
-      if (!midiAccess) return;
-
-      for (let output of midiAccess.outputs.values()) {
-        const opt = document.createElement("option");
-        opt.value = output.id;
-        opt.textContent = output.name;
-        midiOutputSelect.appendChild(opt);
-      }
-    }
-
-    midiOutputSelect.addEventListener("change", () => {
-      const id = midiOutputSelect.value;
-      midiOutput = id ? midiAccess.outputs.get(id) : null;
-    });
-
-    toggleMidiOut.addEventListener("change", () => {
-      enableMidiOut = toggleMidiOut.checked;
-    });
-
-    /* -----------------------------------------------------------
-     *  PIANO UI
-     * --------------------------------------------------------- */
-    buildPiano();
-
-    function buildPiano() {
-      piano.innerHTML = "";
-      const whiteNotes = [0,2,4,5,7,9,11];
-      let x = 0;
-
-      for (let i=21; i<=108; i++) {
-        const isWhite = whiteNotes.includes(i % 12);
-        const key = document.createElement("div");
-        key.className = "key " + (isWhite ? "white" : "black");
-        key.dataset.note = i;
-
-        if (isWhite) {
-          key.style.left = x + "px";
-          piano.appendChild(key);
-          x += 40;
-        } else {
-          key.style.left = (x - 28) + "px";
-          piano.appendChild(key);
-        }
-      }
-    }
-
-    function lightKey(note, on=true) {
-      const k = piano.querySelector(`.key[data-note='${note}']`);
-      if (!k) return;
-      if (on) k.classList.add("note-active");
-      else k.classList.remove("note-active");
-    }
-
-    function updatePedalVisual(value) {
-      const pedal = document.getElementById("pedalIndicator");
-      if (value >= 64) pedal.classList.add("active");
-      else pedal.classList.remove("active");
-    }
-
-    /* -----------------------------------------------------------
-     *  MIDI ENTRANTE REMOTO
-     * --------------------------------------------------------- */
-    socket.on("midi-message", (msg) => {
-      handleRemoteOrLocalNote(msg);
-    });
-
-    function handleRemoteOrLocalNote(msg) {
-      let cmd, note, velocity, role, type, fromSocketId = msg.fromSocketId || null;
-
-      if (msg.type === "raw_midi") {
-        cmd = msg.command;
-        note = msg.note;
-        velocity = msg.velocity;
-        role = msg.fromRole;
-        type = "raw";
-      } else if (msg.type === "note") {
-        cmd = msg.command & 0xf0;
-        note = msg.note;
-        velocity = msg.velocity;
-        role = msg.fromRole;
-        type = "remote";
-      } else {
-        return handleOtherMessages(msg);
-      }
-
-      const isNoteOn = (cmd === 0x90 && velocity > 0);
-      lightKey(note, isNoteOn);
-
-      const soyProfe = (rol === "teacher");
-      const vieneDeProfe = (role === "teacher");
-
-      let deboReproducir = enableMidiOut && midiOutput &&
-        ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
-
+      // Filtro por alumno en el profe
       if (deboReproducir && soyProfe && !vieneDeProfe) {
         if (listeningTo.size > 0 && fromSocketId && !listeningTo.has(fromSocketId)) {
           deboReproducir = false;
