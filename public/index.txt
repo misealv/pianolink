@@ -99,43 +99,6 @@
         font-size: 11px;
       }
 
-      /* ESTILOS DE ESTADO DE CONEXIÓN */
-      .status-badge {
-        display: inline-block;
-        padding: 6px 12px;
-        border-radius: 99px;
-        font-size: 12px;
-        font-weight: bold;
-        margin-top: 8px; /* Separación del pill anterior */
-        transition: all 0.3s ease;
-        text-align: center;
-      }
-
-      .status-connected {
-        background-color: #e6fffa;
-        color: #047481;
-        border: 1px solid #b2f5ea;
-      }
-
-      .status-disconnected {
-        background-color: #fff5f5;
-        color: #c53030;
-        border: 1px solid #feb2b2;
-        animation: pulse-red 2s infinite;
-      }
-
-      .status-connecting {
-        background-color: #fffaf0;
-        color: #c05621;
-        border: 1px solid #fbd38d;
-      }
-
-      @keyframes pulse-red {
-        0% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
-        70% { box-shadow: 0 0 0 6px rgba(229, 62, 62, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
-      }
-
       /* Cards / Layout */
 
       .card {
@@ -358,11 +321,6 @@
       <div class="hero-right">
         <div class="hero-project">Un proyecto de Miguel Antonio</div>
         <div class="hero-pill">Clases de instrumento con tecnología MIDI remota</div>
-        
-        <br>
-        <div id="connectionStatus" class="status-badge status-connecting">
-          Conectando...
-        </div>
       </div>
     </header>
 
@@ -475,7 +433,6 @@
       const inviteLinkInput = document.getElementById("inviteLink");
       const copyInviteBtn = document.getElementById("copyInviteBtn");
       const inviteSection = document.getElementById("inviteSection");
-      const statusEl = document.getElementById("connectionStatus");
 
       const teacherRadio = document.querySelector('input[name="rol"][value="teacher"]');
       const studentRadio = document.querySelector('input[name="rol"][value="student"]');
@@ -491,59 +448,6 @@
       let enableMidiOut = false;
 
       const keyElementsByNote = {};
-
-      // ============================================
-      // LOGICA DE ESTADO DE CONEXIÓN
-      // ============================================
-      function updateStatus(state) {
-        statusEl.className = "status-badge"; // Reiniciar clases
-        
-        if (state === "connected") {
-          statusEl.classList.add("status-connected");
-          statusEl.textContent = "🟢 Conectado";
-          log("✅ Conexión establecida con el servidor.");
-        } else if (state === "disconnected") {
-          statusEl.classList.add("status-disconnected");
-          statusEl.textContent = "🔴 Desconectado";
-          log("❌ Se perdió la conexión. Intentando reconectar...");
-        } else if (state === "connecting") {
-          statusEl.classList.add("status-connecting");
-          statusEl.textContent = "🟡 Conectando...";
-        }
-      }
-
-      // Eventos de conexión Socket.io
-      socket.on("connect", () => {
-        updateStatus("connected");
-        // Si teníamos una sala antes de desconectarnos, intentamos volver
-        if (salaActual) {
-          log("Reconectando a la sala: " + salaActual);
-          socket.emit("join-room", salaActual);
-        }
-      });
-
-      socket.on("disconnect", (reason) => {
-        updateStatus("disconnected");
-        console.log("Desconectado por:", reason);
-      });
-
-      socket.on("connect_error", () => {
-        updateStatus("disconnected");
-      });
-
-      socket.on("reconnect_attempt", () => {
-        updateStatus("connecting");
-        log("🔄 Intentando reconectar...");
-      });
-
-      // Keep-Alive para Render (Ping cada 25s)
-      setInterval(() => {
-        if (socket.connected) {
-          socket.emit("ping_keep_alive"); // Mensaje vacío para mantener tráfico
-        }
-      }, 25000);
-
-      // ============================================
 
       function noteNumberToName(note) {
         const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -568,7 +472,7 @@
           roleHelp.textContent =
             "Alumno: 1) Entra desde el link que te envió tu profesor o elige 'Alumno'. 2) Verifica que el código de sala esté escrito. 3) Haz clic en 'Unirse'. 4) Si quieres, elige una salida MIDI para escuchar al profesor en tu propio teclado.";
           advancedCard.classList.remove("hidden");
-          inviteSection.classList.add("hidden"); 
+          inviteSection.classList.add("hidden"); // 👈 el alumno no ve el generador de link
         }
       }
 
@@ -594,6 +498,7 @@
           if (studentRadio) studentRadio.checked = true;
           if (teacherRadio) teacherRadio.checked = false;
 
+          // bloquea que el alumno cambie a profesor si entró por link
           lockStudentFromLink = true;
           if (teacherRadio) teacherRadio.disabled = true;
         }
@@ -613,6 +518,7 @@
       // Cambio de rol
       document.querySelectorAll('input[name="rol"]').forEach((r) => {
         r.addEventListener("change", (e) => {
+          // si entró como alumno por link, no dejamos cambiar a profesor
           if (lockStudentFromLink && e.target.value === "teacher") {
             if (studentRadio) studentRadio.checked = true;
             return;
