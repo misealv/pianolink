@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PianoLink</title>
+  <title>Piano Link</title>
 
   <style>
     :root {
-      --bg: #f9f9f9;
+      --bg: #f5f5f7;
       --card-bg: #ffffff;
       --border: #ddd;
       --text: #333;
@@ -24,7 +24,8 @@
     body {
       margin: 0;
       padding: 0;
-      font-family: system-ui, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: --bg;
       background-color: var(--bg);
       color: var(--text);
       display: flex;
@@ -32,32 +33,56 @@
     }
 
     .container {
-      max-width: 1280px;
-      padding: 20px;
+      width: 100%;
+      max-width: 1100px;
+      padding: 16px;
       display: grid;
-      grid-template-columns: 1fr 350px;
-      gap: 20px;
+      grid-template-columns: 3fr 2fr;
+      gap: 16px;
+      box-sizing: border-box;
     }
 
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
     }
 
-    h1, h2 {
-      margin: 0 0 15px;
+    h1 {
+      margin: 0 0 6px;
+      font-size: 32px;
+      letter-spacing: 0.03em;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      margin-bottom: 8px;
+    }
+
+    .author-tag {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-style: italic;
     }
 
     .section {
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
-    input[type=text], select, button {
-      font-size: 16px;
+    input[type=text],
+    select,
+    button {
+      font-size: 15px;
       padding: 8px;
       margin-top: 5px;
       width: 100%;
@@ -78,30 +103,31 @@
     }
 
     #status {
-      font-size: 14px;
-      margin-top: 10px;
+      font-size: 13px;
+      margin-top: 8px;
     }
 
     .role-indicator {
       font-weight: bold;
-      padding: 6px 10px;
-      border-radius: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
       color: #fff;
       display: inline-block;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
+      font-size: 13px;
     }
 
     .inline-help {
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 12px;
     }
 
     #pedalIndicator {
       width: 100%;
-      height: 10px;
+      height: 8px;
       background: var(--border);
       border-radius: 4px;
-      margin-top: 8px;
+      margin-top: 6px;
       transition: background 0.2s;
     }
     #pedalIndicator.active {
@@ -110,21 +136,21 @@
 
     .log {
       font-family: monospace;
-      font-size: 13px;
-      height: 180px;
+      font-size: 12px;
+      height: 150px;
       overflow-y: auto;
       background: #fafafa;
       border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 10px;
+      padding: 8px;
     }
 
-    /* Piano 88 teclas con scroll horizontal */
+    /* Piano 88 teclas más compacto con scroll horizontal */
     .piano-wrapper {
       border: 1px solid #999;
       overflow-x: auto;
       overflow-y: hidden;
-      height: 180px;
+      height: 150px;
       background: #dde1eb;
       border-radius: 4px;
       margin-top: 6px;
@@ -160,7 +186,7 @@
     }
 
     .key.note-active {
-      transform: translateY(3px);
+      transform: translateY(2px);
       background-color: var(--note-on-color);
     }
 
@@ -168,8 +194,8 @@
     .participants-list {
       max-height: 160px;
       overflow-y: auto;
-      font-size: 13px;
-      margin-top: 6px;
+      font-size: 12px;
+      margin-top: 4px;
     }
 
     .participant-row {
@@ -191,8 +217,59 @@
     }
 
     .participant-controls {
-      font-size: 12px;
+      font-size: 11px;
       white-space: nowrap;
+    }
+
+    /* Fila de enlace de invitación + botón copiar */
+    .invite-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    #inviteLink {
+      flex: 1;
+      min-width: 180px;
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    #copyLinkBtn {
+      flex-shrink: 0;
+      width: auto;
+      font-size: 12px;
+      padding: 6px 10px;
+    }
+
+    #copyStatus {
+      font-size: 11px;
+      color: var(--success);
+      margin-top: 4px;
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        margin-bottom: 10px;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      .piano-wrapper {
+        height: 140px;
+      }
+
+      .log {
+        height: 130px;
+      }
     }
   </style>
 
@@ -206,7 +283,13 @@
     <div>
 
       <div class="card">
-        <h1>PianoLink</h1>
+        <h1>Piano Link</h1>
+        <div class="subtitle">
+          Sistema web para conectar pianos digitales vía MIDI y realizar clases en tiempo real entre profesor y estudiantes.
+        </div>
+        <div class="author-tag">
+          Proyecto de Miguel Antonio
+        </div>
         <div id="status" class="inline-help">Desconectado</div>
       </div>
 
@@ -226,7 +309,14 @@
       <div class="card" id="cardCrearSala" style="display:none;">
         <h2>Crear sala</h2>
         <button id="btnCrear">Crear sala nueva</button>
-        <div id="inviteLink" class="inline-help" style="margin-top:12px;"></div>
+
+        <div class="invite-row">
+          <div id="inviteLink" class="inline-help">
+            El enlace para los estudiantes aparecerá aquí cuando la sala esté creada.
+          </div>
+          <button id="copyLinkBtn" type="button">Copiar enlace</button>
+        </div>
+        <div id="copyStatus"></div>
       </div>
 
       <div class="card" id="cardUnirseSala">
@@ -258,7 +348,7 @@
     <div>
 
       <div class="card" id="advancedCard">
-        <h2 class="section-title">Opciones</h2>
+        <h2>Opciones</h2>
 
         <div class="section">
           <label>Salida MIDI:
@@ -280,7 +370,7 @@
             Modo masterclass (un alumno suena para todos)
           </label>
           <button id="clearLiveBtn"
-                  style="margin-top:6px;font-size:12px;padding:4px 8px;">
+                  style="margin-top:6px;font-size:11px;padding:4px 8px;">
             Nadie En Vivo
           </button>
           <div class="inline-help">
@@ -290,7 +380,7 @@
       </div>
 
       <div class="card" id="participantsCard">
-        <h2 class="section-title">Participantes</h2>
+        <h2>Participantes</h2>
         <div id="participantsList" class="participants-list">
           <div class="inline-help">
             Cuando seas profesor, aquí podrás elegir a quién escuchar y quién está En Vivo.
@@ -299,7 +389,7 @@
       </div>
 
       <div class="card" id="logCard">
-        <h2 class="section-title">Log</h2>
+        <h2>Log</h2>
         <div id="log" class="log"></div>
       </div>
     </div>
@@ -314,6 +404,8 @@
     const btnCrear = document.getElementById("btnCrear");
     const btnUnirse = document.getElementById("btnUnirse");
     const inviteLink = document.getElementById("inviteLink");
+    const copyLinkBtn = document.getElementById("copyLinkBtn");
+    const copyStatus = document.getElementById("copyStatus");
     const roleIndicator = document.getElementById("roleIndicator");
     const liveStatus = document.getElementById("liveStatus");
     const piano = document.getElementById("piano");
@@ -385,10 +477,19 @@
       statusDiv.textContent = msg;
     }
 
+    function getInviteUrl() {
+      if (!salaActual) return "";
+      return window.location.origin + "/?sala=" + salaActual;
+    }
+
     function updateInviteLink() {
-      if (!salaActual) return;
-      inviteLink.textContent =
-        "Link para alumnos: " + window.location.origin + "/?sala=" + salaActual;
+      if (!salaActual) {
+        inviteLink.textContent =
+          "El enlace para los estudiantes aparecerá aquí cuando la sala esté creada.";
+        return;
+      }
+      const url = getInviteUrl();
+      inviteLink.textContent = "Link para alumnos: " + url;
     }
 
     function updateRoleIndicator() {
@@ -432,6 +533,38 @@
         }
       }
     }
+
+    /* ------------ BOTÓN COPIAR ENLACE ------------ */
+
+    copyLinkBtn.addEventListener("click", async () => {
+      const url = getInviteUrl();
+      if (!url) {
+        copyStatus.style.color = "#c0392b";
+        copyStatus.textContent = "Primero crea una sala para generar el enlace.";
+        setTimeout(() => (copyStatus.textContent = ""), 2500);
+        return;
+      }
+
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(url);
+        } else {
+          // Fallback básico
+          const temp = document.createElement("textarea");
+          temp.value = url;
+          document.body.appendChild(temp);
+          temp.select();
+          document.execCommand("copy");
+          document.body.removeChild(temp);
+        }
+        copyStatus.style.color = "var(--success)";
+        copyStatus.textContent = "Enlace copiado al portapapeles.";
+      } catch (e) {
+        copyStatus.style.color = "#c0392b";
+        copyStatus.textContent = "No se pudo copiar automáticamente. Copia el enlace a mano.";
+      }
+      setTimeout(() => (copyStatus.textContent = ""), 2500);
+    });
 
     /* ------------ SELECCIÓN DE ROL ------------ */
 
@@ -591,7 +724,6 @@
       });
 
       log("Uniéndose a sala " + code + " como " + rol + "…");
-      updateInviteLink();
     });
 
     /* ------------ WEB MIDI ------------ */
@@ -694,15 +826,17 @@
       }
     }
 
-    /* ------------ PIANO VISUAL ------------ */
+    /* ------------ PIANO VISUAL (más compacto) ------------ */
 
     buildPiano();
 
     function buildPiano() {
       const WHITE_KEYS = [0,2,4,5,7,9,11];
+      const WHITE_KEY_WIDTH = 18;  // más pequeño para que el piano no se vea tan ancho
+      const BLACK_KEY_WIDTH = 12;
+
       piano.innerHTML = "";
-      // 52 teclas blancas * 26px
-      piano.style.width = (52 * 26) + "px";
+      piano.style.width = (52 * WHITE_KEY_WIDTH) + "px";
 
       let wIdx = 0;
       for (let note = 21; note <= 108; note++) {
@@ -712,12 +846,13 @@
         key.dataset.note = note;
 
         if (isWhite) {
-          key.style.left = (wIdx * 26) + "px";
-          key.style.width = "26px";
+          key.style.left = (wIdx * WHITE_KEY_WIDTH) + "px";
+          key.style.width = WHITE_KEY_WIDTH + "px";
           wIdx++;
         } else {
-          key.style.left = ((wIdx - 0.5) * 26 - 8) + "px";
-          key.style.width = "16px";
+          key.style.left =
+            ((wIdx - 0.5) * WHITE_KEY_WIDTH - BLACK_KEY_WIDTH / 2) + "px";
+          key.style.width = BLACK_KEY_WIDTH + "px";
         }
 
         piano.appendChild(key);
