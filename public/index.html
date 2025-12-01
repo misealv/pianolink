@@ -13,14 +13,11 @@
         --text-muted: #555555;
         --card-bg: #ffffff;
         
-        /* Colores base para teclas activas (la opacidad se calcula por JS) */
         --teacher-rgb: 33, 150, 243; /* Azul */
         --student-rgb: 255, 193, 7;  /* Amarillo */
       }
 
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
 
       body {
         font-family: Arial, sans-serif;
@@ -31,18 +28,14 @@
         color: var(--text-main);
       }
 
-      a {
-        color: var(--primary-dark);
-        text-decoration: none;
-      }
+      a { color: var(--primary-dark); text-decoration: none; }
 
-      /* Header / Hero */
-
+      /* Header */
       .hero {
         background: linear-gradient(135deg, var(--primary), var(--primary-dark));
         color: #ffffff;
         border-radius: 14px;
-        padding: 18px 20px 18px;
+        padding: 18px 20px;
         margin-bottom: 20px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
         display: flex;
@@ -51,339 +44,123 @@
         justify-content: space-between;
         gap: 14px;
       }
-
-      .hero-left {
-        max-width: 520px;
-      }
-
-      .hero-title {
-        margin: 0 0 4px;
-        font-size: 26px;
-        font-weight: bold;
-        letter-spacing: 0.5px;
-      }
-
-      .hero-subtitle {
-        margin: 0 0 8px;
-        font-size: 14px;
-        color: #e3f2fd;
-      }
-
-      .hero-tagline {
-        margin: 0 0 12px;
-        font-size: 13px;
-        color: #bbdefb;
-      }
-
+      .hero-left { max-width: 520px; }
+      .hero-title { margin: 0 0 4px; font-size: 26px; font-weight: bold; }
+      .hero-subtitle { margin: 0 0 8px; font-size: 14px; color: #e3f2fd; }
+      .hero-tagline { margin: 0 0 12px; font-size: 13px; color: #bbdefb; }
       .hero-badge {
-        display: inline-block;
-        font-size: 11px;
-        padding: 4px 8px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.16);
+        display: inline-block; font-size: 11px; padding: 4px 8px;
+        border-radius: 999px; background: rgba(255, 255, 255, 0.16);
         border: 1px solid rgba(255, 255, 255, 0.35);
       }
-
       .hero-right {
-        text-align: right;
-        min-width: 160px;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end; /* Alinear a la derecha */
-        gap: 6px;
+        text-align: right; min-width: 160px;
+        display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
       }
+      .hero-project { font-size: 12px; margin-bottom: 2px; opacity: 0.9; }
 
-      .hero-project {
-        font-size: 12px;
-        margin-bottom: 2px;
-        opacity: 0.9;
-      }
-
-      /* Botón de Pánico */
       .panic-btn {
-        background: #d32f2f;
-        color: white;
-        border: 1px solid #b71c1c;
-        font-size: 11px;
-        padding: 4px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        transition: background 0.2s;
+        background: #d32f2f; color: white; border: 1px solid #b71c1c;
+        font-size: 11px; padding: 4px 10px; border-radius: 4px; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 4px; transition: background 0.2s;
       }
-      .panic-btn:hover {
-        background: #b71c1c;
-      }
-      .panic-btn:active {
-        transform: scale(0.98);
-      }
+      .panic-btn:hover { background: #b71c1c !important; }
 
-      /* ESTILOS DE ESTADO DE CONEXIÓN */
+      /* Status Badges */
       .status-badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 99px;
-        font-size: 11px;
-        font-weight: bold;
-        transition: all 0.3s ease;
-        text-align: center;
+        display: inline-block; padding: 4px 10px; border-radius: 99px;
+        font-size: 11px; font-weight: bold; transition: all 0.3s ease; text-align: center;
       }
-
-      .status-connected {
-        background-color: #e6fffa;
-        color: #047481;
-        border: 1px solid #b2f5ea;
-      }
-
-      .status-disconnected {
-        background-color: #fff5f5;
-        color: #c53030;
-        border: 1px solid #feb2b2;
-        animation: pulse-red 2s infinite;
-      }
-
-      .status-connecting {
-        background-color: #fffaf0;
-        color: #c05621;
-        border: 1px solid #fbd38d;
-      }
-
+      .status-connected { background-color: #e6fffa; color: #047481; border: 1px solid #b2f5ea; }
+      .status-disconnected { background-color: #fff5f5; color: #c53030; border: 1px solid #feb2b2; animation: pulse-red 2s infinite; }
+      .status-connecting { background-color: #fffaf0; color: #c05621; border: 1px solid #fbd38d; }
       @keyframes pulse-red {
         0% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
         70% { box-shadow: 0 0 0 6px rgba(229, 62, 62, 0); }
         100% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
       }
 
-      /* Cards / Layout */
-
+      /* Cards */
       .card {
-        background: var(--card-bg);
-        border-radius: 10px;
-        padding: 12px 16px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-        margin-bottom: 16px;
-        border: 1px solid #dde3ec;
+        background: var(--card-bg); border-radius: 10px; padding: 12px 16px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06); margin-bottom: 16px; border: 1px solid #dde3ec;
       }
-
-      .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-      }
-
-      .section-title {
-        margin: 0;
-        font-size: 15px;
-        color: var(--primary-dark);
-      }
-
-      /* ESTILO PEDAL SUSTAIN */
-      .pedal-indicator {
-        font-size: 11px;
-        font-weight: bold;
-        padding: 4px 10px;
-        border-radius: 4px;
-        background: #e0e0e0;
-        color: #9e9e9e;
-        border: 1px solid #bdbdbd;
-        text-transform: uppercase;
-        transition: all 0.1s ease;
-      }
-
-      .pedal-indicator.active {
-        background: #4caf50; /* Verde */
-        color: #ffffff;
-        border-color: #388e3c;
-        box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
-      }
-
-      .section {
-        margin-bottom: 10px;
-      }
-
-      label {
-        cursor: pointer;
-      }
-
+      .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+      .section-title { margin: 0; font-size: 15px; color: var(--primary-dark); }
+      .section { margin-bottom: 10px; }
+      
       .role-help {
-        font-size: 13px;
-        background: #e8f1ff;
-        border-left: 3px solid var(--primary);
-        padding: 8px;
-        margin-top: 6px;
-        border-radius: 4px;
-        color: #143a66;
+        font-size: 13px; background: #e8f1ff; border-left: 3px solid var(--primary);
+        padding: 8px; margin-top: 6px; border-radius: 4px; color: #143a66;
       }
-
-      .inline-help {
-        font-size: 12px;
-        color: var(--text-muted);
-        margin-top: 4px;
-      }
-
+      .inline-help { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+      
       .log {
-        border: 1px solid #d0d5de;
-        height: 150px;
-        padding: 8px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        font-size: 12px;
-        background: #fafbff;
-        border-radius: 4px;
+        border: 1px solid #d0d5de; height: 150px; padding: 8px; overflow-y: auto;
+        white-space: pre-wrap; font-size: 12px; background: #fafbff; border-radius: 4px;
       }
-
-      .log-title {
-        font-size: 13px;
-        margin-bottom: 4px;
-        color: #444;
-      }
-
       .note-box {
-        border: 1px solid #d0d5de;
-        padding: 6px;
-        font-size: 14px;
-        background: #ffffff;
-        border-radius: 4px;
+        border: 1px solid #d0d5de; padding: 6px; font-size: 14px; background: #ffffff; border-radius: 4px;
       }
+      .hidden { display: none; }
 
-      .hidden {
-        display: none;
-      }
-
-      /* Buttons & inputs */
-
+      /* Controls */
       button {
-        background: var(--primary);
-        color: #ffffff;
-        border: none;
-        border-radius: 4px;
-        padding: 6px 10px;
-        font-size: 13px;
-        cursor: pointer;
+        background: var(--primary); color: #ffffff; border: none; border-radius: 4px;
+        padding: 6px 10px; font-size: 13px; cursor: pointer;
       }
-
-      button:disabled {
-        background: #b0bec5;
-        cursor: default;
+      button:disabled { background: #b0bec5; cursor: default; }
+      button:hover:not(:disabled) { background: var(--primary-dark); }
+      
+      input[type="text"], #codigoSala, #inviteLink {
+        padding: 5px 7px; border-radius: 4px; border: 1px solid #c5cad3;
+        font-size: 13px; min-width: 120px;
       }
+      #inviteLink { width: 100%; }
+      select { padding: 5px 7px; border-radius: 4px; border: 1px solid #c5cad3; font-size: 13px; }
 
-      button:hover:not(:disabled) {
-        background: var(--primary-dark);
-      }
-
-      /* Override específico para el botón de pánico */
-      .panic-btn:hover {
-         background: #b71c1c !important; 
-      }
-
-      input[type="text"],
-      #codigoSala,
-      #inviteLink {
-        padding: 5px 7px;
-        border-radius: 4px;
-        border: 1px solid #c5cad3;
-        font-size: 13px;
-        min-width: 120px;
-      }
-
-      #inviteLink {
-        width: 100%;
-      }
-
-      select {
-        padding: 5px 7px;
-        border-radius: 4px;
-        border: 1px solid #c5cad3;
-        font-size: 13px;
-      }
-
-      /* Piano 88 teclas */
-
+      /* Piano */
       .piano-wrapper {
-        border: 1px solid #999;
-        overflow-x: auto;
-        overflow-y: hidden;
-        height: 180px;
-        background: #dde1eb;
-        border-radius: 4px;
+        border: 1px solid #999; overflow-x: auto; overflow-y: hidden;
+        height: 180px; background: #dde1eb; border-radius: 4px;
       }
-
-      .piano {
-        position: relative;
-        height: 100%;
-      }
-
+      .piano { position: relative; height: 100%; }
       .key {
-        position: absolute;
-        box-sizing: border-box;
-        transition: transform 0.05s ease, background-color 0.05s ease;
+        position: absolute; box-sizing: border-box; transition: transform 0.05s ease, background-color 0.05s ease;
       }
-
       .white-key {
-        height: 100%;
-        background: #ffffff;
-        border: 1px solid #000;
-        bottom: 0;
-        z-index: 1;
+        height: 100%; background: #ffffff; border: 1px solid #000; bottom: 0; z-index: 1;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
       }
-
       .black-key {
-        height: 55%;
-        background: #000000;
-        border: 1px solid #000;
-        top: 0;
-        z-index: 5;
+        height: 55%; background: #000000; border: 1px solid #000; top: 0; z-index: 5;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
       }
-
       .note-label {
-        position: absolute;
-        bottom: 2px;
-        left: 2px;
-        font-size: 8px;
-        color: #333;
-        pointer-events: none;
+        position: absolute; bottom: 2px; left: 2px; font-size: 8px; color: #333; pointer-events: none;
       }
-
-      /* CLASES ACTIVAS BASE (El color exacto lo pone JS por velocidad) */
+      
       .white-key.active-teacher, .white-key.active-student {
-        transform: translateY(4px);
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        transform: translateY(4px); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
       }
       .black-key.active-teacher, .black-key.active-student {
-        transform: translateY(3px);
-        box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.25);
+        transform: translateY(3px); box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.25);
       }
 
-      .layout-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-        gap: 16px;
+      .pedal-indicator {
+        font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 4px;
+        background: #e0e0e0; color: #9e9e9e; border: 1px solid #bdbdbd; text-transform: uppercase;
+      }
+      .pedal-indicator.active {
+        background: #4caf50; color: #ffffff; border-color: #388e3c; box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
       }
 
+      .layout-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
       @media (max-width: 768px) {
-        .layout-grid {
-          grid-template-columns: 1fr;
-        }
-        .hero, .hero-right {
-          text-align: left;
-          align-items: flex-start;
-        }
-        .piano-wrapper {
-          height: 150px;
-        }
+        .layout-grid { grid-template-columns: 1fr; }
+        .hero, .hero-right { text-align: left; align-items: flex-start; }
       }
-
-      .footer {
-        margin-top: 18px;
-        font-size: 11px;
-        text-align: center;
-        color: #777;
-      }
+      .footer { margin-top: 18px; font-size: 11px; text-align: center; color: #777; }
     </style>
   </head>
 
@@ -391,34 +168,28 @@
     <header class="hero">
       <div class="hero-left">
         <h1 class="hero-title">PianoLink</h1>
-        <p class="hero-subtitle">
-          Conexión MIDI remota en tiempo real entre profesor y alumno.
-        </p>
+        <p class="hero-subtitle">Conexión MIDI remota en tiempo real.</p>
         <p class="hero-tagline">
-          Escucha en tu propio piano lo que tu alumno toca a distancia.
-          <br>
           <span style="color: #ffc107; font-weight: bold;">■ Alumno (Amarillo)</span> | 
           <span style="color: #82b1ff; font-weight: bold;">■ Profesor (Azul)</span>
         </p>
-        <span class="hero-badge">Compatible con navegadores con Web MIDI (Chrome / Edge)</span>
       </div>
       <div class="hero-right">
-        <div id="connectionStatus" class="status-badge status-connecting">
-          Conectando...
-        </div>
-        <button id="panicBtn" class="panic-btn" title="Apagar todas las notas">
-          🔇 Reset / Pánico
-        </button>
-        <div class="hero-project" style="margin-top:8px;">Un proyecto de Miguel Antonio</div>
+        <div id="connectionStatus" class="status-badge status-connecting">Conectando...</div>
+        <button id="panicBtn" class="panic-btn">🔇 Reset / Pánico</button>
+        <div class="hero-project" style="margin-top:8px;">by Miguel Antonio</div>
       </div>
     </header>
 
     <div class="card" id="roleCard">
-      <h2 class="section-title">1. Elige tu rol</h2>
+      <h2 class="section-title">1. Configuración de entrada</h2>
       <div class="section">
         <label><input type="radio" name="rol" value="teacher" checked /> Profesor</label>
         &nbsp;&nbsp;
         <label><input type="radio" name="rol" value="student" /> Alumno</label>
+      </div>
+      <div style="margin-top:10px; margin-bottom:10px;">
+        <input type="text" id="inputName" placeholder="Tu Nombre (Ej: Juan)" style="width:100%; font-weight:bold;">
       </div>
       <div id="roleHelp" class="role-help"></div>
     </div>
@@ -426,20 +197,15 @@
     <div class="card" id="roomCard">
       <h2 class="section-title">2. Conectarse a la misma sala</h2>
       <div class="section">
-        <button id="crearSala">Crear sala (solo profesor)</button>
+        <button id="crearSala">Crear sala</button>
         <input id="codigoSala" placeholder="Código de sala" />
         <button id="unirseSala">Unirse</button>
-        <div class="inline-help">
-          El profesor crea la sala y comparte el código con el alumno.
-        </div>
+        <div class="inline-help">El profesor crea la sala. El alumno se une con el código.</div>
       </div>
       <div class="section" id="inviteSection">
-        <h3 class="section-title">Generador de link para el alumno</h3>
-        <div class="inline-help">
-          1) Crea la sala. 2) Copia y envía este link al alumno.
-        </div>
+        <h3 class="section-title">Link de invitación</h3>
         <div style="margin-top:6px;">
-          <input id="inviteLink" readonly placeholder="Crea una sala para generar el link" />
+          <input id="inviteLink" readonly placeholder="Crea una sala primero..." />
         </div>
         <div style="margin-top:6px;">
           <button id="copyInviteBtn">Copiar link</button>
@@ -452,45 +218,25 @@
         <div class="card" id="noteCard">
           <h2 class="section-title">3. Nota actual</h2>
           <div class="note-box" id="noteDisplay">—</div>
-          <div class="inline-help">
-            Aquí verás la nota que está sonando. La intensidad del color indica la fuerza (velocidad).
-          </div>
         </div>
 
         <div class="card" id="pianoCard">
           <div class="section-header">
-            <h2 class="section-title">Piano visual (88 teclas)</h2>
-            <div id="sustainPedal" class="pedal-indicator">Sustain (CC64)</div>
+            <h2 class="section-title">Piano visual</h2>
+            <div id="sustainPedal" class="pedal-indicator">Sustain</div>
           </div>
-          
-          <div class="piano-wrapper">
-            <div id="piano" class="piano"></div>
-          </div>
-          <div class="inline-help">
-            Las teclas Do (C) están etiquetadas. El teclado se adapta al ancho.
-          </div>
+          <div class="piano-wrapper"><div id="piano" class="piano"></div></div>
         </div>
       </div>
 
       <div>
         <div class="card" id="advancedCard">
-          <h2 class="section-title">Opciones avanzadas</h2>
+          <h2 class="section-title">Opciones</h2>
           <div class="section">
-            <label>
-              Salida MIDI:
-              <select id="midiOutputSelect">
-                <option value="">(ninguna / automático)</option>
-              </select>
-            </label>
+            <label>Salida MIDI: <select id="midiOutputSelect"><option value="">(ninguna)</option></select></label>
           </div>
           <div class="section">
-            <label>
-              <input type="checkbox" id="toggleMidiOut" />
-              Activar salida MIDI a mi teclado
-            </label>
-            <div class="inline-help">
-              Si la activas, escucharás en tu instrumento lo que toque la otra persona.
-            </div>
+            <label><input type="checkbox" id="toggleMidiOut" /> Activar salida MIDI a mi teclado</label>
           </div>
         </div>
 
@@ -501,14 +247,14 @@
       </div>
     </div>
 
-    <div class="footer">
-      PianoLink · Conexión MIDI remota · Un proyecto de Miguel Antonio
-    </div>
+    <div class="footer">PianoLink · Conexión MIDI remota</div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
       const socket = io();
 
+      // Referencias DOM
+      const inputName = document.getElementById("inputName"); // NUEVO
       const crearSala = document.getElementById("crearSala");
       const unirseSala = document.getElementById("unirseSala");
       const codigoSala = document.getElementById("codigoSala");
@@ -525,111 +271,91 @@
       const inviteSection = document.getElementById("inviteSection");
       const statusEl = document.getElementById("connectionStatus");
       const sustainPedalEl = document.getElementById("sustainPedal");
-      const panicBtn = document.getElementById("panicBtn"); // NUEVO
+      const panicBtn = document.getElementById("panicBtn");
 
       const teacherRadio = document.querySelector('input[name="rol"][value="teacher"]');
       const studentRadio = document.querySelector('input[name="rol"][value="student"]');
 
+      // Estado Global
       let rol = "teacher";
       let salaActual = null;
+      let myName = "";
       let lockStudentFromLink = false;
 
       let midiAccessGlobal = null;
       let midiOutput = null;
       let midiOutputs = [];
       let enableMidiOut = false;
-
       const keyElementsByNote = {};
 
-      // ============================================
-      // LOGICA DE ESTADO DE CONEXIÓN
-      // ============================================
+      // ===========================
+      // 1. LÓGICA DE SALAS (NUEVO)
+      // ===========================
+
+      // Botón CREAR
+      crearSala.addEventListener("click", () => {
+        const name = inputName.value.trim();
+        if(!name) return alert("Por favor ingresa tu nombre primero.");
+        
+        myName = name;
+        rol = "teacher";
+        teacherRadio.checked = true;
+        
+        // Solicitar al servidor
+        socket.emit("create-room", { username: name });
+        log(`⏳ Solicitando nueva sala como Profesor...`);
+      });
+
+      // Respuesta del Servidor (Aquí se genera el link)
+      socket.on("room-created", (code) => {
+        salaActual = code;
+        codigoSala.value = code; // Poner el código en la caja
+        log(`✅ Sala creada con éxito: ${code}`);
+        updateInviteLink(); // Generar link
+      });
+
+      // Botón UNIRSE
+      unirseSala.addEventListener("click", () => {
+        const code = codigoSala.value.trim().toUpperCase();
+        const name = inputName.value.trim();
+
+        if(!name) return alert("Ingresa tu nombre.");
+        if(!code) return alert("Ingresa el código de la sala.");
+
+        myName = name;
+        salaActual = code;
+        socket.emit("join-room", code);
+        log(`⏳ Uniéndose a sala ${code} como ${rol}...`);
+        updateInviteLink();
+      });
+
+
+      // ===========================
+      // 2. STATUS Y LINKS
+      // ===========================
+
       function updateStatus(state) {
         statusEl.className = "status-badge"; 
         if (state === "connected") {
-          statusEl.classList.add("status-connected");
-          statusEl.textContent = "🟢 Conectado";
-          log("✅ Conectado al servidor.");
+          statusEl.classList.add("status-connected"); statusEl.textContent = "🟢 Conectado";
         } else if (state === "disconnected") {
-          statusEl.classList.add("status-disconnected");
-          statusEl.textContent = "🔴 Desconectado";
-          log("❌ Conexión perdida.");
+          statusEl.classList.add("status-disconnected"); statusEl.textContent = "🔴 Desconectado";
         } else if (state === "connecting") {
-          statusEl.classList.add("status-connecting");
-          statusEl.textContent = "🟡 Conectando...";
+          statusEl.classList.add("status-connecting"); statusEl.textContent = "🟡 Conectando...";
         }
       }
 
       socket.on("connect", () => {
         updateStatus("connected");
+        // Si se reconecta y ya tenía sala, volver a unirse
         if (salaActual) socket.emit("join-room", salaActual);
       });
-      socket.on("disconnect", (reason) => updateStatus("disconnected"));
+      socket.on("disconnect", () => updateStatus("disconnected"));
       socket.on("connect_error", () => updateStatus("disconnected"));
-      socket.on("reconnect_attempt", () => updateStatus("connecting"));
 
       setInterval(() => {
-        if (socket.connected) socket.emit("ping_keep_alive");
+        if (socket.connected) socket.emit("ping_keep_alive"); // Mantener conexión activa
       }, 25000);
-
-      // ============================================
-      // BOTÓN DE PÁNICO (RESET)
-      // ============================================
-      panicBtn.addEventListener("click", () => {
-        log("🔇 Botón de Pánico presionado. Reseteando...");
-        
-        // 1. Apagar teclas visuales
-        for (const note in keyElementsByNote) {
-           const keyEl = keyElementsByNote[note];
-           keyEl.classList.remove("active-teacher", "active-student");
-           keyEl.style.backgroundColor = ""; // Resetear color dinámico
-        }
-
-        // 2. Apagar pedal visual
-        updatePedalVisual(0);
-
-        // 3. Enviar Panic MIDI (All notes off) si hay salida activa
-        if (midiOutput) {
-            try {
-                // CC 123: All Notes Off
-                // CC 120: All Sound Off
-                // CC 64: Sustain Off
-                for (let ch = 0; ch < 16; ch++) {
-                    const cmd = 0xB0 | ch;
-                    midiOutput.send([cmd, 123, 0]); 
-                    midiOutput.send([cmd, 120, 0]);
-                    midiOutput.send([cmd, 64, 0]);
-                }
-                log("SENT: Reset MIDI a salida física.");
-            } catch(e) { console.error(e); }
-        }
-      });
-      // ============================================
-
-      function noteNumberToName(note) {
-        const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-        const pc = note % 12;
-        const oct = Math.floor(note / 12) - 1;
-        return names[pc] + oct;
-      }
-
-      function log(msg) {
-        logDiv.textContent += msg + "\n";
-        logDiv.scrollTop = logDiv.scrollHeight;
-      }
-
-      function updateRoleUI() {
-        if (rol === "teacher") {
-          roleHelp.textContent = "Profesor: Tus notas son AZULES. Las del alumno AMARILLAS.";
-          advancedCard.classList.remove("hidden");
-          logCard.classList.remove("hidden");
-          inviteSection.classList.remove("hidden");
-        } else {
-          roleHelp.textContent = "Alumno: El profesor verá tus notas en AMARILLO.";
-          advancedCard.classList.remove("hidden");
-          inviteSection.classList.add("hidden"); 
-        }
-      }
 
       function updateInviteLink() {
         if (rol !== "teacher" || !salaActual) {
@@ -642,28 +368,35 @@
         inviteLinkInput.value = url.toString();
       }
 
-      (function initFromUrl() {
-        const params = new URLSearchParams(window.location.search);
-        const urlRole = params.get("role");
-        const urlRoom = params.get("room");
-        if (urlRole === "student") {
-          rol = "student";
-          if (studentRadio) studentRadio.checked = true;
-          if (teacherRadio) teacherRadio.checked = false;
-          lockStudentFromLink = true;
-          if (teacherRadio) teacherRadio.disabled = true;
+      copyInviteBtn.addEventListener("click", () => {
+        const value = inviteLinkInput.value.trim();
+        if (!value) return alert("Crea una sala primero.");
+        navigator.clipboard.writeText(value)
+          .then(() => log("Link copiado al portapapeles."))
+          .catch(() => log("Error copiando link."));
+      });
+
+
+      // ===========================
+      // 3. UI Y ROLES
+      // ===========================
+
+      function updateRoleUI() {
+        if (rol === "teacher") {
+          roleHelp.textContent = "Modo Profesor: Ves tus notas en AZUL.";
+          advancedCard.classList.remove("hidden");
+          inviteSection.classList.remove("hidden");
+        } else {
+          roleHelp.textContent = "Modo Alumno: El profesor te ve en AMARILLO.";
+          advancedCard.classList.remove("hidden");
+          inviteSection.classList.add("hidden"); 
         }
-        if (urlRoom) {
-          codigoSala.value = urlRoom;
-          salaActual = null;
-        }
-        updateRoleUI();
-      })();
+      }
 
       document.querySelectorAll('input[name="rol"]').forEach((r) => {
         r.addEventListener("change", (e) => {
           if (lockStudentFromLink && e.target.value === "teacher") {
-            if (studentRadio) studentRadio.checked = true;
+            studentRadio.checked = true; // Forzar alumno si vino por link
             return;
           }
           rol = e.target.value;
@@ -672,122 +405,85 @@
         });
       });
 
+      // Autocompletar desde URL
+      (function initFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const urlRole = params.get("role");
+        const urlRoom = params.get("room");
+        if (urlRole === "student") {
+          rol = "student";
+          if (studentRadio) studentRadio.checked = true;
+          lockStudentFromLink = true;
+          if (teacherRadio) teacherRadio.disabled = true;
+        }
+        if (urlRoom) {
+          codigoSala.value = urlRoom;
+          // No seteamos salaActual aún, esperamos a que el usuario ponga nombre y click en Unirse
+        }
+        updateRoleUI();
+      })();
+
+
+      // ===========================
+      // 4. MIDI ENGINE
+      // ===========================
+
+      function log(msg) {
+        logDiv.textContent += msg + "\n";
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+
+      if (navigator.requestMIDIAccess) {
+        navigator.requestMIDIAccess().then(onMIDISuccess, () => log("❌ Sin soporte MIDI"));
+      } else { log("⚠️ Navegador no soporta Web MIDI"); }
+
+      function onMIDISuccess(midi) {
+        midiAccessGlobal = midi;
+        log("✅ MIDI Activo");
+        for (let input of midi.inputs.values()) {
+          input.onmidimessage = handleMIDIMessageFromDevice;
+        }
+        midiOutputs = Array.from(midi.outputs.values());
+        midiOutputSelect.innerHTML = '<option value="">(ninguna)</option>';
+        midiOutputs.forEach((out, index) => {
+          const opt = document.createElement("option");
+          opt.value = index; opt.textContent = out.name;
+          midiOutputSelect.appendChild(opt);
+        });
+      }
+
       toggleMidiOut.addEventListener("change", (e) => {
         enableMidiOut = e.target.checked;
         log("Salida MIDI: " + (enableMidiOut ? "ON" : "OFF"));
       });
-
       midiOutputSelect.addEventListener("change", (e) => {
         const idx = e.target.value;
-        if (idx === "" || !midiOutputs[idx]) {
-          midiOutput = null;
-        } else {
-          midiOutput = midiOutputs[idx];
-          log("Output: " + midiOutput.name);
-        }
+        midiOutput = (idx !== "" && midiOutputs[idx]) ? midiOutputs[idx] : null;
       });
 
-      copyInviteBtn.addEventListener("click", () => {
-        const value = inviteLinkInput.value.trim();
-        if (!value) return alert("Crea una sala primero.");
-        navigator.clipboard.writeText(value).then(() => log("Link copiado.")).catch(e => log("Error copiando link"));
-      });
-
-      function build88KeyPiano() {
-        const WHITE_PITCH_CLASSES = [0, 2, 4, 5, 7, 9, 11];
-        const WHITE_KEY_WIDTH = 26;
-        const BLACK_KEY_WIDTH = 16;
-        const totalWhiteKeys = 52;
-        piano.style.width = (totalWhiteKeys * WHITE_KEY_WIDTH) + "px";
-
-        let whiteIndex = 0;
-        for (let note = 21; note <= 108; note++) {
-          const pitchClass = note % 12;
-          const isWhite = WHITE_PITCH_CLASSES.includes(pitchClass);
-          const key = document.createElement("div");
-          key.dataset.note = note;
-          key.classList.add("key");
-
-          if (isWhite) {
-            key.classList.add("white-key");
-            key.style.left = (whiteIndex * WHITE_KEY_WIDTH) + "px";
-            key.style.width = WHITE_KEY_WIDTH + "px";
-            if (pitchClass === 0) {
-              const label = document.createElement("div");
-              label.className = "note-label";
-              label.textContent = noteNumberToName(note);
-              key.appendChild(label);
-            }
-            whiteIndex++;
-          } else {
-            key.classList.add("black-key");
-            key.style.left = ((whiteIndex - 0.5) * WHITE_KEY_WIDTH - BLACK_KEY_WIDTH / 2) + "px";
-            key.style.width = BLACK_KEY_WIDTH + "px";
-          }
-          piano.appendChild(key);
-          keyElementsByNote[note] = key;
-        }
-      }
-      build88KeyPiano();
-
-      if (navigator.requestMIDIAccess) {
-        navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
-      } else {
-        log("⚠️ Navegador sin soporte Web MIDI (Usa Chrome).");
-      }
-
-      function onMIDISuccess(midiAccess) {
-        midiAccessGlobal = midiAccess;
-        log("✅ MIDI OK.");
-        for (let input of midiAccess.inputs.values()) {
-          input.onmidimessage = handleMIDIMessageFromDevice;
-        }
-        midiAccess.onstatechange = (e) => {
-             log(`Disp MIDI ${e.port.state}: ${e.port.name}`);
-        };
-        midiOutputs = Array.from(midiAccess.outputs.values());
-        midiOutputSelect.innerHTML = '<option value="">(ninguna / automático)</option>';
-        midiOutputs.forEach((out, index) => {
-          const opt = document.createElement("option");
-          opt.value = index;
-          opt.textContent = out.name;
-          midiOutputSelect.appendChild(opt);
-        });
-      }
-      function onMIDIFailure() { log("❌ Error MIDI."); }
-
+      // Procesar MIDI Local
       function handleMIDIMessageFromDevice(event) {
         const [status, data1, data2] = event.data;
         const command = status & 0xf0;
 
-        handleRemoteOrLocalNote({ 
-            type: "raw_midi", command, note: data1, velocity: data2, fromRole: rol 
-        });
+        // Visualizar localmente
+        handleRemoteOrLocalNote({ type: "raw_midi", command, note: data1, velocity: data2, fromRole: rol });
 
-        if (!salaActual) return;
+        if (!salaActual) return; // No enviar si no hay sala
 
+        // Enviar a la red
         if (command === 0x90 || command === 0x80) { 
+          // Hack de canales para distinguir roles
           const targetChannel = rol === "teacher" ? 1 : 0;
           const outStatus = (command | targetChannel) & 0xff;
-          const message = { type: "note", command: outStatus, note: data1, velocity: data2, fromRole: rol };
-          socket.emit("midi-message", { roomCode: salaActual, message });
-        }
-        else if (command === 0xb0) { 
-          const message = { type: "cc", status, controller: data1, value: data2, fromRole: rol };
-          socket.emit("midi-message", { roomCode: salaActual, message });
-        }
-        else if (command === 0xe0) {
-          const lsb = data1;
-          const msb = data2;
-          const value14 = (msb << 7) | lsb;
-          const message = { type: "pitchbend", status, value14, fromRole: rol };
-          socket.emit("midi-message", { roomCode: salaActual, message });
+          socket.emit("midi-message", { roomCode: salaActual, message: { type: "note", command: outStatus, note: data1, velocity: data2, fromRole: rol } });
+        } else if (command === 0xb0) { 
+          socket.emit("midi-message", { roomCode: salaActual, message: { type: "cc", status, controller: data1, value: data2, fromRole: rol } });
         }
       }
 
-      socket.on("midi-message", (msg) => {
-        handleRemoteOrLocalNote(msg);
-      });
+      // Procesar MIDI Remoto
+      socket.on("midi-message", (msg) => handleRemoteOrLocalNote(msg));
 
       function handleRemoteOrLocalNote(msg) {
         let cmd, note, velocity, role, type;
@@ -796,87 +492,102 @@
         } else if (msg.type === "note") {
              cmd = msg.command & 0xf0; note = msg.note; velocity = msg.velocity; role = msg.fromRole; type = "remote";
         } else {
-             handleOtherMessages(msg);
-             return;
+             handleOtherMessages(msg); return;
         }
 
         const isNoteOn = (cmd === 0x90) && (velocity > 0);
-        const isNoteOff = (cmd === 0x80) || ((cmd === 0x90) && (velocity === 0));
-
-        // Visualización Teclas con Dinámicas
+        
+        // Visualización
         const keyEl = keyElementsByNote[note];
         if (keyEl) {
             const activeClass = (role === "teacher") ? "active-teacher" : "active-student";
-            
             if (isNoteOn) {
-                // Cálculo de opacidad: Min 0.3, Max 1.0 según velocity
                 const alpha = 0.3 + (velocity / 127) * 0.7;
-                
-                // Color dinámico según rol
                 const baseRGB = (role === "teacher") ? "var(--teacher-rgb)" : "var(--student-rgb)";
-                const dynamicColor = `rgba(${baseRGB}, ${alpha})`;
-
                 keyEl.classList.add(activeClass);
-                keyEl.style.backgroundColor = dynamicColor; // Sobrescribe el color base de CSS
-
-            } else if (isNoteOff) {
-                keyEl.classList.remove("active-teacher");
-                keyEl.classList.remove("active-student");
-                keyEl.style.backgroundColor = ""; // Limpiar color dinámico
+                keyEl.style.backgroundColor = `rgba(${baseRGB}, ${alpha})`;
+            } else {
+                keyEl.classList.remove("active-teacher", "active-student");
+                keyEl.style.backgroundColor = "";
             }
         }
 
         if (isNoteOn && type !== "raw") {
-             const origen = role === "teacher" ? "PROFE" : "ALUMNO";
-             noteDisplay.textContent = `${origen}: ${noteNumberToName(note)} (Vel: ${velocity})`;
+             noteDisplay.textContent = `${role === "teacher" ? "PROFE" : "ALUMNO"}: ${noteNumberToName(note)}`;
         }
 
+        // Salida de Audio (Filtrado Simple)
         if (type !== "raw") {
             const soyProfe = rol === "teacher";
             const vieneDeProfe = role === "teacher";
             const deboReproducir = enableMidiOut && midiOutput && ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
-
+            
             if (deboReproducir) {
-                try {
-                    const midiCmd = isNoteOn ? 0x90 : 0x80; 
-                    midiOutput.send([midiCmd, note, velocity]);
-                } catch(e) {}
+                try { midiOutput.send([isNoteOn?0x90:0x80, note, velocity]); } catch(e){}
             }
         }
       }
 
       function handleOtherMessages(msg) {
         if (msg.type === "raw_midi") { 
-             if ((msg.command & 0xf0) === 0xb0 && msg.note === 64) {
-                 updatePedalVisual(msg.velocity); 
-             }
+             if ((msg.command & 0xf0) === 0xb0 && msg.note === 64) updatePedalVisual(msg.velocity);
              return;
         }
-
+        if (msg.type === "cc" && msg.controller === 64) updatePedalVisual(msg.value);
+        
+        // Replicar CC remoto si corresponde
         const soyProfe = rol === "teacher";
         const vieneDeProfe = msg.fromRole === "teacher";
         const deboReproducir = enableMidiOut && midiOutput && ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
         
-        if (msg.type === "cc") {
-            if (msg.controller === 64) {
-                 updatePedalVisual(msg.value);
-            }
-            if (deboReproducir) midiOutput.send([msg.status, msg.controller, msg.value]);
-        }
-        else if (msg.type === "pitchbend") {
-            if (deboReproducir) {
-                const lsb = msg.value14 & 0x7f;
-                const msb = (msg.value14 >> 7) & 0x7f;
-                midiOutput.send([msg.status, lsb, msb]);
-            }
-        }
+        if (deboReproducir && msg.type === "cc") midiOutput.send([msg.status, msg.controller, msg.value]);
       }
 
+      // Utils
       function updatePedalVisual(value) {
-          const isOn = value >= 64;
-          if (isOn) sustainPedalEl.classList.add("active");
-          else sustainPedalEl.classList.remove("active");
+          sustainPedalEl.classList.toggle("active", value >= 64);
       }
+
+      function noteNumberToName(note) {
+        const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        return names[note % 12] + (Math.floor(note / 12) - 1);
+      }
+
+      // Construir Piano
+      (function buildPiano() {
+        const WHITE_KEYS = [0,2,4,5,7,9,11];
+        const pianoDiv = document.getElementById("piano");
+        pianoDiv.style.width = (52 * 26) + "px";
+        let wIdx = 0;
+        for (let i=21; i<=108; i++) {
+          const isWhite = WHITE_KEYS.includes(i%12);
+          const k = document.createElement("div");
+          k.className = `key ${isWhite ? "white-key" : "black-key"}`;
+          k.dataset.note = i;
+          if (isWhite) {
+            k.style.left = (wIdx * 26) + "px"; k.style.width = "26px";
+            if (i%12===0) k.innerHTML = `<div class="note-label">${noteNumberToName(i)}</div>`;
+            wIdx++;
+          } else {
+            k.style.left = ((wIdx-0.5)*26 - 8) + "px"; k.style.width = "16px";
+          }
+          pianoDiv.appendChild(k);
+          keyElementsByNote[i] = k;
+        }
+      })();
+
+      // Botón Pánico
+      panicBtn.addEventListener("click", () => {
+        log("🔇 Pánico presionado");
+        document.querySelectorAll(".key").forEach(k => {
+           k.classList.remove("active-teacher", "active-student");
+           k.style.backgroundColor = "";
+        });
+        updatePedalVisual(0);
+        if (midiOutput) {
+            for (let c=0; c<16; c++) midiOutput.send([0xB0|c, 123, 0]);
+        }
+      });
     </script>
   </body>
 </html>

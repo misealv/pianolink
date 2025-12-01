@@ -10,9 +10,24 @@ const io = new Server(server);
 // servir "public"
 app.use(express.static(path.join(__dirname, "public")));
 
+// --- NUEVO: Generador de códigos aleatorios ---
+function generateCode() {
+  return Math.random().toString(36).substring(2, 6).toUpperCase();
+}
+
 io.on("connection", (socket) => {
   console.log("Nuevo cliente conectado:", socket.id);
 
+  // --- NUEVO: Crear Sala ---
+  socket.on("create-room", ({ username }) => {
+    const code = generateCode();
+    socket.join(code);
+    console.log(`Socket ${socket.id} (${username}) creó sala: ${code}`);
+    // Respondemos al creador con el código
+    socket.emit("room-created", code);
+  });
+
+  // Unirse a sala existente
   socket.on("join-room", (roomCode) => {
     socket.join(roomCode);
     console.log(`Socket ${socket.id} se unió a sala: ${roomCode}`);
@@ -30,7 +45,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// 👇 ESTA LÍNEA ES IMPORTANTE PARA RENDER
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Servidor funcionando en http://localhost:${PORT}`);
