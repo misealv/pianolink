@@ -7,21 +7,28 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Static para Render (sirve index.html y archivos estáticos)
+// ===============================
+// Static (pensando en Render)
+// ===============================
+// 1) /public si existe
 app.use(express.static(path.join(__dirname, "public")));
+// 2) Raíz del proyecto (por si index.html está en la raíz)
 app.use(express.static(__dirname));
 
-// Generar código de sala
+// ===============================
+// Salas en memoria
+// ===============================
+//
+// rooms[roomCode] = {
+//   users: { socketId: { name, role } },
+//   liveStudentId: socketId | null   // alumno EN VIVO (masterclass)
+// }
+
+const rooms = {};
+
 function generateCode() {
   return Math.random().toString(36).substring(2, 6).toUpperCase();
 }
-
-// Estructura en memoria:
-// rooms[roomCode] = {
-//   users: { socketId: { name, role } },
-//   liveStudentId: socketId | null    // alumno "En Vivo" en modo masterclass
-// }
-const rooms = {};
 
 function broadcastRoomUsers(roomCode) {
   const room = rooms[roomCode];
@@ -36,10 +43,15 @@ function broadcastRoomUsers(roomCode) {
   io.to(roomCode).emit("room-users", usersArray);
 }
 
+// ===============================
+// Socket.IO
+// ===============================
 io.on("connection", (socket) => {
   console.log("Cliente conectado:", socket.id);
 
+  // -------------------------------
   // CREAR SALA
+  // -------------------------------
   socket.on("create-room", (payload) => {
     const username =
       (payload && (payload.username || payload.userName)) || "Profesor";
@@ -61,7 +73,7 @@ io.on("connection", (socket) => {
 
     socket.join(roomCode);
 
-    // Se mantiene contrato anterior: se envía solo el código
+    // Se mantiene contrato anterior: se emite SOLO el código
     socket.emit("room-created", roomCode);
 
     broadcastRoomUsers(roomCode);
@@ -71,7 +83,9 @@ io.on("connection", (socket) => {
     );
   });
 
+  // -------------------------------
   // UNIRSE A SALA
+  // -------------------------------
   socket.on("join-room", (payload) => {
     let roomCode;
     let username;
@@ -112,17 +126,21 @@ io.on("connection", (socket) => {
       `Socket ${socket.id} se une a sala ${roomCode} como ${username} (${role})`
     );
 
-    // Enviar estado de masterclass actual al que se une
+    // Enviar estado de EN VIVO actual
     const liveId = rooms[roomCode].liveStudentId || null;
     if (liveId) {
       socket.emit("live-student-changed", { liveStudentId: liveId });
     }
   });
 
-  // MENSAJES MIDI
+  // -------------------------------
+  // MIDI
+  // -------------------------------
   socket.on("midi-message", (message) => {
+    // Usar roomCode desde el socket (nuevo) o desde el mensaje (viejo).
     const roomCode = socket.roomCode || message.roomCode;
     if (!roomCode) return;
+
     const room = rooms[roomCode];
     if (!room) return;
 
@@ -138,7 +156,9 @@ io.on("connection", (socket) => {
     });
   });
 
-  // MODO MASTERCLASS: profesor define alumno "En Vivo"
+  // -------------------------------
+  // MASTERCLASS: alumno EN VIVO
+  // -------------------------------
   socket.on("set-live-student", (payload) => {
     const roomCode = (payload && payload.roomCode) || socket.roomCode;
     if (!roomCode || !rooms[roomCode]) return;
@@ -167,7 +187,9 @@ io.on("connection", (socket) => {
     );
   });
 
+  // -------------------------------
   // DESCONEXIÓN
+  // -------------------------------
   socket.on("disconnect", () => {
     console.log("Cliente desconectado:", socket.id);
 
@@ -178,7 +200,7 @@ io.on("connection", (socket) => {
 
     delete room.users[socket.id];
 
-    // Si el que se fue era el alumno En Vivo, apagar masterclass
+    // Si el que se fue era el EN VIVO, apagar masterclass
     if (room.liveStudentId === socket.id) {
       room.liveStudentId = null;
       io.to(roomCode).emit("live-student-changed", { liveStudentId: null });
@@ -193,7 +215,9 @@ io.on("connection", (socket) => {
   });
 });
 
-// Render usa process.env.PORT
+// ===============================
+// Iniciar servidor (Render usa process.env.PORT)
+// ===============================
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Servidor PianoLink escuchando en puerto ${PORT}`);
