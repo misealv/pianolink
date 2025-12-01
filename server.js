@@ -7,27 +7,20 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// ===============================
-// Static (pensando en Render)
-// ===============================
-// 1) /public si existe
+// Static para Render (sirve index.html y archivos estáticos)
 app.use(express.static(path.join(__dirname, "public")));
-// 2) Raíz del proyecto (por si index.html está en la raíz)
 app.use(express.static(__dirname));
 
-// --- Generador de códigos aleatorios ---
+// Generar código de sala
 function generateCode() {
   return Math.random().toString(36).substring(2, 6).toUpperCase();
 }
 
-// ===============================
-// Almacenamiento simple en memoria
-// ===============================
+// Estructura en memoria:
 // rooms[roomCode] = {
-//   users: {
-//     socketId: { name, role }
-//   }
-// };
+//   users: { socketId: { name, role } },
+//   liveStudentId: socketId | null    // alumno "En Vivo" en modo masterclass
+// }
 const rooms = {};
 
 function broadcastRoomUsers(roomCode) {
@@ -43,17 +36,11 @@ function broadcastRoomUsers(roomCode) {
   io.to(roomCode).emit("room-users", usersArray);
 }
 
-// ===============================
-// SOCKET.IO
-// ===============================
 io.on("connection", (socket) => {
   console.log("Cliente conectado:", socket.id);
 
-  // -------------------------------
-  // Crear sala
-  // -------------------------------
+  // CREAR SALA
   socket.on("create-room", (payload) => {
-    // Compatibilidad con versión anterior: payload = { username }
     const username =
       (payload && (payload.username || payload.userName)) || "Profesor";
     const role =
@@ -69,11 +56,12 @@ io.on("connection", (socket) => {
       users: {
         [socket.id]: { name: username, role },
       },
+      liveStudentId: null,
     };
 
     socket.join(roomCode);
 
-    // Mantener contrato anterior: emitir SOLO el código
+    // Se mantiene contrato anterior: se envía solo el código
     socket.emit("room-created", roomCode);
 
     broadcastRoomUsers(roomCode);
@@ -83,16 +71,13 @@ io.on("connection", (socket) => {
     );
   });
 
-  // -------------------------------
-  // Unirse a sala
-  // -------------------------------
+  // UNIRSE A SALA
   socket.on("join-room", (payload) => {
     let roomCode;
     let username;
     let role;
 
     if (typeof payload === "string") {
-      // Versión antigua: solo el código
       roomCode = payload;
     } else if (payload && typeof payload === "object") {
       roomCode = payload.roomCode || payload.code;
@@ -126,17 +111,18 @@ io.on("connection", (socket) => {
     console.log(
       `Socket ${socket.id} se une a sala ${roomCode} como ${username} (${role})`
     );
+
+    // Enviar estado de masterclass actual al que se une
+    const liveId = rooms[roomCode].liveStudentId || null;
+    if (liveId) {
+      socket.emit("live-student-changed", { liveStudentId: liveId });
+    }
   });
 
-  // -------------------------------
-  // MIDI
-  // -------------------------------
+  // MENSAJES MIDI
   socket.on("midi-message", (message) => {
-    // Usar roomCode desde el socket (nuevo)
-    // o desde el mensaje (viejo).
     const roomCode = socket.roomCode || message.roomCode;
     if (!roomCode) return;
-
     const room = rooms[roomCode];
     if (!room) return;
 
@@ -152,18 +138,53 @@ io.on("connection", (socket) => {
     });
   });
 
-  // -------------------------------
-  // Desconexión
-  // -------------------------------
+  // MODO MASTERCLASS: profesor define alumno "En Vivo"
+  socket.on("set-live-student", (payload) => {
+    const roomCode = (payload && payload.roomCode) || socket.roomCode;
+    if (!roomCode || !rooms[roomCode]) return;
+
+    const room = rooms[roomCode];
+    const me = room.users[socket.id];
+    if (!me || me.role !== "teacher") {
+      // Solo el profesor puede cambiar el alumno En Vivo
+      return;
+    }
+
+    const studentSocketId = payload.studentSocketId || null;
+
+    if (studentSocketId && !room.users[studentSocketId]) {
+      room.liveStudentId = null;
+    } else {
+      room.liveStudentId = studentSocketId;
+    }
+
+    io.to(roomCode).emit("live-student-changed", {
+      liveStudentId: room.liveStudentId,
+    });
+
+    console.log(
+      `Sala ${roomCode} - liveStudentId = ${room.liveStudentId || "null"}`
+    );
+  });
+
+  // DESCONEXIÓN
   socket.on("disconnect", () => {
     console.log("Cliente desconectado:", socket.id);
 
     const roomCode = socket.roomCode;
     if (!roomCode || !rooms[roomCode]) return;
 
-    delete rooms[roomCode].users[socket.id];
+    const room = rooms[roomCode];
 
-    if (Object.keys(rooms[roomCode].users).length === 0) {
+    delete room.users[socket.id];
+
+    // Si el que se fue era el alumno En Vivo, apagar masterclass
+    if (room.liveStudentId === socket.id) {
+      room.liveStudentId = null;
+      io.to(roomCode).emit("live-student-changed", { liveStudentId: null });
+    }
+
+    if (Object.keys(room.users).length === 0) {
       delete rooms[roomCode];
       console.log(`Sala ${roomCode} eliminada (vacía).`);
     } else {
@@ -172,9 +193,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// ===============================
-// Iniciar servidor (Render usa process.env.PORT)
-// ===============================
+// Render usa process.env.PORT
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Servidor PianoLink escuchando en puerto ${PORT}`);

@@ -1,754 +1,860 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <title>PianoLink – Conexión MIDI remota</title>
-    <style>
-      :root {
-        --bg-main: #f5f7fa;
-        --primary: #1976d2;
-        --primary-dark: #0d47a1;
-        --accent: #ffc107;
-        --text-main: #222222;
-        --text-muted: #555555;
-        --card-bg: #ffffff;
-        
-        --teacher-rgb: 33, 150, 243; /* Azul */
-        --student-rgb: 255, 193, 7;  /* Amarillo */
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PianoLink</title>
 
-      * { box-sizing: border-box; }
+  <style>
+    :root {
+      --bg: #f9f9f9;
+      --card-bg: #ffffff;
+      --border: #ddd;
+      --text: #333;
+      --text-muted: #888;
+      --accent: #087ea4;
+      --accent-hover: #066a8d;
+      --danger: #c0392b;
+      --success: #2ecc71;
+      --prof-color: #cf6a87;
+      --alum-color: #f6b93b;
+      --note-on-color: #ffdd57;
+    }
 
-      body {
-        margin: 0;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: var(--bg-main);
-        color: var(--text-main);
-      }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+    }
 
-      .hero {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 16px;
-        background: linear-gradient(90deg, #1e88e5, #1565c0);
-        color: white;
-      }
-      .hero-left { max-width: 70%; }
-      .hero-title { margin: 0 0 6px 0; font-size: 24px; letter-spacing: 0.5px; }
-      .hero-subtitle { margin: 0 0 4px 0; font-size: 14px; opacity: 0.9; }
-      .hero-tagline { margin: 0; font-size: 12px; opacity: 0.9; }
-      .hero-right { text-align: right; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+    .container {
+      max-width: 1280px;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 20px;
+    }
 
-      .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        background: rgba(0,0,0,0.2);
-      }
-      .status-badge::before {
-        content: "";
-        width: 8px; height: 8px;
-        border-radius: 50%;
-        background: #ffeb3b;
-      }
-      .status-connecting::before { background: #ffeb3b; }
-      .status-connected::before  { background: #4caf50; }
-      .status-disconnected::before { background: #f44336; }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
 
-      .hero-project { font-size: 11px; opacity: 0.8; }
+    h1, h2 {
+      margin: 0 0 15px;
+    }
 
-      .panic-btn {
-        padding: 4px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.6);
-        background: rgba(244, 67, 54, 0.25);
-        color: white;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        cursor: pointer;
-      }
-      .panic-btn:hover {
-        background: rgba(244, 67, 54, 0.45);
-      }
+    .section {
+      margin-bottom: 16px;
+    }
 
-      main { padding: 12px 16px 24px; max-width: 1200px; margin: 0 auto; }
+    input[type=text], select, button {
+      font-size: 16px;
+      padding: 8px;
+      margin-top: 5px;
+      width: 100%;
+      box-sizing: border-box;
+    }
 
-      .card {
-        background: var(--card-bg);
-        border-radius: 8px;
-        padding: 12px 14px;
-        margin-bottom: 12px;
-        box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
-        border: 1px solid #dde3ee;
-      }
+    button {
+      background: var(--accent);
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      cursor: pointer;
+      transition: 0.15s;
+    }
 
-      .section-title {
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--text-muted);
-        margin: 0 0 8px 0;
-      }
+    button:hover {
+      background: var(--accent-hover);
+    }
 
-      .section {
-        margin-bottom: 8px;
-        font-size: 13px;
-      }
+    #status {
+      font-size: 14px;
+      margin-top: 10px;
+    }
 
-      .role-help {
-        font-size: 11px;
-        color: #607d8b;
-        margin-top: 4px;
-      }
+    .role-indicator {
+      font-weight: bold;
+      padding: 6px 10px;
+      border-radius: 6px;
+      color: #fff;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
 
-      label { font-size: 13px; }
+    .inline-help {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
 
-      button {
-        font-size: 13px;
-        padding: 6px 10px;
-        border-radius: 4px;
-        border: 1px solid #1565c0;
-        background: #1976d2;
-        color: white;
-        cursor: pointer;
-        margin-right: 4px;
-        min-width: 80px;
-      }
-      button:disabled {
-        opacity: 0.6; cursor: default; background: #b0bec5; color: #eceff1; border-color: #90a4ae;
-      }
-      button.secondary {
-        border-color: #607d8b; background: #eceff1; color: #37474f;
-      }
-      button.danger {
-        background: #d32f2f; color: white; border: 1px solid #b71c1c;
-      }
-      button.small {
-        padding: 4px 8px; font-size: 12px;
-      }
-      button:hover:not(:disabled) { background: var(--primary-dark); }
-      
-      input[type="text"], #codigoSala, #inviteLink {
-        padding: 5px 7px; border-radius: 4px; border: 1px solid #c5cad3;
-        font-size: 13px; min-width: 120px;
-      }
-      #inviteLink { width: 100%; }
-      select { padding: 5px 7px; border-radius: 4px; border: 1px solid #c5cad3; font-size: 13px; }
+    #pedalIndicator {
+      width: 100%;
+      height: 10px;
+      background: var(--border);
+      border-radius: 4px;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+    #pedalIndicator.active {
+      background: var(--success);
+    }
 
-      /* Piano */
-      .piano-wrapper {
-        border: 1px solid #999; overflow-x: auto; overflow-y: hidden;
-        height: 180px; background: #dde1eb; border-radius: 4px;
-      }
-      .piano { position: relative; height: 100%; }
-      .key {
-        position: absolute; box-sizing: border-box; transition: transform 0.05s ease, background-color 0.05s ease;
-      }
-      .white-key {
-        height: 100%; background: #ffffff; border: 1px solid #000; bottom: 0; z-index: 1;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
-      }
-      .black-key {
-        height: 55%; background: #000000; border: 1px solid #000; top: 0; z-index: 5;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
-      }
-      .note-label {
-        position: absolute; bottom: 2px; left: 2px; font-size: 8px; color: #333; pointer-events: none;
-      }
-      
-      .white-key.active-teacher, .white-key.active-student {
-        transform: translateY(4px); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
-      }
-      .black-key.active-teacher, .black-key.active-student {
-        transform: translateY(3px); box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.25);
-      }
+    .log {
+      font-family: monospace;
+      font-size: 13px;
+      height: 180px;
+      overflow-y: auto;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+    }
 
-      .pedal-indicator {
-        font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 999px;
-        border: 1px solid #b0bec5; background: #e0e0e0; color: #455a64; text-transform: uppercase; letter-spacing: 0.04em;
-      }
-      .pedal-indicator.active {
-        background: #4caf50; color: #ffffff; border-color: #388e3c; box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
-      }
+    /* Piano 88 teclas con scroll horizontal */
+    .piano-wrapper {
+      border: 1px solid #999;
+      overflow-x: auto;
+      overflow-y: hidden;
+      height: 180px;
+      background: #dde1eb;
+      border-radius: 4px;
+      margin-top: 6px;
+    }
 
-      .layout-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+    .piano {
+      position: relative;
+      height: 100%;
+    }
 
-      /* Participantes */
-      #participantsCard {
-        margin-top: 10px;
-      }
-      .participants-list {
-        max-height: 160px;
-        overflow-y: auto;
-        font-size: 13px;
-        margin-top: 6px;
-      }
-      .participant-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 4px 0;
-        border-bottom: 1px solid #eee;
-      }
-      .participant-name {
-        font-weight: 500;
-      }
-      .participant-role {
-        font-size: 11px;
-        color: #777;
-        margin-left: 6px;
-      }
-      .participant-controls {
-        font-size: 12px;
-        white-space: nowrap;
-      }
+    .key {
+      position: absolute;
+      box-sizing: border-box;
+      transition: transform 0.05s ease, background-color 0.05s ease;
+    }
 
-      @media (max-width: 768px) {
-        .layout-grid { grid-template-columns: 1fr; }
-        .hero, .hero-right { text-align: left; align-items: flex-start; }
-      }
-      .footer { margin-top: 18px; font-size: 11px; text-align: center; color: #777; }
-    </style>
-  </head>
+    .white-key {
+      height: 100%;
+      background: #ffffff;
+      border: 1px solid #000;
+      bottom: 0;
+      z-index: 1;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    }
 
-  <body>
-    <header class="hero">
-      <div class="hero-left">
-        <h1 class="hero-title">PianoLink</h1>
-        <p class="hero-subtitle">Conexión MIDI remota en tiempo real.</p>
-        <p class="hero-tagline">
-          <span style="color: #ffc107; font-weight: bold;">■ Alumno (Amarillo)</span> | 
-          <span style="color: #82b1ff; font-weight: bold;">■ Profesor (Azul)</span>
-        </p>
-      </div>
-      <div class="hero-right">
-        <div id="connectionStatus" class="status-badge status-connecting">Conectando...</div>
-        <button id="panicBtn" class="panic-btn">🔇 Reset / Pánico</button>
-        <div class="hero-project" style="margin-top:8px;">by Miguel Antonio</div>
-      </div>
-    </header>
+    .black-key {
+      height: 55%;
+      background: #000000;
+      border: 1px solid #000;
+      top: 0;
+      z-index: 5;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+    }
 
-    <main>
+    .key.note-active {
+      transform: translateY(3px);
+      background-color: var(--note-on-color);
+    }
+
+    /* Participantes */
+    .participants-list {
+      max-height: 160px;
+      overflow-y: auto;
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .participant-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .participant-name {
+      font-weight: 500;
+    }
+
+    .participant-role {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: 6px;
+    }
+
+    .participant-controls {
+      font-size: 12px;
+      white-space: nowrap;
+    }
+  </style>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+
+<body>
+  <div class="container">
+
+    <!-- COLUMNA IZQUIERDA -->
+    <div>
+
       <div class="card">
-        <h2 class="section-title">1. ¿Quién eres?</h2>
+        <h1>PianoLink</h1>
+        <div id="status" class="inline-help">Desconectado</div>
+      </div>
+
+      <div class="card">
+        <h2>Selecciona tu rol</h2>
         <div class="section">
-          <label><input type="radio" name="rol" value="teacher" checked /> Profesor</label>
-          &nbsp;&nbsp;
-          <label><input type="radio" name="rol" value="student" /> Alumno</label>
+          <label><input type="radio" name="rol" value="teacher"> Profesor</label><br>
+          <label><input type="radio" name="rol" value="student" checked> Alumno</label>
         </div>
-        <div style="margin-top:10px; margin-bottom:10px;">
-          <input type="text" id="inputName" placeholder="Tu Nombre (Ej: Juan)" style="width:100%; font-weight:bold;">
-        </div>
-        <div id="roleHelp" class="role-help"></div>
-      </div>
-
-      <div class="card" id="roomCard">
-        <h2 class="section-title">2. Conectarse a la misma sala</h2>
         <div class="section">
-          <button id="crearSala">Crear sala</button>
-          <input id="codigoSala" placeholder="Código de sala" />
-          <button id="unirseSala">Unirse</button>
+          <label>Tu nombre:
+            <input type="text" id="inputName" placeholder="Ej: Miguel" />
+          </label>
         </div>
-        <div class="section" id="inviteSection">
-          <div style="font-size:12px; margin-bottom:4px;">Link de invitación para alumnos:</div>
-          <input id="inviteLink" readonly />
-          <div style="margin-top:6px;">
-            <button id="copyInviteBtn">Copiar link</button>
+      </div>
+
+      <div class="card" id="cardCrearSala" style="display:none;">
+        <h2>Crear sala</h2>
+        <button id="btnCrear">Crear sala nueva</button>
+        <div id="inviteLink" class="inline-help" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card" id="cardUnirseSala">
+        <h2>Unirse a una sala</h2>
+        <label>Código:
+          <input type="text" id="codigoSala" maxlength="4" placeholder="ABCD" />
+        </label>
+        <button id="btnUnirse">Unirse</button>
+      </div>
+
+      <div class="card">
+        <h2>Piano</h2>
+        <div id="roleIndicator" class="role-indicator"></div>
+        <div id="liveStatus" class="inline-help"></div>
+
+        <div class="piano-wrapper">
+          <div id="piano" class="piano"></div>
+        </div>
+
+        <div id="pedalIndicator"></div>
+
+        <button id="panicBtn" style="margin-top:10px;background:var(--danger);">
+          PANIC
+        </button>
+      </div>
+    </div>
+
+    <!-- COLUMNA DERECHA -->
+    <div>
+
+      <div class="card" id="advancedCard">
+        <h2 class="section-title">Opciones</h2>
+
+        <div class="section">
+          <label>Salida MIDI:
+            <select id="midiOutputSelect">
+              <option value="">(ninguna)</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="section">
+          <label><input type="checkbox" id="toggleMidiOut" />
+            Activar salida MIDI a mi teclado</label>
+        </div>
+
+        <!-- Modo masterclass: solo visible para profesor -->
+        <div class="section" id="masterclassSection" style="display:none;">
+          <label>
+            <input type="checkbox" id="masterclassToggle" />
+            Modo masterclass (un alumno suena para todos)
+          </label>
+          <button id="clearLiveBtn"
+                  style="margin-top:6px;font-size:12px;padding:4px 8px;">
+            Nadie En Vivo
+          </button>
+          <div class="inline-help">
+            Marca "En Vivo" en la lista de participantes para elegir quién se escucha en la clase.
           </div>
         </div>
       </div>
 
-      <div class="layout-grid">
-        <div>
-          <div class="card" id="noteCard">
-            <h2 class="section-title">3. Nota actual</h2>
-            <div class="note-box" id="noteDisplay">—</div>
-          </div>
-
-          <div class="card" id="pianoCard">
-            <div class="section-header">
-              <h2 class="section-title">Piano visual</h2>
-              <div id="sustainPedal" class="pedal-indicator">Sustain</div>
-            </div>
-            <div class="piano-wrapper"><div id="piano" class="piano"></div></div>
-          </div>
-        </div>
-
-        <div>
-          <div class="card" id="advancedCard">
-            <h2 class="section-title">Opciones</h2>
-            <div class="section">
-              <label>Salida MIDI: <select id="midiOutputSelect"><option value="">(ninguna)</option></select></label>
-            </div>
-            <div class="section">
-              <label><input type="checkbox" id="toggleMidiOut" /> Activar salida MIDI a mi teclado</label>
-            </div>
-          </div>
-
-          <div class="card" id="participantsCard">
-            <h2 class="section-title">Participantes</h2>
-            <div id="participantsList" class="participants-list">
-              <div class="inline-help">Cuando seas profesor, aquí podrás elegir qué alumnos escuchar.</div>
-            </div>
-          </div>
-
-          <div class="card" id="logCard">
-            <h2 class="section-title">Log</h2>
-            <div id="log" class="log"></div>
+      <div class="card" id="participantsCard">
+        <h2 class="section-title">Participantes</h2>
+        <div id="participantsList" class="participants-list">
+          <div class="inline-help">
+            Cuando seas profesor, aquí podrás elegir a quién escuchar y quién está En Vivo.
           </div>
         </div>
       </div>
 
-      <div class="footer">
-        PianoLink – MIDI remoto para clases de piano · by Miguel Antonio
+      <div class="card" id="logCard">
+        <h2 class="section-title">Log</h2>
+        <div id="log" class="log"></div>
       </div>
-    </main>
+    </div>
+  </div>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script>
-      const socket = io();
+  <script>
+    const socket = io();
 
-      // Referencias DOM
-      const inputName = document.getElementById("inputName");
-      const crearSala = document.getElementById("crearSala");
-      const unirseSala = document.getElementById("unirseSala");
-      const codigoSala = document.getElementById("codigoSala");
-      const logDiv = document.getElementById("log");
-      const toggleMidiOut = document.getElementById("toggleMidiOut");
-      const midiOutputSelect = document.getElementById("midiOutputSelect");
-      const piano = document.getElementById("piano");
-      const roleHelp = document.getElementById("roleHelp");
-      const noteDisplay = document.getElementById("noteDisplay");
-      const advancedCard = document.getElementById("advancedCard");
-      const logCard = document.getElementById("logCard");
-      const inviteLinkInput = document.getElementById("inviteLink");
-      const copyInviteBtn = document.getElementById("copyInviteBtn");
-      const inviteSection = document.getElementById("inviteSection");
-      const statusEl = document.getElementById("connectionStatus");
-      const sustainPedalEl = document.getElementById("sustainPedal");
-      const panicBtn = document.getElementById("panicBtn");
-      const participantsList = document.getElementById("participantsList");
+    const statusDiv = document.getElementById("status");
+    const inputName = document.getElementById("inputName");
+    const codigoSala = document.getElementById("codigoSala");
+    const btnCrear = document.getElementById("btnCrear");
+    const btnUnirse = document.getElementById("btnUnirse");
+    const inviteLink = document.getElementById("inviteLink");
+    const roleIndicator = document.getElementById("roleIndicator");
+    const liveStatus = document.getElementById("liveStatus");
+    const piano = document.getElementById("piano");
+    const pedalIndicator = document.getElementById("pedalIndicator");
+    const panicBtn = document.getElementById("panicBtn");
 
-      const teacherRadio = document.querySelector('input[name="rol"][value="teacher"]');
-      const studentRadio = document.querySelector('input[name="rol"][value="student"]');
+    const participantsList = document.getElementById("participantsList");
+    const logDiv = document.getElementById("log");
+    const toggleMidiOut = document.getElementById("toggleMidiOut");
+    const midiOutputSelect = document.getElementById("midiOutputSelect");
+    const masterclassSection = document.getElementById("masterclassSection");
+    const masterclassToggle = document.getElementById("masterclassToggle");
+    const clearLiveBtn = document.getElementById("clearLiveBtn");
 
-      // Estado Global
-      let rol = "teacher";
-      let salaActual = null;
-      let myName = "";
-      let lockStudentFromLink = false;
+    let rol = "student";
+    let myName = "";
+    let salaActual = null;
+    let mySocketId = null;
 
-      let mySocketId = null;
-      let participants = [];
-      let listeningTo = new Set();
+    let participants = [];
+    let listeningTo = new Set();        // a quién escucha el profesor
+    let liveStudentId = null;           // socketId del alumno En Vivo (masterclass)
+    let masterclassEnabled = false;     // derivado de liveStudentId
 
-      let midiAccessGlobal = null;
-      let midiOutput = null;
-      let midiOutputs = [];
-      let enableMidiOut = false;
-      const keyElementsByNote = {};
+    let midiOutput = null;
+    let midiAccess = null;
+    let enableMidiOut = false;
 
-      // ===========================
-      // 1. LÓGICA DE SALAS
-      // ===========================
+    /* ------------ SOCKET.IO ------------ */
 
-      function log(msg) {
-        const line = document.createElement("div");
-        line.textContent = msg;
-        logDiv.appendChild(line);
-        logDiv.scrollTop = logDiv.scrollHeight;
+    socket.on("connect", () => {
+      mySocketId = socket.id;
+      updateStatus("Conectado ✔️");
+    });
+
+    socket.on("connect_error", (err) => {
+      updateStatus("Error de conexión: " + err.message);
+    });
+
+    socket.on("room-users", (users) => {
+      participants = users || [];
+      renderParticipants();
+    });
+
+    socket.on("live-student-changed", (payload) => {
+      liveStudentId = payload && payload.liveStudentId ? payload.liveStudentId : null;
+      masterclassEnabled = !!liveStudentId;
+      if (rol === "teacher" && masterclassToggle) {
+        masterclassToggle.checked = masterclassEnabled;
       }
+      renderParticipants();
+      updateLiveStatusUI();
+    });
 
-      function updateStatus(state) {
-        statusEl.classList.remove("status-connecting", "status-connected", "status-disconnected");
-        if (state === "connected") {
-          statusEl.classList.add("status-connected");
-          statusEl.textContent = "Conectado";
-        } else if (state === "disconnected") {
-          statusEl.classList.add("status-disconnected");
-          statusEl.textContent = "Desconectado";
+    socket.on("midi-message", (msg) => {
+      handleRemoteOrLocalNote(msg);
+    });
+
+    /* ------------ UTILIDADES UI ------------ */
+
+    function log(msg) {
+      const el = document.createElement("div");
+      el.textContent = msg;
+      logDiv.appendChild(el);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function updateStatus(msg) {
+      statusDiv.textContent = msg;
+    }
+
+    function updateInviteLink() {
+      if (!salaActual) return;
+      inviteLink.textContent =
+        "Link para alumnos: " + window.location.origin + "/?sala=" + salaActual;
+    }
+
+    function updateRoleIndicator() {
+      if (rol === "teacher") {
+        roleIndicator.textContent = "Profesor";
+        roleIndicator.style.background = getComputedStyle(document.documentElement)
+          .getPropertyValue("--prof-color");
+      } else {
+        roleIndicator.textContent = "Alumno";
+        roleIndicator.style.background = getComputedStyle(document.documentElement)
+          .getPropertyValue("--alum-color");
+      }
+    }
+
+    function updateLiveStatusUI() {
+      if (!liveStatus) return;
+
+      if (rol === "teacher") {
+        if (masterclassEnabled && liveStudentId) {
+          liveStatus.textContent =
+            "Modo masterclass: el alumno marcado 'En Vivo' se escucha en los teclados de todos los alumnos.";
+          liveStatus.style.color = "#c0392b";
         } else {
-          statusEl.classList.add("status-connecting");
-          statusEl.textContent = "Conectando...";
+          liveStatus.textContent =
+            "Sin masterclass: tus alumnos solo escuchan tu piano; tú eliges a qué alumnos escuchar.";
+          liveStatus.style.color = "#666";
+        }
+      } else {
+        if (masterclassEnabled && liveStudentId === mySocketId) {
+          liveStatus.textContent =
+            "EN VIVO: tu piano se está escuchando en toda la sala.";
+          liveStatus.style.color = "#c0392b";
+        } else if (masterclassEnabled && liveStudentId) {
+          liveStatus.textContent =
+            "Otro compañero está En Vivo. Tus notas son para practicar; tu profesor puede escucharte si te tiene marcado en 'Escuchar'.";
+          liveStatus.style.color = "#666";
+        } else {
+          liveStatus.textContent =
+            "Modo práctica: tu piano solo se escucha en tu teclado (y tu profesor puede escucharte si te selecciona).";
+          liveStatus.style.color = "#666";
         }
       }
+    }
 
-      socket.on("connect", () => {
-        mySocketId = socket.id;
-        updateStatus("connected");
-        // Si se reconecta y ya tenía sala, volver a unirse con nombre y rol
-        if (salaActual && myName) {
-          socket.emit("join-room", { roomCode: salaActual, username: myName, userRole: rol });
+    /* ------------ SELECCIÓN DE ROL ------------ */
+
+    document.querySelectorAll("input[name=rol]").forEach(radio => {
+      radio.addEventListener("change", () => {
+        rol = radio.value;
+        document.getElementById("cardCrearSala").style.display =
+          (rol === "teacher") ? "block" : "none";
+
+        if (masterclassSection) {
+          masterclassSection.style.display =
+            (rol === "teacher") ? "block" : "none";
         }
+
+        updateRoleIndicator();
+        updateLiveStatusUI();
       });
-      socket.on("disconnect", () => updateStatus("disconnected"));
-      socket.on("connect_error", () => updateStatus("disconnected"));
+    });
 
-      socket.on("room-users", (users) => {
-        participants = users || [];
-        renderParticipants();
-      });
+    updateRoleIndicator();
+    updateLiveStatusUI();
 
-      setInterval(() => {
-        if (socket.connected) socket.emit("ping_keep_alive"); // Mantener conexión activa
-      }, 25000);
+    /* ------------ PARTICIPANTES ------------ */
 
-      function updateInviteLink() {
-        if (rol !== "teacher" || !salaActual) {
-          inviteLinkInput.value = "";
-          return;
-        }
-        const url = new URL(window.location.href);
-        url.searchParams.set("role", "student");
-        url.searchParams.set("room", salaActual);
-        inviteLinkInput.value = url.toString();
+    function renderParticipants() {
+      participantsList.innerHTML = "";
+      if (!participants.length) {
+        const d = document.createElement("div");
+        d.className = "inline-help";
+        d.textContent = "Aún no hay participantes.";
+        participantsList.appendChild(d);
+        return;
       }
 
-      function renderParticipants() {
-        participantsList.innerHTML = "";
-        if (!participants.length) {
-          const d = document.createElement("div");
-          d.className = "inline-help";
-          d.textContent = "Aún no hay participantes.";
-          participantsList.appendChild(d);
-          return;
+      const soyProfe = (rol === "teacher");
+
+      participants.forEach(u => {
+        const row = document.createElement("div");
+        row.className = "participant-row";
+
+        const left = document.createElement("div");
+        const n = document.createElement("span");
+        n.className = "participant-name";
+        n.textContent = u.name;
+        const r = document.createElement("span");
+        r.className = "participant-role";
+        r.textContent = (u.role === "teacher" ? "Profesor" : "Alumno");
+        left.appendChild(n);
+        left.appendChild(r);
+
+        const right = document.createElement("div");
+        right.className = "participant-controls";
+
+        if (soyProfe && u.role !== "teacher" && u.socketId !== mySocketId) {
+          // Checkbox "Escuchar"
+          const listenLabel = document.createElement("label");
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = (listeningTo.size === 0) || listeningTo.has(u.socketId);
+          cb.addEventListener("change", () => toggleListen(u.socketId, cb.checked));
+          listenLabel.appendChild(cb);
+          listenLabel.appendChild(document.createTextNode(" Escuchar"));
+          right.appendChild(listenLabel);
+
+          // Radio "En Vivo" (modo masterclass)
+          right.appendChild(document.createTextNode(" "));
+          const liveLabel = document.createElement("label");
+          const rb = document.createElement("input");
+          rb.type = "radio";
+          rb.name = "liveStudent";
+          rb.checked = (liveStudentId === u.socketId);
+          rb.addEventListener("change", () => {
+            if (rb.checked) {
+              masterclassToggle.checked = true;
+              sendLiveStudent(u.socketId);
+            }
+          });
+          liveLabel.appendChild(rb);
+          liveLabel.appendChild(document.createTextNode(" En Vivo"));
+          right.appendChild(liveLabel);
+        } else if (u.socketId === mySocketId) {
+          right.textContent = "Tú";
         }
-        const soyProfe = (rol === "teacher");
-        participants.forEach(u => {
-          const row = document.createElement("div");
-          row.className = "participant-row";
 
-          const left = document.createElement("div");
-          const n = document.createElement("span");
-          n.className = "participant-name";
-          n.textContent = u.name;
-          const r = document.createElement("span");
-          r.className = "participant-role";
-          r.textContent = (u.role === "teacher" ? "Profesor" : "Alumno");
-          left.appendChild(n);
-          left.appendChild(r);
+        row.appendChild(left);
+        row.appendChild(right);
+        participantsList.appendChild(row);
+      });
+    }
 
-          const right = document.createElement("div");
-          right.className = "participant-controls";
+    function toggleListen(id, checked) {
+      if (checked) listeningTo.add(id);
+      else listeningTo.delete(id);
+    }
 
-          if (soyProfe && u.role !== "teacher" && u.socketId !== mySocketId) {
-            const label = document.createElement("label");
-            const cb = document.createElement("input");
-            cb.type = "checkbox";
-            cb.checked = (listeningTo.size === 0) || listeningTo.has(u.socketId);
-            cb.addEventListener("change", () => toggleListen(u.socketId, cb.checked));
-            label.appendChild(cb);
-            label.appendChild(document.createTextNode(" Escuchar"));
-            right.appendChild(label);
-          } else if (u.socketId === mySocketId) {
-            right.textContent = "Tú";
+    function sendLiveStudent(studentSocketId) {
+      if (!salaActual) return;
+      liveStudentId = studentSocketId || null;
+      masterclassEnabled = !!liveStudentId;
+      socket.emit("set-live-student", {
+        roomCode: salaActual,
+        studentSocketId: liveStudentId
+      });
+      updateLiveStatusUI();
+      renderParticipants();
+    }
+
+    if (masterclassToggle) {
+      masterclassToggle.addEventListener("change", () => {
+        if (!masterclassToggle.checked) {
+          sendLiveStudent(null);
+        } else {
+          if (liveStudentId) {
+            sendLiveStudent(liveStudentId);
           }
+        }
+      });
+    }
 
-          row.appendChild(left);
-          row.appendChild(right);
-          participantsList.appendChild(row);
-        });
+    if (clearLiveBtn) {
+      clearLiveBtn.addEventListener("click", () => {
+        sendLiveStudent(null);
+        if (masterclassToggle) masterclassToggle.checked = false;
+      });
+    }
+
+    /* ------------ CREAR / UNIR SALA ------------ */
+
+    btnCrear.addEventListener("click", () => {
+      const name = inputName.value.trim();
+      if (!name) return alert("Ingresa tu nombre.");
+
+      myName = name;
+      socket.emit("create-room", { username: name, userRole: "teacher" });
+      log("Creando sala…");
+    });
+
+    socket.on("room-created", (roomCode) => {
+      salaActual = roomCode;
+      updateInviteLink();
+      log("Sala creada: " + roomCode);
+    });
+
+    btnUnirse.addEventListener("click", () => {
+      const name = inputName.value.trim();
+      if (!name) return alert("Ingresa tu nombre.");
+      const code = codigoSala.value.trim().toUpperCase();
+      if (!code) return alert("Ingresa el código.");
+
+      myName = name;
+      salaActual = code;
+
+      socket.emit("join-room", {
+        roomCode: code,
+        username: name,
+        userRole: rol
+      });
+
+      log("Uniéndose a sala " + code + " como " + rol + "…");
+      updateInviteLink();
+    });
+
+    /* ------------ WEB MIDI ------------ */
+
+    if (navigator.requestMIDIAccess) {
+      navigator.requestMIDIAccess().then(onMIDISuccess, err => {
+        log("No se pudo acceder al MIDI: " + err);
+      });
+    } else {
+      log("Este navegador no soporta Web MIDI.");
+    }
+
+    function onMIDISuccess(access) {
+      midiAccess = access;
+      refreshOutputs();
+      attachInputListeners();
+      access.onstatechange = () => {
+        refreshOutputs();
+        attachInputListeners();
+      };
+    }
+
+    function refreshOutputs() {
+      midiOutputSelect.innerHTML = '<option value="">(ninguna)</option>';
+      if (!midiAccess) return;
+      for (let output of midiAccess.outputs.values()) {
+        const opt = document.createElement("option");
+        opt.value = output.id;
+        opt.textContent = output.name;
+        midiOutputSelect.appendChild(opt);
       }
+    }
 
-      function toggleListen(id, checked) {
-        if (checked) listeningTo.add(id);
-        else listeningTo.delete(id);
+    function attachInputListeners() {
+      if (!midiAccess) return;
+      for (let input of midiAccess.inputs.values()) {
+        input.onmidimessage = handleLocalMIDIMessage;
       }
+    }
 
-      copyInviteBtn.addEventListener("click", () => {
-        const value = inviteLinkInput.value.trim();
-        if (!value) return alert("Crea una sala primero.");
-        navigator.clipboard.writeText(value)
-          .then(() => log("Link copiado al portapapeles."))
-          .catch(() => alert("No se pudo copiar. Copia el texto manualmente."));
-      });
+    midiOutputSelect.addEventListener("change", () => {
+      const id = midiOutputSelect.value;
+      midiOutput = id ? midiAccess.outputs.get(id) : null;
+    });
 
-      // Definir rol al cambiar radio
-      teacherRadio.addEventListener("change", () => {
-        if (teacherRadio.checked) {
-          rol = "teacher";
-          roleHelp.textContent = "Modo Profesor: tu sonido se envía a los alumnos, no te escuchas a ti mismo.";
+    toggleMidiOut.addEventListener("change", () => {
+      enableMidiOut = toggleMidiOut.checked;
+    });
+
+    function handleLocalMIDIMessage(event) {
+      const [status, data1, data2] = event.data;
+      const cmd = status & 0xf0;
+      const note = data1;
+      const velocity = data2;
+
+      // Notas
+      if (cmd === 0x90 || cmd === 0x80) {
+        const isNoteOn = (cmd === 0x90 && velocity > 0);
+        lightKey(note, isNoteOn);
+
+        // sonido local
+        if (enableMidiOut && midiOutput) {
+          try {
+            midiOutput.send([cmd, note, velocity]);
+          } catch (e) {}
         }
-      });
-      studentRadio.addEventListener("change", () => {
-        if (studentRadio.checked) {
-          rol = "student";
-          roleHelp.textContent = "Modo Alumno: escuchas al profesor, y él puede escucharte a ti.";
-        }
-      });
-      roleHelp.textContent = "Modo Profesor: tu sonido se envía a los alumnos, no te escuchas a ti mismo.";
 
-      // CREAR SALA
-      crearSala.addEventListener("click", () => {
-        const name = inputName.value.trim();
-        if(!name) return alert("Por favor ingresa tu nombre primero.");
-        
-        myName = name;
-        rol = "teacher";
-        teacherRadio.checked = true;
-        
-        // Solicitar al servidor
-        socket.emit("create-room", { username: name, userRole: "teacher" });
-        log(`⏳ Solicitando nueva sala como Profesor...`);
-      });
-
-      // Respuesta del Servidor (Aquí se genera el link)
-      socket.on("room-created", (code) => {
-        salaActual = code;
-        codigoSala.value = code; // Poner el código en la caja
-        log(`✅ Sala creada con éxito: ${code}`);
-        updateInviteLink();
-        inviteSection.style.display = "block";
-      });
-
-      // UNIRSE SALA
-      unirseSala.addEventListener("click", () => {
-        const code = codigoSala.value.trim().toUpperCase();
-        const name = inputName.value.trim();
-
-        if(!name) return alert("Ingresa tu nombre.");
-        if(!code) return alert("Ingresa el código de la sala.");
-
-        myName = name;
-        salaActual = code;
-        socket.emit("join-room", { roomCode: code, username: name, userRole: rol });
-        log(`⏳ Uniéndose a sala ${code} como ${rol}...`);
-        updateInviteLink();
-      });
-
-      socket.on("room-error", (msg) => {
-        log("⚠️ " + msg);
-        alert(msg);
-      });
-
-      // Leer parámetros de la URL para auto-unirse
-      (function parseUrlParamsForStudent() {
-        const url = new URL(window.location.href);
-        const roleFromUrl = url.searchParams.get("role");
-        const roomFromUrl = url.searchParams.get("room");
-        if (roleFromUrl === "student" && roomFromUrl) {
-          studentRadio.checked = true;
-          rol = "student";
-          salaActual = roomFromUrl;
-          codigoSala.value = roomFromUrl;
-          lockStudentFromLink = true;
-          roleHelp.textContent = "Entraste con link de alumno. Ingresa tu nombre y aprieta UNIRSE SALA.";
-        }
-      })();
-
-      // ===========================
-      // 2. MIDI
-      // ===========================
-
-      if (navigator.requestMIDIAccess) {
-        navigator.requestMIDIAccess()
-          .then(onMIDISuccess, () => log("❌ Sin soporte MIDI"));
-      } else { log("⚠️ Navegador no soporta Web MIDI"); }
-
-      function onMIDISuccess(midi) {
-        midiAccessGlobal = midi;
-        log("✅ MIDI Activo");
-        for (let input of midi.inputs.values()) {
-          input.onmidimessage = handleMIDIMessageFromDevice;
-        }
-        midiOutputs = Array.from(midi.outputs.values());
-        midiOutputSelect.innerHTML = '<option value="">(ninguna)</option>';
-        midiOutputs.forEach((out, index) => {
-          const opt = document.createElement("option");
-          opt.value = index; opt.textContent = out.name;
-          midiOutputSelect.appendChild(opt);
-        });
-      }
-
-      toggleMidiOut.addEventListener("change", (e) => {
-        enableMidiOut = e.target.checked;
-        log("Salida MIDI: " + (enableMidiOut ? "ON" : "OFF"));
-      });
-      midiOutputSelect.addEventListener("change", (e) => {
-        const idx = e.target.value;
-        midiOutput = (idx !== "" && midiOutputs[idx]) ? midiOutputs[idx] : null;
-      });
-
-      function handleMIDIMessageFromDevice(event) {
-        const [status, data1, data2] = event.data;
-        const command = status & 0xf0;
-        const note = data1;
-        const velocity = data2;
-
-        // Visualizar localmente en el teclado gráfico
-        handleRemoteOrLocalNote({
-          type: "raw_midi",
-          command,
-          note,
-          velocity,
-          fromRole: rol
-        });
-
-        if (!salaActual) return; // No enviar si no hay sala
-
-        // Enviar a la red
-        if (command === 0x90 || command === 0x80) {
+        // enviar a la sala
+        if (salaActual) {
           socket.emit("midi-message", {
             type: "note",
-            command,
+            command: cmd,
             note,
             velocity,
-            roomCode: salaActual,
-            fromRole: rol
+            fromRole: rol,
+            roomCode: salaActual
           });
-        } else if (command === 0xb0) {
-          const controller = data1;
-          const value = data2;
+        }
+      }
+
+      // CC (ej. pedal)
+      if (cmd === 0xB0) {
+        const controller = data1;
+        const value = data2;
+
+        if (controller === 64) {
+          updatePedalVisual(value);
+        }
+
+        if (salaActual) {
           socket.emit("midi-message", {
             type: "cc",
             status,
             controller,
             value,
-            roomCode: salaActual,
-            fromRole: rol
+            fromRole: rol,
+            roomCode: salaActual
           });
         }
       }
+    }
 
-      // Procesar MIDI Remoto
-      socket.on("midi-message", (msg) => handleRemoteOrLocalNote(msg));
+    /* ------------ PIANO VISUAL ------------ */
 
-      function handleRemoteOrLocalNote(msg) {
-        let cmd, note, velocity, role, type;
-        const fromSocketId = msg.fromSocketId || null;
+    buildPiano();
 
-        if (msg.type === "raw_midi") {
-          cmd = msg.command;
-          note = msg.note;
-          velocity = msg.velocity;
-          role = msg.fromRole;
-          type = "raw";
-        } else if (msg.type === "note") {
-          cmd = msg.command & 0xf0;
-          note = msg.note;
-          velocity = msg.velocity;
-          role = msg.fromRole;
-          type = "remote";
+    function buildPiano() {
+      const WHITE_KEYS = [0,2,4,5,7,9,11];
+      piano.innerHTML = "";
+      // 52 teclas blancas * 26px
+      piano.style.width = (52 * 26) + "px";
+
+      let wIdx = 0;
+      for (let note = 21; note <= 108; note++) {
+        const isWhite = WHITE_KEYS.includes(note % 12);
+        const key = document.createElement("div");
+        key.className = "key " + (isWhite ? "white-key" : "black-key");
+        key.dataset.note = note;
+
+        if (isWhite) {
+          key.style.left = (wIdx * 26) + "px";
+          key.style.width = "26px";
+          wIdx++;
         } else {
-          handleOtherMessages(msg);
-          return;
+          key.style.left = ((wIdx - 0.5) * 26 - 8) + "px";
+          key.style.width = "16px";
         }
 
-        const isNoteOn = (cmd === 0x90) && (velocity > 0);
-        
-        // Visualización
-        const keyEl = keyElementsByNote[note];
-        if (keyEl) {
-          const activeClass = (role === "teacher") ? "active-teacher" : "active-student";
-          if (isNoteOn) {
-            keyEl.classList.add(activeClass);
-          } else {
-            keyEl.classList.remove("active-teacher", "active-student");
-            keyEl.style.backgroundColor = "";
+        piano.appendChild(key);
+      }
+    }
+
+    function lightKey(note, on = true) {
+      const k = piano.querySelector(`.key[data-note='${note}']`);
+      if (!k) return;
+      if (on) k.classList.add("note-active");
+      else k.classList.remove("note-active");
+    }
+
+    function updatePedalVisual(value) {
+      if (value >= 64) pedalIndicator.classList.add("active");
+      else pedalIndicator.classList.remove("active");
+    }
+
+    /* ------------ MIDI REMOTO (RECIBIDO) ------------ */
+
+    function handleRemoteOrLocalNote(msg) {
+      let cmd, note, velocity, role, type, fromSocketId = msg.fromSocketId || null;
+
+      if (msg.type === "raw_midi") {
+        cmd = msg.command;
+        note = msg.note;
+        velocity = msg.velocity;
+        role = msg.fromRole;
+        type = "raw";
+      } else if (msg.type === "note") {
+        cmd = msg.command & 0xf0;
+        note = msg.note;
+        velocity = msg.velocity;
+        role = msg.fromRole;
+        type = "remote";
+      } else {
+        return handleOtherMessages(msg);
+      }
+
+      const isNoteOn = (cmd === 0x90 && velocity > 0);
+      lightKey(note, isNoteOn);
+
+      const soyProfe = (rol === "teacher");
+      const vieneDeProfe = (role === "teacher");
+
+      let deboReproducir = false;
+
+      if (enableMidiOut && midiOutput) {
+        if (soyProfe) {
+          // Profe escucha alumnos (filtrado luego por listeningTo)
+          if (!vieneDeProfe) {
+            deboReproducir = true;
           }
-        }
-
-        if (isNoteOn && type !== "raw") {
-          noteDisplay.textContent = `${role === "teacher" ? "PROFE" : "ALUMNO"}: ${noteNumberToName(note)}`;
-        }
-
-        // Salida de Audio (Filtrado por rol y, en el caso del profesor, por alumno seleccionado)
-        if (type !== "raw") {
-          const soyProfe = rol === "teacher";
-          const vieneDeProfe = role === "teacher";
-          let deboReproducir = enableMidiOut && midiOutput &&
-            ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
-
-          // Si soy profesor y el mensaje viene de un alumno, filtrar por listeningTo
-          if (deboReproducir && soyProfe && !vieneDeProfe) {
-            if (listeningTo.size > 0 && fromSocketId && !listeningTo.has(fromSocketId)) {
-              deboReproducir = false;
-            }
-          }
-
-          if (deboReproducir) {
-            try { midiOutput.send([isNoteOn ? 0x90 : 0x80, note, velocity]); } catch(e){}
+        } else {
+          // Alumno: siempre escucha al profe
+          if (vieneDeProfe) {
+            deboReproducir = true;
+          } else if (
+            masterclassEnabled &&
+            liveStudentId &&
+            fromSocketId === liveStudentId &&
+            fromSocketId !== mySocketId
+          ) {
+            // Alumno escucha al alumno En Vivo
+            deboReproducir = true;
           }
         }
       }
 
-      function handleOtherMessages(msg) {
-        if (msg.type === "raw_midi") { 
-          if ((msg.command & 0xf0) === 0xb0 && msg.note === 64) updatePedalVisual(msg.velocity);
-          return;
+      // Profe: si escucha a alumnos, aplica filtro de "Escuchar"
+      if (soyProfe && !vieneDeProfe && deboReproducir) {
+        if (listeningTo.size > 0 && fromSocketId && !listeningTo.has(fromSocketId)) {
+          deboReproducir = false;
         }
+      }
 
-        if (msg.type === "cc" && msg.controller === 64) updatePedalVisual(msg.value);
-        
-        // Replicar CC remoto si corresponde
-        const soyProfe = rol === "teacher";
-        const vieneDeProfe = msg.fromRole === "teacher";
-        let deboReproducir = enableMidiOut && midiOutput &&
-          ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
+      if (deboReproducir) {
+        try {
+          midiOutput.send([isNoteOn ? 0x90 : 0x80, note, velocity]);
+        } catch (e) {}
+      }
+    }
 
-        // Filtro por alumno seleccionado en el caso del profesor
-        if (deboReproducir && soyProfe && !vieneDeProfe) {
-          const fromSocketId = msg.fromSocketId || null;
-          if (listeningTo.size > 0 && fromSocketId && !listeningTo.has(fromSocketId)) {
-            deboReproducir = false;
+    function handleOtherMessages(msg) {
+      if (msg.type === "raw_midi") {
+        if ((msg.command & 0xf0) === 0xb0 && msg.note === 64)
+          updatePedalVisual(msg.velocity);
+        return;
+      }
+
+      if (msg.type === "cc" && msg.controller === 64) {
+        updatePedalVisual(msg.value);
+      }
+
+      const soyProfe = (rol === "teacher");
+      const vieneDeProfe = (msg.fromRole === "teacher");
+      const fromSocketId = msg.fromSocketId || null;
+
+      let deboReproducir = false;
+
+      if (enableMidiOut && midiOutput) {
+        if (soyProfe) {
+          if (!vieneDeProfe) deboReproducir = true;
+        } else {
+          if (vieneDeProfe) {
+            deboReproducir = true;
+          } else if (
+            masterclassEnabled &&
+            liveStudentId &&
+            fromSocketId === liveStudentId &&
+            fromSocketId !== mySocketId
+          ) {
+            deboReproducir = true;
           }
         }
-
-        if (deboReproducir && msg.type === "cc") midiOutput.send([msg.status, msg.controller, msg.value]);
       }
 
-      // Utils
-      function updatePedalVisual(value) {
-          sustainPedalEl.classList.toggle("active", value >= 64);
-      }
-
-      function noteNumberToName(note) {
-        const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-        return names[note % 12] + (Math.floor(note / 12) - 1);
-      }
-
-      // Construir Piano
-      (function buildPiano() {
-        const WHITE_KEYS = [0,2,4,5,7,9,11];
-        const pianoDiv = document.getElementById("piano");
-        pianoDiv.style.width = (52 * 26) + "px";
-        let wIdx = 0;
-        for (let i=21; i<=108; i++) {
-          const isWhite = WHITE_KEYS.includes(i%12);
-          const k = document.createElement("div");
-          k.className = `key ${isWhite ? "white-key" : "black-key"}`;
-          k.dataset.note = i;
-          if (isWhite) {
-            k.style.left = (wIdx * 26) + "px"; k.style.width = "26px";
-            if (i%12===0) k.innerHTML = `<div class="note-label">${noteNumberToName(i)}</div>`;
-            wIdx++;
-          } else {
-            k.style.left = ((wIdx-0.5)*26 - 8) + "px"; k.style.width = "16px";
-          }
-          pianoDiv.appendChild(k);
-          keyElementsByNote[i] = k;
+      if (soyProfe && !vieneDeProfe && deboReproducir) {
+        if (listeningTo.size > 0 && fromSocketId && !listeningTo.has(fromSocketId)) {
+          deboReproducir = false;
         }
-      })();
+      }
 
-      // Botón Pánico
-      panicBtn.addEventListener("click", () => {
-        log("🔇 Pánico presionado");
-        document.querySelectorAll(".key").forEach(k => {
-           k.classList.remove("active-teacher", "active-student");
-           k.style.backgroundColor = "";
-        });
-        updatePedalVisual(0);
-        if (midiOutput) {
-            for (let c=0; c<16; c++) midiOutput.send([0xB0|c, 123, 0]);
-        }
-      });
-    </script>
-  </body>
+      if (deboReproducir && msg.type === "cc") {
+        midiOutput.send([msg.status, msg.controller, msg.value]);
+      }
+    }
+
+    /* ------------ PANIC ------------ */
+
+    panicBtn.addEventListener("click", () => {
+      if (!midiOutput) return;
+      for (let n = 0; n < 128; n++) {
+        midiOutput.send([0x80, n, 0]);
+      }
+      log("Panic: All Notes Off");
+    });
+  </script>
+</body>
 </html>
