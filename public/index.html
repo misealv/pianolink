@@ -151,11 +151,37 @@
         border: 1px solid #dde3ec;
       }
 
-      .section-title {
-        margin-top: 0;
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 8px;
+      }
+
+      .section-title {
+        margin: 0;
         font-size: 15px;
         color: var(--primary-dark);
+      }
+
+      /* NUEVO: ESTILO PEDAL SUSTAIN */
+      .pedal-indicator {
+        font-size: 11px;
+        font-weight: bold;
+        padding: 4px 10px;
+        border-radius: 4px;
+        background: #e0e0e0;
+        color: #9e9e9e;
+        border: 1px solid #bdbdbd;
+        text-transform: uppercase;
+        transition: all 0.1s ease;
+      }
+
+      .pedal-indicator.active {
+        background: #4caf50; /* Verde */
+        color: #ffffff;
+        border-color: #388e3c;
+        box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
       }
 
       .section {
@@ -253,7 +279,7 @@
         font-size: 13px;
       }
 
-      /* Piano 88 teclas – Visualización Mejorada */
+      /* Piano 88 teclas */
 
       .piano-wrapper {
         border: 1px solid #999;
@@ -272,7 +298,7 @@
       .key {
         position: absolute;
         box-sizing: border-box;
-        transition: transform 0.05s ease, background 0.05s ease; /* Más rápido */
+        transition: transform 0.05s ease, background 0.05s ease;
       }
 
       .white-key {
@@ -303,8 +329,6 @@
       }
 
       /* ESTILOS ACTIVOS DIFERENCIADOS */
-
-      /* Profesor (Azul) */
       .white-key.active-teacher {
         transform: translateY(4px);
         background: var(--teacher-color) !important;
@@ -312,11 +336,9 @@
       }
       .black-key.active-teacher {
         transform: translateY(3px);
-        background: #1565c0 !important; /* Azul más oscuro para teclas negras */
+        background: #1565c0 !important;
         box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.25);
       }
-
-      /* Alumno (Amarillo/Naranja) */
       .white-key.active-student {
         transform: translateY(4px);
         background: var(--student-color) !important;
@@ -324,7 +346,7 @@
       }
       .black-key.active-student {
         transform: translateY(3px);
-        background: #ffb300 !important; /* Ámbar oscuro para teclas negras */
+        background: #ffb300 !important;
         box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.25);
       }
 
@@ -338,15 +360,9 @@
         .layout-grid {
           grid-template-columns: 1fr;
         }
-
-        .hero {
+        .hero, .hero-right {
           text-align: left;
         }
-
-        .hero-right {
-          text-align: left;
-        }
-
         .piano-wrapper {
           height: 150px;
         }
@@ -379,7 +395,6 @@
       <div class="hero-right">
         <div class="hero-project">Un proyecto de Miguel Antonio</div>
         <div class="hero-pill">Clases de instrumento con tecnología MIDI remota</div>
-        
         <br>
         <div id="connectionStatus" class="status-badge status-connecting">
           Conectando...
@@ -404,14 +419,13 @@
         <input id="codigoSala" placeholder="Código de sala" />
         <button id="unirseSala">Unirse</button>
         <div class="inline-help">
-          El profesor crea la sala y comparte el código con el alumno (WhatsApp, correo, etc.).
+          El profesor crea la sala y comparte el código con el alumno.
         </div>
       </div>
-
       <div class="section" id="inviteSection">
         <h3 class="section-title">Generador de link para el alumno</h3>
         <div class="inline-help">
-          1) Crea la sala. 2) Copia y envía este link al alumno. 3) El alumno solo abre el link y presiona “Unirse”.
+          1) Crea la sala. 2) Copia y envía este link al alumno.
         </div>
         <div style="margin-top:6px;">
           <input id="inviteLink" readonly placeholder="Crea una sala para generar el link" />
@@ -428,24 +442,28 @@
           <h2 class="section-title">3. Nota actual</h2>
           <div class="note-box" id="noteDisplay">—</div>
           <div class="inline-help">
-            Aquí verás la nota que está sonando (C4, D#5, etc.) y quién la está tocando.
+            Aquí verás la nota que está sonando y quién la está tocando.
           </div>
         </div>
 
         <div class="card" id="pianoCard">
-          <h2 class="section-title">Piano visual (88 teclas A0–C8)</h2>
+          <div class="section-header">
+            <h2 class="section-title">Piano visual (88 teclas)</h2>
+            <div id="sustainPedal" class="pedal-indicator">Sustain (CC64)</div>
+          </div>
+          
           <div class="piano-wrapper">
             <div id="piano" class="piano"></div>
           </div>
           <div class="inline-help">
-            Las teclas Do (C) están etiquetadas (C2, C3, C4…). El teclado se adapta al ancho y solo hace scroll si la pantalla es muy pequeña.
+            Las teclas Do (C) están etiquetadas. El teclado se adapta al ancho.
           </div>
         </div>
       </div>
 
       <div>
         <div class="card" id="advancedCard">
-          <h2 class="section-title">Opciones avanzadas de salida MIDI</h2>
+          <h2 class="section-title">Opciones avanzadas</h2>
           <div class="section">
             <label>
               Salida MIDI:
@@ -457,18 +475,16 @@
           <div class="section">
             <label>
               <input type="checkbox" id="toggleMidiOut" />
-              Activar salida MIDI a mi teclado (BETA)
+              Activar salida MIDI a mi teclado
             </label>
             <div class="inline-help">
-              Si la activas y eliges tu teclado como salida, escucharás en tu instrumento lo que toque la otra persona
-              (notas y pedales). No la uses en el mismo puerto que un teclado virtual como VMPK.
+              Si la activas, escucharás en tu instrumento lo que toque la otra persona.
             </div>
           </div>
         </div>
 
         <div class="card" id="logCard">
-          <h2 class="section-title">Actividad de la sesión</h2>
-          <div class="log-title">Log</div>
+          <h2 class="section-title">Log</h2>
           <div id="log" class="log"></div>
         </div>
       </div>
@@ -497,6 +513,7 @@
       const copyInviteBtn = document.getElementById("copyInviteBtn");
       const inviteSection = document.getElementById("inviteSection");
       const statusEl = document.getElementById("connectionStatus");
+      const sustainPedalEl = document.getElementById("sustainPedal"); // NUEVO
 
       const teacherRadio = document.querySelector('input[name="rol"][value="teacher"]');
       const studentRadio = document.querySelector('input[name="rol"][value="student"]');
@@ -505,7 +522,6 @@
       let salaActual = null;
       let lockStudentFromLink = false;
 
-      // MIDI global
       let midiAccessGlobal = null;
       let midiOutput = null;
       let midiOutputs = [];
@@ -517,16 +533,15 @@
       // LOGICA DE ESTADO DE CONEXIÓN
       // ============================================
       function updateStatus(state) {
-        statusEl.className = "status-badge"; // Reiniciar clases
-        
+        statusEl.className = "status-badge"; 
         if (state === "connected") {
           statusEl.classList.add("status-connected");
           statusEl.textContent = "🟢 Conectado";
-          log("✅ Conexión establecida con el servidor.");
+          log("✅ Conectado al servidor.");
         } else if (state === "disconnected") {
           statusEl.classList.add("status-disconnected");
           statusEl.textContent = "🔴 Desconectado";
-          log("❌ Se perdió la conexión. Intentando reconectar...");
+          log("❌ Conexión perdida.");
         } else if (state === "connecting") {
           statusEl.classList.add("status-connecting");
           statusEl.textContent = "🟡 Conectando...";
@@ -535,31 +550,14 @@
 
       socket.on("connect", () => {
         updateStatus("connected");
-        if (salaActual) {
-          log("Reconectando a la sala: " + salaActual);
-          socket.emit("join-room", salaActual);
-        }
+        if (salaActual) socket.emit("join-room", salaActual);
       });
+      socket.on("disconnect", (reason) => updateStatus("disconnected"));
+      socket.on("connect_error", () => updateStatus("disconnected"));
+      socket.on("reconnect_attempt", () => updateStatus("connecting"));
 
-      socket.on("disconnect", (reason) => {
-        updateStatus("disconnected");
-        console.log("Desconectado por:", reason);
-      });
-
-      socket.on("connect_error", () => {
-        updateStatus("disconnected");
-      });
-
-      socket.on("reconnect_attempt", () => {
-        updateStatus("connecting");
-        log("🔄 Intentando reconectar...");
-      });
-
-      // Keep-Alive para Render (Ping cada 25s)
       setInterval(() => {
-        if (socket.connected) {
-          socket.emit("ping_keep_alive");
-        }
+        if (socket.connected) socket.emit("ping_keep_alive");
       }, 25000);
 
       // ============================================
@@ -578,14 +576,12 @@
 
       function updateRoleUI() {
         if (rol === "teacher") {
-          roleHelp.textContent =
-            "Profesor: Estás configurado como el anfitrión. Tus notas se verán AZULES. Las del alumno serán AMARILLAS.";
+          roleHelp.textContent = "Profesor: Tus notas son AZULES. Las del alumno AMARILLAS.";
           advancedCard.classList.remove("hidden");
           logCard.classList.remove("hidden");
           inviteSection.classList.remove("hidden");
         } else {
-          roleHelp.textContent =
-            "Alumno: Estás conectado. Toca tu teclado. El profesor verá tus notas en AMARILLO.";
+          roleHelp.textContent = "Alumno: El profesor verá tus notas en AMARILLO.";
           advancedCard.classList.remove("hidden");
           inviteSection.classList.add("hidden"); 
         }
@@ -602,34 +598,24 @@
         inviteLinkInput.value = url.toString();
       }
 
-      // URL params (link de invitación)
       (function initFromUrl() {
         const params = new URLSearchParams(window.location.search);
         const urlRole = params.get("role");
         const urlRoom = params.get("room");
-
         if (urlRole === "student") {
           rol = "student";
           if (studentRadio) studentRadio.checked = true;
           if (teacherRadio) teacherRadio.checked = false;
-
           lockStudentFromLink = true;
           if (teacherRadio) teacherRadio.disabled = true;
         }
-
         if (urlRoom) {
           codigoSala.value = urlRoom;
           salaActual = null;
         }
-
         updateRoleUI();
-
-        if (urlRole === "student" && urlRoom) {
-          log("Link detectado: Rol Alumno. Sala " + urlRoom + ".");
-        }
       })();
 
-      // Cambio de rol
       document.querySelectorAll('input[name="rol"]').forEach((r) => {
         r.addEventListener("change", (e) => {
           if (lockStudentFromLink && e.target.value === "teacher") {
@@ -644,46 +630,33 @@
 
       toggleMidiOut.addEventListener("change", (e) => {
         enableMidiOut = e.target.checked;
-        log("Salida MIDI a mi teclado: " + (enableMidiOut ? "ACTIVADA" : "desactivada"));
+        log("Salida MIDI: " + (enableMidiOut ? "ON" : "OFF"));
       });
 
       midiOutputSelect.addEventListener("change", (e) => {
         const idx = e.target.value;
         if (idx === "" || !midiOutputs[idx]) {
           midiOutput = null;
-          log("Salida MIDI: ninguna seleccionada");
         } else {
           midiOutput = midiOutputs[idx];
-          log("Salida MIDI seleccionada: " + midiOutput.name);
+          log("Output: " + midiOutput.name);
         }
       });
 
       copyInviteBtn.addEventListener("click", () => {
         const value = inviteLinkInput.value.trim();
-        if (!value) {
-          alert("Primero crea una sala.");
-          return;
-        }
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(value).then(() => log("Link copiado.")).catch(e => log("Error copiando link"));
-        } else {
-          inviteLinkInput.select();
-          document.execCommand("copy");
-          log("Link copiado.");
-        }
+        if (!value) return alert("Crea una sala primero.");
+        navigator.clipboard.writeText(value).then(() => log("Link copiado.")).catch(e => log("Error copiando link"));
       });
 
       function build88KeyPiano() {
         const WHITE_PITCH_CLASSES = [0, 2, 4, 5, 7, 9, 11];
         const WHITE_KEY_WIDTH = 26;
         const BLACK_KEY_WIDTH = 16;
-
         const totalWhiteKeys = 52;
-        const totalWidth = totalWhiteKeys * WHITE_KEY_WIDTH;
-        piano.style.width = totalWidth + "px";
+        piano.style.width = (totalWhiteKeys * WHITE_KEY_WIDTH) + "px";
 
         let whiteIndex = 0;
-
         for (let note = 21; note <= 108; note++) {
           const pitchClass = note % 12;
           const isWhite = WHITE_PITCH_CLASSES.includes(pitchClass);
@@ -693,53 +666,41 @@
 
           if (isWhite) {
             key.classList.add("white-key");
-            const leftPx = whiteIndex * WHITE_KEY_WIDTH;
-            key.style.left = leftPx + "px";
+            key.style.left = (whiteIndex * WHITE_KEY_WIDTH) + "px";
             key.style.width = WHITE_KEY_WIDTH + "px";
-
             if (pitchClass === 0) {
               const label = document.createElement("div");
               label.className = "note-label";
               label.textContent = noteNumberToName(note);
               key.appendChild(label);
             }
-
             whiteIndex++;
           } else {
             key.classList.add("black-key");
-            const leftCenter = (whiteIndex - 0.5) * WHITE_KEY_WIDTH;
-            const leftPx = leftCenter - BLACK_KEY_WIDTH / 2;
-            key.style.left = leftPx + "px";
+            key.style.left = ((whiteIndex - 0.5) * WHITE_KEY_WIDTH - BLACK_KEY_WIDTH / 2) + "px";
             key.style.width = BLACK_KEY_WIDTH + "px";
           }
-
           piano.appendChild(key);
           keyElementsByNote[note] = key;
         }
       }
-
       build88KeyPiano();
 
       if (navigator.requestMIDIAccess) {
         navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
       } else {
-        log("⚠️ Navegador no soporta Web MIDI API.");
+        log("⚠️ Navegador sin soporte Web MIDI (Usa Chrome).");
       }
 
       function onMIDISuccess(midiAccess) {
         midiAccessGlobal = midiAccess;
-        log("✅ Acceso MIDI concedido.");
-
+        log("✅ MIDI OK.");
         for (let input of midiAccess.inputs.values()) {
           input.onmidimessage = handleMIDIMessageFromDevice;
-          log("Entrada detectada: " + input.name);
         }
-        
-        // Detectar desconexión/conexión de dispositivos en caliente
         midiAccess.onstatechange = (e) => {
-             log(`Dispositivo ${e.port.state}: ${e.port.name}`);
+             log(`Disp MIDI ${e.port.state}: ${e.port.name}`);
         };
-
         midiOutputs = Array.from(midiAccess.outputs.values());
         midiOutputSelect.innerHTML = '<option value="">(ninguna / automático)</option>';
         midiOutputs.forEach((out, index) => {
@@ -749,159 +710,108 @@
           midiOutputSelect.appendChild(opt);
         });
       }
+      function onMIDIFailure() { log("❌ Error MIDI."); }
 
-      function onMIDIFailure() {
-        log("❌ No se pudo acceder al MIDI.");
-      }
-
+      // MANEJO DE MENSAJES MIDI ENTRANTES (Dispositivo local)
       function handleMIDIMessageFromDevice(event) {
         const [status, data1, data2] = event.data;
         const command = status & 0xf0;
 
-        // Visualización local (para que quien toca también vea su color)
+        // Visualizar lo propio localmente
         handleRemoteOrLocalNote({ 
-            type: "raw_midi", 
-            command: command, 
-            note: data1, 
-            velocity: data2, 
-            fromRole: rol // Importante: localmente soy yo
+            type: "raw_midi", command, note: data1, velocity: data2, fromRole: rol 
         });
 
         if (!salaActual) return;
 
-        // Enviar a la sala
-        if (command === 0x90 || command === 0x80) {
+        if (command === 0x90 || command === 0x80) { // Nota
           const targetChannel = rol === "teacher" ? 1 : 0;
           const outStatus = (command | targetChannel) & 0xff;
           const message = { type: "note", command: outStatus, note: data1, velocity: data2, fromRole: rol };
           socket.emit("midi-message", { roomCode: salaActual, message });
-          return;
         }
-
-        if (command === 0xb0) { // CC
+        else if (command === 0xb0) { // CC
           const message = { type: "cc", status, controller: data1, value: data2, fromRole: rol };
           socket.emit("midi-message", { roomCode: salaActual, message });
-          return;
         }
-
-        if (command === 0xe0) { // PitchBend
+        else if (command === 0xe0) { // PitchBend
           const lsb = data1;
           const msb = data2;
           const value14 = (msb << 7) | lsb;
           const message = { type: "pitchbend", status, value14, fromRole: rol };
           socket.emit("midi-message", { roomCode: salaActual, message });
-          return;
         }
       }
 
-      crearSala.addEventListener("click", () => {
-        if (rol !== "teacher") {
-          alert("Solo el profesor puede crear sala.");
-          return;
-        }
-        const codigo = Math.floor(1000 + Math.random() * 9000).toString();
-        codigoSala.value = codigo;
-        salaActual = codigo;
-        socket.emit("join-room", codigo);
-        log("Sala creada: " + codigo);
-        updateInviteLink();
-      });
-
-      unirseSala.addEventListener("click", () => {
-        const codigo = codigoSala.value.trim();
-        if (!codigo) return alert("Ingresa código");
-        salaActual = codigo;
-        socket.emit("join-room", codigo);
-        log("Unido a sala: " + codigo);
-      });
-
-      // Recibir mensajes del servidor (Remoto)
+      // MANEJO DE MENSAJES REMOTOS
       socket.on("midi-message", (msg) => {
         handleRemoteOrLocalNote(msg);
       });
 
-      // Función unificada para manejar visualización y sonido (Local o Remoto)
+      // LÓGICA UNIFICADA VISUAL + SONIDO
       function handleRemoteOrLocalNote(msg) {
-        // Normalizar formato si viene de RAW MIDI local
-        let cmd, note, velocity, role;
-        
+        // Normalización
+        let cmd, note, velocity, role, type;
         if (msg.type === "raw_midi") {
-             cmd = msg.command;
-             note = msg.note;
-             velocity = msg.velocity;
-             role = msg.fromRole;
+             cmd = msg.command; note = msg.note; velocity = msg.velocity; role = msg.fromRole; type = "raw";
         } else if (msg.type === "note") {
-             cmd = msg.command & 0xf0; // Limpiar canal
-             note = msg.note;
-             velocity = msg.velocity;
-             role = msg.fromRole;
+             cmd = msg.command & 0xf0; note = msg.note; velocity = msg.velocity; role = msg.fromRole; type = "remote";
         } else {
-             // Manejar otros mensajes (CC, Pitch)
              handleOtherMessages(msg);
              return;
         }
 
-        // Determinar si es Note ON o Note OFF
-        // Note ON: comando 0x90 Y velocidad > 0
-        // Note OFF: comando 0x80 O (comando 0x90 y velocidad == 0)
         const isNoteOn = (cmd === 0x90) && (velocity > 0);
         const isNoteOff = (cmd === 0x80) || ((cmd === 0x90) && (velocity === 0));
 
-        // VISUALIZACIÓN
+        // Visualización Teclas
         const keyEl = keyElementsByNote[note];
         if (keyEl) {
-            // Clases según rol
             const activeClass = (role === "teacher") ? "active-teacher" : "active-student";
-            
-            if (isNoteOn) {
-                keyEl.classList.add(activeClass);
-                // NOTA: Ya no usamos setTimeout aquí. La tecla se queda encendida hasta el NoteOff.
-            } else if (isNoteOff) {
+            if (isNoteOn) keyEl.classList.add(activeClass);
+            else if (isNoteOff) {
                 keyEl.classList.remove("active-teacher");
                 keyEl.classList.remove("active-student");
             }
         }
 
-        // LOG TEXTO (Solo para Note On para no saturar, o ambos si quieres)
-        if (isNoteOn && msg.type !== "raw_midi") { // No loguear lo propio duplicado si quieres, o sí
+        // Log texto (Solo notas ON)
+        if (isNoteOn && type !== "raw") {
              const origen = role === "teacher" ? "PROFE" : "ALUMNO";
-             const nombreNota = noteNumberToName(note);
-             noteDisplay.textContent = `${origen}: ${nombreNota}`;
+             noteDisplay.textContent = `${origen}: ${noteNumberToName(note)}`;
         }
 
-        // SALIDA MIDI (Solo si es mensaje REMOTO)
-        if (msg.type !== "raw_midi") {
+        // Salida MIDI Física
+        if (type !== "raw") {
             const soyProfe = rol === "teacher";
             const vieneDeProfe = role === "teacher";
             const deboReproducir = enableMidiOut && midiOutput && ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
 
             if (deboReproducir) {
                 try {
-                    // Reconstruir comando MIDI original
-                    // Nota: Si venía con canal modificado, lo respetamos o lo forzamos al canal 1 (0x90)
                     const midiCmd = isNoteOn ? 0x90 : 0x80; 
                     midiOutput.send([midiCmd, note, velocity]);
-                } catch (e) {
-                    console.error("Error MIDI OUT", e);
-                }
+                } catch(e) {}
             }
         }
       }
 
       function handleOtherMessages(msg) {
-        // Manejo de CC y Pitchbend (solo remoto, lo local se ignora visualmente por ahora)
-        if (msg.type === "raw_midi") return; // Ignorar CC local por ahora en log
+        if (msg.type === "raw_midi") { // Verificar pedal localmente
+             if ((msg.command & 0xf0) === 0xb0 && msg.note === 64) {
+                 updatePedalVisual(msg.velocity); // En raw midi data1 es nota, data2 velocity
+             }
+             return;
+        }
 
         const soyProfe = rol === "teacher";
         const vieneDeProfe = msg.fromRole === "teacher";
         const deboReproducir = enableMidiOut && midiOutput && ((soyProfe && !vieneDeProfe) || (!soyProfe && vieneDeProfe));
         
-        const origen = vieneDeProfe ? "PROFE" : "ALUMNO";
-
         if (msg.type === "cc") {
+            // Visualizar Pedal Sustain (CC 64)
             if (msg.controller === 64) {
-                 const estado = msg.value >= 64 ? "ON" : "off";
-                 log(`🦶 Pedal Sustain (${origen}): ${estado}`);
+                 updatePedalVisual(msg.value);
             }
             if (deboReproducir) midiOutput.send([msg.status, msg.controller, msg.value]);
         }
@@ -914,6 +824,11 @@
         }
       }
 
+      function updatePedalVisual(value) {
+          const isOn = value >= 64;
+          if (isOn) sustainPedalEl.classList.add("active");
+          else sustainPedalEl.classList.remove("active");
+      }
     </script>
   </body>
 </html>
