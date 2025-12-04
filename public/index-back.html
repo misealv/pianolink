@@ -22,7 +22,6 @@
       --success: #2ecc71;
       --prof-color: #4a90e2;   /* azul profesor */
       --alum-color: #f6b93b;   /* amarillo alumno */
-      --note-on-color: #ffdd57;
     }
 
     * {
@@ -202,6 +201,58 @@
       padding: 8px;
     }
 
+    /* BARRA DE CONTROLES PIANO (Debajo del piano ahora) */
+    .piano-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      background: #f0f4f8;
+      border: 1px solid #dbe2ef;
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-top: 12px; /* Margen superior para separar del piano */
+      font-size: 13px;
+    }
+    .piano-controls label {
+      font-weight: 600;
+      margin-right: 4px;
+      color: #4b5563;
+      cursor: pointer;
+    }
+    .piano-controls input[type=color] {
+      border: none;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      background: none;
+      vertical-align: middle;
+      padding: 0;
+    }
+    .piano-controls input[type=checkbox] {
+      vertical-align: middle;
+      cursor: pointer;
+    }
+    .piano-controls input[type=number] {
+      width: 50px;
+      padding: 2px 4px;
+      font-size: 12px;
+      text-align: center;
+      margin: 0;
+    }
+    
+    #splitControls {
+      display: flex; 
+      align-items: center;
+      gap: 12px;
+      padding-left: 12px;
+      border-left: 1px solid #ccc;
+      transition: opacity 0.2s;
+    }
+    #splitControls.hidden {
+      display: none;
+    }
+
     /* Piano 88 teclas más compacto con scroll horizontal */
     .piano-wrapper {
       border: 1px solid #c7ccdb;
@@ -216,7 +267,6 @@
     .piano {
       position: relative;
       height: 100%;
-      /* CORRECCIÓN VISUAL PIANO: Padding y box-sizing para no cortar la primera tecla */
       padding-left: 2px; 
       box-sizing: content-box;
     }
@@ -247,7 +297,7 @@
 
     .key.note-active {
       transform: translateY(2px);
-      background-color: var(--note-on-color);
+      /* El color se inyecta via JS (inline style) */
     }
 
     /* Participantes */
@@ -316,15 +366,11 @@
 
     /* ESTILOS DE LA PIZARRA MUSICAL */
     #staffContainer {
-      /* MODIFICACION 2: ANCHO FIJO PARA ESTABILIDAD */
       width: 420px;
       min-width: 420px;
-      margin: 0 auto; /* Centrar */
-      flex-shrink: 0; /* Evitar que se deforme en flexbox */
-      
-      /* MODIFICACION 1: AUMENTO DE ALTURA (A0 SUPPORT) */
+      margin: 0 auto; 
+      flex-shrink: 0; 
       min-height: 450px; 
-
       background: #fff;
       display: flex;
       justify-content: center;
@@ -351,19 +397,15 @@
       .container {
         grid-template-columns: 1fr;
       }
-
       .card {
         margin-bottom: 10px;
       }
-
       h1 {
         font-size: 26px;
       }
-
       .piano-wrapper {
         height: 140px;
       }
-
       .log {
         height: 130px;
       }
@@ -447,6 +489,26 @@
 
         <div class="piano-wrapper">
           <div id="piano" class="piano"></div>
+        </div>
+
+        <div class="piano-controls">
+            <label for="baseColorPicker">Color:</label>
+            <input type="color" id="baseColorPicker" value="#ffdd57" title="Color base">
+
+            <label style="margin-left: 10px;">
+                <input type="checkbox" id="chkSplit"> Split
+            </label>
+
+            <div id="splitControls" class="hidden">
+                <label for="splitPointInput">Punto:</label>
+                <input type="number" id="splitPointInput" value="60" min="21" max="108" title="Nota MIDI de división (60=Do central)">
+                
+                <label for="leftColorPicker">Iz:</label>
+                <input type="color" id="leftColorPicker" value="#4a90e2">
+                
+                <label for="rightColorPicker">De:</label>
+                <input type="color" id="rightColorPicker" value="#f6b93b">
+            </div>
         </div>
 
         <div id="pedalIndicator">
@@ -983,7 +1045,8 @@
       // Notas
       if (cmd === 0x90 || cmd === 0x80) {
         const isNoteOn = (cmd === 0x90 && velocity > 0);
-        lightKey(note, isNoteOn);
+        // MODIFICACION: Pasamos velocidad
+        lightKey(note, isNoteOn, velocity);
         
         // --- INTEGRACIÓN PIZARRA DEL PROFESOR (Local) ---
         // Si YO soy el profesor, actualizo mi pizarra
@@ -1040,6 +1103,45 @@
 
     /* ------------ PIANO VISUAL (más compacto) ------------ */
 
+    // Variables de Estado Visual
+    let currentBaseColor = "#ffdd57";
+    let isSplitActive = false;
+    let splitPoint = 60; // C4
+    let currentLeftColor = "#4a90e2";
+    let currentRightColor = "#f6b93b";
+
+    // Referencias a inputs de UI
+    const baseColorPicker = document.getElementById("baseColorPicker");
+    const chkSplit = document.getElementById("chkSplit");
+    const splitControlsDiv = document.getElementById("splitControls");
+    const splitPointInput = document.getElementById("splitPointInput");
+    const leftColorPicker = document.getElementById("leftColorPicker");
+    const rightColorPicker = document.getElementById("rightColorPicker");
+
+    // Event Listeners para actualizar estado
+    if(baseColorPicker) {
+      baseColorPicker.addEventListener("input", (e) => currentBaseColor = e.target.value);
+    }
+    if(chkSplit) {
+      chkSplit.addEventListener("change", (e) => {
+        isSplitActive = e.target.checked;
+        if(isSplitActive) {
+            splitControlsDiv.classList.remove("hidden");
+        } else {
+            splitControlsDiv.classList.add("hidden");
+        }
+      });
+    }
+    if(splitPointInput) {
+      splitPointInput.addEventListener("input", (e) => splitPoint = parseInt(e.target.value));
+    }
+    if(leftColorPicker) {
+      leftColorPicker.addEventListener("input", (e) => currentLeftColor = e.target.value);
+    }
+    if(rightColorPicker) {
+      rightColorPicker.addEventListener("input", (e) => currentRightColor = e.target.value);
+    }
+
     buildPiano();
 
     function buildPiano() {
@@ -1073,11 +1175,40 @@
       }
     }
 
-    function lightKey(note, on = true) {
+    // Helper para convertir HEX a RGB
+    function hexToRgb(hex) {
+      const bigint = parseInt(hex.replace('#', ''), 16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      return `${r},${g},${b}`;
+    }
+
+    // NUEVA FUNCIÓN LIGHTKEY con soporte para velocity y split
+    function lightKey(note, on = true, velocity = 127) {
       const k = piano.querySelector(`.key[data-note='${note}']`);
       if (!k) return;
-      if (on) k.classList.add("note-active");
-      else k.classList.remove("note-active");
+
+      if (on) {
+        // 1. Determinar color según modo Split
+        let targetHex = currentBaseColor;
+        if (isSplitActive) {
+            targetHex = (note < splitPoint) ? currentLeftColor : currentRightColor;
+        }
+
+        // 2. Calcular opacidad según velocidad (min 0.3 para visibilidad)
+        // velocity 0-127. 
+        const opacity = Math.max(0.3, velocity / 127);
+        const rgb = hexToRgb(targetHex);
+
+        // 3. Aplicar estilos directos
+        k.classList.add("note-active"); // Para el transform
+        k.style.backgroundColor = `rgba(${rgb}, ${opacity})`; 
+      } else {
+        // OFF
+        k.classList.remove("note-active");
+        k.style.backgroundColor = ""; // Vuelve al color CSS original (blanco/negro)
+      }
     }
 
     function updatePedalVisual(value) {
@@ -1122,7 +1253,8 @@
       }
 
       const isNoteOn = (cmd === 0x90 && velocity > 0);
-      lightKey(note, isNoteOn);
+      // MODIFICACION: Usar velocity
+      lightKey(note, isNoteOn, velocity);
 
       // --- INTEGRACIÓN PIZARRA DEL PROFESOR (Remoto) ---
       // Si la nota viene de un "teacher", todos (profes y alumnos) actualizan la pizarra visual
