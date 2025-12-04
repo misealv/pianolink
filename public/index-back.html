@@ -365,10 +365,21 @@
     }
 
     /* ESTILOS DE LA PIZARRA MUSICAL */
+
+    /* NUEVO: Contenedor flex para layout horizontal */
+    .board-layout {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: auto; /* Evitar desbordes si la pantalla es muy pequeña */
+    }
+
     #staffContainer {
       width: 420px;
       min-width: 420px;
-      margin: 0 auto; 
+      /* Eliminado margin: 0 auto para permitir alineación izquierda en flex */
+      margin: 0; 
       flex-shrink: 0; 
       min-height: 450px; 
       background: #fff;
@@ -379,12 +390,14 @@
     }
 
     #chordDisplay {
-      font-size: 28px;
+      /* Ajustes para mayor visibilidad y posición a la derecha */
+      font-size: 48px;
       font-weight: 800;
       color: #1b3a6e;
-      text-align: center;
+      text-align: left; /* Alineado a la izquierda del bloque derecho */
+      margin-left: 20px; /* Separación del pentagrama */
       min-height: 36px;
-      margin-bottom: 8px;
+      margin-bottom: 0;
     }
 
     .chord-placeholder {
@@ -471,9 +484,10 @@
           Muestra en tiempo real lo que toca el profesor.
         </div>
         
-        <div id="chordDisplay"><span class="chord-placeholder">Esperando notas...</span></div>
-        
-        <div id="staffContainer"></div>
+        <div class="board-layout">
+            <div id="staffContainer"></div>
+            <div id="chordDisplay"><span class="chord-placeholder">Esperando notas...</span></div>
+        </div>
       </div>
 
       <div class="card">
