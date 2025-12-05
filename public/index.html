@@ -587,44 +587,21 @@
     let teacherActiveNotes = new Set();
     let heldNotes = new Set();
     let sustainActive = false;
+    let renderTimeout = null; // [MEJORA 4: DEBOUNCE]
 
-    /* ------------ SOCKET.IO ------------ */
+    /* ------------ UTILIDADES UI (LOG MEJORADO) ------------ */
 
-    socket.on("connect", () => {
-      mySocketId = socket.id;
-      updateStatus("ONLINE ✔️");
-    });
-
-    socket.on("connect_error", (err) => {
-      updateStatus("ERR: " + err.message);
-    });
-
-    socket.on("room-users", (users) => {
-      participants = users || [];
-      renderParticipants();
-    });
-
-    socket.on("live-student-changed", (payload) => {
-      liveStudentId = payload && payload.liveStudentId ? payload.liveStudentId : null;
-      masterclassEnabled = !!liveStudentId;
-
-      if (rol === "teacher" && masterclassToggle) {
-        masterclassToggle.checked = masterclassEnabled;
-      }
-
-      renderParticipants();
-      updateLiveStatusUI();
-    });
-
-    socket.on("midi-message", (msg) => {
-      handleRemoteOrLocalNote(msg);
-    });
-
-    /* ------------ UTILIDADES UI ------------ */
-
-    function log(msg) {
+    // [MEJORA 1: LOG MEJORADO] Timestamp + Colores
+    function log(msg, type = 'info') {
       const el = document.createElement("div");
-      el.textContent = "> " + msg;
+      
+      const time = new Date().toLocaleTimeString([], { hour12: false });
+      el.textContent = `[${time}] ${msg}`;
+      
+      if (type === 'error') el.style.color = 'var(--danger)';
+      else if (type === 'warn') el.style.color = '#f1c40f';
+      else if (type === 'success') el.style.color = 'var(--success)';
+      
       logDiv.appendChild(el);
       logDiv.scrollTop = logDiv.scrollHeight;
     }
@@ -694,6 +671,77 @@
       updateLiveBadge();
     }
 
+    /* ------------ SOCKET.IO (MEJORADO) ------------ */
+
+    socket.on("connect", () => {
+      mySocketId = socket.id;
+      updateStatus("ONLINE ✔️");
+
+      // [MEJORA 2: RECONEXIÓN AUTOMÁTICA]
+      if (salaActual && myName) {
+        log(`🔄 Reconexión detectada. Reingresando a sala ${salaActual}...`, 'warn');
+        socket.emit("join-room", { 
+            roomCode: salaActual, 
+            username: myName, 
+            userRole: rol 
+        });
+      } else {
+        log("🟢 Conectado al servidor.", 'success');
+      }
+    });
+
+    socket.on("disconnect", (reason) => {
+      updateStatus("OFFLINE ❌");
+      log(`🔴 Desconectado: ${reason}`, 'error');
+    });
+
+    socket.on("connect_error", (err) => {
+      updateStatus("RETRYING...");
+      log(`⚠️ Error de conexión: ${err.message}`, 'warn');
+    });
+
+    socket.on("room-users", (users) => {
+      participants = users || [];
+      renderParticipants();
+    });
+
+    socket.on("live-student-changed", (payload) => {
+      liveStudentId = payload && payload.liveStudentId ? payload.liveStudentId : null;
+      masterclassEnabled = !!liveStudentId;
+
+      if (rol === "teacher" && masterclassToggle) {
+        masterclassToggle.checked = masterclassEnabled;
+      }
+
+      renderParticipants();
+      updateLiveStatusUI();
+    });
+
+    socket.on("midi-message", (msg) => {
+      handleRemoteOrLocalNote(msg);
+    });
+    // En index.html (dentro del script)
+
+socket.on("room-joined", (code) => {
+  salaActual = code;
+  // 1. Escribir en el log con color verde (success)
+  log("✅ Te has unido correctamente a la sala " + code, 'success');
+  updateStatus("EN SALA: " + code);
+
+  // 2. UX: Deshabilitar el formulario para confirmar visualmente
+  if (rol === "student") {
+      const btn = document.getElementById("btnUnirse");
+      const input = document.getElementById("codigoSala");
+      
+      if(btn) {
+          btn.textContent = "DENTRO";
+          btn.disabled = true;
+          btn.style.background = "var(--success)";
+          btn.style.color = "#000";
+      }
+      if(input) input.disabled = true;
+  }
+});
     /* ------------ BOTÓN COPIAR ENLACE ------------ */
 
     copyLinkBtn.addEventListener("click", async () => {
@@ -883,7 +931,7 @@
       salaActual = roomCode;
       codigoSala.value = roomCode; 
       updateInviteLink();
-      log("Sala ID: " + roomCode);
+      log("Sala ID: " + roomCode, 'success');
     });
 
     btnUnirse.addEventListener("click", () => {
@@ -938,10 +986,10 @@
 
     if (navigator.requestMIDIAccess) {
       navigator.requestMIDIAccess().then(onMIDISuccess, err => {
-        log("MIDI Access Error: " + err);
+        log("MIDI Access Error: " + err, 'error');
       });
     } else {
-      log("Browser MIDI not supported.");
+      log("Browser MIDI not supported.", 'warn');
     }
 
     function onMIDISuccess(access) {
@@ -999,7 +1047,13 @@
 
         if (salaActual) {
           socket.emit("midi-message", {
-            type: "note", command: cmd, note, velocity, fromRole: rol, roomCode: salaActual
+            type: "note", 
+            command: cmd, 
+            note, 
+            velocity, 
+            fromRole: rol, 
+            roomCode: salaActual,
+            timestamp: Date.now() // [MEJORA 3: TIMESTAMP EMISOR]
           });
         }
       }
@@ -1015,7 +1069,13 @@
 
         if (salaActual) {
           socket.emit("midi-message", {
-            type: "cc", status, controller, value, fromRole: rol, roomCode: salaActual
+            type: "cc", 
+            status, 
+            controller, 
+            value, 
+            fromRole: rol, 
+            roomCode: salaActual,
+            timestamp: Date.now()
           });
         }
       }
@@ -1149,7 +1209,11 @@
       sustainActive = isDown;
       if (!isDown) {
         teacherActiveNotes = new Set(heldNotes);
-        renderMusicBoard();
+        // [MEJORA 4: DEBOUNCE EN PEDAL]
+        if (renderTimeout) clearTimeout(renderTimeout);
+        renderTimeout = setTimeout(() => {
+          renderMusicBoard();
+        }, 50);
       }
     }
 
@@ -1157,6 +1221,18 @@
 
     function handleRemoteOrLocalNote(msg) {
       let cmd, note, velocity, role, type, fromSocketId = msg.fromSocketId || null;
+
+      // [MEJORA 3: FILTRO ANTI-RÁFAGA RECEPTOR]
+      if (msg.timestamp) {
+          const latency = Date.now() - msg.timestamp;
+          if (latency > 2000) {
+              log(`⛔ RÁFAGA BLOQUEADA: Datos viejos (${latency}ms).`, 'error');
+              return; // Ignorar esta nota vieja
+          }
+          if (latency > 300) {
+              log(`⚠️ Lag alto: ${latency}ms`, 'warn');
+          }
+      }
 
       if (msg.type === "raw_midi") {
         cmd = msg.command; note = msg.note; velocity = msg.velocity; role = msg.fromRole; type = "raw";
@@ -1234,16 +1310,19 @@
       teacherActiveNotes.clear();
       heldNotes.clear();
       sustainActive = false;
+      
+      // Forzar renderizado inmediato en Panic
+      if(renderTimeout) clearTimeout(renderTimeout);
       renderMusicBoard();
 
       if (midiOutput) {
         for (let n = 0; n < 128; n++) midiOutput.send([0x80, n, 0]);
       }
       updatePedalVisual(0);
-      log("Panic: RESET");
+      log("Panic: RESET", 'warn');
     });
 
-    /* ------------ PIZARRA MUSICAL (VexFlow) ------------ */
+    /* ------------ PIZARRA MUSICAL (VexFlow + DEBOUNCE + ROBUST CHORD) ------------ */
 
     function updateMusicBoard(note, isNoteOn) {
       if (isNoteOn) {
@@ -1252,7 +1331,15 @@
         heldNotes.delete(note);
         if (!sustainActive) teacherActiveNotes.delete(note);
       }
-      renderMusicBoard();
+      
+      // [MEJORA 4: DEBOUNCE] Esperar 50ms antes de renderizar
+      if (renderTimeout) {
+          clearTimeout(renderTimeout);
+      }
+
+      renderTimeout = setTimeout(() => {
+          renderMusicBoard();
+      }, 50);
     }
     
     function getMidiNameSharp(midi) {
@@ -1271,14 +1358,25 @@
       }
 
       const noteNames = notesArray.map(n => getMidiNameSharp(n));
-      const detectedChords = Tonal.Chord.detect(noteNames);
       
+      // [MEJORA 5: ROBUSTEZ DE ACORDES]
+      // Paso A: Detectar con todas las notas
+      let detectedChords = Tonal.Chord.detect(noteNames);
+      
+      // Paso B: Fallback - Si falla y hay muchas notas, probar con las primeras 4
+      if ((!detectedChords || detectedChords.length === 0) && noteNames.length > 4) {
+          detectedChords = Tonal.Chord.detect(noteNames.slice(0, 4));
+      }
+
+      // Paso C: Sanitización y Display
       if (detectedChords && detectedChords.length > 0) {
         let chordName = detectedChords[0];
+        // Eliminar "M" final redundante de mayores
         if (/^[A-G](?:#|b)?M$/.test(chordName)) chordName = chordName.replace("M", "");
         chordDisplay.textContent = chordName;
       } else {
-        chordDisplay.innerHTML = '<span class="chord-placeholder">...</span>';
+        // Mostrar "??" si no se detecta nada
+        chordDisplay.innerHTML = '<span class="chord-placeholder" style="font-size:20px">??</span>';
       }
 
       try {

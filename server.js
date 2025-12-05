@@ -120,6 +120,8 @@ io.on("connection", (socket) => {
 
     socket.join(roomCode);
 
+    socket.emit("room-joined", roomCode);
+    
     broadcastRoomUsers(roomCode);
 
     console.log(
