@@ -295,6 +295,7 @@ button.danger { background: var(--danger); color: #fff; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 10px;
+  flex-shrink: 0;
 }
 
 .piano-toolbar {
@@ -367,17 +368,17 @@ input[type=color]::-webkit-color-swatch { border: 1px solid var(--border); borde
 
 /* --- BOARD (PARTITURA Y TABS) --- */
 .board-container {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  overflow: hidden;
+  /* Aseguramos mínimos */
+  min-height: 200px;
+  
+  /* ELIMINAMOS EL LÍMITE SUPERIOR */
+  max-height: none; 
+  
   position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
-
 .board-tabs {
   display: flex; gap: 5px; margin-bottom: 0; padding-left: 10px; margin-top: -10px;
 }
@@ -426,8 +427,11 @@ input[type=color]::-webkit-color-swatch { border: 1px solid var(--border); borde
 .chord-placeholder { font-size: 12px; color: var(--text-muted); font-weight: 400; }
 
 /* Modo PDF */
-#modePdf { flex-direction: column; height: 450px; background: #222; }
-
+#modePdf { 
+  flex-direction: column; 
+  height: 100%; /* <--- CAMBIO CRÍTICO: Para que se estire con el resize */
+  background: #222; 
+}
 .pdf-controls {
   display: flex; gap: 8px; padding: 10px;
   background: var(--panel-light); border-bottom: 1px solid var(--border);
@@ -464,4 +468,25 @@ iframe#pdfFrame.visible { display: block; }
   #staffContainer { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
   #chordDisplay { width: 100%; height: 100px; }
   .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 250px; }
+}
+.resize-handle {
+  height: 14px;
+  background: var(--panel-light);
+  border-top: 1px solid var(--border);
+  cursor: ns-resize; /* Cursor de flecha vertical */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 2px;
+  transition: background 0.2s, color 0.2s;
+  user-select: none; /* Evita que se seleccione texto al arrastrar */
+  flex-shrink: 0; /* Evita que el handle se aplaste */
+}
+
+.resize-handle:hover, .resize-handle.active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
 }

@@ -1122,3 +1122,51 @@ socket.on("pdf-update", (payload) => {
         log(`📄 ${user.name} ha cargado una partitura nueva.`, "info");
     }
 });
+
+/* ------------ REDIMENSIONAR PIZARRA ------------ */
+(function initResizer() {
+  const handle = document.getElementById("resizeHandle");
+  const board = document.querySelector(".board-container");
+  // Seleccionamos también el contenedor del PDF para forzar repintado si es necesario
+  const pdfFrame = document.getElementById("pdfFrame");
+  
+  let isResizing = false;
+  let startY = 0;
+  let startHeight = 0;
+
+  if (!handle || !board) return;
+
+  handle.addEventListener("mousedown", (e) => {
+      isResizing = true;
+      startY = e.clientY;
+      // Obtenemos la altura calculada actual
+      startHeight = parseInt(document.defaultView.getComputedStyle(board).height, 10);
+      
+      handle.classList.add("active");
+      document.body.style.cursor = "ns-resize"; // Forzar cursor en todo el body
+      e.preventDefault(); // Evitar selección de texto
+  });
+
+  // Usamos window para no perder el foco si el mouse sale rápido del div
+  window.addEventListener("mousemove", (e) => {
+      if (!isResizing) return;
+
+      const dy = e.clientY - startY;
+      const newHeight = startHeight + dy;
+
+      // Aplicamos la nueva altura (CSS min-height/max-height limitarán esto automáticamente)
+      board.style.height = `${newHeight}px`;
+      
+      // Fix para que iframes no capturen el mouse durante el resize
+      if(pdfFrame) pdfFrame.style.pointerEvents = "none";
+  });
+
+  window.addEventListener("mouseup", () => {
+      if (isResizing) {
+          isResizing = false;
+          handle.classList.remove("active");
+          document.body.style.cursor = "default";
+          if(pdfFrame) pdfFrame.style.pointerEvents = "auto"; // Reactivar interacción con PDF
+      }
+  });
+})();
