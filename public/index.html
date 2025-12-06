@@ -1086,6 +1086,78 @@
       if (enableMidiOut) log("Salida MIDI activada.", "info");
       else log("Salida MIDI desactivada.", "info");
     });
+
+/* ------------ MANEJO DE MENSAJES LOCALES (LA PIEZA PERDIDA) ------------ */
+function handleLocalMIDIMessage(event) {
+      const [status, data1, data2] = event.data;
+      const cmd = status & 0xf0;
+      const note = data1;
+      const velocity = data2;
+
+      // 1. MANEJO DE NOTAS
+      if (cmd === 0x90 || cmd === 0x80) {
+        const isNoteOn = (cmd === 0x90 && velocity > 0);
+        
+        // A. Pintar en mi pantalla (Feedback visual inmediato)
+        lightKey(note, isNoteOn, velocity);
+        
+        // B. Actualizar Pizarra (Solo si soy Profe)
+        if (rol === 'teacher') updateMusicBoard(note, isNoteOn);
+
+        // C. Enviar a sintetizador externo (Si está activado)
+        if (enableMidiOut && midiOutput) {
+          try { midiOutput.send([cmd, note, velocity]); } catch (e) {}
+        }
+
+        // D. Enviar al Servidor (Para que lo vea el alumno)
+        if (salaActual) {
+          socket.emit("midi-message", {
+            type: "note", 
+            command: cmd, 
+            note, 
+            velocity, 
+            fromRole: rol, 
+            roomCode: salaActual,
+            timestamp: Date.now()
+          });
+        }
+      }
+
+      // 2. MANEJO DE PEDAL (CON FRENO ANTI-RÁFAGA)
+      if (cmd === 0xB0) {
+        const controller = data1;
+        const value = data2;
+
+        if (controller === 64) { // Pedal Sustain
+           const now = Date.now();
+           // Filtro: Solo pasa si han pasado 50ms O si es soltar (0) O pisar a fondo (127)
+           if (value === 0 || value === 127 || (now - lastPedalTime > 50)) {
+               lastPedalTime = now;
+               
+               updatePedalVisual(value);
+               if (rol === 'teacher') handleTeacherPedal(value);
+
+               if (salaActual) {
+                 socket.emit("midi-message", {
+                   type: "cc", 
+                   status, 
+                   controller, 
+                   value, 
+                   fromRole: rol, 
+                   roomCode: salaActual,
+                   timestamp: Date.now()
+                 });
+               }
+           }
+        } else {
+           // Otros controladores (Modulation, Pitch Bend)
+           if (salaActual) {
+              socket.emit("midi-message", { type: "cc", status, controller, value, fromRole: rol, roomCode: salaActual, timestamp: Date.now() });
+           }
+        }
+      }
+    }
+
     /* ------------ PIANO VISUAL (REESCRITO MATEMÁTICAMENTE) ------------ */
 
     let currentBaseColor = "#ff764d"; // Matches CSS Accent
