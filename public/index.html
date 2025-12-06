@@ -455,18 +455,22 @@
 
       <div class="panel">
         <h2>MIDI I/O</h2>
+        
         <div class="config-row">
-          <label>Salida:</label>
-          <select id="midiOutputSelect"><option value="">(ninguna)</option></select>
+          <label>Entrada (Teclado):</label>
+          <select id="midiInputSelect" style="width:100%">
+              <option value="">(Silencio - Seguro)</option>
+          </select>
         </div>
-        <label><input type="checkbox" id="toggleMidiOut"> Enviar a mi sintetizador</label>
-      </div>
 
-      <div id="masterclassSection" class="panel hidden">
-        <h2>Masterclass Control</h2>
-        <label><input type="checkbox" id="masterclassToggle"> Modo Solista (Broadcast)</label>
-        <button id="clearLiveBtn" class="mt-2" style="width:100%">Silenciar Solistas</button>
-        <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">Marca "En Vivo" abajo para que todos escuchen a ese alumno.</div>
+        <div class="config-row">
+          <label>Salida (Sonido):</label>
+          <select id="midiOutputSelect" style="width:100%">
+              <option value="">(ninguna)</option>
+          </select>
+        </div>
+        
+        <label><input type="checkbox" id="toggleMidiOut"> Enviar a mi sintetizador</label>
       </div>
 
       <div class="panel" id="participantsCard">
@@ -987,7 +991,10 @@
       }
     })();
 
-    /* ------------ WEB MIDI ------------ */
+   /* ------------ WEB MIDI (CON PROTECCIÓN DE BUCLE) ------------ */
+
+   const midiInputSelect = document.getElementById("midiInputSelect");
+    let activeInput = null;
 
     if (navigator.requestMIDIAccess) {
       navigator.requestMIDIAccess().then(onMIDISuccess, err => {
@@ -999,30 +1006,74 @@
 
     function onMIDISuccess(access) {
       midiAccess = access;
-      refreshOutputs();
-      attachInputListeners();
-      access.onstatechange = () => {
-        refreshOutputs();
-        attachInputListeners();
+      refreshDevices();
+      
+      access.onstatechange = (e) => {
+        // Solo refrescar si cambia la conexión física
+        if (e.port.state === "connected" || e.port.state === "disconnected") {
+            refreshDevices();
+        }
       };
     }
 
-    function refreshOutputs() {
-      midiOutputSelect.innerHTML = '<option value="">(ninguna)</option>';
+    function refreshDevices() {
       if (!midiAccess) return;
+
+      // 1. Llenar Select de SALIDAS
+      const currentOut = midiOutputSelect.value;
+      midiOutputSelect.innerHTML = '<option value="">(ninguna)</option>';
       for (let output of midiAccess.outputs.values()) {
         const opt = document.createElement("option");
         opt.value = output.id;
         opt.textContent = output.name;
         midiOutputSelect.appendChild(opt);
       }
+      if (currentOut) midiOutputSelect.value = currentOut;
+
+      // 2. Llenar Select de ENTRADAS (¡Aquí está la protección!)
+      const currentIn = midiInputSelect.value;
+      // Eliminamos la opción automática "Todas". Ahora el usuario DEBE elegir.
+      midiInputSelect.innerHTML = '<option value="">(Selecciona tu Piano...)</option>';
+      
+      for (let input of midiAccess.inputs.values()) {
+        const opt = document.createElement("option");
+        opt.value = input.id;
+        opt.textContent = input.name;
+        midiInputSelect.appendChild(opt);
+      }
+      if (currentIn) midiInputSelect.value = currentIn;
+      
+      updateInputListener();
     }
 
-    function attachInputListeners() {
-      if (!midiAccess) return;
-      for (let input of midiAccess.inputs.values()) {
-        input.onmidimessage = handleLocalMIDIMessage;
-      }
+    // Cuando el usuario cambia la entrada en el menú
+    midiInputSelect.addEventListener("change", updateInputListener);
+
+    function updateInputListener() {
+        if (!midiAccess) return;
+        
+        // 1. Desconectar todo lo anterior (Romper el bucle)
+        for (let input of midiAccess.inputs.values()) {
+            input.onmidimessage = null; 
+        }
+
+        const selectedId = midiInputSelect.value;
+        const selectedName = midiInputSelect.options[midiInputSelect.selectedIndex]?.text;
+
+        if (selectedId) {
+            const input = midiAccess.inputs.get(selectedId);
+            if (input) {
+                // PROTECCIÓN EXTRA: Si eliges el IAC Driver como entrada, te avisamos
+                if (selectedName.includes("IAC") || selectedName.includes("loopMIDI")) {
+                    log("⚠️ CUIDADO: Has seleccionado un cable virtual como entrada.", "warn");
+                }
+
+                input.onmidimessage = handleLocalMIDIMessage;
+                log(`MIDI In: Escuchando solo a [${input.name}]`, 'success');
+            }
+        } else {
+            log("MIDI In: Desactivado.", 'warn');
+        }
     }
 
     midiOutputSelect.addEventListener("change", () => {
@@ -1032,75 +1083,9 @@
 
     toggleMidiOut.addEventListener("change", () => {
       enableMidiOut = toggleMidiOut.checked;
+      if (enableMidiOut) log("Salida MIDI activada.", "info");
+      else log("Salida MIDI desactivada.", "info");
     });
-
-    function handleLocalMIDIMessage(event) {
-      const [status, data1, data2] = event.data;
-      const cmd = status & 0xf0;
-      const note = data1;
-      const velocity = data2;
-
-      // 1. MANEJO DE NOTAS (Igual que antes)
-      if (cmd === 0x90 || cmd === 0x80) {
-        const isNoteOn = (cmd === 0x90 && velocity > 0);
-        lightKey(note, isNoteOn, velocity);
-        
-        if (rol === 'teacher') updateMusicBoard(note, isNoteOn);
-
-        if (enableMidiOut && midiOutput) {
-          try { midiOutput.send([cmd, note, velocity]); } catch (e) {}
-        }
-
-        if (salaActual) {
-          socket.emit("midi-message", {
-            type: "note", 
-            command: cmd, 
-            note, 
-            velocity, 
-            fromRole: rol, 
-            roomCode: salaActual,
-            timestamp: Date.now()
-          });
-        }
-      }
-
-      // 2. MANEJO DE PEDAL (NUEVO: CON FRENO DE EMERGENCIA)
-      if (cmd === 0xB0) {
-        const controller = data1;
-        const value = data2;
-
-        // Solo aplicamos filtro si es el Pedal de Sustain (64)
-        if (controller === 64) {
-           const now = Date.now();
-           // REGLA: Solo enviamos si pasó 50ms O si soltó el pedal (0) O si lo pisó a fondo (127)
-           if (value === 0 || value === 127 || (now - lastPedalTime > 50)) {
-               lastPedalTime = now; // Actualizamos el reloj
-
-               updatePedalVisual(value);
-               if (rol === 'teacher') handleTeacherPedal(value);
-
-               if (salaActual) {
-                 socket.emit("midi-message", {
-                   type: "cc", 
-                   status, 
-                   controller, 
-                   value, 
-                   fromRole: rol, 
-                   roomCode: salaActual,
-                   timestamp: Date.now()
-                 });
-               }
-           }
-           // Si no cumple la regla, ignoramos el mensaje (esto evita la saturación)
-        } 
-        else {
-           // Otros controladores pasan normal
-           if (salaActual) {
-              socket.emit("midi-message", { type: "cc", status, controller, value, fromRole: rol, roomCode: salaActual, timestamp: Date.now() });
-           }
-        }
-      }
-    }
     /* ------------ PIANO VISUAL (REESCRITO MATEMÁTICAMENTE) ------------ */
 
     let currentBaseColor = "#ff764d"; // Matches CSS Accent
