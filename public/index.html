@@ -53,6 +53,9 @@
         </div>
       </div>
 
+      
+
+      
       <div class="panel">
         <h2>MIDI I/O</h2>
         
@@ -78,6 +81,21 @@
         <div id="participantsList" class="participants-list">
           <div style="color:var(--text-muted); font-size:10px;">Esperando conexiones...</div>
         </div>
+      </div>
+
+      <div id="masterclassSection" class="panel hidden" style="border-color: var(--danger);">        <h2 style="color:var(--danger)">📡 Masterclass / Broadcast</h2>
+        <div class="config-row">
+          <label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="masterclassToggle"> 
+            <strong>Habilitar Modo "En el Aire"</strong>
+          </label>
+        </div>
+        <p style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
+          Selecciona "ON AIR" en un alumno para retransmitir su piano a todos.
+        </p>
+        <button id="clearLiveBtn" class="danger" style="width:100%; font-size:10px;">
+          ⏹ DETENER TRANSMISIÓN
+        </button>
       </div>
 
       <div class="panel" style="flex:1; display:flex; flex-direction:column; min-height:100px;">

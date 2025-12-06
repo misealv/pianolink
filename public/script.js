@@ -29,8 +29,6 @@ const chordDisplay = document.getElementById("chordDisplay");
 const staffContainer = document.getElementById("staffContainer");
 
 // Logic Vars
-
-
 let rol = "teacher";
 let myName = "";
 let salaActual = null;
@@ -46,20 +44,18 @@ let midiAccess = null;
 let enableMidiOut = false;
 
 let lockStudentRole = false;
-let lastPedalTime = 0; // <--- AGREGA ESTO
+let lastPedalTime = 0; 
 
 // Board Logic
 let teacherActiveNotes = new Set();
 let heldNotes = new Set();
 let sustainActive = false;
-let renderTimeout = null; // [MEJORA 4: DEBOUNCE]
+let renderTimeout = null; 
 
 /* ------------ UTILIDADES UI (LOG MEJORADO) ------------ */
 
-// [MEJORA 1: LOG MEJORADO] Timestamp + Colores
 function log(msg, type = 'info') {
   const el = document.createElement("div");
-  
   const time = new Date().toLocaleTimeString([], { hour12: false });
   el.textContent = `[${time}] ${msg}`;
   
@@ -142,7 +138,6 @@ socket.on("connect", () => {
   mySocketId = socket.id;
   updateStatus("ONLINE ✔️");
 
-  // [MEJORA 2: RECONEXIÓN AUTOMÁTICA]
   if (salaActual && myName) {
     log(`🔄 Reconexión detectada. Reingresando a sala ${salaActual}...`, 'warn');
     socket.emit("join-room", { 
@@ -186,35 +181,12 @@ socket.on("midi-message", (msg) => {
   handleRemoteOrLocalNote(msg);
 });
 
-// -------------------------------
-  // PDF: Sincronización de Partituras
-  // -------------------------------
-  socket.on("pdf-update", (payload) => {
-    const roomCode = payload.roomCode || socket.roomCode;
-    if (!roomCode || !rooms[roomCode]) return;
-
-    // 1. Guardar la URL en la memoria del servidor (para que si entra alguien nuevo, lo sepa)
-    if (rooms[roomCode].users[socket.id]) {
-      rooms[roomCode].users[socket.id].pdfUrl = payload.url;
-    }
-
-    // 2. Avisar a todos en la sala (incluyendo al profesor)
-    io.to(roomCode).emit("pdf-update", {
-      fromSocketId: socket.id,
-      url: payload.url
-    });
-    
-    // 3. Actualizar la lista de usuarios completa (para asegurar consistencia)
-    broadcastRoomUsers(roomCode);
-  });
-// --- NUEVO: EL PROFE RESPONDE A PETICIONES DE SINCRONIZACIÓN ---
+// --- EL PROFE RESPONDE A PETICIONES DE SINCRONIZACIÓN ---
 socket.on("teacher-sync-request", (requestingSocketId) => {
    if (rol === 'teacher') {
-       // Empaquetamos las notas que el profe tiene activas AHORA MISMO
        const activeNotesArray = Array.from(teacherActiveNotes);
-       
        socket.emit("midi-message", {
-           type: "board-sync", // Mensaje especial de reparación
+           type: "board-sync", 
            roomCode: salaActual,
            notes: activeNotesArray,
            timestamp: Date.now()
@@ -223,16 +195,13 @@ socket.on("teacher-sync-request", (requestingSocketId) => {
    }
 });
 
-
 socket.on("room-joined", (code) => {
   salaActual = code;
   log("✅ Te has unido correctamente a la sala " + code, 'success');
   updateStatus("EN SALA: " + code);
 
-  // --- NUEVO: PEDIR ESTADO ACTUAL DE LA PIZARRA ---
   log("🔄 Sincronizando pizarra...", 'warn');
   socket.emit("request-full-state", code);
-  // ------------------------------------------------
 
   if (rol === "student") {
       const btn = document.getElementById("btnUnirse");
@@ -246,8 +215,8 @@ socket.on("room-joined", (code) => {
       if(input) input.disabled = true;
   }
 });
-/* ------------ BOTÓN COPIAR ENLACE ------------ */
 
+/* ------------ BOTÓN COPIAR ENLACE ------------ */
 copyLinkBtn.addEventListener("click", async () => {
   const url = getInviteUrl();
   if (!url) {
@@ -276,7 +245,7 @@ copyLinkBtn.addEventListener("click", async () => {
 });
 
 /* ------------ SELECCIÓN DE ROL ------------ */
-
+/* Reemplaza el bloque de eventos de roles con esto: */
 document.querySelectorAll("input[name=rol]").forEach(radio => {
   radio.addEventListener("change", () => {
     const requestedRole = radio.value;
@@ -287,17 +256,22 @@ document.querySelectorAll("input[name=rol]").forEach(radio => {
       rol = requestedRole;
     }
 
-    document.getElementById("cardCrearSala").style.display =
-      (rol === "teacher") ? "block" : "none";
-    document.getElementById("cardUnirseSala").style.display =
-      (rol === "teacher") ? "none" : "block";
+    const cardCrear = document.getElementById("cardCrearSala");
+    const cardUnir = document.getElementById("cardUnirseSala");
+    
+    // Mostrar/Ocultar paneles básicos
+    if (cardCrear) cardCrear.style.display = (rol === "teacher") ? "block" : "none";
+    if (cardUnir) cardUnir.style.display = (rol === "teacher") ? "none" : "block";
 
+    // Mostrar/Ocultar Masterclass de forma segura
     if (masterclassSection) {
-      masterclassSection.style.display = (rol === "teacher") ? "block" : "none";
-    } else if(rol === "teacher") {
-         document.getElementById("masterclassSection").classList.remove("hidden");
-    } else {
-         document.getElementById("masterclassSection").classList.add("hidden");
+      if (rol === "teacher") {
+          masterclassSection.classList.remove("hidden");
+          masterclassSection.style.display = "block";
+      } else {
+          masterclassSection.classList.add("hidden");
+          masterclassSection.style.display = "none";
+      }
     }
 
     updateRoleIndicator();
@@ -315,92 +289,98 @@ updateRoleIndicator();
 updateLiveStatusUI();
 
 /* ------------ PARTICIPANTES ------------ */
-
-/* --- VERSIÓN ACTUALIZADA: PARTICIPANTES CON PDF --- */
 function renderParticipants() {
-    participantsList.innerHTML = "";
-    if (!participants.length) {
-      const d = document.createElement("div");
-      d.style.color = "var(--text-muted)"; d.textContent = "Nadie conectado.";
-      participantsList.appendChild(d); return;
-    }
-  
-    const soyProfe = (rol === "teacher");
-  
-    participants.forEach(u => {
-      const row = document.createElement("div");
-      row.className = "participant-row";
-  
-      const left = document.createElement("div");
-      // Icono si tiene PDF
-      if (u.pdfUrl) {
-          const icon = document.createElement("span");
-          icon.textContent = "📄 ";
-          icon.title = "Tiene partitura";
-          icon.style.cursor = "help";
-          left.appendChild(icon);
-      }
-      
-      const n = document.createElement("span");
-      n.style.fontWeight = "bold"; n.textContent = u.name;
-      const r = document.createElement("span");
-      r.style.marginLeft = "6px"; r.style.fontSize = "10px";
-      r.style.color = "var(--text-muted)";
-      r.textContent = (u.role === "teacher" ? "[PROFE]" : "[ALUMNO]");
-      left.appendChild(n); left.appendChild(r);
-  
-      const right = document.createElement("div");
-  
-      if (soyProfe && u.role !== "teacher" && u.socketId !== mySocketId) {
-        // Botón VER PDF (Nuevo)
-        if (u.pdfUrl) {
-            const btnPdf = document.createElement("button");
-            btnPdf.textContent = "VER PDF";
-            btnPdf.style.padding = "2px 4px";
-            btnPdf.style.fontSize = "9px";
-            btnPdf.style.marginRight = "6px";
-            btnPdf.style.background = "#fff";
-            btnPdf.style.color = "#000";
-            btnPdf.onclick = () => {
-                // Cargar PDF del alumno y cambiar a pestaña PDF
-                loadPdf(u.pdfUrl, false); 
-                switchTab('pdf');
-                log(`👁️ Viendo partitura de ${u.name}`, "info");
-            };
-            right.appendChild(btnPdf);
-        }
-  
-        // Checkbox "Escuchar"
-        const listenLabel = document.createElement("label");
-        listenLabel.style.display="inline"; listenLabel.style.marginRight="8px";
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.checked = (listeningTo.size === 0) || listeningTo.has(u.socketId);
-        cb.addEventListener("change", () => toggleListen(u.socketId, cb.checked));
-        listenLabel.appendChild(cb); listenLabel.appendChild(document.createTextNode(" CUE"));
-        right.appendChild(listenLabel);
-  
-        // Radio "En Vivo"
-        const liveLabel = document.createElement("label");
-        liveLabel.style.display="inline";
-        const rb = document.createElement("input");
-        rb.type = "radio"; rb.name = "liveStudent";
-        rb.checked = (liveStudentId === u.socketId);
-        rb.addEventListener("change", () => {
-          if (rb.checked) {
-            masterclassToggle.checked = true; sendLiveStudent(u.socketId);
-          }
-        });
-        liveLabel.appendChild(rb); liveLabel.appendChild(document.createTextNode(" ON AIR"));
-        right.appendChild(liveLabel);
-      } else if (u.socketId === mySocketId) {
-        right.textContent = " (Tú)"; right.style.fontSize = "10px"; right.style.color = "var(--text-muted)";
-      }
-  
-      row.appendChild(left); row.appendChild(right);
-      participantsList.appendChild(row);
-    });
+  participantsList.innerHTML = "";
+  if (!participants.length) {
+    const d = document.createElement("div");
+    d.style.color = "var(--text-muted)"; d.textContent = "Nadie conectado.";
+    participantsList.appendChild(d); return;
   }
+
+  const soyProfe = (rol === "teacher");
+
+  participants.forEach(u => {
+    const row = document.createElement("div");
+    row.className = "participant-row";
+
+    const left = document.createElement("div");
+    // Icono si tiene PDF
+    if (u.pdfUrl) {
+        const icon = document.createElement("span");
+        icon.textContent = "📄 ";
+        icon.title = "Tiene partitura";
+        icon.style.cursor = "help";
+        left.appendChild(icon);
+    }
+    
+    const n = document.createElement("span");
+    n.style.fontWeight = "bold"; n.textContent = u.name;
+    const r = document.createElement("span");
+    r.style.marginLeft = "6px"; r.style.fontSize = "10px";
+    r.style.color = "var(--text-muted)";
+    r.textContent = (u.role === "teacher" ? "[PROFE]" : "[ALUMNO]");
+    left.appendChild(n); left.appendChild(r);
+
+    const right = document.createElement("div");
+
+    if (soyProfe && u.role !== "teacher" && u.socketId !== mySocketId) {
+      // Botón VER PDF
+      if (u.pdfUrl) {
+          const btnPdf = document.createElement("button");
+          btnPdf.textContent = "VER PDF";
+          btnPdf.style.padding = "2px 4px";
+          btnPdf.style.fontSize = "9px";
+          btnPdf.style.marginRight = "6px";
+          btnPdf.style.background = "#fff";
+          btnPdf.style.color = "#000";
+          btnPdf.onclick = () => {
+              loadPdf(u.pdfUrl, false); 
+              switchTab('pdf');
+              log(`👁️ Viendo partitura de ${u.name}`, "info");
+          };
+          right.appendChild(btnPdf);
+      }
+
+      // Checkbox "Escuchar" (CUE)
+      const listenLabel = document.createElement("label");
+      listenLabel.style.display="inline"; listenLabel.style.marginRight="8px";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = (listeningTo.size === 0) || listeningTo.has(u.socketId);
+      cb.addEventListener("change", () => toggleListen(u.socketId, cb.checked));
+      listenLabel.appendChild(cb); listenLabel.appendChild(document.createTextNode(" CUE"));
+      right.appendChild(listenLabel);
+
+      // Radio "En Vivo" (ON AIR) - AQUÍ ESTABA EL ERROR
+      const liveLabel = document.createElement("label");
+      liveLabel.style.display="inline";
+      liveLabel.style.color = "var(--danger)"; // Rojo para resaltar
+      
+      const rb = document.createElement("input");
+      rb.type = "radio"; 
+      rb.name = "liveStudent";
+      rb.checked = (liveStudentId === u.socketId);
+      
+      rb.addEventListener("change", () => {
+        if (rb.checked) {
+          // FIX: Verificamos que el toggle exista antes de marcarlo
+          if (masterclassToggle) masterclassToggle.checked = true;
+          sendLiveStudent(u.socketId);
+        }
+      });
+      
+      liveLabel.appendChild(rb); 
+      liveLabel.appendChild(document.createTextNode(" ON AIR"));
+      right.appendChild(liveLabel);
+
+    } else if (u.socketId === mySocketId) {
+      right.textContent = " (Tú)"; right.style.fontSize = "10px"; right.style.color = "var(--text-muted)";
+    }
+
+    row.appendChild(left); row.appendChild(right);
+    participantsList.appendChild(row);
+  });
+}
 
 function toggleListen(id, checked) {
   if (checked) listeningTo.add(id);
@@ -437,7 +417,6 @@ if (clearLiveBtn) {
 }
 
 /* ------------ CREAR / UNIR SALA ------------ */
-
 btnCrear.addEventListener("click", () => {
   const name = inputName.value.trim();
   if (!name) return alert("Ingresa tu nombre.");
@@ -465,7 +444,6 @@ btnUnirse.addEventListener("click", () => {
 });
 
 /* ------------ INICIALIZAR DESDE URL ------------ */
-
 (function initFromUrl() {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -501,8 +479,7 @@ btnUnirse.addEventListener("click", () => {
   }
 })();
 
-/* ------------ WEB MIDI (CON PROTECCIÓN DE BUCLE) ------------ */
-
+/* ------------ WEB MIDI ------------ */
 const midiInputSelect = document.getElementById("midiInputSelect");
 let activeInput = null;
 
@@ -519,7 +496,6 @@ function onMIDISuccess(access) {
   refreshDevices();
   
   access.onstatechange = (e) => {
-    // Solo refrescar si cambia la conexión física
     if (e.port.state === "connected" || e.port.state === "disconnected") {
         refreshDevices();
     }
@@ -529,7 +505,6 @@ function onMIDISuccess(access) {
 function refreshDevices() {
   if (!midiAccess) return;
 
-  // 1. Llenar Select de SALIDAS
   const currentOut = midiOutputSelect.value;
   midiOutputSelect.innerHTML = '<option value="">(ninguna)</option>';
   for (let output of midiAccess.outputs.values()) {
@@ -540,9 +515,7 @@ function refreshDevices() {
   }
   if (currentOut) midiOutputSelect.value = currentOut;
 
-  // 2. Llenar Select de ENTRADAS (¡Aquí está la protección!)
   const currentIn = midiInputSelect.value;
-  // Eliminamos la opción automática "Todas". Ahora el usuario DEBE elegir.
   midiInputSelect.innerHTML = '<option value="">(Selecciona tu Piano...)</option>';
   
   for (let input of midiAccess.inputs.values()) {
@@ -556,13 +529,11 @@ function refreshDevices() {
   updateInputListener();
 }
 
-// Cuando el usuario cambia la entrada en el menú
 midiInputSelect.addEventListener("change", updateInputListener);
 
 function updateInputListener() {
     if (!midiAccess) return;
     
-    // 1. Desconectar todo lo anterior (Romper el bucle)
     for (let input of midiAccess.inputs.values()) {
         input.onmidimessage = null; 
     }
@@ -573,11 +544,9 @@ function updateInputListener() {
     if (selectedId) {
         const input = midiAccess.inputs.get(selectedId);
         if (input) {
-            // PROTECCIÓN EXTRA: Si eliges el IAC Driver como entrada, te avisamos
             if (selectedName.includes("IAC") || selectedName.includes("loopMIDI")) {
                 log("⚠️ CUIDADO: Has seleccionado un cable virtual como entrada.", "warn");
             }
-
             input.onmidimessage = handleLocalMIDIMessage;
             log(`MIDI In: Escuchando solo a [${input.name}]`, 'success');
         }
@@ -597,7 +566,7 @@ toggleMidiOut.addEventListener("change", () => {
   else log("Salida MIDI desactivada.", "info");
 });
 
-/* ------------ MANEJO DE MENSAJES LOCALES (LA PIEZA PERDIDA) ------------ */
+/* ------------ MANEJO DE MENSAJES LOCALES ------------ */
 function handleLocalMIDIMessage(event) {
   const [status, data1, data2] = event.data;
   const cmd = status & 0xf0;
@@ -608,18 +577,14 @@ function handleLocalMIDIMessage(event) {
   if (cmd === 0x90 || cmd === 0x80) {
     const isNoteOn = (cmd === 0x90 && velocity > 0);
     
-    // A. Pintar en mi pantalla (Feedback visual inmediato)
     lightKey(note, isNoteOn, velocity);
     
-    // B. Actualizar Pizarra (Solo si soy Profe)
     if (rol === 'teacher') updateMusicBoard(note, isNoteOn);
 
-    // C. Enviar a sintetizador externo (Si está activado)
     if (enableMidiOut && midiOutput) {
       try { midiOutput.send([cmd, note, velocity]); } catch (e) {}
     }
 
-    // D. Enviar al Servidor (Para que lo vea el alumno)
     if (salaActual) {
       socket.emit("midi-message", {
         type: "note", 
@@ -627,20 +592,19 @@ function handleLocalMIDIMessage(event) {
         note, 
         velocity, 
         fromRole: rol, 
-        roomCode: salaActual,
+        roomCode: salaActual, 
         timestamp: Date.now()
       });
     }
   }
 
-  // 2. MANEJO DE PEDAL (CON FRENO ANTI-RÁFAGA)
+  // 2. MANEJO DE PEDAL
   if (cmd === 0xB0) {
     const controller = data1;
     const value = data2;
 
-    if (controller === 64) { // Pedal Sustain
+    if (controller === 64) { 
        const now = Date.now();
-       // Filtro: Solo pasa si han pasado 50ms O si es soltar (0) O pisar a fondo (127)
        if (value === 0 || value === 127 || (now - lastPedalTime > 50)) {
            lastPedalTime = now;
            
@@ -654,13 +618,12 @@ function handleLocalMIDIMessage(event) {
                controller, 
                value, 
                fromRole: rol, 
-               roomCode: salaActual,
+               roomCode: salaActual, 
                timestamp: Date.now()
              });
            }
        }
     } else {
-       // Otros controladores (Modulation, Pitch Bend)
        if (salaActual) {
           socket.emit("midi-message", { type: "cc", status, controller, value, fromRole: rol, roomCode: salaActual, timestamp: Date.now() });
        }
@@ -668,9 +631,8 @@ function handleLocalMIDIMessage(event) {
   }
 }
 
-/* ------------ PIANO VISUAL (REESCRITO MATEMÁTICAMENTE) ------------ */
-
-let currentBaseColor = "#ff764d"; // Matches CSS Accent
+/* ------------ PIANO VISUAL ------------ */
+let currentBaseColor = "#ff764d"; 
 let isSplitActive = false;
 let splitPoint = 60; 
 let currentLeftColor = "#5dade2";
@@ -698,22 +660,16 @@ if(rightColorPicker) rightColorPicker.addEventListener("input", (e) => currentRi
 buildPiano();
 
 function buildPiano() {
-  // MEJORA MATEMÁTICA: Anchos fijos y cálculo relativo a teclas blancas
   const WHITE_KEY_WIDTH = 24; 
   const BLACK_KEY_WIDTH = 14; 
   
   piano.innerHTML = "";
   
-  // Total white keys from 21 (A0) to 108 (C8) is 52.
-  // Width = 52 * 24 = 1248px + padding
   piano.style.width = ((52 * WHITE_KEY_WIDTH) + 20) + "px";
 
   let whiteKeyIndex = 0;
 
   for (let note = 21; note <= 108; note++) {
-    // Pattern of MIDI notes starting at C (0): W, B, W, B, W, W, B, W, B, W, B, W
-    // A0 is 21. 21 % 12 = 9 (A). 
-    // Indices in octave: 0=C, 1=C#, 2=D, 3=D#, 4=E, 5=F, 6=F#, 7=G, 8=G#, 9=A, 10=A#, 11=B
     const octaveIndex = note % 12;
     const isWhite = [0, 2, 4, 5, 7, 9, 11].includes(octaveIndex);
 
@@ -727,10 +683,6 @@ function buildPiano() {
         whiteKeyIndex++;
     } else {
         key.className = "key black-key";
-        // LOGICA: La tecla negra va entre la tecla blanca anterior (whiteKeyIndex - 1)
-        // y la actual (que se dibujará después).
-        // Posición borde derecho tecla blanca anterior: (whiteKeyIndex * WHITE_KEY_WIDTH)
-        // Restamos mitad del ancho negro para centrar.
         key.style.left = ((whiteKeyIndex * WHITE_KEY_WIDTH) - (BLACK_KEY_WIDTH / 2)) + "px";
         key.style.width = BLACK_KEY_WIDTH + "px";
     }
@@ -747,38 +699,23 @@ function hexToRgb(hex) {
 }
 
 function lightKey(note, on = true, velocity = 127) {
-  // Busca el elemento HTML de la tecla correspondiente
   const k = piano.querySelector(`.key[data-note='${note}']`);
   if (!k) return;
 
   if (on) {
-    // 1. Determinar el color base (Split o Normal)
     let targetHex = currentBaseColor;
     if (isSplitActive) {
         targetHex = (note < splitPoint) ? currentLeftColor : currentRightColor;
     }
 
-    // 2. CÁLCULO DE OPACIDAD (Aquí está la magia)
-    // velocity va de 0 a 127.
-    // Math.pow hace que la curva sea exponencial, no lineal.
-    // Esto exagera el efecto: si tocas suave, será MUY transparente.
-    // Si tocas fuerte, será totalmente sólido.
     let alpha = Math.pow(velocity / 127, 2); 
-
-    // Limites de seguridad para que siempre se vea algo (mínimo 0.15)
     if (alpha < 0.15) alpha = 0.15; 
     if (alpha > 1.0) alpha = 1.0;
 
     const rgb = hexToRgb(targetHex);
-
-    // 3. Aplicar el color
     k.classList.add("note-active");
-    // El color se pinta sobre la tecla. 
-    // Alpha bajo = Se ve el color de fondo de la tecla (Blanco/Negro) = "Claro"
-    // Alpha alto = Se ve el color naranja a tope = "Oscuro/Sólido"
     k.style.backgroundColor = `rgba(${rgb}, ${alpha})`; 
   } else {
-    // Al soltar la tecla, quitamos el color y la clase
     k.classList.remove("note-active");
     k.style.backgroundColor = ""; 
   }
@@ -796,7 +733,6 @@ function handleTeacherPedal(value) {
   sustainActive = isDown;
   if (!isDown) {
     teacherActiveNotes = new Set(heldNotes);
-    // [MEJORA 4: DEBOUNCE EN PEDAL]
     if (renderTimeout) clearTimeout(renderTimeout);
     renderTimeout = setTimeout(() => {
       renderMusicBoard();
@@ -805,37 +741,28 @@ function handleTeacherPedal(value) {
 }
 
 /* ------------ MIDI REMOTO ------------ */
-
 function handleRemoteOrLocalNote(msg) {
-
-  // --- NUEVO: BLOQUE DE REPARACIÓN DE PIZARRA ---
   if (msg.type === "board-sync") {
      if (rol === 'student') {
-         // 1. Borramos nuestra pizarra corrupta
          teacherActiveNotes.clear();
          heldNotes.clear();
-         
-         // 2. Copiamos la verdad del profesor
          msg.notes.forEach(n => {
              teacherActiveNotes.add(n);
              heldNotes.add(n);
          });
-
-         // 3. Renderizamos forzosamente
          renderMusicBoard();
          log("✅ Pizarra reparada y sincronizada.", "success");
      }
-     return; // No hacemos nada más con este mensaje
+     return; 
   }
-  // ------------------------------------------------
+
   let cmd, note, velocity, role, type, fromSocketId = msg.fromSocketId || null;
 
-  // [MEJORA 3: FILTRO ANTI-RÁFAGA RECEPTOR]
   if (msg.timestamp) {
       const latency = Date.now() - msg.timestamp;
       if (latency > 2000) {
           log(`⛔ RÁFAGA BLOQUEADA: Datos viejos (${latency}ms).`, 'error');
-          return; // Ignorar esta nota vieja
+          return; 
       }
       if (latency > 300) {
           log(`⚠️ Lag alto: ${latency}ms`, 'warn');
@@ -915,12 +842,10 @@ function handleOtherMessages(msg) {
 }
 
 panicBtn.addEventListener("click", () => {
-  // 1. Limpieza Local (Lo que ya tenías)
   teacherActiveNotes.clear();
   heldNotes.clear();
   sustainActive = false;
   
-  // Forzar renderizado inmediato en Panic
   if(renderTimeout) clearTimeout(renderTimeout);
   renderMusicBoard();
 
@@ -930,15 +855,13 @@ panicBtn.addEventListener("click", () => {
   updatePedalVisual(0);
   log("Panic: RESET LOCAL", 'warn');
 
-  // 2. NUEVO: Pedir rescate al profesor (Si soy alumno y estoy en sala)
   if (rol === 'student' && salaActual) {
       log("📡 Solicitando sincronización al profesor...", "warn");
       socket.emit("request-full-state", salaActual);
   }
 });
 
-/* ------------ PIZARRA MUSICAL (VexFlow + DEBOUNCE + ROBUST CHORD) ------------ */
-
+/* ------------ PIZARRA MUSICAL (VexFlow) ------------ */
 function updateMusicBoard(note, isNoteOn) {
   if (isNoteOn) {
     heldNotes.add(note); teacherActiveNotes.add(note);
@@ -947,7 +870,6 @@ function updateMusicBoard(note, isNoteOn) {
     if (!sustainActive) teacherActiveNotes.delete(note);
   }
   
-  // [MEJORA 4: DEBOUNCE] Esperar 50ms antes de renderizar
   if (renderTimeout) {
       clearTimeout(renderTimeout);
   }
@@ -974,23 +896,16 @@ function renderMusicBoard() {
 
   const noteNames = notesArray.map(n => getMidiNameSharp(n));
   
-  // [MEJORA 5: ROBUSTEZ DE ACORDES]
-  // Paso A: Detectar con todas las notas
   let detectedChords = Tonal.Chord.detect(noteNames);
-  
-  // Paso B: Fallback - Si falla y hay muchas notas, probar con las primeras 4
   if ((!detectedChords || detectedChords.length === 0) && noteNames.length > 4) {
       detectedChords = Tonal.Chord.detect(noteNames.slice(0, 4));
   }
 
-  // Paso C: Sanitización y Display
   if (detectedChords && detectedChords.length > 0) {
     let chordName = detectedChords[0];
-    // Eliminar "M" final redundante de mayores
     if (/^[A-G](?:#|b)?M$/.test(chordName)) chordName = chordName.replace("M", "");
     chordDisplay.textContent = chordName;
   } else {
-    // Mostrar "??" si no se detecta nada
     chordDisplay.innerHTML = '<span class="chord-placeholder" style="font-size:20px">??</span>';
   }
 
@@ -1005,12 +920,9 @@ function drawEmptyStaff() {
   staffContainer.innerHTML = "";
   const renderer = new Vex.Flow.Renderer(staffContainer, Vex.Flow.Renderer.Backends.SVG);
   
-  // Ajustamos el tamaño del canvas SVG
   renderer.resize(420, 450); 
   const context = renderer.getContext();
   
-  // MARGEN X: Cambiamos 10 por 30
-  // ANCHO: Usamos 350 para que no toque el borde derecho
   const startX = 30; 
   const staveWidth = 350;
 
@@ -1031,21 +943,17 @@ function drawGrandStaff(midiNotes) {
   staffContainer.innerHTML = "";
   const renderer = new Vex.Flow.Renderer(staffContainer, Vex.Flow.Renderer.Backends.SVG);
   
-  // Ajustamos tamaño base
   const width = 420; 
   renderer.resize(width, 450);
   const context = renderer.getContext();
 
-  // --- VARIABLES DE AJUSTE QUIRÚRGICO ---
-  const startX = 30;  // Antes era 10, esto da aire a la izquierda
-  const staveWidth = 350; // Ancho controlado de la pauta
+  const startX = 30; 
+  const staveWidth = 350; 
 
-  // ... (aquí sigue tu lógica de trebleNotes/bassNotes sin cambios) ...
   const trebleNotes = [];
   const bassNotes = [];
 
   midiNotes.forEach(midi => {
-    // ... (tu lógica de notas intacta) ...
     const tonalNote = getMidiNameSharp(midi);
     const noteInfo = Tonal.Note.get(tonalNote); 
     const letter = tonalNote.slice(0, -1).toLowerCase();
@@ -1058,7 +966,7 @@ function drawGrandStaff(midiNotes) {
       duration: "w", 
       align_center: true 
     });
-    // ... (resto del loop intacto) ...
+    
     if (noteInfo.acc === '#') staveNote.addModifier(new Vex.Flow.Accidental("#"));
     else if (noteInfo.acc === 'b') staveNote.addModifier(new Vex.Flow.Accidental("b"));
 
@@ -1066,21 +974,17 @@ function drawGrandStaff(midiNotes) {
     else bassNotes.push(staveNote);
   });
 
-  // --- APLICAMOS EL NUEVO startX y staveWidth ---
   const staveTreble = new Vex.Flow.Stave(startX, 100, staveWidth);
   staveTreble.addClef("treble").setContext(context).draw();
 
   const staveBass = new Vex.Flow.Stave(startX, 250, staveWidth);
   staveBass.addClef("bass").setContext(context).draw();
 
-  // Conectores
   new Vex.Flow.StaveConnector(staveTreble, staveBass).setType(3).setContext(context).draw(); 
   new Vex.Flow.StaveConnector(staveTreble, staveBass).setType(1).setContext(context).draw(); 
   new Vex.Flow.StaveConnector(staveTreble, staveBass).setType(6).setContext(context).draw(); 
 
-  // --- RENDERING DE VOCES (Asegura usar el nuevo ancho para formatear) ---
   if (trebleNotes.length > 0) {
-      // ... (lógica de notas agudas intacta) ...
       const trebleMidiVals = midiNotes.filter(n => n >= 60);
         const keysTreble = trebleMidiVals.map(n => {
              const tn = getMidiNameSharp(n);
@@ -1097,14 +1001,12 @@ function drawGrandStaff(midiNotes) {
             const voiceT = new Vex.Flow.Voice({num_beats: 4, beat_value: 4});
             voiceT.addTickables([chordTreble]);
             
-            // IMPORTANTE: Formatear usando el ancho disponible menos un margen
             new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], staveWidth - 50);
             voiceT.draw(context, staveTreble);
         }
   }
 
   if (bassNotes.length > 0) {
-     // ... (lógica de notas graves intacta) ...
       const bassMidiVals = midiNotes.filter(n => n < 60);
          const keysBass = bassMidiVals.map(n => {
              const tn = getMidiNameSharp(n);
@@ -1121,7 +1023,6 @@ function drawGrandStaff(midiNotes) {
             const voiceB = new Vex.Flow.Voice({num_beats: 4, beat_value: 4});
             voiceB.addTickables([chordBass]);
             
-            // IMPORTANTE: Formatear usando el ancho disponible
             new Vex.Flow.Formatter().joinVoices([voiceB]).format([voiceB], staveWidth - 50);
             voiceB.draw(context, staveBass);
         }
@@ -1134,24 +1035,22 @@ const btnOpenFounders = document.getElementById("btnOpenFounders");
 const closeFoundersBtn = document.getElementById("closeFoundersBtn");
 
 if (btnOpenFounders && foundersModal) {
-btnOpenFounders.addEventListener("click", () => {
-foundersModal.classList.add("visible");
-});
+    btnOpenFounders.addEventListener("click", () => {
+        foundersModal.classList.add("visible");
+    });
 
-closeFoundersBtn.addEventListener("click", () => {
-foundersModal.classList.remove("visible");
-});
+    closeFoundersBtn.addEventListener("click", () => {
+        foundersModal.classList.remove("visible");
+    });
 
-// Cerrar si haces clic fuera de la tarjeta (en el fondo oscuro)
-foundersModal.addEventListener("click", (e) => {
-if (e.target === foundersModal) {
-  foundersModal.classList.remove("visible");
-}
-});
+    foundersModal.addEventListener("click", (e) => {
+        if (e.target === foundersModal) {
+            foundersModal.classList.remove("visible");
+        }
+    });
 }
 
 /* ------------ GESTOR DE PDF Y PESTAÑAS ------------ */
-    
 // Referencias DOM
 const tabMusicBtn = document.getElementById("tabMusicBtn");
 const tabPdfBtn = document.getElementById("tabPdfBtn");
