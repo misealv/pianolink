@@ -567,6 +567,8 @@
     const staffContainer = document.getElementById("staffContainer");
 
     // Logic Vars
+
+
     let rol = "teacher";
     let myName = "";
     let salaActual = null;
@@ -582,6 +584,7 @@
     let enableMidiOut = false;
 
     let lockStudentRole = false;
+    let lastPedalTime = 0; // <--- AGREGA ESTO
 
     // Board Logic
     let teacherActiveNotes = new Set();
@@ -722,26 +725,28 @@
     });
     // En index.html (dentro del script)
 
-socket.on("room-joined", (code) => {
-  salaActual = code;
-  // 1. Escribir en el log con color verde (success)
-  log("✅ Te has unido correctamente a la sala " + code, 'success');
-  updateStatus("EN SALA: " + code);
+    socket.on("room-joined", (code) => {
+      salaActual = code;
+      log("✅ Te has unido correctamente a la sala " + code, 'success');
+      updateStatus("EN SALA: " + code);
 
-  // 2. UX: Deshabilitar el formulario para confirmar visualmente
-  if (rol === "student") {
-      const btn = document.getElementById("btnUnirse");
-      const input = document.getElementById("codigoSala");
-      
-      if(btn) {
-          btn.textContent = "DENTRO";
-          btn.disabled = true;
-          btn.style.background = "var(--success)";
-          btn.style.color = "#000";
+      // --- NUEVO: PEDIR ESTADO ACTUAL DE LA PIZARRA ---
+      log("🔄 Sincronizando pizarra...", 'warn');
+      socket.emit("request-full-state", code);
+      // ------------------------------------------------
+
+      if (rol === "student") {
+          const btn = document.getElementById("btnUnirse");
+          const input = document.getElementById("codigoSala");
+          if(btn) {
+              btn.textContent = "DENTRO";
+              btn.disabled = true;
+              btn.style.background = "var(--success)";
+              btn.style.color = "#000";
+          }
+          if(input) input.disabled = true;
       }
-      if(input) input.disabled = true;
-  }
-});
+    });
     /* ------------ BOTÓN COPIAR ENLACE ------------ */
 
     copyLinkBtn.addEventListener("click", async () => {
@@ -1035,6 +1040,7 @@ socket.on("room-joined", (code) => {
       const note = data1;
       const velocity = data2;
 
+      // 1. MANEJO DE NOTAS (Igual que antes)
       if (cmd === 0x90 || cmd === 0x80) {
         const isNoteOn = (cmd === 0x90 && velocity > 0);
         lightKey(note, isNoteOn, velocity);
@@ -1053,34 +1059,48 @@ socket.on("room-joined", (code) => {
             velocity, 
             fromRole: rol, 
             roomCode: salaActual,
-            timestamp: Date.now() // [MEJORA 3: TIMESTAMP EMISOR]
-          });
-        }
-      }
-
-      if (cmd === 0xB0) {
-        const controller = data1;
-        const value = data2;
-
-        if (controller === 64) {
-          updatePedalVisual(value);
-          if (rol === 'teacher') handleTeacherPedal(value);
-        }
-
-        if (salaActual) {
-          socket.emit("midi-message", {
-            type: "cc", 
-            status, 
-            controller, 
-            value, 
-            fromRole: rol, 
-            roomCode: salaActual,
             timestamp: Date.now()
           });
         }
       }
-    }
 
+      // 2. MANEJO DE PEDAL (NUEVO: CON FRENO DE EMERGENCIA)
+      if (cmd === 0xB0) {
+        const controller = data1;
+        const value = data2;
+
+        // Solo aplicamos filtro si es el Pedal de Sustain (64)
+        if (controller === 64) {
+           const now = Date.now();
+           // REGLA: Solo enviamos si pasó 50ms O si soltó el pedal (0) O si lo pisó a fondo (127)
+           if (value === 0 || value === 127 || (now - lastPedalTime > 50)) {
+               lastPedalTime = now; // Actualizamos el reloj
+
+               updatePedalVisual(value);
+               if (rol === 'teacher') handleTeacherPedal(value);
+
+               if (salaActual) {
+                 socket.emit("midi-message", {
+                   type: "cc", 
+                   status, 
+                   controller, 
+                   value, 
+                   fromRole: rol, 
+                   roomCode: salaActual,
+                   timestamp: Date.now()
+                 });
+               }
+           }
+           // Si no cumple la regla, ignoramos el mensaje (esto evita la saturación)
+        } 
+        else {
+           // Otros controladores pasan normal
+           if (salaActual) {
+              socket.emit("midi-message", { type: "cc", status, controller, value, fromRole: rol, roomCode: salaActual, timestamp: Date.now() });
+           }
+        }
+      }
+    }
     /* ------------ PIANO VISUAL (REESCRITO MATEMÁTICAMENTE) ------------ */
 
     let currentBaseColor = "#ff764d"; // Matches CSS Accent

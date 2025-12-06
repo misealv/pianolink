@@ -121,7 +121,7 @@ io.on("connection", (socket) => {
     socket.join(roomCode);
 
     socket.emit("room-joined", roomCode);
-    
+
     broadcastRoomUsers(roomCode);
 
     console.log(
@@ -149,7 +149,9 @@ io.on("connection", (socket) => {
     const fromName = socket.userName || message.fromName || "Usuario";
     const fromRole = socket.userRole || message.fromRole;
 
-    io.to(roomCode).emit("midi-message", {
+    // CAMBIO AQUÍ: Agregamos .volatile
+    // Esto significa: "Si la red está saturada, descarta este paquete, no mates la conexión"
+    io.to(roomCode).volatile.emit("midi-message", {
       ...message,
       roomCode,
       fromSocketId: socket.id,
@@ -157,7 +159,6 @@ io.on("connection", (socket) => {
       fromRole,
     });
   });
-
   // -------------------------------
   // MASTERCLASS: alumno EN VIVO
   // -------------------------------
@@ -187,6 +188,15 @@ io.on("connection", (socket) => {
     console.log(
       `Sala ${roomCode} - liveStudentId = ${room.liveStudentId || "null"}`
     );
+  });
+// -------------------------------
+  // SINCRONIZACIÓN DE ESTADO (NUEVO)
+  // -------------------------------
+  socket.on("request-full-state", (roomCode) => {
+    // El alumno pide el estado. El servidor se lo pide al Profesor de esa sala.
+    // Enviamos la orden a todos en la sala, pero en el frontend filtraremos para que solo responda el profe.
+    socket.to(roomCode).emit("teacher-sync-request", socket.id); 
+    console.log(`Socket ${socket.id} pide sincronización en sala ${roomCode}`);
   });
 
   // -------------------------------
