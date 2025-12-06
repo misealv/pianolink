@@ -727,7 +727,24 @@
     socket.on("midi-message", (msg) => {
       handleRemoteOrLocalNote(msg);
     });
-    // En index.html (dentro del script)
+  
+
+// --- NUEVO: EL PROFE RESPONDE A PETICIONES DE SINCRONIZACIÓN ---
+socket.on("teacher-sync-request", (requestingSocketId) => {
+       if (rol === 'teacher') {
+           // Empaquetamos las notas que el profe tiene activas AHORA MISMO
+           const activeNotesArray = Array.from(teacherActiveNotes);
+           
+           socket.emit("midi-message", {
+               type: "board-sync", // Mensaje especial de reparación
+               roomCode: salaActual,
+               notes: activeNotesArray,
+               timestamp: Date.now()
+           });
+           log("🔄 Enviando reparación de pizarra al alumno...", "info");
+       }
+    });
+
 
     socket.on("room-joined", (code) => {
       salaActual = code;
@@ -1297,6 +1314,27 @@ function handleLocalMIDIMessage(event) {
     /* ------------ MIDI REMOTO ------------ */
 
     function handleRemoteOrLocalNote(msg) {
+
+      // --- NUEVO: BLOQUE DE REPARACIÓN DE PIZARRA ---
+      if (msg.type === "board-sync") {
+         if (rol === 'student') {
+             // 1. Borramos nuestra pizarra corrupta
+             teacherActiveNotes.clear();
+             heldNotes.clear();
+             
+             // 2. Copiamos la verdad del profesor
+             msg.notes.forEach(n => {
+                 teacherActiveNotes.add(n);
+                 heldNotes.add(n);
+             });
+
+             // 3. Renderizamos forzosamente
+             renderMusicBoard();
+             log("✅ Pizarra reparada y sincronizada.", "success");
+         }
+         return; // No hacemos nada más con este mensaje
+      }
+      // ------------------------------------------------
       let cmd, note, velocity, role, type, fromSocketId = msg.fromSocketId || null;
 
       // [MEJORA 3: FILTRO ANTI-RÁFAGA RECEPTOR]
@@ -1384,6 +1422,7 @@ function handleLocalMIDIMessage(event) {
     }
 
     panicBtn.addEventListener("click", () => {
+      // 1. Limpieza Local (Lo que ya tenías)
       teacherActiveNotes.clear();
       heldNotes.clear();
       sustainActive = false;
@@ -1396,7 +1435,13 @@ function handleLocalMIDIMessage(event) {
         for (let n = 0; n < 128; n++) midiOutput.send([0x80, n, 0]);
       }
       updatePedalVisual(0);
-      log("Panic: RESET", 'warn');
+      log("Panic: RESET LOCAL", 'warn');
+
+      // 2. NUEVO: Pedir rescate al profesor (Si soy alumno y estoy en sala)
+      if (rol === 'student' && salaActual) {
+          log("📡 Solicitando sincronización al profesor...", "warn");
+          socket.emit("request-full-state", salaActual);
+      }
     });
 
     /* ------------ PIZARRA MUSICAL (VexFlow + DEBOUNCE + ROBUST CHORD) ------------ */
