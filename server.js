@@ -18,12 +18,6 @@ app.use(express.static(__dirname));
 // ===============================
 // Salas en memoria
 // ===============================
-//
-// rooms[roomCode] = {
-//   users: { socketId: { name, role } },
-//   liveStudentId: socketId | null   // alumno EN VIVO (masterclass)
-// }
-
 const rooms = {};
 
 function generateCode() {
@@ -38,6 +32,7 @@ function broadcastRoomUsers(roomCode) {
     socketId,
     name: data.name,
     role: data.role,
+    pdfUrl: data.pdfUrl || null // <--- ¡ESTO ES LO QUE FALTABA!
   }));
 
   io.to(roomCode).emit("room-users", usersArray);
@@ -72,10 +67,7 @@ io.on("connection", (socket) => {
     };
 
     socket.join(roomCode);
-
-    // Se mantiene contrato anterior: se emite SOLO el código
     socket.emit("room-created", roomCode);
-
     broadcastRoomUsers(roomCode);
 
     console.log(
@@ -119,16 +111,13 @@ io.on("connection", (socket) => {
     rooms[roomCode].users[socket.id] = { name: username, role };
 
     socket.join(roomCode);
-
     socket.emit("room-joined", roomCode);
-
     broadcastRoomUsers(roomCode);
 
     console.log(
       `Socket ${socket.id} se une a sala ${roomCode} como ${username} (${role})`
     );
 
-    // Enviar estado de EN VIVO actual
     const liveId = rooms[roomCode].liveStudentId || null;
     if (liveId) {
       socket.emit("live-student-changed", { liveStudentId: liveId });
@@ -139,7 +128,6 @@ io.on("connection", (socket) => {
   // MIDI
   // -------------------------------
   socket.on("midi-message", (message) => {
-    // Usar roomCode desde el socket (nuevo) o desde el mensaje (viejo).
     const roomCode = socket.roomCode || message.roomCode;
     if (!roomCode) return;
 
@@ -149,8 +137,6 @@ io.on("connection", (socket) => {
     const fromName = socket.userName || message.fromName || "Usuario";
     const fromRole = socket.userRole || message.fromRole;
 
-    // CAMBIO AQUÍ: Agregamos .volatile
-    // Esto significa: "Si la red está saturada, descarta este paquete, no mates la conexión"
     io.to(roomCode).volatile.emit("midi-message", {
       ...message,
       roomCode,
@@ -159,6 +145,7 @@ io.on("connection", (socket) => {
       fromRole,
     });
   });
+
   // -------------------------------
   // MASTERCLASS: alumno EN VIVO
   // -------------------------------
@@ -169,7 +156,6 @@ io.on("connection", (socket) => {
     const room = rooms[roomCode];
     const me = room.users[socket.id];
     if (!me || me.role !== "teacher") {
-      // Solo el profesor puede cambiar el alumno En Vivo
       return;
     }
 
@@ -184,19 +170,35 @@ io.on("connection", (socket) => {
     io.to(roomCode).emit("live-student-changed", {
       liveStudentId: room.liveStudentId,
     });
-
-    console.log(
-      `Sala ${roomCode} - liveStudentId = ${room.liveStudentId || "null"}`
-    );
   });
-// -------------------------------
-  // SINCRONIZACIÓN DE ESTADO (NUEVO)
+
+  // -------------------------------
+  // SINCRONIZACIÓN DE ESTADO
   // -------------------------------
   socket.on("request-full-state", (roomCode) => {
-    // El alumno pide el estado. El servidor se lo pide al Profesor de esa sala.
-    // Enviamos la orden a todos en la sala, pero en el frontend filtraremos para que solo responda el profe.
     socket.to(roomCode).emit("teacher-sync-request", socket.id); 
-    console.log(`Socket ${socket.id} pide sincronización en sala ${roomCode}`);
+  });
+
+  // -------------------------------
+  // PDF: Sincronización de Partituras (AHORA SÍ EN EL LUGAR CORRECTO)
+  // -------------------------------
+  socket.on("pdf-update", (payload) => {
+    const roomCode = payload.roomCode || socket.roomCode;
+    if (!roomCode || !rooms[roomCode]) return;
+
+    // 1. Guardar la URL en la memoria del servidor
+    if (rooms[roomCode].users[socket.id]) {
+      rooms[roomCode].users[socket.id].pdfUrl = payload.url;
+    }
+
+    // 2. Avisar a todos en la sala
+    io.to(roomCode).emit("pdf-update", {
+      fromSocketId: socket.id,
+      url: payload.url
+    });
+    
+    // 3. Actualizar la lista de usuarios
+    broadcastRoomUsers(roomCode);
   });
 
   // -------------------------------
@@ -212,7 +214,6 @@ io.on("connection", (socket) => {
 
     delete room.users[socket.id];
 
-    // Si el que se fue era el EN VIVO, apagar masterclass
     if (room.liveStudentId === socket.id) {
       room.liveStudentId = null;
       io.to(roomCode).emit("live-student-changed", { liveStudentId: null });
@@ -225,10 +226,11 @@ io.on("connection", (socket) => {
       broadcastRoomUsers(roomCode);
     }
   });
-});
+
+}); // <--- AQUÍ TERMINA LA CONEXIÓN (IMPORTANTE)
 
 // ===============================
-// Iniciar servidor (Render usa process.env.PORT)
+// Iniciar servidor
 // ===============================
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

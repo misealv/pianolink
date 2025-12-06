@@ -186,7 +186,27 @@ socket.on("midi-message", (msg) => {
   handleRemoteOrLocalNote(msg);
 });
 
+// -------------------------------
+  // PDF: Sincronización de Partituras
+  // -------------------------------
+  socket.on("pdf-update", (payload) => {
+    const roomCode = payload.roomCode || socket.roomCode;
+    if (!roomCode || !rooms[roomCode]) return;
 
+    // 1. Guardar la URL en la memoria del servidor (para que si entra alguien nuevo, lo sepa)
+    if (rooms[roomCode].users[socket.id]) {
+      rooms[roomCode].users[socket.id].pdfUrl = payload.url;
+    }
+
+    // 2. Avisar a todos en la sala (incluyendo al profesor)
+    io.to(roomCode).emit("pdf-update", {
+      fromSocketId: socket.id,
+      url: payload.url
+    });
+    
+    // 3. Actualizar la lista de usuarios completa (para asegurar consistencia)
+    broadcastRoomUsers(roomCode);
+  });
 // --- NUEVO: EL PROFE RESPONDE A PETICIONES DE SINCRONIZACIÓN ---
 socket.on("teacher-sync-request", (requestingSocketId) => {
    if (rol === 'teacher') {
@@ -296,76 +316,91 @@ updateLiveStatusUI();
 
 /* ------------ PARTICIPANTES ------------ */
 
+/* --- VERSIÓN ACTUALIZADA: PARTICIPANTES CON PDF --- */
 function renderParticipants() {
-  participantsList.innerHTML = "";
-  if (!participants.length) {
-    const d = document.createElement("div");
-    d.style.color = "var(--text-muted)";
-    d.textContent = "Nadie conectado.";
-    participantsList.appendChild(d);
-    return;
-  }
-
-  const soyProfe = (rol === "teacher");
-
-  participants.forEach(u => {
-    const row = document.createElement("div");
-    row.className = "participant-row";
-
-    const left = document.createElement("div");
-    const n = document.createElement("span");
-    n.style.fontWeight = "bold";
-    n.textContent = u.name;
-    const r = document.createElement("span");
-    r.style.marginLeft = "6px";
-    r.style.fontSize = "10px";
-    r.style.color = "var(--text-muted)";
-    r.textContent = (u.role === "teacher" ? "[PROFE]" : "[ALUMNO]");
-    left.appendChild(n);
-    left.appendChild(r);
-
-    const right = document.createElement("div");
-
-    if (soyProfe && u.role !== "teacher" && u.socketId !== mySocketId) {
-      // Checkbox "Escuchar"
-      const listenLabel = document.createElement("label");
-      listenLabel.style.display="inline"; 
-      listenLabel.style.marginRight="8px";
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.checked = (listeningTo.size === 0) || listeningTo.has(u.socketId);
-      cb.addEventListener("change", () => toggleListen(u.socketId, cb.checked));
-      listenLabel.appendChild(cb);
-      listenLabel.appendChild(document.createTextNode(" CUE"));
-      right.appendChild(listenLabel);
-
-      // Radio "En Vivo"
-      const liveLabel = document.createElement("label");
-      liveLabel.style.display="inline";
-      const rb = document.createElement("input");
-      rb.type = "radio";
-      rb.name = "liveStudent";
-      rb.checked = (liveStudentId === u.socketId);
-      rb.addEventListener("change", () => {
-        if (rb.checked) {
-          masterclassToggle.checked = true;
-          sendLiveStudent(u.socketId);
-        }
-      });
-      liveLabel.appendChild(rb);
-      liveLabel.appendChild(document.createTextNode(" ON AIR"));
-      right.appendChild(liveLabel);
-    } else if (u.socketId === mySocketId) {
-      right.textContent = " (Tú)";
-      right.style.fontSize = "10px";
-      right.style.color = "var(--text-muted)";
+    participantsList.innerHTML = "";
+    if (!participants.length) {
+      const d = document.createElement("div");
+      d.style.color = "var(--text-muted)"; d.textContent = "Nadie conectado.";
+      participantsList.appendChild(d); return;
     }
-
-    row.appendChild(left);
-    row.appendChild(right);
-    participantsList.appendChild(row);
-  });
-}
+  
+    const soyProfe = (rol === "teacher");
+  
+    participants.forEach(u => {
+      const row = document.createElement("div");
+      row.className = "participant-row";
+  
+      const left = document.createElement("div");
+      // Icono si tiene PDF
+      if (u.pdfUrl) {
+          const icon = document.createElement("span");
+          icon.textContent = "📄 ";
+          icon.title = "Tiene partitura";
+          icon.style.cursor = "help";
+          left.appendChild(icon);
+      }
+      
+      const n = document.createElement("span");
+      n.style.fontWeight = "bold"; n.textContent = u.name;
+      const r = document.createElement("span");
+      r.style.marginLeft = "6px"; r.style.fontSize = "10px";
+      r.style.color = "var(--text-muted)";
+      r.textContent = (u.role === "teacher" ? "[PROFE]" : "[ALUMNO]");
+      left.appendChild(n); left.appendChild(r);
+  
+      const right = document.createElement("div");
+  
+      if (soyProfe && u.role !== "teacher" && u.socketId !== mySocketId) {
+        // Botón VER PDF (Nuevo)
+        if (u.pdfUrl) {
+            const btnPdf = document.createElement("button");
+            btnPdf.textContent = "VER PDF";
+            btnPdf.style.padding = "2px 4px";
+            btnPdf.style.fontSize = "9px";
+            btnPdf.style.marginRight = "6px";
+            btnPdf.style.background = "#fff";
+            btnPdf.style.color = "#000";
+            btnPdf.onclick = () => {
+                // Cargar PDF del alumno y cambiar a pestaña PDF
+                loadPdf(u.pdfUrl, false); 
+                switchTab('pdf');
+                log(`👁️ Viendo partitura de ${u.name}`, "info");
+            };
+            right.appendChild(btnPdf);
+        }
+  
+        // Checkbox "Escuchar"
+        const listenLabel = document.createElement("label");
+        listenLabel.style.display="inline"; listenLabel.style.marginRight="8px";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = (listeningTo.size === 0) || listeningTo.has(u.socketId);
+        cb.addEventListener("change", () => toggleListen(u.socketId, cb.checked));
+        listenLabel.appendChild(cb); listenLabel.appendChild(document.createTextNode(" CUE"));
+        right.appendChild(listenLabel);
+  
+        // Radio "En Vivo"
+        const liveLabel = document.createElement("label");
+        liveLabel.style.display="inline";
+        const rb = document.createElement("input");
+        rb.type = "radio"; rb.name = "liveStudent";
+        rb.checked = (liveStudentId === u.socketId);
+        rb.addEventListener("change", () => {
+          if (rb.checked) {
+            masterclassToggle.checked = true; sendLiveStudent(u.socketId);
+          }
+        });
+        liveLabel.appendChild(rb); liveLabel.appendChild(document.createTextNode(" ON AIR"));
+        right.appendChild(liveLabel);
+      } else if (u.socketId === mySocketId) {
+        right.textContent = " (Tú)"; right.style.fontSize = "10px"; right.style.color = "var(--text-muted)";
+      }
+  
+      row.appendChild(left); row.appendChild(right);
+      participantsList.appendChild(row);
+    });
+  }
 
 function toggleListen(id, checked) {
   if (checked) listeningTo.add(id);
@@ -1090,3 +1125,77 @@ if (e.target === foundersModal) {
 }
 });
 }
+
+/* ------------ GESTOR DE PDF Y PESTAÑAS ------------ */
+    
+// Referencias DOM
+const tabMusicBtn = document.getElementById("tabMusicBtn");
+const tabPdfBtn = document.getElementById("tabPdfBtn");
+const modeMusic = document.getElementById("modeMusic");
+const modePdf = document.getElementById("modePdf");
+
+const pdfInput = document.getElementById("pdfInput");
+const btnLoadPdf = document.getElementById("btnLoadPdf");
+const pdfFrame = document.getElementById("pdfFrame");
+const pdfPlaceholder = document.getElementById("pdfPlaceholder");
+
+// 1. CAMBIO DE PESTAÑAS
+function switchTab(mode) {
+    if (mode === 'music') {
+        tabMusicBtn.classList.add("active"); tabPdfBtn.classList.remove("active");
+        modeMusic.classList.remove("hidden"); modePdf.classList.add("hidden");
+    } else {
+        tabPdfBtn.classList.add("active"); tabMusicBtn.classList.remove("active");
+        modePdf.classList.remove("hidden"); modeMusic.classList.add("hidden");
+    }
+}
+
+if(tabMusicBtn && tabPdfBtn) {
+    tabMusicBtn.addEventListener("click", () => switchTab('music'));
+    tabPdfBtn.addEventListener("click", () => switchTab('pdf'));
+}
+
+// 2. CARGAR PDF
+if(btnLoadPdf) {
+    btnLoadPdf.addEventListener("click", () => {
+        const rawUrl = pdfInput.value.trim();
+        if (!rawUrl) return;
+        loadPdf(rawUrl, true); // true = emitir a los demás
+    });
+}
+
+function loadPdf(url, broadcast = false) {
+    // TRUCO: Convertir links de Drive/Dropbox para que sean "embeddables"
+    let cleanUrl = url;
+    
+    // Google Drive: cambiar /view por /preview
+    if (cleanUrl.includes("drive.google.com") && cleanUrl.includes("/view")) {
+        cleanUrl = cleanUrl.replace("/view", "/preview");
+    }
+    // Dropbox: cambiar dl=0 por raw=1
+    if (cleanUrl.includes("dropbox.com") && cleanUrl.includes("dl=0")) {
+        cleanUrl = cleanUrl.replace("dl=0", "raw=1");
+    }
+
+    // Renderizar
+    pdfFrame.src = cleanUrl;
+    pdfFrame.classList.add("visible");
+    pdfPlaceholder.style.display = "none";
+    
+    // Si soy yo quien lo cargó, aviso a la sala para que el profe sepa
+    if (broadcast && salaActual) {
+        socket.emit("pdf-update", { roomCode: salaActual, url: cleanUrl });
+        log("📄 PDF cargado. El profesor ya puede verlo.", "success");
+    }
+}
+
+// 3. RECIBIR PDF DE OTROS (SOCKET)
+socket.on("pdf-update", (payload) => {
+    // payload trae { fromSocketId, url }
+    const user = participants.find(p => p.socketId === payload.fromSocketId);
+    if (user) {
+        user.pdfUrl = payload.url; // Guardamos el link en memoria
+        renderParticipants(); // Actualizamos la lista para mostrar el botón "VER PDF"
+        log(`📄 ${user.name} ha cargado una partitura nueva.`, "info");
+    }
+});
