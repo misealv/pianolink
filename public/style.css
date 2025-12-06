@@ -450,11 +450,23 @@
   }
 
   #staffContainer {
-    background: #f0f0f0; /* Partitura siempre clara para contraste */
+    background: #f0f0f0;
+    /* --- CAMBIO: Flex para centrar el SVG --- */
+    display: flex;
+    justify-content: center;
+    align-items: center; 
+    
+    /* --- CAMBIO: Dimensiones y Estilo Ableton --- */
     min-width: 420px;
-    height: 450px;
+    max-width: 70%; /* Para que no rompa el layout */
+    height: 100%;   /* Ocupa todo el alto disponible */
+    
+    /* Esto permite redimensionar el panel con el mouse (esquina inferior derecha) */
+    resize: horizontal; 
+    overflow: auto;
+    
     border-right: 1px solid var(--border);
-  }
+}
   
   /* Chord Overlay */
   #chordDisplay {

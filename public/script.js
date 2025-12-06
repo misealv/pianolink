@@ -1004,13 +1004,20 @@ function renderMusicBoard() {
 function drawEmptyStaff() {
   staffContainer.innerHTML = "";
   const renderer = new Vex.Flow.Renderer(staffContainer, Vex.Flow.Renderer.Backends.SVG);
-  renderer.resize(400, 450);
+  
+  // Ajustamos el tamaño del canvas SVG
+  renderer.resize(420, 450); 
   const context = renderer.getContext();
   
-  const staveTreble = new Vex.Flow.Stave(10, 100, 300);
+  // MARGEN X: Cambiamos 10 por 30
+  // ANCHO: Usamos 350 para que no toque el borde derecho
+  const startX = 30; 
+  const staveWidth = 350;
+
+  const staveTreble = new Vex.Flow.Stave(startX, 100, staveWidth);
   staveTreble.addClef("treble").setContext(context).draw();
   
-  const staveBass = new Vex.Flow.Stave(10, 250, 300);
+  const staveBass = new Vex.Flow.Stave(startX, 250, staveWidth);
   staveBass.addClef("bass").setContext(context).draw();
 
   new Vex.Flow.StaveConnector(staveTreble, staveBass).setType(3).setContext(context).draw();
@@ -1023,14 +1030,22 @@ drawEmptyStaff();
 function drawGrandStaff(midiNotes) {
   staffContainer.innerHTML = "";
   const renderer = new Vex.Flow.Renderer(staffContainer, Vex.Flow.Renderer.Backends.SVG);
-  const width = 400;
+  
+  // Ajustamos tamaño base
+  const width = 420; 
   renderer.resize(width, 450);
   const context = renderer.getContext();
 
+  // --- VARIABLES DE AJUSTE QUIRÚRGICO ---
+  const startX = 30;  // Antes era 10, esto da aire a la izquierda
+  const staveWidth = 350; // Ancho controlado de la pauta
+
+  // ... (aquí sigue tu lógica de trebleNotes/bassNotes sin cambios) ...
   const trebleNotes = [];
   const bassNotes = [];
 
   midiNotes.forEach(midi => {
+    // ... (tu lógica de notas intacta) ...
     const tonalNote = getMidiNameSharp(midi);
     const noteInfo = Tonal.Note.get(tonalNote); 
     const letter = tonalNote.slice(0, -1).toLowerCase();
@@ -1043,7 +1058,7 @@ function drawGrandStaff(midiNotes) {
       duration: "w", 
       align_center: true 
     });
-
+    // ... (resto del loop intacto) ...
     if (noteInfo.acc === '#') staveNote.addModifier(new Vex.Flow.Accidental("#"));
     else if (noteInfo.acc === 'b') staveNote.addModifier(new Vex.Flow.Accidental("b"));
 
@@ -1051,56 +1066,65 @@ function drawGrandStaff(midiNotes) {
     else bassNotes.push(staveNote);
   });
 
-  const staveTreble = new Vex.Flow.Stave(10, 100, width - 20);
+  // --- APLICAMOS EL NUEVO startX y staveWidth ---
+  const staveTreble = new Vex.Flow.Stave(startX, 100, staveWidth);
   staveTreble.addClef("treble").setContext(context).draw();
 
-  const staveBass = new Vex.Flow.Stave(10, 250, width - 20);
+  const staveBass = new Vex.Flow.Stave(startX, 250, staveWidth);
   staveBass.addClef("bass").setContext(context).draw();
 
+  // Conectores
   new Vex.Flow.StaveConnector(staveTreble, staveBass).setType(3).setContext(context).draw(); 
   new Vex.Flow.StaveConnector(staveTreble, staveBass).setType(1).setContext(context).draw(); 
   new Vex.Flow.StaveConnector(staveTreble, staveBass).setType(6).setContext(context).draw(); 
 
+  // --- RENDERING DE VOCES (Asegura usar el nuevo ancho para formatear) ---
   if (trebleNotes.length > 0) {
-    const trebleMidiVals = midiNotes.filter(n => n >= 60);
-    const keysTreble = trebleMidiVals.map(n => {
-         const tn = getMidiNameSharp(n);
-         return `${tn.slice(0, -1).toLowerCase()}/${tn.slice(-1)}`;
-    });
-
-    if (keysTreble.length > 0) {
-        const chordTreble = new Vex.Flow.StaveNote({ clef: "treble", keys: keysTreble, duration: "w" });
-        trebleMidiVals.forEach((m, index) => {
-            const info = Tonal.Note.get(getMidiNameSharp(m));
-            if (info.acc === "#") chordTreble.addModifier(new Vex.Flow.Accidental("#"), index);
-            if (info.acc === "b") chordTreble.addModifier(new Vex.Flow.Accidental("b"), index);
+      // ... (lógica de notas agudas intacta) ...
+      const trebleMidiVals = midiNotes.filter(n => n >= 60);
+        const keysTreble = trebleMidiVals.map(n => {
+             const tn = getMidiNameSharp(n);
+             return `${tn.slice(0, -1).toLowerCase()}/${tn.slice(-1)}`;
         });
-        const voiceT = new Vex.Flow.Voice({num_beats: 4, beat_value: 4});
-        voiceT.addTickables([chordTreble]);
-        new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], width - 50);
-        voiceT.draw(context, staveTreble);
-    }
+    
+        if (keysTreble.length > 0) {
+            const chordTreble = new Vex.Flow.StaveNote({ clef: "treble", keys: keysTreble, duration: "w" });
+            trebleMidiVals.forEach((m, index) => {
+                const info = Tonal.Note.get(getMidiNameSharp(m));
+                if (info.acc === "#") chordTreble.addModifier(new Vex.Flow.Accidental("#"), index);
+                if (info.acc === "b") chordTreble.addModifier(new Vex.Flow.Accidental("b"), index);
+            });
+            const voiceT = new Vex.Flow.Voice({num_beats: 4, beat_value: 4});
+            voiceT.addTickables([chordTreble]);
+            
+            // IMPORTANTE: Formatear usando el ancho disponible menos un margen
+            new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], staveWidth - 50);
+            voiceT.draw(context, staveTreble);
+        }
   }
 
   if (bassNotes.length > 0) {
-     const bassMidiVals = midiNotes.filter(n => n < 60);
-     const keysBass = bassMidiVals.map(n => {
-         const tn = getMidiNameSharp(n);
-         return `${tn.slice(0, -1).toLowerCase()}/${tn.slice(-1)}`;
-    });
-
-    if (keysBass.length > 0) {
-        const chordBass = new Vex.Flow.StaveNote({ clef: "bass", keys: keysBass, duration: "w" });
-        bassMidiVals.forEach((m, index) => {
-            const info = Tonal.Note.get(getMidiNameSharp(m));
-            if (info.acc === "#") chordBass.addModifier(new Vex.Flow.Accidental("#"), index);
-            if (info.acc === "b") chordBass.addModifier(new Vex.Flow.Accidental("b"), index);
+     // ... (lógica de notas graves intacta) ...
+      const bassMidiVals = midiNotes.filter(n => n < 60);
+         const keysBass = bassMidiVals.map(n => {
+             const tn = getMidiNameSharp(n);
+             return `${tn.slice(0, -1).toLowerCase()}/${tn.slice(-1)}`;
         });
-        const voiceB = new Vex.Flow.Voice({num_beats: 4, beat_value: 4});
-        voiceB.addTickables([chordBass]);
-        new Vex.Flow.Formatter().joinVoices([voiceB]).format([voiceB], width - 50);
-        voiceB.draw(context, staveBass);
-    }
+    
+        if (keysBass.length > 0) {
+            const chordBass = new Vex.Flow.StaveNote({ clef: "bass", keys: keysBass, duration: "w" });
+            bassMidiVals.forEach((m, index) => {
+                const info = Tonal.Note.get(getMidiNameSharp(m));
+                if (info.acc === "#") chordBass.addModifier(new Vex.Flow.Accidental("#"), index);
+                if (info.acc === "b") chordBass.addModifier(new Vex.Flow.Accidental("b"), index);
+            });
+            const voiceB = new Vex.Flow.Voice({num_beats: 4, beat_value: 4});
+            voiceB.addTickables([chordBass]);
+            
+            // IMPORTANTE: Formatear usando el ancho disponible
+            new Vex.Flow.Formatter().joinVoices([voiceB]).format([voiceB], staveWidth - 50);
+            voiceB.draw(context, staveBass);
+        }
   }
 }
 
