@@ -373,17 +373,19 @@ function renderParticipants() {
           btnSpy.style.color = "var(--accent)"; 
 
           btnSpy.onclick = () => {
-              if (window.startSpying && window.loadScoreToStand) {
-                  window.startSpying(u.socketId, u.name);
-                  
-                  // Cargamos visualmente su PDF (usando la URL rastreada)
-                  window.loadScoreToStand(userPdfUrl, `Viendo atril de ${u.name}`);
-                  
-                  // El módulo se encargará de ajustar la página.
-              } else {
-                  console.error("Módulo de sincronización no cargado.");
-              }
-          };
+            if (window.startSpying && window.loadScoreToStand) {
+                // 1) Primero cargo visualmente el PDF del alumno
+                window.loadScoreToStand(userPdfUrl, `Viendo atril de ${u.name}`);
+                
+                // 2) Luego activo el modo espejo hacia ese alumno
+                window.startSpying(u.socketId, u.name);
+                
+                // El módulo se encargará de ajustar la página.
+            } else {
+                console.error("Módulo de sincronización no cargado.");
+            }
+        };
+        
           right.appendChild(btnSpy);
       }
 
