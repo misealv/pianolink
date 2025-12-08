@@ -6,35 +6,121 @@
   <title>Piano Link | Masterclass Studio Pro</title>
 
   <script src="/guard.js"></script>
-
   <link rel="stylesheet" href="/style.css">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+      // Configuración esencial para que PDF.js funcione
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+
+  <style>
+    /* Estilos del Visor PDF (Atril) */
+    .pdf-viewer-container {
+        width: 100%;
+        height: calc(100% - 50px); /* Restamos la barra de herramientas */
+        overflow: auto;
+        background-color: #525659;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+    }
+    canvas#pdf-render {
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        margin: 20px 0;
+        max-width: 95%;
+    }
+    
+    /* Controles flotantes de página */
+    .pdf-controls-floating {
+        position: sticky;
+        bottom: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 8px 15px;
+        border-radius: 20px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        z-index: 10;
+        color: white;
+        font-size: 12px;
+    }
+
+    /* Modal de la Biblioteca (Estante) */
+    .library-modal {
+        display: none; 
+        position: fixed; 
+        z-index: 2000; 
+        left: 0;
+        top: 0;
+        width: 100%; 
+        height: 100%; 
+        background-color: rgba(0,0,0,0.85); 
+        backdrop-filter: blur(5px);
+    }
+    .library-content {
+        background-color: #1e1e1e;
+        color: #eee;
+        margin: 5% auto; 
+        padding: 20px;
+        border: 1px solid #444;
+        width: 80%; 
+        max-width: 800px;
+        border-radius: 8px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .shelf-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+    .score-card {
+        background: #2a2a2a;
+        border: 1px solid #444;
+        border-radius: 6px;
+        padding: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .score-card:hover {
+        background: #3a3a3a;
+        border-color: var(--accent, #ff764d);
+        transform: translateY(-2px);
+    }
+    .score-icon { font-size: 30px; margin-bottom: 5px; }
+    .score-title { font-weight: bold; font-size: 0.85rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+    .score-meta { font-size: 0.7rem; color: #aaa; }
+    
+    .upload-area {
+        border: 2px dashed #444;
+        padding: 20px;
+        text-align: center;
+        border-radius: 8px;
+        background: #252525;
+        margin-bottom: 20px;
+    }
+  </style>
 
   <script>
     (async function initBranding() {
-      // 1. Detectar si estamos en una URL de profesor (ej: /c/pedro)
+      // (Mantenemos tu script de branding intacto)
       const path = window.location.pathname;
-      const match = path.match(/\/c\/([^\/]+)/); // Extrae "pedro"
+      const match = path.match(/\/c\/([^\/]+)/); 
       
       if (match && match[1]) {
         const slug = match[1];
-        console.log("🔍 Cargando perfil del profesor:", slug);
-        
         try {
-          // 2. Pedir datos a la Base de Datos
           const res = await fetch(`/api/auth/public/${slug}`);
           if (res.ok) {
             const teacher = await res.json();
+            window.PREDEFINED_ROOM = slug; 
+            if (window.initPianoLink) { window.initPianoLink(); }
             
-            window.PREDEFINED_ROOM = slug; // Guardamos el nombre
-
-            // [NUEVO] ¡Avisamos a script.js que ya tenemos el nombre!
-            if (window.initPianoLink) {
-                window.initPianoLink();
-            }
-            
-            // 3. INYECTAR MARCA
-            
-            // A) Cambiar colores CSS
             const root = document.documentElement;
             if (teacher.branding.colors) {
                const c = teacher.branding.colors;
@@ -43,29 +129,16 @@
                root.style.setProperty('--panel', c.panel);       
                root.style.setProperty('--prof-color', c.base);
             }
-  
-            // B) Cambiar Logo y Nombre
             const brandDiv = document.querySelector('.brand');
             if (brandDiv) {
                 if (teacher.branding.logoUrl) {
-                    brandDiv.innerHTML = `
-                      <img src="${teacher.branding.logoUrl}" style="height:24px; vertical-align:middle; margin-right:8px; border-radius:4px;">
-                      <span style="opacity:0.7; font-size:10px;">POWERED BY PIANO LINK</span>
-                    `;
+                    brandDiv.innerHTML = `<img src="${teacher.branding.logoUrl}" style="height:24px; vertical-align:middle; margin-right:8px; border-radius:4px;"><span style="opacity:0.7; font-size:10px;">POWERED BY PIANO LINK</span>`;
                 } else {
                     brandDiv.innerHTML = `🎹 ${teacher.name.toUpperCase()} <span style="color:var(--accent); font-size:10px;">// STUDIO</span>`;
                 }
             }
-  
-            // C) Configurar la sala automáticamente
-            window.PREDEFINED_ROOM = slug; 
-  
-          } else {
-            console.warn("Profesor no encontrado");
           }
-        } catch (e) {
-          console.error("Error cargando branding:", e);
-        }
+        } catch (e) { console.error("Error branding:", e); }
       }
     })();
   </script>
@@ -101,24 +174,20 @@
 
       <div class="panel">
         <h2>Sesión</h2>
-        
         <div id="cardCrearSala">
           <button id="btnMagicLink" class="primary" style="width:100%; font-weight:800; padding:15px; margin-bottom:5px;">
             🔗 GENERAR LINK A ALUMNO
           </button>
           <div id="magicFeedback" style="font-size: 10px; color: #b4e080; text-align: center; min-height: 15px;"></div>
-
           <button id="btnEndClass" class="danger" style="width:100%; margin-top:15px; font-size:11px; display:none;">
             🛑 TERMINAR CLASE
           </button>
         </div>
-
         <div id="cardUnirseSala" style="display:none;">
           <div id="joinControls" style="display:flex; gap:4px;">
             <input type="text" id="codigoSala" maxlength="20" placeholder="CÓDIGO" style="text-transform:uppercase; text-align:center;">
             <button id="btnUnirse" class="primary">Unirse</button>
           </div>
-          
           <button id="btnExitClass" class="btn-outline" style="width:100%; border-color:var(--danger); color:var(--danger); margin-top:10px; display:none;">
             🚪 SALIR DE LA CLASE
           </button>
@@ -129,16 +198,11 @@
         <h2>MIDI I/O</h2>
         <div class="config-row">
           <label>Entrada (Teclado):</label>
-          <select id="midiInputSelect" style="width:100%">
-              <option value="">(Silencio - Seguro)</option>
-          </select>
+          <select id="midiInputSelect" style="width:100%"><option value="">(Silencio - Seguro)</option></select>
         </div>
-
         <div class="config-row">
           <label>Salida (Sonido):</label>
-          <select id="midiOutputSelect" style="width:100%">
-              <option value="">(ninguna)</option>
-          </select>
+          <select id="midiOutputSelect" style="width:100%"><option value="">(ninguna)</option></select>
         </div>
         <label><input type="checkbox" id="toggleMidiOut"> Enviar a mi sintetizador</label>
       </div>
@@ -170,7 +234,6 @@
         <h2>System Log</h2>
         <div id="log" class="log-terminal"></div>
       </div>
-
     </aside>
 
     <main class="main-stage" style="position:relative;">
@@ -183,8 +246,7 @@
       
       <div class="board-tabs">
         <button id="tabMusicBtn" class="tab-btn active">🎹 MÚSICA</button>
-        <button id="tabPdfBtn" class="tab-btn">📄 LECTOR PDF</button>
-      </div>
+        <button id="tabPdfBtn" class="tab-btn">📚 BIBLIOTECA PDF</button> </div>
 
       <div class="board-container">
         
@@ -195,17 +257,23 @@
             </div>
         </div>
 
-        <div id="modePdf" class="board-mode hidden">
-            <div class="pdf-controls" style="display: flex; align-items: center; padding: 10px; background-color: #333333; border-bottom: 2px solid #555555; gap: 10px; height: 50px; flex-shrink: 0; box-sizing: border-box;">
-                <input type="text" id="pdfInput" placeholder="Pega el enlace de Google Drive aquí..." style="flex: 1; background-color: #111111; border: 1px solid #666; color: #ffffff; padding: 6px; border-radius: 4px;" />
-                <button id="btnLoadPdf" class="primary" style="padding: 0 15px; height: 30px; cursor: pointer;">VER</button>
+        <div id="modePdf" class="board-mode hidden" style="display:none; flex-direction:column; height:100%;">
+            
+            <div class="pdf-controls" style="display: flex; align-items: center; justify-content:space-between; padding: 10px; background-color: #333; border-bottom: 2px solid #555; height: 50px; flex-shrink: 0;">
+                <div style="display:flex; align-items:center; gap:10px; width:100%;">
+                    <button id="btnOpenShelf" class="primary" style="padding: 0 15px; height: 30px; cursor: pointer; white-space:nowrap;">📂 ABRIR ESTANTE</button>
+                    <span id="current-score-title" style="font-size:12px; color:#aaa; font-style:italic; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Sin partitura seleccionada</span>
+                </div>
             </div>
             
-            <div class="pdf-frame-wrapper">
-                <iframe id="pdfFrame" src="" allow="autoplay"></iframe>
-                <div id="pdfPlaceholder" class="pdf-placeholder">
-                    <div style="font-size:40px; margin-bottom:10px;">📄</div>
-                    <div>Sin documento cargado</div>
+            <div id="pdf-container" class="pdf-viewer-container">
+                <div id="pdf-loading-msg" style="margin-top:50px; color:#777; display:none;">Cargando partitura...</div>
+                <canvas id="pdf-render"></canvas>
+
+                <div class="pdf-controls-floating" id="pdfFloatingControls" style="display:none;">
+                    <button id="prev-page" class="btn-sm">❮</button>
+                    <span>Pág <span id="page-num">0</span> / <span id="page-count">0</span></span>
+                    <button id="next-page" class="btn-sm">❯</button>
                 </div>
             </div>
         </div>
@@ -215,18 +283,16 @@
         </div>
 
       </div> 
+      
       <div class="piano-container">
-        
         <div class="piano-toolbar">
             <div class="toolbar-group">
                 <label for="baseColorPicker">Color:</label>
                 <input type="color" id="baseColorPicker" value="#ff764d"> 
             </div>
-
             <div class="toolbar-group">
                 <label><input type="checkbox" id="chkSplit"> Split</label>
             </div>
-
             <div id="splitControls" class="toolbar-group hidden">
                 <label>Key:</label>
                 <input type="number" id="splitPointInput" value="60" min="21" max="108" style="width:40px;">
@@ -235,28 +301,48 @@
                 <label>R:</label>
                 <input type="color" id="rightColorPicker" value="#f1c40f">
             </div>
-
             <div style="flex:1"></div>
-
             <div id="liveStatus" style="font-size:10px; color:var(--text-muted); margin-right:10px;"></div>
             <span id="liveBadge" class="badge badge-live">EN VIVO</span>
-            
             <button id="panicBtn" class="danger">PANIC</button>
         </div>
-
         <div class="piano-wrapper">
           <div id="piano" class="piano"></div>
         </div>
-
         <div id="pedalIndicator" class="pedal-bar">
             <div class="pedal-active"></div>
             <div id="pedalIndicator-dot" style="display:none"></div> 
         </div>
         <div style="text-align:center; font-size:9px; color:var(--text-muted); margin-top:2px;">SUSTAIN</div>
-
       </div>
 
     </main>
+  </div>
+
+  <div id="shelf-modal" class="library-modal">
+    <div class="library-content">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 style="margin:0;">📚 Biblioteca de la Sala <span id="display-room-code" style="color:var(--accent)"></span></h2>
+            <span class="close-modal" id="btnCloseShelf" style="font-size:30px; cursor:pointer;">&times;</span>
+        </div>
+        
+        <hr style="border-color:#444; margin:15px 0;">
+
+        <div class="upload-area">
+            <h3 style="margin-top:0;">Subir Partitura (PDF)</h3>
+            <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                <input type="text" id="upload-title" placeholder="Título (ej: Bach Minuet)" style="padding:8px; border-radius:4px; border:1px solid #555; background:#111; color:white; flex:1;">
+                <input type="file" id="file-upload" accept="application/pdf" style="color:#aaa;">
+                <button id="btnUploadScore" class="primary">☁️ Subir</button>
+            </div>
+            <p id="upload-status" style="font-size:12px; color:#aaa; margin-top:5px;"></p>
+        </div>
+
+        <h3 style="margin-bottom:0;">Partituras Disponibles</h3>
+        <div id="shelf-list" class="shelf-grid">
+            <p style="color:#777; grid-column:1/-1;">Cargando...</p>
+        </div>
+    </div>
   </div>
 
   <div id="foundersModal" class="modal-overlay">
@@ -265,7 +351,6 @@
         <h2>🎹 EL EQUIPO DETRÁS DE LAS TECLAS</h2>
         <button id="closeFoundersBtn" class="close-btn">×</button>
       </div>
-      
       <div class="founders-grid">
         <div class="founder-card">
           <div class="founder-photo"><div class="photo-placeholder">PP</div></div>
@@ -290,6 +375,7 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tonaljs/tonal/browser/tonal.min.js"></script>
+  
   <script src="/script.js"></script>
 
 </body>

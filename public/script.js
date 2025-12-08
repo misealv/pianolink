@@ -305,7 +305,15 @@ updateRoleIndicator();
 updateLiveStatusUI();
 
 /* ------------ PARTICIPANTES ------------ */
+/* ------------ PARTICIPANTES ------------ */
+// Asegúrate de que las variables globales (listeningTo, liveStudentId, etc.) estén declaradas al inicio del script.
+
 function renderParticipants() {
+  // 1. Detección de variables globales
+  const currentListeningTo = typeof listeningTo !== 'undefined' ? listeningTo : new Set();
+  const currentLiveStudentId = typeof liveStudentId !== 'undefined' ? liveStudentId : null;
+  const mtToggle = document.getElementById("masterclassToggle");
+
   participantsList.innerHTML = "";
   if (!participants.length) {
     const d = document.createElement("div");
@@ -320,15 +328,21 @@ function renderParticipants() {
     row.className = "participant-row";
 
     const left = document.createElement("div");
-    // Icono si tiene PDF
-    if (u.pdfUrl) {
+    
+    // --- ICONO DE PARTITURA ACTIVA (SIMPLIFICADO) ---
+    // Usamos la nueva estructura de estado para mostrar el icono
+    const pdfIsActive = (u.pdfState && u.pdfState.url);
+    if (pdfIsActive) {
         const icon = document.createElement("span");
         icon.textContent = "📄 ";
-        icon.title = "Tiene partitura";
+        icon.title = "Atril activo";
         icon.style.cursor = "help";
+        icon.style.color = "var(--accent)";
         left.appendChild(icon);
     }
-    
+    // NOTA: Eliminamos la vieja lógica de if (u.pdfUrl) de aquí.
+
+    // Nombre y Rol
     const n = document.createElement("span");
     n.style.fontWeight = "bold"; n.textContent = u.name;
     const r = document.createElement("span");
@@ -340,47 +354,64 @@ function renderParticipants() {
     const right = document.createElement("div");
 
     if (soyProfe && u.role !== "teacher" && u.socketId !== mySocketId) {
-      // Botón VER PDF
-      if (u.pdfUrl) {
-          const btnPdf = document.createElement("button");
-          btnPdf.textContent = "VER PDF";
-          btnPdf.style.padding = "2px 4px";
-          btnPdf.style.fontSize = "9px";
-          btnPdf.style.marginRight = "6px";
-          btnPdf.style.background = "#fff";
-          btnPdf.style.color = "#000";
-          btnPdf.onclick = () => {
-              loadPdf(u.pdfUrl, false); 
-              switchTab('pdf');
-              log(`👁️ Viendo partitura de ${u.name}`, "info");
+      
+      const userPdfUrl = pdfIsActive ? u.pdfState.url : null; 
+      
+      // 1. BOTÓN ESPIAR (👁️) - SOLO SI HAY UN PDF ACTIVO
+      if (pdfIsActive) { 
+          const btnSpy = document.createElement("button");
+          btnSpy.innerHTML = "👁️"; 
+          btnSpy.title = "Ver partitura en tiempo real";
+          
+          btnSpy.style.padding = "2px 6px";
+          btnSpy.style.fontSize = "12px";
+          btnSpy.style.marginRight = "8px";
+          btnSpy.style.background = "#333";
+          btnSpy.style.border = "1px solid #555";
+          btnSpy.style.borderRadius = "4px";
+          btnSpy.style.cursor = "pointer";
+          btnSpy.style.color = "var(--accent)"; 
+
+          btnSpy.onclick = () => {
+              if (window.startSpying && window.loadScoreToStand) {
+                  window.startSpying(u.socketId, u.name);
+                  
+                  // Cargamos visualmente su PDF (usando la URL rastreada)
+                  window.loadScoreToStand(userPdfUrl, `Viendo atril de ${u.name}`);
+                  
+                  // El módulo se encargará de ajustar la página.
+              } else {
+                  console.error("Módulo de sincronización no cargado.");
+              }
           };
-          right.appendChild(btnPdf);
+          right.appendChild(btnSpy);
       }
 
-      // Checkbox "Escuchar" (CUE)
+      // 2. CHECKBOX "ESCUCHAR" (CUE) - (INTACTO)
       const listenLabel = document.createElement("label");
       listenLabel.style.display="inline"; listenLabel.style.marginRight="8px";
       const cb = document.createElement("input");
       cb.type = "checkbox";
-      cb.checked = (listeningTo.size === 0) || listeningTo.has(u.socketId);
+      // Usamos currentListeningTo
+      cb.checked = (currentListeningTo.size === 0) || currentListeningTo.has(u.socketId);
       cb.addEventListener("change", () => toggleListen(u.socketId, cb.checked));
       listenLabel.appendChild(cb); listenLabel.appendChild(document.createTextNode(" CUE"));
       right.appendChild(listenLabel);
 
-      // Radio "En Vivo" (ON AIR) - AQUÍ ESTABA EL ERROR
+      // 3. RADIO "EN VIVO" (ON AIR) - (INTACTO)
       const liveLabel = document.createElement("label");
       liveLabel.style.display="inline";
-      liveLabel.style.color = "var(--danger)"; // Rojo para resaltar
+      liveLabel.style.color = "var(--danger)";
       
       const rb = document.createElement("input");
       rb.type = "radio"; 
       rb.name = "liveStudent";
-      rb.checked = (liveStudentId === u.socketId);
+      // Usamos currentLiveStudentId
+      rb.checked = (currentLiveStudentId === u.socketId);
       
       rb.addEventListener("change", () => {
         if (rb.checked) {
-          // FIX: Verificamos que el toggle exista antes de marcarlo
-          if (masterclassToggle) masterclassToggle.checked = true;
+          if (mtToggle) mtToggle.checked = true; // masterclassToggle
           sendLiveStudent(u.socketId);
         }
       });
@@ -397,6 +428,9 @@ function renderParticipants() {
     participantsList.appendChild(row);
   });
 }
+
+// Asegúrate de que esta función (toggleListen) esté definida en algún lugar si no lo está:
+// function toggleListen(id, checked) { ... }
 
 function toggleListen(id, checked) {
   if (checked) listeningTo.add(id);
@@ -1555,3 +1589,295 @@ if (btnExitClass) {
       window.location.href = "/goodbye.html"; 
   });
 }
+
+/* ================================================================
+   🟢 NUEVO MÓDULO: BIBLIOTECA COLABORATIVA (VERSIÓN CORREGIDA)
+   ================================================================ */
+
+   (function initLibraryModule() {
+    console.log("📚 Inicializando módulo de Biblioteca...");
+
+    // Referencias DOM
+    const pdfCanvas = document.getElementById('pdf-render');
+    const pdfCtx = pdfCanvas ? pdfCanvas.getContext('2d') : null;
+    const shelfModal = document.getElementById('shelf-modal');
+    const shelfList = document.getElementById('shelf-list');
+    const btnOpenShelf = document.getElementById('btnOpenShelf'); 
+    const btnCloseShelf = document.getElementById('btnCloseShelf');
+    const btnUploadScore = document.getElementById('btnUploadScore');
+    const msgPdfLoading = document.getElementById('pdf-loading-msg');
+    const controlsFloating = document.getElementById('pdfFloatingControls');
+    const tabPdfBtn = document.getElementById('tabPdfBtn'); // Pestaña principal
+
+    // Variables de Estado
+    let pdfDoc = null;
+    let pageNum = 1;
+    let pageRendering = false;
+    let pageNumPending = null;
+    let currentPdfUrl = null;
+    
+    // Variables de espionaje
+    let isSpying = false;
+    let spyingTargetId = null;
+
+    // --- 1. BOTÓN DE PESTAÑA PRINCIPAL ---
+    // Si haces clic en "BIBLIOTECA PDF" y está vacío, abrimos el estante
+    if (tabPdfBtn) {
+        tabPdfBtn.addEventListener('click', () => {
+            // Esperamos un poco para que cambie la pestaña visualmente
+            setTimeout(() => {
+                if (!currentPdfUrl) {
+                    openShelf();
+                }
+            }, 100);
+        });
+    }
+
+    // --- 2. ABRIR / CERRAR ESTANTE ---
+    if(btnOpenShelf) btnOpenShelf.addEventListener('click', openShelf);
+    if(btnCloseShelf) btnCloseShelf.addEventListener('click', () => shelfModal.style.display = 'none');
+
+    function openShelf() {
+        // USAMOS LA VARIABLE GLOBAL CORRECTA: 'salaActual'
+        if(!salaActual) {
+            alert("⚠️ Primero debes crear o unirte a una sala.");
+            return;
+        }
+        
+        shelfModal.style.display = 'block';
+        const displayCode = document.getElementById('display-room-code');
+        if(displayCode) displayCode.innerText = salaActual;
+        
+        loadShelfContent();
+    }
+
+    // --- 3. CARGAR LISTA ---
+    async function loadShelfContent() {
+        if(!shelfList) return;
+        shelfList.innerHTML = '<p style="color:#aaa; grid-column:1/-1; text-align:center;">Cargando partituras...</p>';
+
+        try {
+            // USAMOS 'salaActual'
+            const res = await fetch(`/api/scores/${salaActual}`);
+            const scores = await res.json();
+
+            shelfList.innerHTML = '';
+
+            if(scores.length === 0) {
+                shelfList.innerHTML = '<p style="color:#666; grid-column:1/-1; text-align:center;">El estante está vacío. ¡Sube la primera partitura!</p>';
+                return;
+            }
+
+            scores.forEach(score => {
+                const card = document.createElement('div');
+                card.className = 'score-card';
+                card.innerHTML = `
+                    <div class="score-icon">📄</div>
+                    <strong class="score-title" title="${score.title}">${score.title}</strong>
+                    <div class="score-meta">Subido por: ${score.uploaderName}</div>
+                `;
+                card.onclick = () => loadScoreToStand(score.url, score.title);
+                shelfList.appendChild(card);
+            });
+
+        } catch (err) {
+            console.error("Error biblioteca:", err);
+            shelfList.innerHTML = '<p style="color:#e74c3c">Error de conexión.</p>';
+        }
+    }
+
+    // --- 4. SUBIR ARCHIVO ---
+    if(btnUploadScore) {
+        btnUploadScore.addEventListener('click', async () => {
+            const fileInput = document.getElementById('file-upload');
+            const titleInput = document.getElementById('upload-title');
+            const statusMsg = document.getElementById('upload-status');
+
+            if (!fileInput.files[0]) return alert("Selecciona un PDF.");
+            if (!salaActual) return alert("No hay sala activa.");
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('roomCode', salaActual); // CORREGIDO
+            formData.append('title', titleInput.value.trim());
+            // Usamos 'myName' que es tu variable global de usuario
+            formData.append('uploaderName', (typeof myName !== 'undefined' ? myName : 'Anónimo'));
+
+            statusMsg.innerText = "Subiendo... ☁️";
+            statusMsg.style.color = "#f1c40f";
+
+            try {
+                const res = await fetch('/api/scores/upload', { method: 'POST', body: formData });
+                if(res.ok) {
+                    statusMsg.innerText = "¡Listo! ✅";
+                    statusMsg.style.color = "#2ecc71";
+                    loadShelfContent(); 
+                    titleInput.value = "";
+                    fileInput.value = "";
+                } else {
+                    throw new Error("Fallo en servidor");
+                }
+            } catch (err) {
+                console.error(err);
+                statusMsg.innerText = "Error al subir ❌";
+                statusMsg.style.color = "#e74c3c";
+            }
+        });
+    }
+
+    // --- 5. VISOR PDF (PDF.JS) ---
+    window.loadScoreToStand = function(url, title) {
+        shelfModal.style.display = 'none';
+        
+        // Simular click en pestaña PDF para cambiar vista
+        if(tabPdfBtn) {
+            // Forzamos el cambio de clase visual manualmente también
+            document.getElementById('modeMusic').classList.add('hidden');
+            document.getElementById('modePdf').classList.remove('hidden');
+            document.getElementById('modePdf').style.display = 'flex';
+            document.getElementById('tabMusicBtn').classList.remove('active');
+            tabPdfBtn.classList.add('active');
+        }
+
+        if(msgPdfLoading) msgPdfLoading.style.display = 'block';
+        if(controlsFloating) controlsFloating.style.display = 'flex';
+        
+        const titleLabel = document.getElementById('current-score-title');
+        if(titleLabel) titleLabel.innerText = title || "Documento";
+
+        currentPdfUrl = url;
+        pageNum = 1;
+
+        if(isSpying) stopSpying();
+
+        renderPdf(url);
+
+        // Avisar al servidor
+        if(socket && salaActual) {
+            socket.emit('update-pdf-state', { url: url, page: 1 });
+        }
+    };
+
+    function renderPdf(url) {
+        if(!pdfjsLib) return console.error("PDF.js no cargado");
+        
+        pdfjsLib.getDocument(url).promise.then(doc => {
+            pdfDoc = doc;
+            const countEl = document.getElementById('page-count');
+            if(countEl) countEl.textContent = pdfDoc.numPages;
+            if(msgPdfLoading) msgPdfLoading.style.display = 'none';
+            renderPage(pageNum);
+        }).catch(err => {
+            console.error("Error cargando PDF:", err);
+            if(msgPdfLoading) msgPdfLoading.innerText = "Error al cargar PDF";
+        });
+    }
+
+    function renderPage(num) {
+        pageRendering = true;
+        pdfDoc.getPage(num).then(page => {
+            if(!pdfCanvas) return;
+            
+            const container = document.getElementById('pdf-container');
+            const containerWidth = container ? container.clientWidth : 800;
+            
+            const viewportUnscaled = page.getViewport({scale: 1});
+            const scaleFit = (containerWidth * 0.95) / viewportUnscaled.width;
+            
+            const viewport = page.getViewport({scale: scaleFit});
+            pdfCanvas.height = viewport.height;
+            pdfCanvas.width = viewport.width;
+
+            const renderContext = { canvasContext: pdfCtx, viewport: viewport };
+            const renderTask = page.render(renderContext);
+
+            renderTask.promise.then(() => {
+                pageRendering = false;
+                if (pageNumPending !== null) {
+                    renderPage(pageNumPending);
+                    pageNumPending = null;
+                }
+            });
+        });
+
+        const pageNumEl = document.getElementById('page-num');
+        if(pageNumEl) pageNumEl.textContent = num;
+    }
+
+    function queueRenderPage(num) {
+        if (pageRendering) pageNumPending = num;
+        else renderPage(num);
+    }
+
+  // Botones Paginación
+const btnPrev = document.getElementById('prev-page');
+const btnNext = document.getElementById('next-page');
+
+if (btnPrev) btnPrev.addEventListener('click', () => {
+    if (pageNum <= 1) return;
+    pageNum--;
+    queueRenderPage(pageNum);
+
+    // Alumno avisa cambio de página (si no está espiando)
+    if (!isSpying && socket) {
+        socket.emit('update-pdf-state', { page: pageNum });
+    }
+});
+
+if (btnNext) btnNext.addEventListener('click', () => {
+    if (!pdfDoc || pageNum >= pdfDoc.numPages) return;
+    pageNum++;
+    queueRenderPage(pageNum);
+
+    // Alumno avisa cambio de página (si no está espiando)
+    if (!isSpying && socket) {
+        socket.emit('update-pdf-state', { page: pageNum });
+    }
+});
+
+
+   
+    
+
+    // --- 6. ESPIONAJE ---
+    window.startSpying = function(studentSocketId, studentName) {
+        if(!studentSocketId) return;
+        isSpying = true;
+        spyingTargetId = studentSocketId;
+
+        const label = document.getElementById('current-score-title');
+        if(label) {
+            label.innerText = `👁️ Viendo a: ${studentName}`;
+            label.style.color = "#e67e22";
+        }
+        
+        if(tabPdfBtn) tabPdfBtn.click();
+    };
+
+    function stopSpying() {
+        isSpying = false;
+        spyingTargetId = null;
+        const label = document.getElementById('current-score-title');
+        if(label) {
+            label.style.color = "#aaa";
+            label.innerText = "Documento";
+        }
+    }
+
+    if(socket) {
+        socket.on('user-pdf-updated', (payload) => {
+            if (isSpying && payload.userId === spyingTargetId) {
+                const state = payload.pdfState;
+                if (state.url && state.url !== currentPdfUrl) {
+                    currentPdfUrl = state.url;
+                    renderPdf(state.url);
+                }
+                if (state.page && state.page !== pageNum) {
+                    pageNum = state.page;
+                    queueRenderPage(pageNum);
+                }
+            }
+        });
+    }
+
+})();
