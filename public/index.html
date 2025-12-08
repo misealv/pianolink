@@ -5,24 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Piano Link | Masterclass Studio Pro</title>
 
-  <script>
-    (function securityGuard() {
-        const params = new URLSearchParams(window.location.search);
-        // 1. Si es Alumno (trae invitación en el link), PASA.
-        if (params.get('role') === 'student' || params.get('sala')) return;
-
-        // 2. Si es Profesor (tiene sesión guardada), PASA.
-        const session = localStorage.getItem('pianoUser');
-        if (session) {
-            try {
-                if (JSON.parse(session).role === 'teacher') return;
-            } catch (e) {}
-        }
-
-        // 3. Si no, AL LOGIN.
-        window.location.href = 'login.html';
-    })();
-  </script>
+  <script src="/guard.js"></script>
 
   <link rel="stylesheet" href="/style.css">
 
