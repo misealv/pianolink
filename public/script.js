@@ -374,17 +374,26 @@ function renderParticipants() {
 
           btnSpy.onclick = () => {
             if (window.startSpying && window.loadScoreToStand) {
-                // 1) Primero cargo visualmente el PDF del alumno
-                window.loadScoreToStand(userPdfUrl, `Viendo atril de ${u.name}`);
-                
-                // 2) Luego activo el modo espejo hacia ese alumno
+                // Página actual del alumno según el servidor
+                const initialPage =
+                    (u.pdfState && typeof u.pdfState.page === "number" && u.pdfState.page >= 1)
+                        ? u.pdfState.page
+                        : 1;
+    
+                // 1) Cargar su PDF directamente en la página donde va el alumno
+                window.loadScoreToStand(
+                    userPdfUrl,
+                    `Viendo atril de ${u.name}`,
+                    initialPage
+                );
+    
+                // 2) Activar modo espejo hacia ese alumno
                 window.startSpying(u.socketId, u.name);
-                
-                // El módulo se encargará de ajustar la página.
             } else {
                 console.error("Módulo de sincronización no cargado.");
             }
         };
+    
         
           right.appendChild(btnSpy);
       }
@@ -1727,38 +1736,45 @@ if (btnExitClass) {
         });
     }
 
-    // --- 5. VISOR PDF (PDF.JS) ---
-    window.loadScoreToStand = function(url, title) {
-        shelfModal.style.display = 'none';
-        
-        // Simular click en pestaña PDF para cambiar vista
-        if(tabPdfBtn) {
-            // Forzamos el cambio de clase visual manualmente también
-            document.getElementById('modeMusic').classList.add('hidden');
-            document.getElementById('modePdf').classList.remove('hidden');
-            document.getElementById('modePdf').style.display = 'flex';
-            document.getElementById('tabMusicBtn').classList.remove('active');
-            tabPdfBtn.classList.add('active');
-        }
+   // --- 5. VISOR PDF (PDF.JS) ---
+window.loadScoreToStand = function(url, title, initialPage) {
+  shelfModal.style.display = 'none';
+  
+  // Simular click en pestaña PDF para cambiar vista
+  if (tabPdfBtn) {
+      // Forzamos el cambio de clase visual manualmente también
+      document.getElementById('modeMusic').classList.add('hidden');
+      document.getElementById('modePdf').classList.remove('hidden');
+      document.getElementById('modePdf').style.display = 'flex';
+      document.getElementById('tabMusicBtn').classList.remove('active');
+      tabPdfBtn.classList.add('active');
+  }
 
-        if(msgPdfLoading) msgPdfLoading.style.display = 'block';
-        if(controlsFloating) controlsFloating.style.display = 'flex';
-        
-        const titleLabel = document.getElementById('current-score-title');
-        if(titleLabel) titleLabel.innerText = title || "Documento";
+  if (msgPdfLoading) msgPdfLoading.style.display = 'block';
+  if (controlsFloating) controlsFloating.style.display = 'flex';
+  
+  const titleLabel = document.getElementById('current-score-title');
+  if (titleLabel) titleLabel.innerText = title || "Documento";
 
-        currentPdfUrl = url;
-        pageNum = 1;
+  currentPdfUrl = url;
 
-        if(isSpying) stopSpying();
+  // 👇 Si viene página inicial, úsala. Si no, empezamos en 1.
+  if (typeof initialPage === "number" && initialPage >= 1) {
+      pageNum = initialPage;
+  } else {
+      pageNum = 1;
+  }
 
-        renderPdf(url);
+  if (isSpying) stopSpying();
 
-        // Avisar al servidor
-        if(socket && salaActual) {
-            socket.emit('update-pdf-state', { url: url, page: 1 });
-        }
-    };
+  renderPdf(url);
+
+  // Avisar al servidor del estado propio (no afecta al alumno que espiamos)
+  if (socket && salaActual) {
+      socket.emit('update-pdf-state', { url: url, page: pageNum });
+  }
+};
+
 
     function renderPdf(url) {
         if(!pdfjsLib) return console.error("PDF.js no cargado");
