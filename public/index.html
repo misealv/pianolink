@@ -4,6 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Piano Link | Masterclass Studio Pro</title>
+
+  <script>
+    (function securityGuard() {
+        const params = new URLSearchParams(window.location.search);
+        // 1. Si es Alumno (trae invitación en el link), PASA.
+        if (params.get('role') === 'student' || params.get('sala')) return;
+
+        // 2. Si es Profesor (tiene sesión guardada), PASA.
+        const session = localStorage.getItem('pianoUser');
+        if (session) {
+            try {
+                if (JSON.parse(session).role === 'teacher') return;
+            } catch (e) {}
+        }
+
+        // 3. Si no, AL LOGIN.
+        window.location.href = 'login.html';
+    })();
+  </script>
+
   <link rel="stylesheet" href="/style.css">
 
   <script>
@@ -29,17 +49,15 @@
                 window.initPianoLink();
             }
             
-            // 3. INYECTAR MARCA (Aquí ocurre la magia)
+            // 3. INYECTAR MARCA
             
-            // A) Cambiar colores CSS (Variables)
+            // A) Cambiar colores CSS
             const root = document.documentElement;
             if (teacher.branding.colors) {
                const c = teacher.branding.colors;
-               root.style.setProperty('--accent', c.base);       // Color principal
-               root.style.setProperty('--bg', c.bg);             // Fondo
-               root.style.setProperty('--panel', c.panel);       // Paneles
-               
-               // Ajuste automático para el botón primario
+               root.style.setProperty('--accent', c.base);       
+               root.style.setProperty('--bg', c.bg);             
+               root.style.setProperty('--panel', c.panel);       
                root.style.setProperty('--prof-color', c.base);
             }
   
@@ -56,7 +74,7 @@
                 }
             }
   
-            // C) Configurar la sala automáticamente para el socket
+            // C) Configurar la sala automáticamente
             window.PREDEFINED_ROOM = slug; 
   
           } else {
@@ -72,6 +90,7 @@
 
 <body>
   <audio id="joinSound" src="https://cdn.freesound.org/previews/352/352651_4019029-lq.mp3"></audio>
+  
   <div class="app-container">
     <header class="header">
       <div class="brand">
@@ -125,7 +144,6 @@
 
       <div class="panel">
         <h2>MIDI I/O</h2>
-        
         <div class="config-row">
           <label>Entrada (Teclado):</label>
           <select id="midiInputSelect" style="width:100%">
@@ -139,7 +157,6 @@
               <option value="">(ninguna)</option>
           </select>
         </div>
-        
         <label><input type="checkbox" id="toggleMidiOut"> Enviar a mi sintetizador</label>
       </div>
 
@@ -196,33 +213,13 @@
         </div>
 
         <div id="modePdf" class="board-mode hidden">
-            
-            <div class="pdf-controls" style="
-                display: flex; 
-                align-items: center; 
-                padding: 10px; 
-                background-color: #333333; 
-                border-bottom: 2px solid #555555; 
-                gap: 10px; 
-                height: 50px; 
-                flex-shrink: 0;
-                box-sizing: border-box;">
-                
-                <input type="text" id="pdfInput" placeholder="Pega el enlace de Google Drive aquí..." 
-                       style="
-                       flex: 1; 
-                       background-color: #111111; 
-                       border: 1px solid #666; 
-                       color: #ffffff; 
-                       padding: 6px; 
-                       border-radius: 4px;" />
-                       
+            <div class="pdf-controls" style="display: flex; align-items: center; padding: 10px; background-color: #333333; border-bottom: 2px solid #555555; gap: 10px; height: 50px; flex-shrink: 0; box-sizing: border-box;">
+                <input type="text" id="pdfInput" placeholder="Pega el enlace de Google Drive aquí..." style="flex: 1; background-color: #111111; border: 1px solid #666; color: #ffffff; padding: 6px; border-radius: 4px;" />
                 <button id="btnLoadPdf" class="primary" style="padding: 0 15px; height: 30px; cursor: pointer;">VER</button>
             </div>
             
             <div class="pdf-frame-wrapper">
                 <iframe id="pdfFrame" src="" allow="autoplay"></iframe>
-                
                 <div id="pdfPlaceholder" class="pdf-placeholder">
                     <div style="font-size:40px; margin-bottom:10px;">📄</div>
                     <div>Sin documento cargado</div>
