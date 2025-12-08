@@ -77,12 +77,14 @@ function getInviteUrl() {
 }
 
 function updateInviteLink() {
-  if (!salaActual) {
-    inviteLink.textContent = "Esperando sala...";
-    return;
+  if (!salaActual) return;
+  
+  // Solo intentamos actualizar si los elementos viejos existen
+  const oldInput = document.getElementById("inviteLink");
+  if (oldInput) {
+      oldInput.value = getInviteUrl(); // Si por alguna razón los dejaste
   }
-  const url = getInviteUrl();
-  inviteLink.textContent = url;
+  // (Ya no hace falta hacer nada más, el botón nuevo copia directo de la memoria)
 }
 
 function updateRoleIndicator() {
@@ -216,34 +218,48 @@ socket.on("room-joined", (code) => {
   }
 });
 
-/* ------------ BOTÓN COPIAR ENLACE ------------ */
-copyLinkBtn.addEventListener("click", async () => {
-  const url = getInviteUrl();
-  if (!url) {
-    copyStatus.style.color = "var(--danger)";
-    copyStatus.textContent = "Crea una sala primero.";
-    setTimeout(() => (copyStatus.textContent = ""), 2500);
-    return;
-  }
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(url);
-    } else {
-      const temp = document.createElement("textarea");
-      temp.value = url;
-      document.body.appendChild(temp);
-      temp.select();
-      document.execCommand("copy");
-      document.body.removeChild(temp);
-    }
-    copyStatus.style.color = "var(--success)";
-    copyStatus.textContent = "Copiado.";
-  } catch (e) {
-    copyStatus.textContent = "Error al copiar.";
-  }
-  setTimeout(() => (copyStatus.textContent = ""), 2500);
-});
+/* ------------ NUEVO BOTÓN COPIAR INTELIGENTE ------------ */
+const btnSmartCopy = document.getElementById("btnSmartCopy");
+const smartFeedback = document.getElementById("smartFeedback");
 
+if (btnSmartCopy) {
+    btnSmartCopy.addEventListener("click", async () => {
+        // 1. Obtenemos el link (siempre en minúsculas gracias a tu arreglo anterior)
+        const url = getInviteUrl();
+        
+        if (!url || !salaActual) {
+            smartFeedback.style.color = "var(--danger)";
+            smartFeedback.textContent = "⚠️ Primero genera la invitación.";
+            setTimeout(() => smartFeedback.textContent = "", 2500);
+            return;
+        }
+
+        try {
+            // 2. Copiamos al portapapeles
+            await navigator.clipboard.writeText(url);
+            
+            // 3. Feedback visual (Cambia el texto del botón temporalmente)
+            const originalText = btnSmartCopy.textContent;
+            btnSmartCopy.textContent = "✅ ¡ENLACE COPIADO!";
+            btnSmartCopy.style.borderColor = "#b4e080";
+            btnSmartCopy.style.color = "#b4e080";
+            
+            smartFeedback.textContent = "Listo para enviar a tu alumno.";
+
+            // 4. Restaurar botón a los 3 segundos
+            setTimeout(() => {
+                btnSmartCopy.textContent = originalText;
+                btnSmartCopy.style.borderColor = "#555";
+                btnSmartCopy.style.color = "#aaa";
+                smartFeedback.textContent = "";
+            }, 3000);
+
+        } catch (e) {
+            smartFeedback.style.color = "var(--danger)";
+            smartFeedback.textContent = "Error al copiar manual.";
+        }
+    });
+}
 /* ------------ SELECCIÓN DE ROL ------------ */
 /* Reemplaza el bloque de eventos de roles con esto: */
 document.querySelectorAll("input[name=rol]").forEach(radio => {
@@ -416,14 +432,61 @@ if (clearLiveBtn) {
   });
 }
 
-/* ------------ CREAR / UNIR SALA ------------ */
-btnCrear.addEventListener("click", () => {
-  const name = inputName.value.trim();
-  if (!name) return alert("Ingresa tu nombre.");
-  myName = name;
-  socket.emit("create-room", { username: name, userRole: "teacher" });
-  log("Creando sala...");
-});
+/* ------------ BOTÓN MÁGICO: ACTIVAR SALA + COPIAR LINK ------------ */
+const btnMagicLink = document.getElementById("btnMagicLink");
+const magicFeedback = document.getElementById("magicFeedback");
+
+if (btnMagicLink) {
+  btnMagicLink.addEventListener("click", async () => {
+    // 1. ACTIVAR EL MOTOR (AUDIO/MIDI)
+    const name = inputName.value.trim() || "Profesor";
+    myName = name;
+    
+    // Usamos el nombre de la sala que ya tenemos (ej: miguel-antonio)
+    let codeToUse = window.PREDEFINED_ROOM || salaActual; 
+    
+    // Si por alguna razón no hay sala, creamos una random (seguridad)
+    if (!codeToUse) codeToUse = "SALA-" + Math.floor(Math.random()*1000);
+
+    // ENVIAR SEÑAL AL SERVIDOR (Esto es lo que activa el MIDI)
+    const payload = { 
+        username: name, 
+        userRole: "teacher",
+        roomCode: codeToUse
+    };
+    socket.emit("create-room", payload);
+
+
+    // 2. COPIAR EL LINK (EN MINÚSCULAS)
+    const url = window.location.origin + "/?role=student&sala=" + codeToUse.toLowerCase();
+
+    try {
+        await navigator.clipboard.writeText(url);
+        
+        // 3. FEEDBACK VISUAL (Verde)
+        const originalText = btnMagicLink.textContent;
+        const originalColor = btnMagicLink.style.backgroundColor;
+        
+        btnMagicLink.textContent = "✅ ENLACE COPIADO Y SALA ACTIVA";
+        btnMagicLink.style.backgroundColor = "#28a745"; // Verde éxito
+        btnMagicLink.style.borderColor = "#28a745";
+        
+        if(magicFeedback) magicFeedback.textContent = "Listo. Pégalo en WhatsApp.";
+
+        // Restaurar botón a los 3 segundos
+        setTimeout(() => {
+            btnMagicLink.textContent = originalText;
+            btnMagicLink.style.backgroundColor = originalColor;
+            btnMagicLink.style.borderColor = ""; 
+            if(magicFeedback) magicFeedback.textContent = "";
+        }, 3000);
+
+    } catch (err) {
+        console.error("Error copiando:", err);
+        if(magicFeedback) magicFeedback.textContent = "Sala activa, pero copia el link manualmente.";
+    }
+  });
+}
 
 socket.on("room-created", (roomCode) => {
   salaActual = roomCode;
@@ -432,52 +495,116 @@ socket.on("room-created", (roomCode) => {
   log("Sala ID: " + roomCode, 'success');
 });
 
+/* ------------ UNIRSE A SALA (CON TRANSICIÓN SUAVE) ------------ */
 btnUnirse.addEventListener("click", () => {
   const name = inputName.value.trim();
-  if (!name) return alert("Ingresa tu nombre.");
+  if (!name) return alert("Por favor, ingresa tu nombre para entrar.");
+  
   const code = codigoSala.value.trim().toUpperCase();
-  if (!code) return alert("Ingresa el código.");
+  if (!code) return alert("Falta el código de la sala.");
+
   myName = name;
   salaActual = code;
+
+  // 1. TRUCO UX: Mostrar la pantalla de espera INMEDIATAMENTE
+  // Ponemos un mensaje de "Cargando" para que se sienta fluido
+  if (waitingOverlay) {
+      waitingOverlay.style.display = "flex";
+      waitingOverlay.innerHTML = `
+          <div style="font-size:40px; margin-bottom:20px;">⌛</div>
+          <h2 style="color:var(--accent);">Tocando la puerta...</h2>
+          <p style="font-size:12px; color:#aaa;">Conectando con el estudio...</p>
+      `;
+  }
+
+  // 2. Conectamos al servidor
   socket.emit("join-room", { roomCode: code, username: name, userRole: rol });
   log("Uniéndose a " + code + "...");
 });
 
 /* ------------ INICIALIZAR DESDE URL ------------ */
-(function initFromUrl() {
+/* script.js - Reemplazo de initFromUrl */
+
+/* ------------ INICIALIZAR DESDE URL (MEJORADO) ------------ */
+// Hacemos la función global para que el script de Branding pueda llamarla
+/* script.js - Versión Segura de initPianoLink */
+
+window.initPianoLink = function() {
   try {
-    const params = new URLSearchParams(window.location.search);
-    const urlRole = params.get("role");
-    const urlSala = params.get("sala") || params.get("room");
+      const params = new URLSearchParams(window.location.search);
+      let roomFound = false;
 
-    if (urlSala) {
-      salaActual = urlSala.toUpperCase();
-      codigoSala.value = salaActual; 
-    }
-
-    if (urlRole && urlRole.toLowerCase() === "student") {
-      rol = "student";
-      lockStudentRole = true;
-      const studentRadio = document.querySelector('input[name="rol"][value="student"]');
-      const teacherRadio = document.querySelector('input[name="rol"][value="teacher"]');
-      if (studentRadio) studentRadio.checked = true;
-      if (teacherRadio) {
-        teacherRadio.checked = false;
-        teacherRadio.disabled = true;
+      // 1. Revisar si hay sala predefinida por el Branding
+      if (typeof window.PREDEFINED_ROOM !== 'undefined' && window.PREDEFINED_ROOM) {
+          salaActual = window.PREDEFINED_ROOM.toUpperCase();
+          
+          const inputCode = document.getElementById("codigoSala");
+          if (inputCode) {
+              inputCode.value = salaActual;
+              inputCode.disabled = true; 
+          }
+          
+          if(typeof updateStatus === 'function') updateStatus("SALA PROFESOR: " + salaActual);
+          roomFound = true;
       }
-      if (teacherRoleLabel) teacherRoleLabel.style.display = "none";
 
-      document.getElementById("cardCrearSala").style.display = "none";
-      document.getElementById("cardUnirseSala").style.display = "block";
-      if (masterclassSection) masterclassSection.classList.add("hidden");
-    }
+      // 2. Si no hay sala de profe, miramos la URL normal
+      if (!roomFound) {
+          const urlSala = params.get("sala") || params.get("room");
+          if (urlSala) {
+            salaActual = urlSala.toUpperCase();
+            const inputCode = document.getElementById("codigoSala");
+            if(inputCode) inputCode.value = salaActual; 
+          }
+      }
 
-    updateRoleIndicator();
-    updateLiveStatusUI();
-  } catch (e) {
-    console.warn("URL Params Error", e);
+      // 3. Roles y Pantalla de Bienvenida
+      const urlRole = params.get("role");
+      
+      if (urlRole && urlRole.toLowerCase() === "student") {
+        rol = "student";
+        
+        // Forzar UI de alumno
+        const radioStudent = document.querySelector('input[name=rol][value="student"]');
+        if(radioStudent) {
+            radioStudent.click(); 
+            lockStudentRole = true; 
+        }
+
+        // --- AQUÍ ESTABA EL ERROR, AHORA ESTÁ CORREGIDO ---
+        // Buscamos el elemento aquí mismo para asegurar que existe
+        const overlayRef = document.getElementById("waitingRoomOverlay");
+        
+        if (overlayRef) {
+            overlayRef.style.display = "flex"; // Bajamos el telón
+            
+            // Mensaje de bienvenida
+            overlayRef.innerHTML = `
+            <div style="font-size:50px; margin-bottom:10px;">👋</div>
+            <h2 style="color:var(--accent); margin-bottom:5px;">HOLA</h2>
+            <p style="margin-bottom:30px;">Escribe tu nombre a la izquierda para entrar.</p>
+
+            <div style="background:rgba(255,255,255,0.08); padding:15px; border-radius:8px; max-width:350px; text-align:left; border:1px solid #444;">
+                <h3 style="color:#f1c40f; font-size:12px; margin-top:0; margin-bottom:10px;">🎹 CONFIGURA TU PIANO AHORA:</h3>
+                <ol style="font-size:11px; color:#ccc; padding-left:20px; margin:0; line-height:1.6;">
+                    <li>Conecta tu piano al computador por USB.</li>
+                    <li>Enciende el teclado.</li>
+                    <li>Si el navegador pide permiso, dale a <strong>"Permitir"</strong>.</li>
+                    <li>Selecciona tu piano en el panel izquierdo (MIDI I/O).</li>
+                </ol>
+            </div>
+            `;
+        }
+        // ---------------------------------------------------
+      }
+  } catch (err) {
+      console.error("Error en initPianoLink:", err);
+      // Si falla algo, no detenemos el resto del script para que el piano cargue igual
   }
-})();
+};
+
+// Ejecutamos una vez al inicio (por si entran sin link de profesor)
+window.initPianoLink();
 
 /* ------------ WEB MIDI ------------ */
 const midiInputSelect = document.getElementById("midiInputSelect");
@@ -1170,3 +1297,261 @@ socket.on("pdf-update", (payload) => {
       }
   });
 })();
+
+/* --------------------------------------------------------
+   AUTO-RELLENO DE IDENTIDAD (INTELIGENTE)
+   -------------------------------------------------------- */
+   (function autoFillIdentity() {
+    try {
+        // 1. PRIMERO: Revisamos si vengo con invitación de alumno
+        const params = new URLSearchParams(window.location.search);
+        
+        if (params.get('role') === 'student') {
+            // ¡ALTO! Si soy alumno invitado, NO uso los datos guardados del profesor.
+            // Solo marco la casilla de "Alumno" y dejo el nombre vacío.
+            const radioAlumno = document.querySelector('input[value="student"]');
+            if(radioAlumno) radioAlumno.checked = true;
+            
+            // Forzamos la variable global
+            if(typeof rol !== 'undefined') rol = 'student';
+            
+            return; // Salimos de la función aquí.
+        }
+
+        // 2. SEGUNDO: Si NO soy alumno invitado, busco si hay sesión de profesor guardada
+        const sessionData = localStorage.getItem('pianoUser');
+        if (sessionData) {
+            const user = JSON.parse(sessionData);
+            
+            if (typeof inputName !== 'undefined' && user.name) {
+                inputName.value = user.name; // Aquí sí ponemos el nombre del profe
+                
+                if (user.role === 'teacher') {
+                   const radioProfe = document.querySelector('input[value="teacher"]'); 
+                   if(radioProfe) radioProfe.checked = true;
+                   if(typeof rol !== 'undefined') rol = 'teacher';
+                }
+            }
+        }
+    } catch (e) {
+        console.log("No se pudo autorrellenar la identidad", e);
+    }
+})();
+
+/* --------------------------------------------------------
+   🎨 IDENTIDAD VISUAL DEL PROFESOR (BRANDING)
+   Detecta el dueño de la sala y aplica sus colores/logo
+   tanto para el Profe (/c/slug) como para el Alumno (?sala=slug)
+   -------------------------------------------------------- */
+   (async function applyBranding() {
+    try {
+        // 1. DETECTAR SLUG (Nombre de la sala)
+        // Buscamos primero en los parámetros (?sala=...)
+        const params = new URLSearchParams(window.location.search);
+        let slug = params.get('sala') || params.get('room');
+
+        // Si no está en parámetros, buscamos en la URL amigable (/c/...)
+        if (!slug) {
+            const pathParts = window.location.pathname.split('/');
+            // Si la URL es /c/miguel, el slug está en la posición 2
+            if (pathParts[1] === 'c' && pathParts[2]) {
+                slug = pathParts[2];
+            }
+        }
+
+        // Si no encontramos sala, no hacemos nada (se queda branding por defecto)
+        if (!slug) return;
+
+        console.log("🎨 Cargando identidad visual para sala:", slug);
+
+        // 2. CONSULTAR DATOS PÚBLICOS AL SERVIDOR
+        // Usamos la ruta que ya tenías creada: /api/auth/public/:slug
+        const response = await fetch(`/api/auth/public/${slug}`);
+        
+        if (!response.ok) return; // Si no existe el profe, abortamos
+
+        const teacher = await response.json();
+        
+        if (!teacher.branding) return;
+
+        // 3. APLICAR LOGO (Si el profesor tiene uno)
+        if (teacher.branding.logoUrl) {
+            const brandHeader = document.querySelector('.brand');
+            if (brandHeader) {
+                // Reemplazamos el texto "Piano Link" por el logo del profesor
+                brandHeader.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <img src="${teacher.branding.logoUrl}" alt="Logo Studio" 
+                             style="height: 32px; width:auto; object-fit:contain; border-radius:4px;">
+                        <span style="font-size:14px; opacity:0.9; letter-spacing:1px; color:#fff;">
+                            ${teacher.name.toUpperCase()} <span style="color:${teacher.branding.colors.base || 'var(--accent)'}">// CLASS</span>
+                        </span>
+                    </div>
+                `;
+            }
+        }
+
+        // 4. APLICAR COLORES (Inyectar variables CSS)
+        const colors = teacher.branding.colors;
+        const root = document.documentElement;
+
+        if (colors.base) {
+            // Color Principal (Naranja por defecto) -> Botones, acentos
+            root.style.setProperty('--accent', colors.base);
+            
+            // Forzamos el cambio en elementos que quizás no usen la variable
+            document.querySelectorAll('.btn-main, button[type="submit"]').forEach(btn => {
+                btn.style.backgroundColor = colors.base;
+                btn.style.borderColor = colors.base;
+            });
+            
+            // Cambiar color de selección (radio buttons)
+            const style = document.createElement('style');
+            style.innerHTML = `
+                input[type="radio"]:checked:after { background-color: ${colors.base} !important; }
+                .btn-main:hover { filter: brightness(1.1); }
+                a { color: ${colors.base}; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        if (colors.bg) {
+            // Fondo de la página
+            document.body.style.backgroundColor = colors.bg;
+        }
+
+        if (colors.panel) {
+            // Fondo de los paneles (negro suave)
+            // Asumimos que tus cajas tienen clase .control-group o .chat-container o similar
+            // Ajustamos --bg-panel si usas variables, o pintamos directo
+            root.style.setProperty('--bg-panel', colors.panel);
+            
+            const panels = document.querySelectorAll('.control-group, .participant-item, .chat-box, .modal-content');
+            panels.forEach(p => p.style.backgroundColor = colors.panel);
+        }
+
+    } catch (error) {
+        console.error("Error aplicando branding:", error);
+    }
+})();
+/* --------------------------------------------------------
+   PASO 3: LÓGICA DE ACADEMIA (ESPERA, SONIDO Y SALIDA)
+   -------------------------------------------------------- */
+
+// Referencias a los elementos nuevos que creamos en el HTML
+const waitingOverlay = document.getElementById("waitingRoomOverlay");
+const joinSound = document.getElementById("joinSound");
+const btnEndClass = document.getElementById("btnEndClass");
+const btnExitClass = document.getElementById("btnExitClass");
+const joinControls = document.getElementById("joinControls");
+
+// 1. SONIDO DE PUERTA (DING MEJORADO)
+socket.on("user-entered-sound", () => {
+  try {
+      if (joinSound) {
+          joinSound.currentTime = 0; // Reinicia el audio por si sonó hace poco
+          joinSound.volume = 1.0;    // Volumen al máximo para asegurar que se oiga
+          
+          // Promesa de reproducción (para evitar errores de navegador)
+          const playPromise = joinSound.play();
+          
+          if (playPromise !== undefined) {
+              playPromise.catch(error => {
+                  console.log("🔊 El navegador bloqueó el sonido. Interactúa con la página primero.");
+              });
+          }
+          log("🔔 Ding: Alguien ha entrado a la clase.", "success");
+      }
+  } catch (e) {
+      console.error("Error de audio:", e);
+  }
+});
+
+// 2. GESTOR DE ESTADO DE LA CLASE (El semáforo)
+socket.on("class-status", (status) => {
+    console.log("🚦 Estado de la clase recibido:", status);
+    
+    // A) LOGICA PARA EL PROFESOR
+    if (rol === 'teacher') {
+        // Al profesor nunca le mostramos la sala de espera
+        if (waitingOverlay) waitingOverlay.style.display = "none";
+        
+        // Si la clase está activa, mostramos el botón rojo de terminar
+        if (status.isActive) {
+            if(btnEndClass) btnEndClass.style.display = "block";
+            // Cambiamos el texto del botón principal para confirmar
+            const magicBtn = document.getElementById("btnMagicLink");
+            if(magicBtn && !magicBtn.textContent.includes("✅")) {
+                 magicBtn.textContent = "✅ CLASE ACTIVA (LINK LISTO)";
+                 magicBtn.style.borderColor = "#28a745";
+                 magicBtn.style.color = "#28a745";
+            }
+        } else {
+            if(btnEndClass) btnEndClass.style.display = "none";
+        }
+        return;
+    }
+
+    // B) LOGICA PARA EL ALUMNO
+    if (status.isActive) {
+        // ¡Clase abierta! Quitamos la pantalla negra
+        if(waitingOverlay) waitingOverlay.style.display = "none";
+        
+        // Mostramos botón de salir y ocultamos el input de código manual
+        if(btnExitClass) btnExitClass.style.display = "block";
+        if(joinControls) joinControls.style.display = "none";
+        
+        log("🟢 El profesor ha abierto la sala.", "success");
+      } else {
+        // Clase cerrada -> Pantalla negra
+        if(waitingOverlay) {
+            waitingOverlay.style.display = "flex";
+            // RESTAURAMOS EL MENSAJE ORIGINAL (CAFÉ)
+            // Esto borra el "Tocando la puerta..." y pone el mensaje de espera real
+            waitingOverlay.innerHTML = `
+            <div style="font-size:40px; margin-bottom:10px;">☕</div>
+            <h2 style="color:var(--accent); margin-bottom:5px;">SALA DE ESPERA</h2>
+            <p style="margin-bottom:30px;">Tu piano se activará cuando llegue el profesor.</p>
+
+            <div style="background:rgba(255,255,255,0.08); padding:15px; border-radius:8px; max-width:350px; text-align:left; border:1px solid #444;">
+                <h3 style="color:#f1c40f; font-size:12px; margin-top:0; margin-bottom:10px;">💡 MIENTRAS ESPERAS:</h3>
+                <ul style="font-size:11px; color:#ccc; padding-left:20px; margin:0; line-height:1.6;">
+                    <li>Verifica que el cable USB esté bien conectado.</li>
+                    <li>Prueba tocar unas teclas (aún no sonarán).</li>
+                    <li>Ten tus partituras a mano.</li>
+                </ul>
+            </div>
+            `;
+        }
+        if(btnExitClass) btnExitClass.style.display = "none";
+    }
+});
+
+// 3. EXPULSIÓN (Cuando el profe termina la clase)
+socket.on("force-disconnect", () => {
+  // Redirigimos a la página amable
+  window.location.href = "/goodbye.html"; 
+});
+
+// 4. BOTÓN: TERMINAR CLASE (Solo Profe)
+if (btnEndClass) {
+    btnEndClass.addEventListener("click", () => {
+        if(!confirm("¿Seguro que quieres cerrar la sala y desconectar a todos?")) return;
+        
+        // Enviamos la orden al servidor
+        if(salaActual) socket.emit("end-class", salaActual);
+        
+        // Recargamos la página del profe para limpiar todo
+        setTimeout(() => window.location.reload(), 500);
+    });
+}
+
+// 5. BOTÓN: SALIR DE CLASE (Solo Alumno)
+if (btnExitClass) {
+  btnExitClass.addEventListener("click", () => {
+      if(!confirm("¿Quieres salir de la clase?")) return;
+      
+      // Redirigimos a la página amable
+      window.location.href = "/goodbye.html"; 
+  });
+}

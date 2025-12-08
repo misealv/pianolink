@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mi Estudio | Piano Link</title>
+  <style>
+    body { background: #1a1a1a; color: #dcdcdc; font-family: sans-serif; display: flex; height: 100vh; margin: 0; }
+    
+    .sidebar { width: 250px; background: #262626; padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 20px;}
+    .main { flex: 1; padding: 40px; overflow-y: auto; }
+    
+    h1 { color: #ff764d; text-transform: uppercase; font-size: 20px; margin-top: 0; letter-spacing: 1px;}
+    h2 { color: #888; font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 5px; margin-top: 0;}
+    
+    .card { background: #202020; border: 1px solid #333; padding: 20px; border-radius: 8px; margin-bottom: 20px; max-width: 600px; }
+    
+    label { display: block; margin-bottom: 5px; font-size: 12px; color: #aaa; margin-top: 15px;}
+    input[type="text"], textarea { width: 100%; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 4px; box-sizing: border-box; }
+    
+    .preview-box { display: flex; align-items: center; gap: 15px; margin-top: 10px; background: #151515; padding: 10px; border-radius: 4px;}
+    .preview-img { width: 60px; height: 60px; object-fit: contain; background: #000; border: 1px solid #444; border-radius: 4px; }
+    input[type="file"] { font-size: 11px; }
+
+    .btn { background: #ff764d; color: #000; border: none; padding: 12px 24px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; transition: 0.2s;}
+    .btn:hover { background: #ff9f7e; transform: translateY(-2px); }
+    
+    .btn-room { background: #28a745; color: #fff; width: 100%; margin-top: 10px;}
+    .btn-outline { background: transparent; border: 1px solid #ff764d; color: #ff764d; margin-top: auto;}
+
+    #msg { margin-top: 15px; font-weight: bold; min-height: 20px;}
+  </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div style="font-weight: 800; font-size: 18px; color: #fff;">🎹 PIANO LINK <span style="font-weight:400; font-size:12px;">PRO</span></div>
+        
+        <div style="margin-top: 20px;">
+            <div style="font-size: 10px; color: #aaa;">BIENVENIDO</div>
+            <div id="welcomeName" style="font-size: 16px; color: #fff; font-weight: bold;">Cargando...</div>
+            
+            <button id="btnOpenRoom" class="btn btn-room">⚡ IR A MI SALA</button>
+            
+            <button onclick="copyInviteLink()" class="btn btn-outline" style="margin-top: 10px; font-size: 11px; width: 100%; border-color:#444; color:#aaa;">
+                🔗 COPIAR LINK ALUMNO
+            </button>
+            <div id="copyFeedback" style="font-size: 10px; color: #b4e080; margin-top: 5px; height: 15px;"></div>
+        </div>
+    
+        <div style="flex:1"></div>
+        <button class="btn btn-outline" onclick="logout()">Cerrar Sesión</button>
+      </aside>
+
+  <main class="main">
+    <h1>Configuración del Estudio</h1>
+    
+    <form id="profileForm">
+      
+      <div class="card">
+        <h2>Identidad Visual</h2>
+        
+        <label>LOGO DE TU ACADEMIA (Se verá en la cabecera)</label>
+        <div class="preview-box">
+            <img id="previewLogo" class="preview-img" src="">
+            <input type="file" id="logoInput" accept="image/*">
+        </div>
+
+        <label>TU FOTO DE PERFIL (Se verá en la bienvenida)</label>
+        <div class="preview-box">
+            <img id="previewPhoto" class="preview-img" src="">
+            <input type="file" id="photoInput" accept="image/*">
+        </div>
+
+        <label>BIOGRAFÍA CORTA</label>
+        <textarea id="bioInput" rows="3" placeholder="Ej: Pianista de jazz y educador..."></textarea>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h2 style="border:none; margin:0; padding:0;">Colores de la Sala</h2>
+            <button type="button" onclick="resetColors()" style="background:transparent; border:1px solid #555; color:#888; cursor:pointer; font-size:10px; padding:4px 8px; border-radius:4px;">
+                ↺ RESTABLECER ORIGINALES
+            </button>
+        </div>
+
+        <div style="display:flex; gap: 20px; padding: 10px 0; justify-content: space-around;">
+            <div style="text-align:center">
+                <label style="margin-top:0">Principal</label>
+                <input type="color" id="colorBase" style="cursor:pointer; width:50px; height:50px; padding:0; border:none; background:none;">
+            </div>
+            <div style="text-align:center">
+                <label style="margin-top:0">Fondo</label>
+                <input type="color" id="colorBg" style="cursor:pointer; width:50px; height:50px; padding:0; border:none; background:none;">
+            </div>
+            <div style="text-align:center">
+                <label style="margin-top:0">Paneles</label>
+                <input type="color" id="colorPanel" style="cursor:pointer; width:50px; height:50px; padding:0; border:none; background:none;">
+            </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn">💾 GUARDAR CAMBIOS</button>
+      <div id="msg"></div>
+
+    </form>
+  </main>
+
+  <script>
+    // 1. SEGURIDAD: Verificar sesión
+    const user = JSON.parse(localStorage.getItem('pianoUser'));
+    if (!user || user.role !== 'teacher') window.location.href = 'login.html';
+
+    const API_URL = '/api/teacher';
+
+    // 2. CARGAR DATOS AL INICIAR
+    async function loadData() {
+        document.getElementById('welcomeName').textContent = user.name;
+        document.getElementById('btnOpenRoom').onclick = () => window.open(`/c/${user.slug}`, '_blank');
+
+        try {
+            const res = await fetch(`${API_URL}/me?email=${user.email}`);
+            const data = await res.json();
+            
+            if(data.branding) {
+                document.getElementById('bioInput').value = data.branding.bio || '';
+                document.getElementById('colorBase').value = data.branding.colors.base || '#ff764d';
+                document.getElementById('colorBg').value = data.branding.colors.bg || '#1a1a1a';
+                document.getElementById('colorPanel').value = data.branding.colors.panel || '#262626';
+
+                if(data.branding.logoUrl) document.getElementById('previewLogo').src = data.branding.logoUrl;
+                if(data.branding.profilePhotoUrl) document.getElementById('previewPhoto').src = data.branding.profilePhotoUrl;
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    // 3. SUBIR ARCHIVOS (UPLOAD) - ESTO SIGUE IGUAL
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('msg');
+        msg.textContent = "⏳ Subiendo imágenes a la nube... espera un momento...";
+        msg.style.color = "#aaa";
+
+        const formData = new FormData();
+        formData.append('email', user.email);
+        formData.append('bio', document.getElementById('bioInput').value);
+        formData.append('colorBase', document.getElementById('colorBase').value);
+        formData.append('colorBg', document.getElementById('colorBg').value);
+        formData.append('colorPanel', document.getElementById('colorPanel').value);
+
+        // Solo adjuntamos archivos si el usuario seleccionó uno nuevo
+        const logoFile = document.getElementById('logoInput').files[0];
+        const photoFile = document.getElementById('photoInput').files[0];
+
+        if(logoFile) formData.append('logo', logoFile);
+        if(photoFile) formData.append('photo', photoFile);
+
+        try {
+            const res = await fetch(`${API_URL}/update`, {
+                method: 'POST',
+                body: formData 
+            });
+            const data = await res.json();
+
+            if(res.ok) {
+                msg.textContent = "✅ ¡Perfil guardado! Las imágenes ya están en Cloudinary.";
+                msg.style.color = "#b4e080";
+                
+                // Actualizamos las vistas previas con las URLs nuevas que devolvió Cloudinary
+                if(data.branding.logoUrl) document.getElementById('previewLogo').src = data.branding.logoUrl;
+                if(data.branding.profilePhotoUrl) document.getElementById('previewPhoto').src = data.branding.profilePhotoUrl;
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (err) {
+            msg.textContent = "❌ Error: " + err.message;
+            msg.style.color = "#ff4d4d";
+        }
+    });
+
+    function logout() {
+        localStorage.removeItem('pianoUser');
+        window.location.href = 'login.html';
+    }
+
+    // 4. FUNCIÓN NUEVA: Restablecer Colores
+    function resetColors() {
+        // Colores originales de Piano Link
+        document.getElementById('colorBase').value = '#ff764d'; // Naranja
+        document.getElementById('colorBg').value = '#1a1a1a';   // Negro Suave
+        document.getElementById('colorPanel').value = '#262626'; // Gris Oscuro
+        
+        const msg = document.getElementById('msg');
+        msg.textContent = "🎨 Colores restablecidos. Dale a 'GUARDAR CAMBIOS' para confirmar.";
+        msg.style.color = "#aaa";
+    }
+// ... (tus otras funciones logout, resetColors, etc) ...
+
+    // 5. FUNCIÓN NUEVA: Copiar Link desde el Dashboard
+    function copyInviteLink() {
+        if(!user || !user.slug) return;
+        
+        // Construimos el link exacto
+        const domain = window.location.origin; // Detecta si es localhost o pianolink.com
+        // Usamos toLowerCase() para coincidir con la base de datos (miguel-antonio)
+        const link = `${domain}/?role=student&sala=${user.slug.toLowerCase()}`;
+        // Copiar al portapapeles
+        navigator.clipboard.writeText(link).then(() => {
+            const feedback = document.getElementById('copyFeedback');
+            feedback.textContent = "✅ ¡Copiado! Envíalo a tu alumno.";
+            setTimeout(() => feedback.textContent = "", 3000);
+        }).catch(err => {
+            alert("Error al copiar: " + link);
+        });
+    }
+
+    loadData();
+  </script>
+
+
+    loadData();
+  </script>
+</body>
+</html>

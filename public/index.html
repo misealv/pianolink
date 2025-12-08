@@ -4,11 +4,74 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Piano Link | Masterclass Studio Pro</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="/style.css">
+
+  <script>
+    (async function initBranding() {
+      // 1. Detectar si estamos en una URL de profesor (ej: /c/pedro)
+      const path = window.location.pathname;
+      const match = path.match(/\/c\/([^\/]+)/); // Extrae "pedro"
+      
+      if (match && match[1]) {
+        const slug = match[1];
+        console.log("🔍 Cargando perfil del profesor:", slug);
+        
+        try {
+          // 2. Pedir datos a la Base de Datos
+          const res = await fetch(`/api/auth/public/${slug}`);
+          if (res.ok) {
+            const teacher = await res.json();
+            
+            window.PREDEFINED_ROOM = slug; // Guardamos el nombre
+
+            // [NUEVO] ¡Avisamos a script.js que ya tenemos el nombre!
+            if (window.initPianoLink) {
+                window.initPianoLink();
+            }
+            
+            // 3. INYECTAR MARCA (Aquí ocurre la magia)
+            
+            // A) Cambiar colores CSS (Variables)
+            const root = document.documentElement;
+            if (teacher.branding.colors) {
+               const c = teacher.branding.colors;
+               root.style.setProperty('--accent', c.base);       // Color principal
+               root.style.setProperty('--bg', c.bg);             // Fondo
+               root.style.setProperty('--panel', c.panel);       // Paneles
+               
+               // Ajuste automático para el botón primario
+               root.style.setProperty('--prof-color', c.base);
+            }
+  
+            // B) Cambiar Logo y Nombre
+            const brandDiv = document.querySelector('.brand');
+            if (brandDiv) {
+                if (teacher.branding.logoUrl) {
+                    brandDiv.innerHTML = `
+                      <img src="${teacher.branding.logoUrl}" style="height:24px; vertical-align:middle; margin-right:8px; border-radius:4px;">
+                      <span style="opacity:0.7; font-size:10px;">POWERED BY PIANO LINK</span>
+                    `;
+                } else {
+                    brandDiv.innerHTML = `🎹 ${teacher.name.toUpperCase()} <span style="color:var(--accent); font-size:10px;">// STUDIO</span>`;
+                }
+            }
+  
+            // C) Configurar la sala automáticamente para el socket
+            window.PREDEFINED_ROOM = slug; 
+  
+          } else {
+            console.warn("Profesor no encontrado");
+          }
+        } catch (e) {
+          console.error("Error cargando branding:", e);
+        }
+      }
+    })();
+  </script>
 </head>
 
 <body>
-
+  <audio id="joinSound" src="https://cdn.freesound.org/previews/352/352651_4019029-lq.mp3"></audio>
   <div class="app-container">
     <header class="header">
       <div class="brand">
@@ -36,26 +99,30 @@
 
       <div class="panel">
         <h2>Sesión</h2>
+        
         <div id="cardCrearSala">
-          <button id="btnCrear" class="primary" style="width:100%">Crear Sala Nueva</button>
-          <div class="invite-box">
-            <div id="inviteLink">Esperando sala...</div>
-            <button id="copyLinkBtn">Copiar</button>
-          </div>
-          <div id="copyStatus" style="font-size:10px; margin-top:4px; color:var(--success);"></div>
+          <button id="btnMagicLink" class="primary" style="width:100%; font-weight:800; padding:15px; margin-bottom:5px;">
+            🔗 GENERAR LINK A ALUMNO
+          </button>
+          <div id="magicFeedback" style="font-size: 10px; color: #b4e080; text-align: center; min-height: 15px;"></div>
+
+          <button id="btnEndClass" class="danger" style="width:100%; margin-top:15px; font-size:11px; display:none;">
+            🛑 TERMINAR CLASE
+          </button>
         </div>
 
         <div id="cardUnirseSala" style="display:none;">
-          <div style="display:flex; gap:4px;">
-            <input type="text" id="codigoSala" maxlength="4" placeholder="CÓDIGO" style="text-transform:uppercase; text-align:center; letter-spacing:2px; font-weight:bold;">
+          <div id="joinControls" style="display:flex; gap:4px;">
+            <input type="text" id="codigoSala" maxlength="20" placeholder="CÓDIGO" style="text-transform:uppercase; text-align:center;">
             <button id="btnUnirse" class="primary">Unirse</button>
           </div>
+          
+          <button id="btnExitClass" class="btn-outline" style="width:100%; border-color:var(--danger); color:var(--danger); margin-top:10px; display:none;">
+            🚪 SALIR DE LA CLASE
+          </button>
         </div>
       </div>
 
-      
-
-      
       <div class="panel">
         <h2>MIDI I/O</h2>
         
@@ -83,7 +150,8 @@
         </div>
       </div>
 
-      <div id="masterclassSection" class="panel hidden" style="border-color: var(--danger);">        <h2 style="color:var(--danger)">📡 Masterclass / Broadcast</h2>
+      <div id="masterclassSection" class="panel hidden" style="border-color: var(--danger);">        
+        <h2 style="color:var(--danger)">📡 Masterclass / Broadcast</h2>
         <div class="config-row">
           <label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
             <input type="checkbox" id="masterclassToggle"> 
@@ -105,7 +173,13 @@
 
     </aside>
 
-    <main class="main-stage">
+    <main class="main-stage" style="position:relative;">
+      
+      <div id="waitingRoomOverlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:50; flex-direction:column; justify-content:center; align-items:center; color:white; text-align:center;">
+          <div style="font-size:50px; margin-bottom:20px;">👋</div>
+          <h2 style="color:var(--accent);">BIENVENIDO</h2>
+          <p>Ingresa tu nombre en el panel izquierdo para comenzar.</p>
+      </div>
       
       <div class="board-tabs">
         <button id="tabMusicBtn" class="tab-btn active">🎹 MÚSICA</button>
@@ -236,7 +310,7 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tonaljs/tonal/browser/tonal.min.js"></script>
-  <script src="script.js"></script>
+  <script src="/script.js"></script>
 
 </body>
 </html>

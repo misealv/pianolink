@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>¡Hasta pronto! | Piano Link</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #1a1a1a;
+      color: #dcdcdc;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    .container {
+      max-width: 500px;
+      padding: 40px;
+      background: #202020;
+      border: 1px solid #333;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    h1 {
+      color: #ff764d;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-top: 0;
+    }
+    p {
+      line-height: 1.6;
+      color: #aaa;
+      font-size: 16px;
+    }
+    .emoji {
+      font-size: 60px;
+      margin-bottom: 20px;
+      display: block;
+      animation: float 3s ease-in-out infinite;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 30px;
+      padding: 12px 30px;
+      background: #ff764d;
+      color: #000;
+      text-decoration: none;
+      font-weight: bold;
+      border-radius: 4px;
+      transition: transform 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-3px);
+      background: #ff9f7e;
+    }
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <span class="emoji">🎹</span>
+    <h1>¡Clase Finalizada!</h1>
+    <p>
+      Gracias por conectarte hoy. <br>
+      Recuerda que la constancia es la clave del éxito en el piano.
+    </p>
+    <p style="color: #fff; font-style: italic;">
+      "La música es el arte más directo, entra por el oído y va al corazón."
+    </p>
+    
+    <a href="/" class="btn">VOLVER AL INICIO</a>
+  </div>
+
+</body>
+</html>

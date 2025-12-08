@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Piano Link | Panel de Control</title>
+  <style>
+    body {
+      background-color: #1a1a1a;
+      color: #dcdcdc;
+      font-family: 'Inter', sans-serif;
+      margin: 0; padding: 0;
+    }
+    header {
+      background: #262626;
+      border-bottom: 1px solid #454545;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand { font-size: 18px; font-weight: bold; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
+    .logout-btn { background: #ff4d4d; border: none; padding: 8px 15px; color: #fff; cursor: pointer; border-radius: 4px; font-size: 12px;}
+    
+    .container { display: flex; height: calc(100vh - 60px); }
+    
+    /* Panel Izquierdo: Crear */
+    .create-panel {
+      width: 350px;
+      padding: 30px;
+      border-right: 1px solid #454545;
+      background: #202020;
+    }
+    h2 { color: #ff764d; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+    
+    label { display: block; font-size: 11px; margin-bottom: 5px; color: #aaa; }
+    input {
+      width: 100%; padding: 10px; margin-bottom: 15px;
+      background: #111; border: 1px solid #454545; color: #fff;
+      border-radius: 4px; box-sizing: border-box;
+    }
+    input:focus { border-color: #ff764d; outline: none; }
+    
+    button.action-btn {
+      width: 100%; padding: 12px; background: #ff764d; border: none;
+      color: #000; font-weight: bold; cursor: pointer; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    button.action-btn:hover { background: #ff9f7e; }
+    #statusMsg { margin-top: 15px; font-size: 12px; min-height: 20px; }
+
+    /* Panel Derecho: Lista */
+    .list-panel { flex: 1; padding: 30px; overflow-y: auto; }
+    
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; border-bottom: 2px solid #454545; padding: 10px; color: #888; text-transform: uppercase; font-size: 11px; }
+    td { border-bottom: 1px solid #333; padding: 12px 10px; vertical-align: middle; }
+    tr:hover { background: #2a2a2a; }
+    
+    .role-badge { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 10px; border: 1px solid #555; }
+    .slug-link { color: #5dade2; text-decoration: none; }
+    .slug-link:hover { text-decoration: underline; }
+
+    .btn-delete {
+        background-color: #ff4d4d;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+        transition: background 0.2s;
+    }
+    .btn-delete:hover { background-color: #ff1a1a; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">🎹 Super Admin <span style="color:#666">// Gestión de Profesores</span></div>
+    <div style="display:flex; gap:15px; align-items:center;">
+      <span id="adminName" style="font-size:12px;">Admin</span>
+      <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+    </div>
+  </header>
+
+  <div class="container">
+    
+    <div class="create-panel">
+      <h2>+ Nuevo Profesor</h2>
+      <form id="createForm">
+        <label>Nombre Completo</label>
+        <input type="text" id="name" placeholder="Ej: Pedro Pagliai" required>
+        
+        <label>Correo Electrónico</label>
+        <input type="email" id="email" placeholder="pedro@email.com" required>
+        
+        <label>URL Personalizada (Slug)</label>
+        <div style="display:flex; align-items:center; gap:5px; margin-bottom:15px;">
+           <span style="font-size:10px; color:#666;">pianolink.com/c/</span>
+           <input type="text" id="slug" placeholder="pedro-piano" style="margin-bottom:0;" required>
+        </div>
+        
+        <label>Contraseña Temporal</label>
+        <input type="text" id="password" placeholder="123456" required>
+        
+        <button type="submit" class="action-btn">Crear Cuenta</button>
+      </form>
+      <div id="statusMsg"></div>
+    </div>
+
+    <div class="list-panel">
+      <h2>Staff Docente Activo</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>URL Sala</th>
+            <th>Rol</th>
+            <th>Desde</th>
+            <th>Acciones</th> </tr>
+        </thead>
+        <tbody id="teachersTable">
+          <tr><td colspan="6" style="text-align:center; color:#666;">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    // 1. SEGURIDAD: Verificar sesión
+    const userSession = JSON.parse(localStorage.getItem('pianoUser'));
+    if (!userSession || userSession.role !== 'admin') {
+      window.location.href = 'login.html';
+    } else {
+      document.getElementById('adminName').textContent = userSession.name;
+    }
+
+    // 2. FUNCIÓN: Cargar lista de profesores
+    async function loadTeachers() {
+      try {
+        const res = await fetch('/api/auth/teachers');
+        const teachers = await res.json();
+        
+        const tbody = document.getElementById('teachersTable');
+        tbody.innerHTML = '';
+
+        teachers.forEach(t => {
+          const date = new Date(t.createdAt).toLocaleDateString();
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight:bold; color:#fff;">${t.name}</td>
+            <td style="color:#aaa;">${t.email}</td>
+            <td><a href="/?sala=${t.slug}" target="_blank" class="slug-link">/c/${t.slug || '---'}</a></td>
+            <td><span class="role-badge">PROFESOR</span></td>
+            <td style="color:#666; font-size:11px;">${date}</td>
+            <td>
+                <button class="btn-delete" onclick="deleteTeacher('${t._id}')">🗑️ Eliminar</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // 3. FUNCIÓN: Crear profesor
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('statusMsg');
+      const btn = document.querySelector('button.action-btn');
+      
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const slug = document.getElementById('slug').value;
+      const password = document.getElementById('password').value;
+
+      btn.disabled = true;
+      msg.textContent = "Creando..."; msg.style.color = "#aaa";
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, slug, password })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          msg.textContent = "✅ " + data.message;
+          msg.style.color = "#b4e080";
+          document.getElementById('createForm').reset();
+          loadTeachers(); // Recargar lista
+        } else {
+          msg.textContent = "❌ " + data.message;
+          msg.style.color = "#ff4d4d";
+        }
+      } catch (err) {
+        msg.textContent = "Error de conexión";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // 4. FUNCIÓN NUEVA: Eliminar Profesor
+    async function deleteTeacher(id) {
+        if (!confirm("⚠️ ¿Estás SEGURO de eliminar a este profesor? Se borrarán sus datos y su acceso. Esta acción es irreversible.")) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/auth/delete/${id}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                alert("✅ " + data.message);
+                loadTeachers(); // Recargar la tabla
+            } else {
+                alert("❌ Error: " + data.message);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error de conexión al intentar eliminar.");
+        }
+    }
+
+    function logout() {
+      localStorage.removeItem('pianoUser');
+      window.location.href = 'login.html';
+    }
+
+    // Cargar al inicio
+    loadTeachers();
+  </script>
+
+</body>
+</html>

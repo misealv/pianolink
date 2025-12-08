@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acceso Profesores | Piano Link</title>
+  <style>
+    /* Estilo oscuro 'Piano Link' */
+    body {
+      background-color: #1a1a1a;
+      color: #dcdcdc;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-card {
+      background: #262626;
+      border: 1px solid #454545;
+      padding: 40px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .brand-logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 5px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .brand-subtitle {
+      font-size: 11px;
+      color: #ff764d; /* Naranja Ableton */
+      margin-bottom: 30px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      background: #121212;
+      border: 1px solid #454545;
+      color: #fff;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    input:focus { border-color: #ff764d; }
+    
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #ff764d;
+      color: #000;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 13px;
+      border: none;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: background 0.3s, transform 0.1s;
+    }
+    button:hover { background: #ff9f7e; }
+    button:active { transform: translateY(1px); }
+    
+    #msg {
+      margin-top: 20px;
+      font-size: 12px;
+      min-height: 20px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <div class="brand-logo">🎹 Piano Link</div>
+    <div class="brand-subtitle">Acceso Docente</div>
+    
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Correo electrónico" required>
+      <input type="password" id="password" placeholder="Contraseña" required>
+      <button type="submit">INGRESAR</button>
+    </form>
+    
+    <div id="msg"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const msg = document.getElementById('msg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = form.querySelector('button');
+      btn.disabled = true;
+      btn.textContent = "Verificando...";
+      msg.textContent = "";
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          msg.style.color = "#b4e080"; // Verde éxito
+          msg.textContent = "✅ Acceso concedido. Redirigiendo...";
+          
+          // 1. Guardar la sesión (IMPORTANTE: Esto permite entrar a los otros paneles)
+          localStorage.setItem('pianoUser', JSON.stringify(data));
+          
+          // 2. Redirigir según el rol con un pequeño delay
+          setTimeout(() => {
+            if (data.role === 'admin') {
+              window.location.href = "admin.html";
+            } else if (data.role === 'teacher') {
+              window.location.href = "dashboard.html";
+            } else {
+              // Por si acaso, fallback a la home
+              window.location.href = "/";
+            }
+          }, 800);
+
+        } else {
+          msg.style.color = "#ff4d4d"; // Rojo error
+          msg.textContent = "❌ " + (data.message || "Credenciales incorrectas");
+          btn.disabled = false;
+          btn.textContent = "INGRESAR";
+        }
+      } catch (error) {
+        msg.textContent = "⚠️ Error de conexión con el servidor.";
+        msg.style.color = "#ff4d4d";
+        btn.disabled = false;
+        btn.textContent = "INGRESAR";
+      }
+    });
+  </script>
+
+</body>
+</html>
