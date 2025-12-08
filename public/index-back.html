@@ -1,6 +1,36 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <script>
+    (function securityGuard() {
+        const params = new URLSearchParams(window.location.search);
+        
+        // 1. REGLA DE ALUMNOS:
+        // Si el link trae "role=student" o especifica una "sala", dejamos pasar.
+        if (params.get('role') === 'student' || params.get('sala')) {
+            return; // ¡Adelante alumno!
+        }
+
+        // 2. REGLA DE PROFESORES:
+        // Si no es alumno, revisamos si hay una sesión guardada en el navegador.
+        const session = localStorage.getItem('pianoUser');
+        if (session) {
+            try {
+                const user = JSON.parse(session);
+                if (user && user.role === 'teacher') {
+                    return; // ¡Adelante profesor!
+                }
+            } catch (e) {}
+        }
+
+        // 3. SI NO CUMPLE NADA:
+        // Lo mandamos al Login para que se identifique.
+        console.warn("⛔ Acceso denegado: Redirigiendo al login...");
+        window.location.href = 'login.html';
+    })();
+  </script>
+
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Piano Link</title>
