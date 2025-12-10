@@ -42,34 +42,42 @@ setBufferLatency(ms) {
      * Recibe un paquete MIDI decodificado y lo agenda en el futuro.
      * @param {Object} midiEvent - { data1, data2, timestamp, status }
      */
-    scheduleNote(midiEvent) {
-        if (!this.ctx) return;
+  /**
+     * Recibe un paquete MIDI decodificado y lo agenda en el futuro.
+     */
+  scheduleNote(midiEvent) {
+    if (!this.ctx) return;
 
-        // 1. ¿Qué hora es ahora en el "Tiempo Global"?
-        const nowGlobal = this.timeSync.getNow();
+    const nowGlobal = this.timeSync.getNow();
+    
+    // Latencia: Cuánto tiempo "real" viajó por el cable
+    // Si (nowGlobal < timestamp), significa que el reloj cree que el mensaje viene del futuro (Clock Skew negativo)
+    const networkLatency = nowGlobal - midiEvent.timestamp;
 
-        // 2. ¿Cuánto tiempo ha pasado desde que se tocó la nota? (Latencia de Red)
-        const networkLatency = nowGlobal - midiEvent.timestamp;
+    // Cálculo del momento de reproducción
+    let timeToPlayMs = this.bufferMs - networkLatency;
 
-        // 3. Calculamos cuándo debe sonar respecto a AHORA
-        // Objetivo: Que suene siempre a (Timestamp + Buffer)
-        // Restamos lo que ya tardó en llegar.
-        let timeToPlayMs = this.bufferMs - networkLatency;
-
-        // Si la red fue terrible y tardó más que el buffer, suena YA (0ms)
-        // Esto es un "Buffer Underrun" (Aquí podrías disparar una alerta a la UI)
-        if (timeToPlayMs < 0) {
-            console.warn(`⚠️ Nota tardía (${Math.abs(timeToPlayMs).toFixed(1)}ms). Aumentar buffer.`);
-            timeToPlayMs = 0;
-        }
-
-        // 4. Convertir a segundos para Web Audio API
-        const timeToPlaySeconds = timeToPlayMs / 1000;
-        const when = this.ctx.currentTime + timeToPlaySeconds;
-
-        // 5. Generar Sonido (Simple Oscilador para la prueba)
-        this._playOscillator(midiEvent.data1, when, midiEvent.data2);
+    // --- CORRECCIÓN DE LATENCIA EXTREMA (VÁLVULA DE SEGURIDAD) ---
+    
+    // CASO 1: La nota llegó tardísimo (Buffer Underrun) -> Tocar YA
+    if (timeToPlayMs < 0) {
+        // console.warn("⚠️ Late note"); // Descomentar para debug
+        timeToPlayMs = 0;
+    } 
+    
+    // CASO 2: La nota viene "del futuro" por más de 1 segundo (Error de Reloj) -> Tocar YA
+    // Esto arregla tu problema de los 4 segundos
+    else if (timeToPlayMs > 1000) {
+        console.warn(`🕒 Error de Sync detectado (${(timeToPlayMs/1000).toFixed(1)}s). Forzando reproducción inmediata.`);
+        timeToPlayMs = 0;
     }
+    // -------------------------------------------------------------
+
+    const timeToPlaySeconds = timeToPlayMs / 1000;
+    const when = this.ctx.currentTime + timeToPlaySeconds;
+
+    this._playOscillator(midiEvent.data1, when, midiEvent.data2);
+}
 
     // Generador de sonido simple (Senoide)
     _playOscillator(note, when, velocity) {
