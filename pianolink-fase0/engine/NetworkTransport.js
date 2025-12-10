@@ -83,25 +83,47 @@ export class NetworkTransport {
     }
 
     async createAnswerCode(offerString) {
-        const remoteData = JSON.parse(atob(offerString));
+        console.log("1. Decodificando Oferta...");
+        let remoteData;
+        try {
+            // Limpieza de espacios en blanco por si acaso
+            const cleanStr = offerString.trim();
+            remoteData = JSON.parse(atob(cleanStr));
+        } catch (e) {
+            console.error("Error al decodificar Base64:", e);
+            throw new Error("El código de invitación no es válido (Error de formato).");
+        }
         
-        // 1. Establecer descripción remota
-        await this.peerConnection.setRemoteDescription(remoteData.sdp);
+        console.log("2. Configurando Remote Description...");
+        // Importante: Reconstruir el objeto RTCSessionDescription correctamente
+        await this.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteData.sdp));
         
-        // 2. Añadir candidatos ICE del otro lado
-        remoteData.ice.forEach(c => this.peerConnection.addIceCandidate(c));
+        console.log("3. Añadiendo Candidatos ICE del Profesor...");
+        if (remoteData.ice && Array.isArray(remoteData.ice)) {
+            for (const candidate of remoteData.ice) {
+                await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+        }
 
-        // 3. Crear respuesta
+        console.log("4. Creando Respuesta (Answer)...");
         const answer = await this.peerConnection.createAnswer();
         await this.peerConnection.setLocalDescription(answer);
 
-        // 4. Esperar y empaquetar nuestra respuesta
+        // Reiniciamos la cola de candidatos locales para enviar solo los nuevos
+        // (Aunque para esta prueba simple, enviar todos está bien)
+        
+        console.log("5. Esperando recolección de candidatos locales (2s)...");
         return new Promise(resolve => {
             setTimeout(() => {
+                if (this.candidatesQueue.length === 0) {
+                    console.warn("⚠️ Advertencia: No se generaron candidatos ICE locales. Puede que la conexión falle.");
+                }
+                
                 const code = JSON.stringify({
                     sdp: this.peerConnection.localDescription,
                     ice: this.candidatesQueue
                 });
+                console.log("✅ Respuesta generada con éxito.");
                 resolve(btoa(code));
             }, 2000);
         });

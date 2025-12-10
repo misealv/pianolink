@@ -86,13 +86,29 @@ document.getElementById('btnGuest').addEventListener('click', async () => {
 // El Alumno procesa la invitación y genera respuesta
 document.getElementById('btnProcessInvite').addEventListener('click', async () => {
     const offer = txtOffer.value.trim();
-    if(!offer) return alert("Pega el código de invitación del profesor");
+    if(!offer) return alert("❌ Error: La caja de invitación está vacía.");
     
-    console.log("Procesando invitación...");
-    const answerCode = await net.createAnswerCode(offer);
-    
-    txtAnswer.value = answerCode;
-    document.getElementById('guestStep2').style.display = 'block';
+    // Feedback visual de que está trabajando
+    const btn = document.getElementById('btnProcessInvite');
+    const originalText = btn.innerText;
+    btn.innerText = "⏳ Procesando...";
+    btn.disabled = true;
+
+    try {
+        console.log("Iniciando proceso de respuesta...");
+        const answerCode = await net.createAnswerCode(offer);
+        
+        txtAnswer.value = answerCode;
+        document.getElementById('guestStep2').style.display = 'block';
+        alert("✅ ¡Respuesta generada! Ahora cópiala y mándasela al profesor.");
+        
+    } catch (error) {
+        console.error("Fallo crítico:", error);
+        alert("❌ Ocurrió un error: " + error.message + "\n\nRevisa la consola (F12) para más detalles.");
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
 });
 
 
