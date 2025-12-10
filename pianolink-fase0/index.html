@@ -6,9 +6,11 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #1e1e1e; color: #eee; padding: 20px; max-width: 800px; margin: 0 auto; }
         .box { background: #2d2d2d; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #444; }
-        textarea { width: 100%; height: 60px; background: #111; color: #0f0; border: 1px solid #555; font-family: monospace; font-size: 10px; margin-top:5px;}
+        textarea { width: 100%; height: 60px; background: #111; color: #0f0; border: 1px solid #555; font-family: monospace; font-size: 11px; margin-top:5px; resize: none;}
         button { padding: 12px 20px; font-weight: bold; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; margin: 5px 0; }
-        button.secondary { background: #444; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        button.secondary { background: #444; border: 1px solid #666; }
         .hidden { display: none; }
         h1, h2, h3 { color: white; margin-top: 0; }
         #hud { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); color: lime; padding: 10px; border: 1px solid #0f0; width: 200px; font-family: monospace; font-size: 0.9em; z-index: 999;}
@@ -37,22 +39,29 @@
 
         <div id="step3-box" class="box">
             <div id="hostStep1" class="hidden">
-                <p><b>PASO 1:</b> Copia este código y mándalo al alumno (WhatsApp/Slack).</p>
-                <textarea id="offerCode" readonly onclick="this.select()">Generando...</textarea>
-                <p><b>PASO 3:</b> Pega aquí el código que te devuelva el alumno y pulsa Conectar.</p>
-                <textarea id="answerCode" placeholder="Pega aquí la respuesta del alumno..."></textarea>
-                <button id="btnConnectHost">🔗 CONECTAR FINALMENTE</button>
+                <p><b>PASO 1:</b> Envía este código al alumno:</p>
+                <div style="display:flex; gap:10px;">
+                    <textarea id="offerCode" readonly>Generando...</textarea>
+                    <button id="btnCopyOffer" class="secondary" style="height:70px;">📋 COPIAR</button>
+                </div>
+                
+                <p><b>PASO 3:</b> Pega aquí la respuesta del alumno:</p>
+                <textarea id="answerCode" placeholder="Pega aquí la respuesta..."></textarea>
+                <button id="btnConnectHost" style="width:100%; margin-top:10px;">🔗 CONECTAR FINALMENTE</button>
             </div>
 
             <div id="guestStep1" class="hidden">
-                <p><b>PASO 1:</b> Pega aquí el código que te mandó el profesor.</p>
-                <textarea id="offerCode" placeholder="Pega la invitación aquí..."></textarea>
-                <button id="btnProcessInvite">⬇️ Generar Respuesta</button>
+                <p><b>PASO 1:</b> Pega la invitación del profesor:</p>
+                <textarea id="offerCodeGuest" placeholder="Pega la invitación aquí..."></textarea>
+                <button id="btnProcessInvite" style="width:100%;">⬇️ Generar Respuesta</button>
                 
                 <div id="guestStep2" class="hidden">
-                    <p><b>PASO 2:</b> Copia este código y mándaselo de vuelta al profesor.</p>
-                    <textarea id="answerCode" readonly onclick="this.select()"></textarea>
-                    <p style="color: yellow">⏳ Esperando a que el profesor confirme...</p>
+                    <p><b>PASO 2:</b> Envía esto al profesor:</p>
+                    <div style="display:flex; gap:10px;">
+                        <textarea id="answerCodeGuest" readonly></textarea>
+                        <button id="btnCopyAnswer" class="secondary" style="height:70px;">📋 COPIAR</button>
+                    </div>
+                    <p style="color: yellow; font-size: 0.9em; margin-top: 5px;">⏳ Esperando confirmación del profesor...</p>
                 </div>
             </div>
         </div>

@@ -5,30 +5,24 @@ import { AudioScheduler } from './engine/AudioScheduler.js';
 
 console.log("=== PIANOLINK FASE 0: REMOTE EDITION ===");
 
-// Instancia ÚNICA para este navegador
+// Instancia ÚNICA
 const net = new NetworkTransport();
 const protocol = new MidiProtocol();
 const timeSync = new TimeSync(net);
 const audio = new AudioScheduler(timeSync);
-
-// Variables de estado
 let midiAccess = null;
 let isHost = false;
 
-// --- 1. CONFIGURACIÓN DE AUDIO Y RED ---
+// --- 1. CONFIGURACIÓN MOTORES ---
 
-// Cuando recibimos datos de la red (del OTRO usuario)
 net.onDataReceived((buffer) => {
     const data = MidiProtocol.decode(buffer);
     if (data) {
-        // Reproducir sonido
         audio.scheduleNote(data);
-        // Feedback visual en consola
         console.log(`🎵 Recibido: Nota ${data.data1}`);
     }
 });
 
-// HUD Updates
 document.addEventListener('stats-update', (e) => {
     const stats = e.detail;
     document.getElementById('val-rtt').innerText = stats.rtt;
@@ -36,90 +30,93 @@ document.addEventListener('stats-update', (e) => {
     document.getElementById('val-jitter').innerText = stats.jitter;
 });
 
-// Evento cuando la conexión se establece finalmente
 document.addEventListener('webrtc-connected', () => {
     document.getElementById('connectionStatus').innerText = "✅ CONEXIÓN ESTABLECIDA";
     document.getElementById('connectionStatus').style.color = "lime";
-    document.getElementById('step3-box').style.display = 'none'; // Ocultar pasos de conexión
-    
-    // Iniciar Sincronización de Relojes
-    console.log("Iniciando Sync de relojes...");
-    timeSync.start(isHost); // Si soy Host, soy Maestro del reloj
+    document.getElementById('step3-box').style.display = 'none'; 
+    timeSync.start(isHost);
 });
 
+// --- 2. INTERFAZ Y SEÑALIZACIÓN ---
 
-// --- 2. LÓGICA DE SEÑALIZACIÓN MANUAL ---
+const hostZone = {
+    offer: document.getElementById('offerCode'),
+    answer: document.getElementById('answerCode'),
+    btnCopy: document.getElementById('btnCopyOffer'),
+    btnConnect: document.getElementById('btnConnectHost')
+};
 
-const txtOffer = document.getElementById('offerCode');
-const txtAnswer = document.getElementById('answerCode');
+const guestZone = {
+    offer: document.getElementById('offerCodeGuest'),
+    answer: document.getElementById('answerCodeGuest'),
+    btnProcess: document.getElementById('btnProcessInvite'),
+    btnCopy: document.getElementById('btnCopyAnswer')
+};
 
-// MODO PROFESOR (HOST)
+// MODO PROFESOR
 document.getElementById('btnHost').addEventListener('click', async () => {
     isHost = true;
     setupUI('host');
     await audio.init();
-    await net.init(true); // true = Initiator
-
-    console.log("Generando invitación...");
+    await net.init(true);
+    
+    hostZone.offer.value = "⏳ Generando...";
     const code = await net.createOfferCode();
-    txtOffer.value = code;
+    hostZone.offer.value = code;
     document.getElementById('hostStep1').style.display = 'block';
+    initMidiSystem();
 });
 
-// El Profe pega la respuesta del alumno
-document.getElementById('btnConnectHost').addEventListener('click', async () => {
-    const answer = txtAnswer.value.trim();
-    if(!answer) return alert("Pega el código que te mandó el alumno");
-    await net.completeConnection(answer);
+hostZone.btnCopy.addEventListener('click', () => copyToClipboard(hostZone.offer, hostZone.btnCopy));
+
+hostZone.btnConnect.addEventListener('click', async () => {
+    const answer = hostZone.answer.value.trim();
+    if(!answer) return alert("Pega la respuesta del alumno primero.");
+    try {
+        await net.completeConnection(answer);
+    } catch(e) { alert(e.message); }
 });
 
-
-// MODO ALUMNO (GUEST)
+// MODO ALUMNO
 document.getElementById('btnGuest').addEventListener('click', async () => {
     isHost = false;
     setupUI('guest');
     await audio.init();
-    await net.init(false); // false = Receiver
+    await net.init(false);
     document.getElementById('guestStep1').style.display = 'block';
+    initMidiSystem();
 });
 
-// El Alumno procesa la invitación y genera respuesta
-document.getElementById('btnProcessInvite').addEventListener('click', async () => {
-    const offer = txtOffer.value.trim();
-    if(!offer) return alert("❌ Error: La caja de invitación está vacía.");
+guestZone.btnProcess.addEventListener('click', async () => {
+    const offer = guestZone.offer.value.trim();
+    if(!offer) return alert("Pega la invitación primero.");
     
-    // Feedback visual de que está trabajando
-    const btn = document.getElementById('btnProcessInvite');
-    const originalText = btn.innerText;
-    btn.innerText = "⏳ Procesando...";
+    const btn = guestZone.btnProcess;
     btn.disabled = true;
-
+    btn.innerText = "⏳ Procesando...";
+    
     try {
-        console.log("Iniciando proceso de respuesta...");
         const answerCode = await net.createAnswerCode(offer);
-        
-        txtAnswer.value = answerCode;
+        guestZone.answer.value = answerCode;
         document.getElementById('guestStep2').style.display = 'block';
-        alert("✅ ¡Respuesta generada! Ahora cópiala y mándasela al profesor.");
-        
-    } catch (error) {
-        console.error("Fallo crítico:", error);
-        alert("❌ Ocurrió un error: " + error.message + "\n\nRevisa la consola (F12) para más detalles.");
+    } catch(e) {
+        alert("Error: " + e.message);
     } finally {
-        btn.innerText = originalText;
         btn.disabled = false;
+        btn.innerText = "⬇️ Generar Respuesta";
     }
 });
 
+guestZone.btnCopy.addEventListener('click', () => copyToClipboard(guestZone.answer, guestZone.btnCopy));
 
-// --- 3. HARDWARE MIDI (Igual que antes) ---
+// --- 3. HARDWARE MIDI ---
 
 async function initMidiSystem() {
     try {
         midiAccess = await navigator.requestMIDIAccess();
         const select = document.getElementById('midiInputSelect');
         select.disabled = false;
-        select.innerHTML = '<option value="-1">-- Selecciona tu teclado --</option>';
+        select.innerHTML = '<option value="-1">-- Selecciona teclado --</option>';
         
         midiAccess.inputs.forEach(input => {
             const opt = document.createElement('option');
@@ -134,38 +131,36 @@ async function initMidiSystem() {
                 input.onmidimessage = (msg) => {
                     const [status, data1, data2] = msg.data;
                     if(status >= 240) return;
-
-                    // Enviar a la red
                     const now = timeSync.getNow();
                     const buffer = protocol.encode(status, data1, data2, now);
                     net.send(buffer);
-                    
-                    // REQ: Feedback local (sonido local opcional, aquí solo log)
-                    // audio.scheduleNote(...) <-- Si quieres escucharte a ti mismo, descomenta
                 };
             }
         });
         document.getElementById('midiStatus').innerText = "✅ MIDI Listo";
         document.getElementById('midiStatus').style.color = "lime";
-
     } catch (e) {
         console.error(e);
     }
 }
 
-// Iniciar MIDI al cargar (o tras interacción)
-document.getElementById('btnHost').addEventListener('click', initMidiSystem);
-document.getElementById('btnGuest').addEventListener('click', initMidiSystem);
+// --- UTILIDADES ---
 
-
-// --- UI Helpers ---
 function setupUI(role) {
     document.getElementById('roleSelector').style.display = 'none';
     document.getElementById('connectionZone').style.display = 'block';
-    document.getElementById('roleTitle').innerText = role === 'host' ? 'MODO PROFESOR (HOST)' : 'MODO ALUMNO (GUEST)';
+    document.getElementById('roleTitle').innerText = role === 'host' ? 'MODO PROFESOR' : 'MODO ALUMNO';
 }
 
-// Slider
+function copyToClipboard(elem, btn) {
+    elem.select();
+    navigator.clipboard.writeText(elem.value).then(() => {
+        const old = btn.innerText;
+        btn.innerText = "✅ COPIADO";
+        setTimeout(() => btn.innerText = old, 2000);
+    });
+}
+
 const slider = document.getElementById('bufferSlider');
 slider.addEventListener('input', (e) => {
     const val = parseInt(e.target.value);
