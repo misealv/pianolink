@@ -739,45 +739,57 @@ toggleMidiOut.addEventListener("change", () => {
   else log("Salida MIDI desactivada.", "info");
 });
 
-/* ------------ MANEJO DE MENSAJES LOCALES ------------ */
+
+/* ------------ MANEJO DE MENSAJES LOCALES (OPTIMIZADO) ------------ */
+
 function handleLocalMIDIMessage(event) {
   const [status, data1, data2] = event.data;
+  
+  // 1. EL FILTRO DE SEGURIDAD (La clave anti-colapso)
+  // Si el mensaje es >= 240 (F0), es ruido de sistema (Clock/Sensing). Lo ignoramos.
+  if (status >= 240) return;
+
   const cmd = status & 0xf0;
   const note = data1;
   const velocity = data2;
 
-  // 1. MANEJO DE NOTAS
+  // 2. MANEJO DE NOTAS (Note On / Note Off)
   if (cmd === 0x90 || cmd === 0x80) {
     const isNoteOn = (cmd === 0x90 && velocity > 0);
     
+    // A) Feedback Visual Local (Inmediato)
     lightKey(note, isNoteOn, velocity);
     
+    // B) Pizarra Musical (Solo si eres Profe)
     if (rol === 'teacher') updateMusicBoard(note, isNoteOn);
 
+    // C) Salida MIDI Local (Si tienes "Enviar a mi sintetizador" activado)
     if (enableMidiOut && midiOutput) {
       try { midiOutput.send([cmd, note, velocity]); } catch (e) {}
     }
 
+    // D) ENVÍO A INTERNET (OPTIMIZADO)
+    // Solo enviamos lo vital. El servidor pone el resto de las etiquetas.
     if (salaActual) {
       socket.emit("midi-message", {
         type: "note", 
         command: cmd, 
         note, 
-        velocity, 
-        fromRole: rol, 
-        roomCode: salaActual, 
+        velocity, // Tu velocidad de ataque viaja segura aquí
         timestamp: Date.now()
       });
     }
   }
 
-  // 2. MANEJO DE PEDAL
+  // 3. MANEJO DE PEDAL (Sustain)
   if (cmd === 0xB0) {
     const controller = data1;
     const value = data2;
 
+    // Pedal Sustain (CC 64)
     if (controller === 64) { 
        const now = Date.now();
+       // Pequeño freno para que el pedal no mande 50 señales si el pie tiembla
        if (value === 0 || value === 127 || (now - lastPedalTime > 50)) {
            lastPedalTime = now;
            
@@ -790,15 +802,20 @@ function handleLocalMIDIMessage(event) {
                status, 
                controller, 
                value, 
-               fromRole: rol, 
-               roomCode: salaActual, 
                timestamp: Date.now()
              });
            }
        }
     } else {
+       // Otros botones/ruedas del teclado
        if (salaActual) {
-          socket.emit("midi-message", { type: "cc", status, controller, value, fromRole: rol, roomCode: salaActual, timestamp: Date.now() });
+          socket.emit("midi-message", { 
+              type: "cc", 
+              status, 
+              controller, 
+              value, 
+              timestamp: Date.now() 
+          });
        }
     }
   }
