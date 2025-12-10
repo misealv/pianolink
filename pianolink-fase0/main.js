@@ -3,26 +3,29 @@ import { NetworkTransport } from './engine/NetworkTransport.js';
 import { TimeSync } from './engine/TimeSync.js';
 import { AudioScheduler } from './engine/AudioScheduler.js';
 
-console.log("=== PIANOLINK FASE 0: REMOTE EDITION ===");
+console.log("=== PIANOLINK FASE 0: REMOTE EDITION (SMART ROUTING) ===");
 
-// Instancia ÚNICA
+// --- INSTANCIAS DEL MOTOR ---
 const net = new NetworkTransport();
 const protocol = new MidiProtocol();
 const timeSync = new TimeSync(net);
 const audio = new AudioScheduler(timeSync);
+
 let midiAccess = null;
 let isHost = false;
 
-// --- 1. CONFIGURACIÓN MOTORES ---
+// --- 1. CONFIGURACIÓN DE RED Y AUDIO ---
 
+// Cuando recibimos notas del OTRO lado -> Suenan
 net.onDataReceived((buffer) => {
     const data = MidiProtocol.decode(buffer);
     if (data) {
         audio.scheduleNote(data);
-        console.log(`🎵 Recibido: Nota ${data.data1}`);
+        // console.log(`🎵 Nota recibida: ${data.data1}`); // Descomentar para debug
     }
 });
 
+// Actualizar el HUD (Monitor Negro)
 document.addEventListener('stats-update', (e) => {
     const stats = e.detail;
     document.getElementById('val-rtt').innerText = stats.rtt;
@@ -30,14 +33,18 @@ document.addEventListener('stats-update', (e) => {
     document.getElementById('val-jitter').innerText = stats.jitter;
 });
 
+// Cuando la conexión se establece
 document.addEventListener('webrtc-connected', () => {
     document.getElementById('connectionStatus').innerText = "✅ CONEXIÓN ESTABLECIDA";
     document.getElementById('connectionStatus').style.color = "lime";
     document.getElementById('step3-box').style.display = 'none'; 
+    
+    // Iniciar Sincronización de Relojes
     timeSync.start(isHost);
 });
 
-// --- 2. INTERFAZ Y SEÑALIZACIÓN ---
+
+// --- 2. INTERFAZ Y SEÑALIZACIÓN (COPY/PASTE) ---
 
 const hostZone = {
     offer: document.getElementById('offerCode'),
@@ -53,17 +60,19 @@ const guestZone = {
     btnCopy: document.getElementById('btnCopyAnswer')
 };
 
-// MODO PROFESOR
+// MODO PROFESOR (HOST)
 document.getElementById('btnHost').addEventListener('click', async () => {
     isHost = true;
     setupUI('host');
-    await audio.init();
-    await net.init(true);
+    await audio.init(); // Iniciar AudioContext
+    await net.init(true); // true = Initiator
     
-    hostZone.offer.value = "⏳ Generando...";
+    hostZone.offer.value = "⏳ Generando código...";
     const code = await net.createOfferCode();
     hostZone.offer.value = code;
     document.getElementById('hostStep1').style.display = 'block';
+    
+    // Iniciar sistema MIDI
     initMidiSystem();
 });
 
@@ -71,25 +80,28 @@ hostZone.btnCopy.addEventListener('click', () => copyToClipboard(hostZone.offer,
 
 hostZone.btnConnect.addEventListener('click', async () => {
     const answer = hostZone.answer.value.trim();
-    if(!answer) return alert("Pega la respuesta del alumno primero.");
+    if(!answer) return alert("Pega primero la respuesta del alumno.");
     try {
         await net.completeConnection(answer);
     } catch(e) { alert(e.message); }
 });
 
-// MODO ALUMNO
+
+// MODO ALUMNO (GUEST)
 document.getElementById('btnGuest').addEventListener('click', async () => {
     isHost = false;
     setupUI('guest');
     await audio.init();
-    await net.init(false);
+    await net.init(false); // false = Receiver
     document.getElementById('guestStep1').style.display = 'block';
+    
+    // Iniciar sistema MIDI
     initMidiSystem();
 });
 
 guestZone.btnProcess.addEventListener('click', async () => {
     const offer = guestZone.offer.value.trim();
-    if(!offer) return alert("Pega la invitación primero.");
+    if(!offer) return alert("Pega primero la invitación del profesor.");
     
     const btn = guestZone.btnProcess;
     btn.disabled = true;
@@ -109,32 +121,50 @@ guestZone.btnProcess.addEventListener('click', async () => {
 
 guestZone.btnCopy.addEventListener('click', () => copyToClipboard(guestZone.answer, guestZone.btnCopy));
 
-// --- 3. HARDWARE MIDI ---
 
-// --- 3. HARDWARE MIDI ---
+// --- 3. SISTEMA MIDI INTELIGENTE (SMART ROUTING) ---
 
 async function initMidiSystem() {
     try {
         midiAccess = await navigator.requestMIDIAccess();
-        const select = document.getElementById('midiInputSelect');
         
-        // Habilitar selector
-        select.disabled = false;
-        select.innerHTML = '<option value="-1">-- Selecciona tu teclado --</option>';
+        // Referencias UI
+        const selectIn = document.getElementById('midiInputSelect');
+        const selectOut = document.getElementById('midiOutputSelect');
         
-        // Llenar entradas disponibles
+        // Habilitar selectores
+        selectIn.disabled = false;
+        selectOut.disabled = false;
+        
+        // Limpiar listas
+        selectIn.innerHTML = '<option value="-1">-- Selecciona Entrada (Tu Teclado) --</option>';
+        selectOut.innerHTML = '<option value="-1">-- Selecciona Salida (Sonido) --</option>';
+
+        // Llenar INPUTS
         midiAccess.inputs.forEach(input => {
             const opt = document.createElement('option');
             opt.value = input.id;
             opt.text = input.name;
-            select.appendChild(opt);
+            selectIn.appendChild(opt);
         });
 
-        // Configurar selección de entrada
-        select.addEventListener('change', (e) => {
-            const input = midiAccess.inputs.get(e.target.value);
-            if(input) {
-                console.log(`🔌 Entrada conectada: ${input.name}`);
+        // Llenar OUTPUTS
+        midiAccess.outputs.forEach(output => {
+            const opt = document.createElement('option');
+            opt.value = output.id;
+            opt.text = output.name;
+            selectOut.appendChild(opt);
+        });
+
+        // --- LÓGICA PRINCIPAL: CAMBIO DE ENTRADA ---
+        selectIn.addEventListener('change', (e) => {
+            const inputId = e.target.value;
+            const inputPort = midiAccess.inputs.get(inputId);
+            
+            if(inputPort) {
+                console.log(`🔌 Entrada conectada: ${inputPort.name}`);
+                
+                // 1. Configurar envío de datos a la red
                 input.onmidimessage = (msg) => {
                     const [status, data1, data2] = msg.data;
                     if(status >= 240) return; // Ignorar clocks
@@ -143,33 +173,61 @@ async function initMidiSystem() {
                     const buffer = protocol.encode(status, data1, data2, now);
                     net.send(buffer);
                 };
+
+                // 2. SMART ROUTING (Búsqueda automática de Salida)
+                // Buscamos si existe una salida con el MISMO nombre
+                const outputs = Array.from(midiAccess.outputs.values());
+                const matchingOutput = outputs.find(out => out.name === inputPort.name);
+
+                if (matchingOutput) {
+                    console.log(`✨ Coincidencia encontrada: ${matchingOutput.name}`);
+                    
+                    // Conectar automáticamente en el motor
+                    audio.setMidiOutput(matchingOutput);
+                    
+                    // Actualizar visualmente el selector de salida
+                    selectOut.value = matchingOutput.id;
+                    
+                    // Feedback visual temporal
+                    selectOut.style.border = "2px solid lime";
+                    setTimeout(() => selectOut.style.border = "1px solid #555", 1000);
+                    
+                } else {
+                    console.log("⚠️ No hay coincidencia exacta. Seleccione manual.");
+                }
             }
         });
 
-        // --- NUEVO: AUTO-CONEXIÓN DE SALIDA (OUTPUT) ---
-        // Buscamos el primer puerto de salida disponible para que suene el piano
-        const outputs = Array.from(midiAccess.outputs.values());
-        if (outputs.length > 0) {
-            // Normalmente el piano USB es la primera salida
-            const pianoOutput = outputs[0];
-            audio.setMidiOutput(pianoOutput);
-            
-            // Prueba visual: Mensaje en consola
-            console.log(`🎹 Salida MIDI vinculada a: ${pianoOutput.name}`);
-        } else {
-            console.warn("⚠️ No se encontró salida MIDI (Tu piano no sonará solo).");
-        }
+        // --- LÓGICA SECUNDARIA: CAMBIO DE SALIDA MANUAL ---
+        selectOut.addEventListener('change', (e) => {
+            const portId = e.target.value;
+            if (portId !== "-1") {
+                const outputPort = midiAccess.outputs.get(portId);
+                if (outputPort) {
+                    audio.setMidiOutput(outputPort);
+                    console.log(`🎹 Salida manual configurada: ${outputPort.name}`);
+                    
+                    // Prueba de sonido suave
+                    try {
+                        outputPort.send([144, 60, 40]); 
+                        setTimeout(() => outputPort.send([128, 60, 0]), 200);
+                    } catch(err) {}
+                }
+            }
+        });
 
         document.getElementById('midiStatus').innerText = "✅ MIDI In/Out Listo";
         document.getElementById('midiStatus').style.color = "lime";
 
     } catch (e) {
-        console.error("Error iniciando MIDI:", e);
-        alert("Error MIDI: " + e.message);
+        console.error("Error MIDI:", e);
+        document.getElementById('midiStatus').innerText = "❌ Error MIDI: " + e.message;
+        document.getElementById('midiStatus').style.color = "red";
     }
 }
 
-// --- UTILIDADES ---
+
+// --- 4. UTILIDADES UI ---
 
 function setupUI(role) {
     document.getElementById('roleSelector').style.display = 'none';
@@ -177,18 +235,29 @@ function setupUI(role) {
     document.getElementById('roleTitle').innerText = role === 'host' ? 'MODO PROFESOR' : 'MODO ALUMNO';
 }
 
-function copyToClipboard(elem, btn) {
-    elem.select();
-    navigator.clipboard.writeText(elem.value).then(() => {
-        const old = btn.innerText;
-        btn.innerText = "✅ COPIADO";
-        setTimeout(() => btn.innerText = old, 2000);
+function copyToClipboard(textareaElem, btnElem) {
+    if (!textareaElem.value) return;
+    textareaElem.select();
+    navigator.clipboard.writeText(textareaElem.value).then(() => {
+        const oldText = btnElem.innerText;
+        btnElem.innerText = "✅ ¡COPIADO!";
+        btnElem.style.background = "#28a745";
+        setTimeout(() => {
+            btnElem.innerText = oldText;
+            btnElem.style.background = ""; // Volver a original
+        }, 2000);
+    }).catch(err => {
+        console.error('Error copy:', err);
+        alert("Copia manual: Ctrl+C");
     });
 }
 
+// Control del Slider de Latencia
 const slider = document.getElementById('bufferSlider');
-slider.addEventListener('input', (e) => {
-    const val = parseInt(e.target.value);
-    document.getElementById('bufferValue').innerText = `${val} ms`;
-    audio.setBufferLatency(val);
-});
+if (slider) {
+    slider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value);
+        document.getElementById('bufferValue').innerText = `${val} ms`;
+        audio.setBufferLatency(val);
+    });
+}

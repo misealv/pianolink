@@ -13,7 +13,19 @@
         button.secondary { background: #444; border: 1px solid #666; }
         .hidden { display: none; }
         h1, h2, h3 { color: white; margin-top: 0; }
+        
+        /* HUD de Red */
         #hud { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); color: lime; padding: 10px; border: 1px solid #0f0; width: 200px; font-family: monospace; font-size: 0.9em; z-index: 999;}
+
+        /* Selectores MIDI */
+        select { 
+            width: 100%; 
+            padding: 10px; 
+            background: #111; 
+            color: white; 
+            border: 1px solid #555; 
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -69,9 +81,20 @@
         <div class="box">
             <h3>🎹 Hardware y Audio</h3>
             <p id="midiStatus">Activando MIDI...</p>
-            <select id="midiInputSelect" disabled><option>Cargando...</option></select>
             
-            <p style="margin-top: 15px;">Latencia (Buffer): <span id="bufferValue" style="color:cyan">150 ms</span></p>
+            <label style="color:#aaa; font-size:0.8em;">ENTRADA (INPUT):</label>
+            <select id="midiInputSelect" disabled>
+                <option>Cargando...</option>
+            </select>
+            
+            <label style="color:#aaa; font-size:0.8em;">SALIDA (OUTPUT):</label>
+            <select id="midiOutputSelect" disabled>
+                <option>-- Selecciona dónde sonará --</option>
+            </select>
+            
+            <hr style="border-color:#444; margin: 15px 0;">
+            
+            <p style="margin-top: 5px;">Latencia (Buffer): <span id="bufferValue" style="color:cyan">150 ms</span></p>
             <input type="range" id="bufferSlider" min="0" max="500" value="150" style="width:100%">
         </div>
     </div>
