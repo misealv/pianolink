@@ -744,6 +744,7 @@ toggleMidiOut.addEventListener("change", () => {
 
 function handleLocalMIDIMessage(event) {
   const [status, data1, data2] = event.data;
+
   
   // 1. EL FILTRO DE SEGURIDAD (La clave anti-colapso)
   // Si el mensaje es >= 240 (F0), es ruido de sistema (Clock/Sensing). Lo ignoramos.

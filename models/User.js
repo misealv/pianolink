@@ -11,6 +11,15 @@ const userSchema = mongoose.Schema({
     enum: ['admin', 'teacher'], 
     default: 'teacher' 
   },
+
+  // ---> AQUÍ AÑADES EL NUEVO CAMPO <---
+  isFoundingMember: { 
+    type: Boolean, 
+    default: false 
+  },
+  // ------------------------------------
+
+  
   // Slug para la url personalizada (ej: pianolink.com/c/miguel)
   slug: { type: String, unique: true, sparse: true },
   // Marca personal

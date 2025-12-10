@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>PianoLink Remoto - Fase 0</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1e1e1e; color: #eee; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .box { background: #2d2d2d; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #444; }
+        textarea { width: 100%; height: 60px; background: #111; color: #0f0; border: 1px solid #555; font-family: monospace; font-size: 10px; margin-top:5px;}
+        button { padding: 12px 20px; font-weight: bold; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; margin: 5px 0; }
+        button.secondary { background: #444; }
+        .hidden { display: none; }
+        h1, h2, h3 { color: white; margin-top: 0; }
+        #hud { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.9); color: lime; padding: 10px; border: 1px solid #0f0; width: 200px; font-family: monospace; font-size: 0.9em; z-index: 999;}
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <div style="border-bottom:1px solid #0f0; margin-bottom:5px;">📡 ESTADO RED</div>
+        <div>RTT: <span id="val-rtt">--</span>ms</div>
+        <div>Offset: <span id="val-offset">--</span>ms</div>
+        <div>Jitter: <span id="val-jitter">--</span>ms</div>
+    </div>
+
+    <h1>🎹 PianoLink Remoto (P2P)</h1>
+
+    <div id="roleSelector" class="box" style="text-align: center; padding: 40px;">
+        <h2>¿Quién eres?</h2>
+        <button id="btnHost" style="font-size: 1.2em; background: #28a745;">👨‍🏫 Soy el PROFESOR (Crear Sala)</button>
+        <button id="btnGuest" style="font-size: 1.2em; background: #17a2b8;">👨‍🎓 Soy el ALUMNO (Unirme)</button>
+    </div>
+
+    <div id="connectionZone" class="hidden">
+        <h2 id="roleTitle" style="color: cyan;"></h2>
+        <h3 id="connectionStatus" style="color: yellow;">⚠️ Esperando conexión...</h3>
+
+        <div id="step3-box" class="box">
+            <div id="hostStep1" class="hidden">
+                <p><b>PASO 1:</b> Copia este código y mándalo al alumno (WhatsApp/Slack).</p>
+                <textarea id="offerCode" readonly onclick="this.select()">Generando...</textarea>
+                <p><b>PASO 3:</b> Pega aquí el código que te devuelva el alumno y pulsa Conectar.</p>
+                <textarea id="answerCode" placeholder="Pega aquí la respuesta del alumno..."></textarea>
+                <button id="btnConnectHost">🔗 CONECTAR FINALMENTE</button>
+            </div>
+
+            <div id="guestStep1" class="hidden">
+                <p><b>PASO 1:</b> Pega aquí el código que te mandó el profesor.</p>
+                <textarea id="offerCode" placeholder="Pega la invitación aquí..."></textarea>
+                <button id="btnProcessInvite">⬇️ Generar Respuesta</button>
+                
+                <div id="guestStep2" class="hidden">
+                    <p><b>PASO 2:</b> Copia este código y mándaselo de vuelta al profesor.</p>
+                    <textarea id="answerCode" readonly onclick="this.select()"></textarea>
+                    <p style="color: yellow">⏳ Esperando a que el profesor confirme...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="box">
+            <h3>🎹 Hardware y Audio</h3>
+            <p id="midiStatus">Activando MIDI...</p>
+            <select id="midiInputSelect" disabled><option>Cargando...</option></select>
+            
+            <p style="margin-top: 15px;">Latencia (Buffer): <span id="bufferValue" style="color:cyan">150 ms</span></p>
+            <input type="range" id="bufferSlider" min="0" max="500" value="150" style="width:100%">
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>

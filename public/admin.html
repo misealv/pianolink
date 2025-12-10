@@ -2,241 +2,269 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Piano Link | Panel de Control</title>
+  <title>Piano Link | Super Admin</title>
   <style>
-    body {
-      background-color: #1a1a1a;
-      color: #dcdcdc;
-      font-family: 'Inter', sans-serif;
-      margin: 0; padding: 0;
-    }
+    body { background-color: #1a1a1a; color: #dcdcdc; font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+    
     header {
-      background: #262626;
-      border-bottom: 1px solid #454545;
-      padding: 15px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      background: #262626; border-bottom: 1px solid #454545; padding: 15px 30px;
+      display: flex; justify-content: space-between; align-items: center;
     }
     .brand { font-size: 18px; font-weight: bold; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
-    .logout-btn { background: #ff4d4d; border: none; padding: 8px 15px; color: #fff; cursor: pointer; border-radius: 4px; font-size: 12px;}
     
+    /* Botones del Header */
+    .nav-btn { position: relative; background: transparent; border: 1px solid #555; color: #aaa; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-size: 12px; margin-left: 10px; transition: 0.2s; }
+    .nav-btn:hover, .nav-btn.active { background: #444; color: #fff; border-color: #777; }
+    .logout-btn { background: #ff4d4d; border: none; color: white; }
+    
+    .badge-count {
+        position: absolute; top: -8px; right: -8px;
+        background-color: #ff4d4d; color: white; font-size: 10px; font-weight: bold;
+        padding: 2px 6px; border-radius: 50px; border: 1px solid #1a1a1a;
+        display: none; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
     .container { display: flex; height: calc(100vh - 60px); }
     
-    /* Panel Izquierdo: Crear */
-    .create-panel {
-      width: 350px;
-      padding: 30px;
-      border-right: 1px solid #454545;
-      background: #202020;
-    }
+    /* Panel Izquierdo */
+    .create-panel { width: 350px; padding: 30px; border-right: 1px solid #454545; background: #202020; }
     h2 { color: #ff764d; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
     
     label { display: block; font-size: 11px; margin-bottom: 5px; color: #aaa; }
-    input {
-      width: 100%; padding: 10px; margin-bottom: 15px;
-      background: #111; border: 1px solid #454545; color: #fff;
-      border-radius: 4px; box-sizing: border-box;
-    }
-    input:focus { border-color: #ff764d; outline: none; }
+    input { width: 100%; padding: 10px; margin-bottom: 15px; background: #111; border: 1px solid #454545; color: #fff; border-radius: 4px; box-sizing: border-box; }
+    button.action-btn { width: 100%; padding: 12px; background: #ff764d; border: none; color: #000; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; }
     
-    button.action-btn {
-      width: 100%; padding: 12px; background: #ff764d; border: none;
-      color: #000; font-weight: bold; cursor: pointer; border-radius: 4px;
-      text-transform: uppercase; letter-spacing: 1px;
-    }
-    button.action-btn:hover { background: #ff9f7e; }
-    #statusMsg { margin-top: 15px; font-size: 12px; min-height: 20px; }
-
-    /* Panel Derecho: Lista */
+    /* Panel Derecho */
     .list-panel { flex: 1; padding: 30px; overflow-y: auto; }
     
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th { text-align: left; border-bottom: 2px solid #454545; padding: 10px; color: #888; text-transform: uppercase; font-size: 11px; }
     td { border-bottom: 1px solid #333; padding: 12px 10px; vertical-align: middle; }
-    tr:hover { background: #2a2a2a; }
     
-    .role-badge { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 10px; border: 1px solid #555; }
-    .slug-link { color: #5dade2; text-decoration: none; }
-    .slug-link:hover { text-decoration: underline; }
+    .btn-founder { background: transparent; border: 1px solid #555; color: #777; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 11px; transition: all 0.3s ease; }
+    .btn-founder.active { background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728); border: 1px solid #cfaa56; color: #3e2723; font-weight: bold; box-shadow: 0 0 5px rgba(255, 215, 0, 0.4); }
+    .btn-delete { background-color: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
 
-    .btn-delete {
-        background-color: #ff4d4d;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 11px;
-        transition: background 0.2s;
-    }
-    .btn-delete:hover { background-color: #ff1a1a; }
+    .feedback-msg { background: #222; padding: 15px; border-radius: 6px; border-left: 3px solid #555; margin-bottom: 10px; transition: 0.3s; }
+    .feedback-msg.unread { border-left-color: #ff764d; background: #2a2520; }
+    .feedback-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; }
+    .feedback-content { color: #eee; font-size: 13px; line-height: 1.4; }
+    .new-tag { background: #ff764d; color: black; font-weight: bold; padding: 1px 4px; border-radius: 3px; font-size: 9px; margin-right: 5px; display: none; }
+    .unread .new-tag { display: inline-block; }
+
+    .view-section { display: none; }
+    .view-section.active { display: block; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-content { background: #202020; padding: 25px; border-radius: 8px; width: 400px; border: 1px solid #444; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    .modal-content h3 { margin-top: 0; color: #ff764d; }
+    .modal-content textarea { width: 100%; height: 100px; margin: 10px 0; resize: none; background: #111; color: white; border: 1px solid #444; padding: 10px; }
   </style>
 </head>
 <body>
 
   <header>
-    <div class="brand">🎹 Super Admin <span style="color:#666">// Gestión de Profesores</span></div>
-    <div style="display:flex; gap:15px; align-items:center;">
-      <span id="adminName" style="font-size:12px;">Admin</span>
-      <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+    <div class="brand">🎹 Super Admin</div>
+    <div style="display:flex; align-items:center;">
+        <button class="nav-btn active" onclick="switchView('teachers')" id="btnTeachers">👨‍🏫 Profesores</button>
+        <button class="nav-btn" onclick="switchView('feedback')" id="btnFeedback">
+            📨 Buzón <span id="msgBadge" class="badge-count">0</span>
+        </button>
+        <button class="nav-btn" onclick="openBroadcastModal()" style="border-color:#ff764d; color:#ff764d;">
+            📢 Mensaje General
+        </button>
+        <div style="width: 20px;"></div>
+        <button class="nav-btn logout-btn" onclick="logout()">Salir</button>
     </div>
   </header>
 
   <div class="container">
-    
     <div class="create-panel">
       <h2>+ Nuevo Profesor</h2>
       <form id="createForm">
-        <label>Nombre Completo</label>
-        <input type="text" id="name" placeholder="Ej: Pedro Pagliai" required>
-        
-        <label>Correo Electrónico</label>
-        <input type="email" id="email" placeholder="pedro@email.com" required>
-        
-        <label>URL Personalizada (Slug)</label>
-        <div style="display:flex; align-items:center; gap:5px; margin-bottom:15px;">
-           <span style="font-size:10px; color:#666;">pianolink.com/c/</span>
-           <input type="text" id="slug" placeholder="pedro-piano" style="margin-bottom:0;" required>
-        </div>
-        
-        <label>Contraseña Temporal</label>
-        <input type="text" id="password" placeholder="123456" required>
-        
+        <label>Nombre</label><input type="text" id="name" required>
+        <label>Email</label><input type="email" id="email" required>
+        <label>Slug (URL)</label><input type="text" id="slug" placeholder="pianolink.com/c/..." required>
+        <label>Password</label><input type="text" id="password" required>
         <button type="submit" class="action-btn">Crear Cuenta</button>
       </form>
-      <div id="statusMsg"></div>
+      <div id="statusMsg" style="margin-top:15px; font-size:12px;"></div>
     </div>
 
     <div class="list-panel">
-      <h2>Staff Docente Activo</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Email</th>
-            <th>URL Sala</th>
-            <th>Rol</th>
-            <th>Desde</th>
-            <th>Acciones</th> </tr>
-        </thead>
-        <tbody id="teachersTable">
-          <tr><td colspan="6" style="text-align:center; color:#666;">Cargando...</td></tr>
-        </tbody>
-      </table>
-    </div>
+        <div id="view-teachers" class="view-section active">
+            <h2>Staff Docente Activo</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th><th>Email</th><th>URL</th><th>Fundador</th><th>Acciones</th> 
+                    </tr>
+                </thead>
+                <tbody id="teachersTable"><tr><td colspan="5">Cargando...</td></tr></tbody>
+            </table>
+        </div>
 
+        <div id="view-feedback" class="view-section">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2>📨 Mensajes de Fundadores</h2>
+                <button onclick="loadFeedbacks()" style="background:transparent; border:none; color:#888; cursor:pointer; font-size:11px;">↻ Actualizar</button>
+            </div>
+            <div id="feedbackList"><p style="color:#666;">Cargando mensajes...</p></div>
+        </div>
+    </div>
+  </div>
+
+  <div id="msgModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>✉️ Enviar Mensaje</h3>
+        <p id="msgRecipientName" style="color:#aaa; font-size:12px; margin-bottom:10px;"></p>
+        <textarea id="msgText" placeholder="Escribe tu mensaje aquí..."></textarea>
+        <div style="text-align:right; margin-top:10px;">
+            <button onclick="sendAdminMessage()" class="action-btn" style="width:auto; padding:8px 15px;">Enviar</button>
+            <button onclick="closeModal()" class="action-btn" style="background:#555; width:auto; padding:8px 15px;">Cancelar</button>
+        </div>
+    </div>
   </div>
 
   <script>
-    // 1. SEGURIDAD: Verificar sesión
+    const API_TEACHERS = '/api/auth/teachers'; 
+    const API_FEEDBACK = '/admin/feedbacks';   
+    const API_MARK_READ = '/admin/feedbacks/mark-read'; 
+
     const userSession = JSON.parse(localStorage.getItem('pianoUser'));
+    // SEGURIDAD CORRECTA: Si no es admin, fuera.
     if (!userSession || userSession.role !== 'admin') {
       window.location.href = 'login.html';
-    } else {
-      document.getElementById('adminName').textContent = userSession.name;
     }
 
-    // 2. FUNCIÓN: Cargar lista de profesores
+    async function switchView(viewName) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(`view-${viewName}`).classList.add('active');
+        
+        if(viewName === 'teachers') {
+            document.getElementById('btnTeachers').classList.add('active');
+            loadTeachers();
+        } else {
+            document.getElementById('btnFeedback').classList.add('active');
+            loadFeedbacks(); 
+            const badge = document.getElementById('msgBadge');
+            if (badge.style.display !== 'none') {
+                badge.style.display = 'none'; 
+                await markAllAsRead(); 
+            }
+        }
+    }
+
+    async function checkNotifications() {
+        try {
+            const res = await fetch(API_FEEDBACK);
+            const list = await res.json();
+            const unreadCount = list.filter(msg => msg.status === 'unread').length;
+            const badge = document.getElementById('msgBadge');
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount; badge.style.display = 'block'; 
+            } else { badge.style.display = 'none'; }
+        } catch (error) { console.error(error); }
+    }
+
+    async function markAllAsRead() { try { await fetch(API_MARK_READ, { method: 'POST' }); } catch (e) {} }
+
     async function loadTeachers() {
       try {
-        const res = await fetch('/api/auth/teachers');
+        const res = await fetch(API_TEACHERS);
         const teachers = await res.json();
-        
         const tbody = document.getElementById('teachersTable');
         tbody.innerHTML = '';
-
         teachers.forEach(t => {
-          const date = new Date(t.createdAt).toLocaleDateString();
+          const isFounder = t.isFoundingMember ? 'active' : '';
+          const founderText = t.isFoundingMember ? '★ FUNDADOR' : '☆ Asignar';
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td style="font-weight:bold; color:#fff;">${t.name}</td>
             <td style="color:#aaa;">${t.email}</td>
-            <td><a href="/?sala=${t.slug}" target="_blank" class="slug-link">/c/${t.slug || '---'}</a></td>
-            <td><span class="role-badge">PROFESOR</span></td>
-            <td style="color:#666; font-size:11px;">${date}</td>
+            <td><a href="/?sala=${t.slug}" target="_blank" style="color:#5dade2;">/c/${t.slug}</a></td>
+            <td><button class="btn-founder ${isFounder}" onclick="toggleFounder('${t._id}', event)">${founderText}</button></td>
             <td>
-                <button class="btn-delete" onclick="deleteTeacher('${t._id}')">🗑️ Eliminar</button>
+                <button onclick="openMsgModal('${t._id}', '${t.name}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Enviar Mensaje">✉️</button>
+                <button class="btn-delete" onclick="deleteTeacher('${t._id}')">🗑️</button>
             </td>
           `;
           tbody.appendChild(tr);
         });
-      } catch (err) {
-        console.error(err);
-      }
+      } catch (err) { console.error(err); }
     }
 
-    // 3. FUNCIÓN: Crear profesor
-    document.getElementById('createForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const msg = document.getElementById('statusMsg');
-      const btn = document.querySelector('button.action-btn');
-      
-      const name = document.getElementById('name').value;
-      const email = document.getElementById('email').value;
-      const slug = document.getElementById('slug').value;
-      const password = document.getElementById('password').value;
-
-      btn.disabled = true;
-      msg.textContent = "Creando..."; msg.style.color = "#aaa";
-
-      try {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, slug, password })
-        });
-        
-        const data = await res.json();
-        
-        if (res.ok) {
-          msg.textContent = "✅ " + data.message;
-          msg.style.color = "#b4e080";
-          document.getElementById('createForm').reset();
-          loadTeachers(); // Recargar lista
-        } else {
-          msg.textContent = "❌ " + data.message;
-          msg.style.color = "#ff4d4d";
-        }
-      } catch (err) {
-        msg.textContent = "Error de conexión";
-      } finally {
-        btn.disabled = false;
-      }
-    });
-
-    // 4. FUNCIÓN NUEVA: Eliminar Profesor
-    async function deleteTeacher(id) {
-        if (!confirm("⚠️ ¿Estás SEGURO de eliminar a este profesor? Se borrarán sus datos y su acceso. Esta acción es irreversible.")) {
-            return;
-        }
-
+    async function loadFeedbacks() {
+        const container = document.getElementById('feedbackList');
         try {
-            const res = await fetch(`/api/auth/delete/${id}`, {
-                method: 'DELETE'
+            const res = await fetch(API_FEEDBACK);
+            const list = await res.json();
+            container.innerHTML = list.length === 0 ? '<p style="color:#666;">Bandeja vacía.</p>' : '';
+            list.forEach(msg => {
+                const userName = msg.user ? msg.user.name : 'Usuario Eliminado';
+                const unreadClass = msg.status === 'unread' ? 'unread' : '';
+                const div = document.createElement('div');
+                div.className = `feedback-msg ${unreadClass}`;
+                div.innerHTML = `
+                    <div class="feedback-header">
+                        <span><span class="new-tag">NUEVO</span> <strong>${userName}</strong></span>
+                        <div>
+                            <span>${new Date(msg.createdAt).toLocaleString()}</span>
+                            <button onclick="deleteFeedback('${msg._id}')" style="background:none; border:none; color:#ff4d4d; cursor:pointer;">✕</button>
+                        </div>
+                    </div>
+                    <div class="feedback-content">${msg.content}</div>`;
+                container.appendChild(div);
             });
-            const data = await res.json();
-
-            if (res.ok) {
-                alert("✅ " + data.message);
-                loadTeachers(); // Recargar la tabla
-            } else {
-                alert("❌ Error: " + data.message);
-            }
-        } catch (error) {
-            console.error(error);
-            alert("Error de conexión al intentar eliminar.");
-        }
+        } catch (e) { container.innerHTML = 'Error cargando mensajes.'; }
     }
 
-    function logout() {
-      localStorage.removeItem('pianoUser');
-      window.location.href = 'login.html';
+    async function toggleFounder(id, event) {
+        event.target.innerText = "...";
+        try { const res = await fetch(`/admin/users/${id}/toggle-founder`, { method: 'POST' }); if (res.ok) loadTeachers(); } catch (e) {}
     }
 
-    // Cargar al inicio
+    async function deleteFeedback(id) {
+        if(!confirm("¿Borrar?")) return;
+        try { const res = await fetch(`/admin/feedbacks/${id}`, { method: 'DELETE' }); if(res.ok) loadFeedbacks(); } catch (e) {}
+    }
+
+    // Modal Logic
+    let currentRecipientId = null;
+    function openMsgModal(id, name) {
+        currentRecipientId = id;
+        document.getElementById('msgRecipientName').innerText = "Para: " + name;
+        document.getElementById('msgModal').style.display = 'flex';
+    }
+    function openBroadcastModal() {
+        currentRecipientId = 'ALL';
+        document.getElementById('msgRecipientName').innerHTML = "<strong style='color:#ff764d'>📢 A TODOS LOS PROFESORES</strong>";
+        document.getElementById('msgModal').style.display = 'flex';
+    }
+    function closeModal() {
+        document.getElementById('msgModal').style.display = 'none';
+        document.getElementById('msgText').value = '';
+    }
+    async function sendAdminMessage() {
+        const content = document.getElementById('msgText').value;
+        if(!content) return;
+        const url = (currentRecipientId === 'ALL') ? '/admin/message/send-all' : '/admin/message/send';
+        const body = (currentRecipientId === 'ALL') ? { content } : { recipientId: currentRecipientId, content };
+        
+        try {
+            const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+            if(res.ok) { alert("Enviado"); closeModal(); } else { alert("Error"); }
+        } catch(e) { alert("Error conexión"); }
+    }
+
+    // Init
+    document.getElementById('createForm').addEventListener('submit', async (e) => { /* Tu lógica de crear usuario aquí */ });
+    function logout() { localStorage.removeItem('pianoUser'); window.location.href = 'login.html'; }
+    
     loadTeachers();
+    checkNotifications();
   </script>
-
 </body>
 </html>

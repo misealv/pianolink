@@ -6,7 +6,7 @@
   <style>
     body { background: #1a1a1a; color: #dcdcdc; font-family: sans-serif; display: flex; height: 100vh; margin: 0; }
     
-    .sidebar { width: 250px; background: #262626; padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 20px;}
+    .sidebar { width: 250px; background: #262626; padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;}
     .main { flex: 1; padding: 40px; overflow-y: auto; }
     
     h1 { color: #ff764d; text-transform: uppercase; font-size: 20px; margin-top: 0; letter-spacing: 1px;}
@@ -28,6 +28,63 @@
     .btn-outline { background: transparent; border: 1px solid #ff764d; color: #ff764d; margin-top: auto;}
 
     #msg { margin-top: 15px; font-weight: bold; min-height: 20px;}
+
+    /* --- ESTILOS PROFESOR FUNDADOR (Ajustados para Sidebar) --- */
+    .gold-badge {
+        background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+        color: #3e2723;
+        padding: 4px 10px;
+        border-radius: 50px;
+        font-weight: 800;
+        font-size: 9px;
+        display: none; /* Oculto por defecto */
+        align-items: center;
+        gap: 5px;
+        border: 1px solid #cfaa56;
+        margin-top: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        width: fit-content;
+    }
+
+    .founder-card {
+        background: linear-gradient(to bottom right, #2a2215, #1f1a12);
+        border: 1px solid #634d28;
+        display: none; /* Oculto por defecto */
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+
+    .founder-header {
+        display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+        color: #eecfa1;
+        font-size: 12px;
+        text-transform: uppercase;
+        border-bottom: 1px solid #634d28;
+        padding-bottom: 8px;
+        font-weight: bold;
+    }
+
+    .founder-card textarea {
+        background: #15120e;
+        border: 1px solid #634d28;
+        font-size: 11px;
+        margin-bottom: 8px;
+    }
+
+    .btn-gold {
+        background: #b38728;
+        color: #fff;
+        border: none;
+        padding: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        border-radius: 4px;
+        text-transform: uppercase;
+        font-size: 10px;
+        width: 100%; /* Botón ancho completo en sidebar */
+    }
+    .btn-gold:hover { background: #d4a036; }
   </style>
 </head>
 <body>
@@ -35,20 +92,31 @@
     <aside class="sidebar">
         <div style="font-weight: 800; font-size: 18px; color: #fff;">🎹 PIANO LINK <span style="font-weight:400; font-size:12px;">PRO</span></div>
         
-        <div style="margin-top: 20px;">
+        <div style="margin-top: 10px;">
             <div style="font-size: 10px; color: #aaa;">BIENVENIDO</div>
             <div id="welcomeName" style="font-size: 16px; color: #fff; font-weight: bold;">Cargando...</div>
+            
+            <div id="founderBadge" class="gold-badge">★ PROFESOR FUNDADOR</div>
             
             <button id="btnOpenRoom" class="btn btn-room">⚡ IR A MI SALA</button>
             
             <button onclick="copyInviteLink()" class="btn btn-outline" style="margin-top: 10px; font-size: 11px; width: 100%; border-color:#444; color:#aaa;">
                 🔗 COPIAR LINK ALUMNO
             </button>
-            <div id="copyFeedback" style="font-size: 10px; color: #b4e080; margin-top: 5px; height: 15px;"></div>
+            <div id="copyFeedback" style="font-size: 10px; color: #b4e080; margin-top: 5px; min-height: 15px;"></div>
+        </div>
+
+        <div id="founderSection" class="founder-card">
+            <div class="founder-header">
+                <span>👑 Panel Fundador</span>
+            </div>
+            <p style="font-size:10px; color:#ccc; margin:0 0 8px 0; line-height: 1.3;">Tu feedback prioritario moldea el futuro de la app.</p>
+            <textarea id="feedbackContent" rows="3" placeholder="Sugerencias o bugs..." required></textarea>
+            <button onclick="sendFeedback()" class="btn-gold">Enviar al CEO</button>
+            <div id="feedbackMsg" style="font-size:10px; margin-top:5px; min-height:15px;"></div>
         </div>
     
-        <div style="flex:1"></div>
-        <button class="btn btn-outline" onclick="logout()">Cerrar Sesión</button>
+        <div style="flex:1"></div> <button class="btn btn-outline" onclick="logout()">Cerrar Sesión</button>
       </aside>
 
   <main class="main">
@@ -57,6 +125,13 @@
     <form id="profileForm">
       
       <div class="card">
+
+        <div id="adminMessagesSection" class="card" style="border-color: #5dade2; display:none;">
+            <h2 style="color: #5dade2; border-color: #5dade2;">📨 Mensajes de Administración</h2>
+            <div id="messagesList" style="max-height: 200px; overflow-y: auto;">
+                </div>
+        </div>
+
         <h2>Identidad Visual</h2>
         
         <label>LOGO DE TU ACADEMIA (Se verá en la cabecera)</label>
@@ -110,7 +185,7 @@
     const user = JSON.parse(localStorage.getItem('pianoUser'));
     if (!user || user.role !== 'teacher') window.location.href = 'login.html';
 
-    const API_URL = '/api/teacher';
+    const API_URL = '/api/teacher'; 
 
     // 2. CARGAR DATOS AL INICIAR
     async function loadData() {
@@ -121,6 +196,14 @@
             const res = await fetch(`${API_URL}/me?email=${user.email}`);
             const data = await res.json();
             
+            // --- LÓGICA DE FUNDADOR ---
+            if (data.isFoundingMember) {
+                document.getElementById('founderBadge').style.display = 'inline-flex';
+                // Mostrar Panel de Feedback (ahora en el sidebar)
+                document.getElementById('founderSection').style.display = 'block';
+            }
+            // --------------------------
+
             if(data.branding) {
                 document.getElementById('bioInput').value = data.branding.bio || '';
                 document.getElementById('colorBase').value = data.branding.colors.base || '#ff764d';
@@ -133,11 +216,85 @@
         } catch (e) { console.error(e); }
     }
 
-    // 3. SUBIR ARCHIVOS (UPLOAD) - ESTO SIGUE IGUAL
+// FUNCIÓN NUEVA: CARGAR MENSAJES
+async function loadMyMessages() {
+        try {
+            const res = await fetch(`${API_URL}/my-messages?email=${user.email}`);
+            const msgs = await res.json();
+            
+            if (msgs.length > 0) {
+                document.getElementById('adminMessagesSection').style.display = 'block';
+                const container = document.getElementById('messagesList');
+                container.innerHTML = '';
+
+                msgs.forEach(m => {
+                    const date = new Date(m.createdAt).toLocaleDateString();
+                    const div = document.createElement('div');
+                    // Estilo simple: Fondo oscuro, borde sutil
+                    div.style.padding = "10px";
+                    div.style.marginBottom = "10px";
+                    div.style.background = "#151515";
+                    div.style.borderLeft = "3px solid #5dade2";
+                    
+                    div.innerHTML = `
+                        <div style="font-size:10px; color:#888; margin-bottom:5px;">${date}</div>
+                        <div style="font-size:13px; color:#fff;">${m.content}</div>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+        } catch (e) { console.error(e); }
+    }
+
+
+
+
+// 3. ENVIAR FEEDBACK DE FUNDADOR (ACTUALIZADA)
+async function sendFeedback() {
+        const content = document.getElementById('feedbackContent').value;
+        const msgBox = document.getElementById('feedbackMsg');
+        
+        if(!content.trim()) {
+            msgBox.textContent = "Escribe algo primero...";
+            msgBox.style.color = "#ff4d4d";
+            return;
+        }
+
+        msgBox.textContent = "Enviando...";
+        msgBox.style.color = "#aaa";
+
+        try {
+            // AHORA ENVIAMOS TAMBIÉN EL EMAIL
+            const res = await fetch(`${API_URL}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    content: content,
+                    email: user.email // <--- IMPORTANTE: Enviamos el email para saber quién es
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                msgBox.textContent = "✅ Mensaje recibido. ¡Gracias, Fundador!";
+                msgBox.style.color = "#b4e080";
+                document.getElementById('feedbackContent').value = ""; 
+            } else {
+                msgBox.textContent = "❌ " + data.message;
+                msgBox.style.color = "#ff4d4d";
+            }
+        } catch (err) {
+            console.error(err);
+            msgBox.textContent = "Error de conexión";
+        }
+    }
+
+    // 4. SUBIR ARCHIVOS (UPLOAD)
     document.getElementById('profileForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const msg = document.getElementById('msg');
-        msg.textContent = "⏳ Subiendo imágenes a la nube... espera un momento...";
+        msg.textContent = "⏳ Subiendo...";
         msg.style.color = "#aaa";
 
         const formData = new FormData();
@@ -147,7 +304,6 @@
         formData.append('colorBg', document.getElementById('colorBg').value);
         formData.append('colorPanel', document.getElementById('colorPanel').value);
 
-        // Solo adjuntamos archivos si el usuario seleccionó uno nuevo
         const logoFile = document.getElementById('logoInput').files[0];
         const photoFile = document.getElementById('photoInput').files[0];
 
@@ -162,10 +318,9 @@
             const data = await res.json();
 
             if(res.ok) {
-                msg.textContent = "✅ ¡Perfil guardado! Las imágenes ya están en Cloudinary.";
+                msg.textContent = "✅ ¡Guardado!";
                 msg.style.color = "#b4e080";
                 
-                // Actualizamos las vistas previas con las URLs nuevas que devolvió Cloudinary
                 if(data.branding.logoUrl) document.getElementById('previewLogo').src = data.branding.logoUrl;
                 if(data.branding.profilePhotoUrl) document.getElementById('previewPhoto').src = data.branding.profilePhotoUrl;
             } else {
@@ -182,40 +337,28 @@
         window.location.href = 'login.html';
     }
 
-    // 4. FUNCIÓN NUEVA: Restablecer Colores
     function resetColors() {
-        // Colores originales de Piano Link
-        document.getElementById('colorBase').value = '#ff764d'; // Naranja
-        document.getElementById('colorBg').value = '#1a1a1a';   // Negro Suave
-        document.getElementById('colorPanel').value = '#262626'; // Gris Oscuro
+        document.getElementById('colorBase').value = '#ff764d'; 
+        document.getElementById('colorBg').value = '#1a1a1a';   
+        document.getElementById('colorPanel').value = '#262626'; 
         
         const msg = document.getElementById('msg');
-        msg.textContent = "🎨 Colores restablecidos. Dale a 'GUARDAR CAMBIOS' para confirmar.";
+        msg.textContent = "🎨 Colores restablecidos.";
         msg.style.color = "#aaa";
     }
-// ... (tus otras funciones logout, resetColors, etc) ...
 
-    // 5. FUNCIÓN NUEVA: Copiar Link desde el Dashboard
     function copyInviteLink() {
         if(!user || !user.slug) return;
-        
-        // Construimos el link exacto
-        const domain = window.location.origin; // Detecta si es localhost o pianolink.com
-        // Usamos toLowerCase() para coincidir con la base de datos (miguel-antonio)
+        const domain = window.location.origin; 
         const link = `${domain}/?role=student&sala=${user.slug.toLowerCase()}`;
-        // Copiar al portapapeles
         navigator.clipboard.writeText(link).then(() => {
             const feedback = document.getElementById('copyFeedback');
-            feedback.textContent = "✅ ¡Copiado! Envíalo a tu alumno.";
+            feedback.textContent = "✅ ¡Copiado!";
             setTimeout(() => feedback.textContent = "", 3000);
         }).catch(err => {
-            alert("Error al copiar: " + link);
+            alert("Error al copiar");
         });
     }
-
-    loadData();
-  </script>
-
 
     loadData();
   </script>

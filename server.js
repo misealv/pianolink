@@ -27,7 +27,7 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/teacher', require('./routes/teacherRoutes'));
 app.use('/api/scores', require('./routes/scoreRoutes')); // <--- ¡AGREGADO! (La Biblioteca)
-
+app.use('/admin', require('./routes/adminRoutes'));
 // ===============================
 // Static y Rutas Principales
 // ===============================
