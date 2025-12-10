@@ -111,13 +111,18 @@ guestZone.btnCopy.addEventListener('click', () => copyToClipboard(guestZone.answ
 
 // --- 3. HARDWARE MIDI ---
 
+// --- 3. HARDWARE MIDI ---
+
 async function initMidiSystem() {
     try {
         midiAccess = await navigator.requestMIDIAccess();
         const select = document.getElementById('midiInputSelect');
-        select.disabled = false;
-        select.innerHTML = '<option value="-1">-- Selecciona teclado --</option>';
         
+        // Habilitar selector
+        select.disabled = false;
+        select.innerHTML = '<option value="-1">-- Selecciona tu teclado --</option>';
+        
+        // Llenar entradas disponibles
         midiAccess.inputs.forEach(input => {
             const opt = document.createElement('option');
             opt.value = input.id;
@@ -125,22 +130,42 @@ async function initMidiSystem() {
             select.appendChild(opt);
         });
 
+        // Configurar selección de entrada
         select.addEventListener('change', (e) => {
             const input = midiAccess.inputs.get(e.target.value);
             if(input) {
+                console.log(`🔌 Entrada conectada: ${input.name}`);
                 input.onmidimessage = (msg) => {
                     const [status, data1, data2] = msg.data;
-                    if(status >= 240) return;
+                    if(status >= 240) return; // Ignorar clocks
+                    
                     const now = timeSync.getNow();
                     const buffer = protocol.encode(status, data1, data2, now);
                     net.send(buffer);
                 };
             }
         });
-        document.getElementById('midiStatus').innerText = "✅ MIDI Listo";
+
+        // --- NUEVO: AUTO-CONEXIÓN DE SALIDA (OUTPUT) ---
+        // Buscamos el primer puerto de salida disponible para que suene el piano
+        const outputs = Array.from(midiAccess.outputs.values());
+        if (outputs.length > 0) {
+            // Normalmente el piano USB es la primera salida
+            const pianoOutput = outputs[0];
+            audio.setMidiOutput(pianoOutput);
+            
+            // Prueba visual: Mensaje en consola
+            console.log(`🎹 Salida MIDI vinculada a: ${pianoOutput.name}`);
+        } else {
+            console.warn("⚠️ No se encontró salida MIDI (Tu piano no sonará solo).");
+        }
+
+        document.getElementById('midiStatus').innerText = "✅ MIDI In/Out Listo";
         document.getElementById('midiStatus').style.color = "lime";
+
     } catch (e) {
-        console.error(e);
+        console.error("Error iniciando MIDI:", e);
+        alert("Error MIDI: " + e.message);
     }
 }
 
