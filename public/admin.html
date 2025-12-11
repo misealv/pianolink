@@ -83,13 +83,26 @@
     <div class="create-panel">
       <h2>+ Nuevo Profesor</h2>
       <form id="createForm">
-        <label>Nombre</label><input type="text" id="name" required>
-        <label>Email</label><input type="email" id="email" required>
-        <label>Slug (URL)</label><input type="text" id="slug" placeholder="pianolink.com/c/..." required>
-        <label>Password</label><input type="text" id="password" required>
+        <label>Nombre</label>
+        <input type="text" id="name" required>
+        
+        <label>Email</label>
+        <input type="email" id="email" required>
+        
+        <label>Slug (URL Personalizada)</label>
+        <input type="text" id="slug" placeholder="Ej: miguel (déjalo vacío si no quieres)">
+        
+        <label>Contraseña</label>
+        <input type="text" id="password" required>
+        
+        <div style="margin-bottom: 20px; display: flex; align-items: center;">
+            <input type="checkbox" id="chkFounder" style="width: auto; margin: 0 10px 0 0;">
+            <label for="chkFounder" style="margin: 0; color: #ffbf00; font-weight: bold; cursor:pointer;">★ Profesor Fundador</label>
+        </div>
+      
         <button type="submit" class="action-btn">Crear Cuenta</button>
       </form>
-      <div id="statusMsg" style="margin-top:15px; font-size:12px;"></div>
+      <div id="statusMsg" style="margin-top:15px; font-weight:bold; font-size:12px;"></div>
     </div>
 
     <div class="list-panel">
@@ -132,10 +145,16 @@
     const API_FEEDBACK = '/admin/feedbacks';   
     const API_MARK_READ = '/admin/feedbacks/mark-read'; 
 
+    // Verificar Sesión
     const userSession = JSON.parse(localStorage.getItem('pianoUser'));
-    // SEGURIDAD CORRECTA: Si no es admin, fuera.
     if (!userSession || userSession.role !== 'admin') {
       window.location.href = 'login.html';
+    } else {
+        // Logout simple
+        window.logout = function() {
+            localStorage.removeItem('pianoUser');
+            window.location.href = 'login.html';
+        }
     }
 
     async function switchView(viewName) {
@@ -184,7 +203,7 @@
           tr.innerHTML = `
             <td style="font-weight:bold; color:#fff;">${t.name}</td>
             <td style="color:#aaa;">${t.email}</td>
-            <td><a href="/?sala=${t.slug}" target="_blank" style="color:#5dade2;">/c/${t.slug}</a></td>
+            <td><a href="/?sala=${t.slug || ''}" target="_blank" style="color:#5dade2;">${t.slug ? '/c/'+t.slug : '--'}</a></td>
             <td><button class="btn-founder ${isFounder}" onclick="toggleFounder('${t._id}', event)">${founderText}</button></td>
             <td>
                 <button onclick="openMsgModal('${t._id}', '${t.name}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Enviar Mensaje">✉️</button>
@@ -226,6 +245,11 @@
         try { const res = await fetch(`/admin/users/${id}/toggle-founder`, { method: 'POST' }); if (res.ok) loadTeachers(); } catch (e) {}
     }
 
+    async function deleteTeacher(id) {
+        if(!confirm("¿Estás seguro de ELIMINAR a este profesor?")) return;
+        try { const res = await fetch(`/api/auth/delete/${id}`, { method: 'DELETE' }); if(res.ok) loadTeachers(); else alert("Error al eliminar"); } catch (e) { console.error(e); }
+    }
+
     async function deleteFeedback(id) {
         if(!confirm("¿Borrar?")) return;
         try { const res = await fetch(`/admin/feedbacks/${id}`, { method: 'DELETE' }); if(res.ok) loadFeedbacks(); } catch (e) {}
@@ -259,12 +283,73 @@
         } catch(e) { alert("Error conexión"); }
     }
 
-    // Init
-    document.getElementById('createForm').addEventListener('submit', async (e) => { /* Tu lógica de crear usuario aquí */ });
-    function logout() { localStorage.removeItem('pianoUser'); window.location.href = 'login.html'; }
-    
-    loadTeachers();
+    // --- LÓGICA DE REGISTRO DE USUARIO (CORREGIDA) ---
+    const createForm = document.getElementById('createForm');
+    if (createForm) {
+        createForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+
+            const statusMsg = document.getElementById('statusMsg');
+            const btn = e.target.querySelector('button');
+            
+            // 1. Capturar datos
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            // Capturamos el checkbox, usando un fallback seguro
+            const chk = document.getElementById('chkFounder');
+            const isFoundingMember = chk ? chk.checked : false; 
+            
+            // TRUCO PARA EL SLUG: Si está vacío, enviamos undefined
+            let slug = document.getElementById('slug').value.trim();
+            if (slug === "") slug = undefined;
+
+            // 2. Feedback visual
+            btn.disabled = true;
+            btn.innerText = "Guardando...";
+            statusMsg.innerText = "";
+
+            try {
+                // 3. Enviar al Servidor
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        email,
+                        password,
+                        slug,
+                        isFoundingMember // ¡Aquí viaja el dato nuevo!
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    statusMsg.style.color = "#2ecc71"; // Verde
+                    statusMsg.innerText = "✅ " + (data.message || "Profesor creado correctamente");
+                    createForm.reset();
+                    loadTeachers();
+                } else {
+                    statusMsg.style.color = "#ff4d4d"; // Rojo
+                    statusMsg.innerText = "⚠️ Error: " + (data.message || "Error desconocido");
+                }
+
+            } catch (error) {
+                console.error(error);
+                statusMsg.style.color = "#ff4d4d";
+                statusMsg.innerText = "❌ Error de conexión con el servidor.";
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "CREAR CUENTA";
+            }
+        });
+    }
+
+    // --- INICIALIZACIÓN AUTOMÁTICA (IMPORTANTE) ---
+    loadTeachers();       
     checkNotifications();
+
   </script>
 </body>
 </html>

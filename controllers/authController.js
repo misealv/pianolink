@@ -31,10 +31,12 @@ const loginUser = async (req, res) => {
   }
 };
 
-// 2. REGISTRAR PROFESOR
+// 2. REGISTRAR PROFESOR (CORREGIDO)
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, slug } = req.body;
+    // AÑADIDO: isFoundingMember en la lectura de datos
+    const { name, email, password, slug, isFoundingMember } = req.body;
+    
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'El correo ya está registrado' });
 
@@ -44,7 +46,12 @@ const registerUser = async (req, res) => {
     }
 
     const user = await User.create({
-      name, email, password, slug,
+      name, 
+      email, 
+      password, 
+      slug,
+      // AÑADIDO: Guardar el valor booleano o false por defecto
+      isFoundingMember: isFoundingMember || false, 
       role: 'teacher',
       branding: {
           logoUrl: 'https://pianolink.com/assets/logo-pianolink.jpg',
@@ -57,12 +64,14 @@ const registerUser = async (req, res) => {
     if (user) {
       res.status(201).json({
         _id: user.id, name: user.name, email: user.email, role: user.role,
+        isFoundingMember: user.isFoundingMember, 
         message: "¡Profesor creado exitosamente!"
       });
     } else {
       res.status(400).json({ message: 'Datos inválidos' });
     }
   } catch (error) {
+    console.error("Error en registro:", error); // Log para ver errores en consola del servidor
     res.status(500).json({ message: error.message });
   }
 };
@@ -95,7 +104,7 @@ const getTeacherBySlug = async (req, res) => {
     }
 };
 
-// 5. ELIMINAR PROFESOR (¡NUEVO!)
+// 5. ELIMINAR PROFESOR
 const deleteUser = async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
@@ -117,4 +126,5 @@ const deleteUser = async (req, res) => {
     }
 };
 
+// EXPORTAR TODAS LAS FUNCIONES (CRÍTICO: Si falta esto, el server falla)
 module.exports = { loginUser, registerUser, getTeachers, getTeacherBySlug, deleteUser };
