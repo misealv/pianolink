@@ -221,13 +221,49 @@ io.on("connection", (socket) => {
 });
 
 
+/// --- SEÑALIZACIÓN WEBRTC (NUEVO MEJORADO) ---
+socket.on("signal-webrtc", (data) => {
+  // data = { room, target?, type, payload }
+  const roomCode = data.room || socket.roomCode;
+  if (!roomCode) return;
+
+  const targetId = data.target;
+
+  const payload = {
+    type: data.type,
+    payload: data.payload,
+    fromSocketId: socket.id
+  };
+
+  // Si viene un target, enviamos SOLO a ese socket (estrella profe ↔ alumno)
+  if (targetId) {
+    io.to(targetId).emit("signal-webrtc", payload);
+  } else {
+    // Si no hay target, hacemos broadcast al resto de la sala
+    socket.to(roomCode).emit("signal-webrtc", payload);
+  }
+});
+
+
 
   // --- FUNCIONES MIDI & AUDIO (INTACTAS) ---
 
-  socket.on("midi-message", (message) => {
-    const roomCode = socket.roomCode || message.roomCode;
-    if (!roomCode || !rooms[roomCode]) return;
-
+  socket.on("midi-message", (payload) => {
+    let message;
+    let roomCode;
+  
+    // Forma nueva: { roomCode, message }
+    if (payload && payload.message) {
+      message = payload.message;
+      roomCode = payload.roomCode || socket.roomCode || (message && message.roomCode);
+    } else {
+      // Forma antigua: message directo
+      message = payload;
+      roomCode = socket.roomCode || (message && message.roomCode);
+    }
+  
+    if (!roomCode || !rooms[roomCode] || !message) return;
+  
     io.to(roomCode).volatile.emit("midi-message", {
       ...message,
       roomCode,
@@ -236,6 +272,7 @@ io.on("connection", (socket) => {
       fromRole: socket.userRole || message.fromRole,
     });
   });
+  
 
   socket.on("set-live-student", (payload) => {
     const roomCode = (payload && payload.roomCode) || socket.roomCode;

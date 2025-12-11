@@ -1,3 +1,103 @@
+import { EngineFactory } from './engine/EngineFactory.js';
+
+// Instancia Global del Motor V2
+const audioEngine = EngineFactory.create('v2-webrtc');
+window.audioEngine = audioEngine; // Exponer para depuración en consola si hace falta
+
+// --- FUNCIÓN DE ARRANQUE COMÚN ---
+async function iniciarMotorCompleto(esProfe) {
+  if (window.motorIniciado) return; // Evitar doble arranque
+  window.motorIniciado = true;
+
+  log("🚀 Iniciando Motor de Audio V2...", "info");
+
+  try {
+    // 1) Arrancar audio (AudioContext + scheduler)
+    await audioEngine.initAudio();
+
+    // 2) Indicarle al motor si este lado es el host (profe) o alumno
+    await audioEngine.initNetwork(esProfe);
+
+    // 3) Inicializar MIDI V2 (esto llama internamente a navigator.requestMIDIAccess)
+    await initMidiV2();
+
+    log("✅ Motor V2 listo (Audio + MIDI).", "success");
+  } catch (e) {
+    console.error(e);
+    log("⚠️ Error iniciando motor V2: " + e.message, "error");
+  }
+  
+  // 1. CUANDO ENTRA UN USUARIO NUEVO (Profesor inicia conexión)
+socket.on("room-users", async (users) => {
+  participants = users || [];
+  renderParticipants();
+
+  // Si soy PROFESOR, inicio conexión con los alumnos nuevos que no tenga conectados
+  if (rol === 'teacher') {
+      participants.forEach(async (u) => {
+          if (u.role === 'student' && u.socketId !== mySocketId) {
+              // El motor verifica internamente si ya existe conexión, si no, la crea
+              const offer = await audioEngine.connectToStudent(u.socketId);
+              if (offer) {
+                socket.emit("signal-webrtc", { 
+                    room: salaActual,
+                    target: u.socketId, 
+                    type: 'offer', 
+                    payload: offer 
+                });
+              }
+          }
+      });
+  }
+});
+
+// 2. MANEJO DE SEÑALES (Ofertas/Respuestas/Candidatos)
+socket.on("signal-webrtc", async (msg) => {
+  // msg = { fromSocketId, type, payload }
+  
+  // Procesamos la señal en el motor (genera respuesta si es oferta)
+  const answer = await audioEngine.handleIncomingSignal(msg.fromSocketId, msg.type, msg.payload);
+  
+  // Si el motor generó una respuesta (Answer), la devolvemos
+  if (answer) {
+    socket.emit("signal-webrtc", {
+        room: salaActual,
+        target: msg.fromSocketId,
+        type: 'answer',
+        payload: answer
+    });
+  }
+});
+
+// ----------------------------------------------------------
+// 🔄 SALIDA DE SEÑAL WEBRTC DESDE EL MOTOR HACIA SOCKET.IO
+// ----------------------------------------------------------
+document.addEventListener("webrtc-signal-out", (e) => {
+  try {
+      const { target, type, payload } = e.detail;
+
+      // Aseguramos que salaActual exista para no romper el motor
+      const roomCode = window.salaActual || salaActual || null;
+
+      if (!roomCode) {
+          console.warn("⚠️ webrtc-signal-out emitido sin salaActual");
+          return;
+      }
+
+      socket.emit("signal-webrtc", {
+          room: roomCode,
+          target: target || null,
+          type,
+          payload
+      });
+
+  } catch (err) {
+      console.error("❌ Error procesando webrtc-signal-out:", err);
+  }
+});
+
+}
+
 const socket = io();
 
 // DOM References
@@ -51,6 +151,114 @@ let teacherActiveNotes = new Set();
 let heldNotes = new Set();
 let sustainActive = false;
 let renderTimeout = null; 
+
+/* =========================================
+   NUEVO MOTOR DE AUDIO V2 (Pegar aquí)
+   ========================================= */
+
+// 1. Instanciar el Motor (Si no lo has puesto arriba)
+// Nota: Asegúrate de tener el import de EngineFactory en la línea 1 del archivo.
+//const audioEngine = EngineFactory.create('v2-webrtc');
+window.audioEngine = audioEngine; // Para debug en consola
+
+// 2.// --- PUENTE MOTOR V2 <-> UI (VERSIÓN CORREGIDA PIZARRA) ---
+/* =========================================================
+   PUENTE INTELIGENTE (NOTAS + PEDALES)
+   ========================================================= */
+
+// 1. LÓGICA DE RECEPCIÓN (LO QUE VIENE DE LA RED)
+audioEngine.on('noteReceived', (data) => {
+  const senderId = data.fromSocketId;
+  
+  // Detectar Rol
+  let originRole = 'student'; 
+  let userFound = false;
+  if (senderId && Array.isArray(participants)) {
+      const u = participants.find(p => p.socketId === senderId);
+      if (u) { userFound = true; if (u.role) originRole = u.role; }
+  }
+  
+  // Fallback de seguridad para Pizarra
+  if (rol === 'student' && (!userFound || originRole !== 'teacher')) originRole = 'teacher';
+  if (!senderId && rol === 'teacher') originRole = 'teacher';
+
+  // --- DETECCIÓN DE TIPO DE MENSAJE ---
+  const cmd = data.status & 0xF0; // Leemos el primer nibble (90=NotaOn, 80=NotaOff, B0=ControlChange)
+  
+  let msgType = "note";
+  
+  // Si es Control Change (B0) -> Es un Pedal o Botón
+  if (cmd === 0xB0) {
+      msgType = "cc";
+  }
+
+  // Lógica Profe (Relay y Filtro)
+  if (rol === 'teacher') {
+      const debeSonar = (listeningTo.size === 0) || (senderId && listeningTo.has(senderId));
+      if (masterclassEnabled && liveStudentId === senderId && data.originalBuffer) {
+           try { audioEngine.relayNote(data, senderId); } catch(e) {}
+      }
+  }
+
+  // Enviamos a la UI con el tipo correcto
+  handleRemoteOrLocalNote({
+      type: msgType,          // "note" o "cc"
+      status: data.status,    // Necesario para handleOtherMessages
+      command: data.status,
+      
+      // Mapeo dinámico:
+      // Si es Nota: data1=Nota, data2=Velocidad
+      // Si es CC:   data1=Controller(64), data2=Valor(0-127)
+      note: data.data1,       
+      velocity: data.data2,   
+      controller: data.data1, 
+      value: data.data2,      
+
+      fromRole: originRole,
+      fromSocketId: senderId,
+      timestamp: Date.now() // Usamos reloj local para UI
+  });
+});
+
+// 2. LÓGICA DE ENVÍO (FEEDBACK LOCAL CUANDO TÚ TOCAS)
+audioEngine.on('noteSent', (data) => {
+  const cmd = data.status & 0xF0;
+  
+  // A) SI ES UNA NOTA
+  if (cmd === 0x90 || cmd === 0x80) {
+      const isNoteOn = (cmd === 0x90 && data.data2 > 0);
+      lightKey(data.data1, isNoteOn, data.data2); // Pintar tecla
+      if (rol === 'teacher') updateMusicBoard(data.data1, isNoteOn); // Pizarra
+  }
+  
+  // B) SI ES EL PEDAL (Sustain - CC 64)
+  else if (cmd === 0xB0 && data.data1 === 64) {
+      updatePedalVisual(data.data2); // Iluminar pedal en pantalla
+      if (rol === 'teacher') handleTeacherPedal(data.data2); // Lógica de pizarra del profe
+  }
+});
+
+
+// B. Cuando el motor manda una nota desde TU piano (Feedback local)
+audioEngine.on('noteSent', (data) => {
+    // Pintamos nuestra propia tecla y actualizamos VexFlow
+    const isNoteOn = (data.status >= 144 && data.status <= 159) && data.data2 > 0;
+    lightKey(data.data1, isNoteOn, data.data2);
+    
+    if (rol === 'teacher') {
+        updateMusicBoard(data.data1, isNoteOn);
+    }
+});
+
+// C. Estadísticas
+audioEngine.on('stats', (stats) => {
+    // console.log(`RTT: ${stats.rtt}ms`);
+});
+
+/* =========================================
+   FIN DEL MOTOR
+   ========================================= */
+
 
 /* ------------ UTILIDADES UI (LOG MEJORADO) ------------ */
 
@@ -134,6 +342,75 @@ function updateLiveStatusUI() {
   updateLiveBadge();
 }
 
+
+
+/* =========================================================
+   CAMBIO 2: SEÑALIZACIÓN WEBRTC (Pegar antes de SOCKET.IO MEJORADO)
+   ========================================================= */
+
+// 1. CUANDO ENTRA ALGUIEN A LA SALA (El Profesor inicia la llamada)
+socket.on("room-users", async (users) => {
+  participants = users || [];
+  if(typeof renderParticipants === "function") renderParticipants();
+
+  // Si soy PROFESOR, busco alumnos nuevos y les "tiro un cable"
+  if (rol === 'teacher') {
+      participants.forEach(async (u) => {
+          // Conectar con alumnos (que no sea yo mismo)
+          if (u.role === 'student' && u.socketId !== mySocketId) {
+              // El motor sabe si ya existe conexión. Si no, crea una oferta.
+              const offer = await audioEngine.connectToStudent(u.socketId);
+              
+              if (offer) {
+                  console.log(`📡 Llamando al alumno: ${u.name}`);
+                  socket.emit("signal-webrtc", { 
+                      target: u.socketId, 
+                      type: 'offer', 
+                      payload: offer 
+                  });
+              }
+          }
+      });
+  }
+});
+
+// 2. RECIBIR SEÑALES (Ofertas / Respuestas)
+socket.on("signal-webrtc", async (msg) => {
+  // msg trae: { fromSocketId, type, payload }
+  
+  // Le pasamos el mensaje al motor para que configure WebRTC
+  const answer = await audioEngine.handleIncomingSignal(msg.fromSocketId, msg.type, msg.payload);
+  
+  // Si el motor nos devuelve una "Respuesta" (Answer), hay que enviarla de vuelta
+  if (answer) {
+    socket.emit("signal-webrtc", {
+        target: msg.fromSocketId,
+        type: 'answer',
+        payload: answer
+    });
+  }
+});
+
+// 3. ENVIAR CANDIDATOS ICE (Salida del motor hacia Internet)
+document.addEventListener("webrtc-signal-out", (e) => {
+  const { target, type, payload } = e.detail;
+  // Usamos la sala actual global
+  const code = window.salaActual || salaActual; 
+  
+  if(code) {
+      socket.emit("signal-webrtc", {
+          room: code,
+          target: target,
+          type: type,
+          payload: payload
+      });
+  }
+});
+
+
+
+
+
 /* ------------ SOCKET.IO (MEJORADO) ------------ */
 
 socket.on("connect", () => {
@@ -183,6 +460,19 @@ socket.on("midi-message", (msg) => {
   handleRemoteOrLocalNote(msg);
 });
 
+socket.on("room-created", (roomCode) => {
+  salaActual = roomCode;
+  codigoSala.value = roomCode; 
+  updateInviteLink();
+  log("Sala ID: " + roomCode, 'success');
+
+  // --- AGREGAR ESTO: ---
+  iniciarMotorCompleto(true); // true = Es Profesor
+});
+
+
+
+
 // --- EL PROFE RESPONDE A PETICIONES DE SINCRONIZACIÓN ---
 socket.on("teacher-sync-request", (requestingSocketId) => {
    if (rol === 'teacher') {
@@ -197,25 +487,20 @@ socket.on("teacher-sync-request", (requestingSocketId) => {
    }
 });
 
-socket.on("room-joined", (code) => {
+socket.on("room-joined", async (code) => {
   salaActual = code;
   log("✅ Te has unido correctamente a la sala " + code, 'success');
   updateStatus("EN SALA: " + code);
 
+  // --- AGREGAR ESTO: ---
+  // Determinamos si es profe basado en tu variable 'rol' global
+  const soyProfe = (rol === 'teacher');
+  iniciarMotorCompleto(soyProfe); 
+
+  // (El resto de tu código de sincronización sigue igual)
   log("🔄 Sincronizando pizarra...", 'warn');
   socket.emit("request-full-state", code);
-
-  if (rol === "student") {
-      const btn = document.getElementById("btnUnirse");
-      const input = document.getElementById("codigoSala");
-      if(btn) {
-          btn.textContent = "DENTRO";
-          btn.disabled = true;
-          btn.style.background = "var(--success)";
-          btn.style.color = "#000";
-      }
-      if(input) input.disabled = true;
-  }
+  // ...
 });
 
 /* ------------ NUEVO BOTÓN COPIAR INTELIGENTE ------------ */
@@ -652,93 +937,70 @@ window.initPianoLink = function() {
 // Ejecutamos una vez al inicio (por si entran sin link de profesor)
 window.initPianoLink();
 
-/* ------------ WEB MIDI ------------ */
-const midiInputSelect = document.getElementById("midiInputSelect");
-let activeInput = null;
+/* ------------ NUEVA GESTIÓN MIDI (MOTOR V2) ------------ */
+async function initMidiV2() {
+  try {
+      // 1. Pedimos al motor que busque dispositivos
+      const devices = await audioEngine.initMidi();
+      
+      const selectIn = document.getElementById("midiInputSelect");
+      const selectOut = document.getElementById("midiOutputSelect");
 
-if (navigator.requestMIDIAccess) {
-  navigator.requestMIDIAccess().then(onMIDISuccess, err => {
-    log("MIDI Access Error: " + err, 'error');
-  });
-} else {
-  log("Browser MIDI not supported.", 'warn');
-}
+      // Limpiar listas
+      if(selectIn) selectIn.innerHTML = '<option value="">(Selecciona Entrada)</option>';
+      if(selectOut) selectOut.innerHTML = '<option value="">(Selecciona Salida)</option>';
 
-function onMIDISuccess(access) {
-  midiAccess = access;
-  refreshDevices();
-  
-  access.onstatechange = (e) => {
-    if (e.port.state === "connected" || e.port.state === "disconnected") {
-        refreshDevices();
-    }
-  };
-}
+      // 2. Llenar listas
+      if (devices.inputs) {
+          devices.inputs.forEach(d => {
+              const opt = document.createElement("option");
+              opt.value = d.id; opt.text = d.name; 
+              if(selectIn) selectIn.appendChild(opt);
+          });
+      }
+      
+      if (devices.outputs) {
+          devices.outputs.forEach(d => {
+              const opt = document.createElement("option");
+              opt.value = d.id; opt.text = d.name; 
+              if(selectOut) selectOut.appendChild(opt);
+          });
+      }
 
-function refreshDevices() {
-  if (!midiAccess) return;
+      // 3. Listeners delegados al motor (Smart Routing)
+      if(selectIn) {
+          selectIn.onchange = (e) => {
+              const id = e.target.value;
+              const autoOut = audioEngine.selectInput(id);
+              
+              if(autoOut && selectOut) {
+                  selectOut.value = autoOut.id;
+                  log(`✨ Audio enrutado a: ${autoOut.name}`, 'success');
+              }
+          };
+      }
 
-  const currentOut = midiOutputSelect.value;
-  midiOutputSelect.innerHTML = '<option value="">(ninguna)</option>';
-  for (let output of midiAccess.outputs.values()) {
-    const opt = document.createElement("option");
-    opt.value = output.id;
-    opt.textContent = output.name;
-    midiOutputSelect.appendChild(opt);
+      if(selectOut) {
+          selectOut.onchange = (e) => {
+              audioEngine.selectOutput(e.target.value);
+          };
+      }
+      
+      // Listener para el botón "Enviar a mi sintetizador"
+      const toggleMidi = document.getElementById("toggleMidiOut");
+      if(toggleMidi) {
+          toggleMidi.addEventListener("change", () => {
+              enableMidiOut = toggleMidi.checked;
+              if (enableMidiOut) log("Salida MIDI activada.", "info");
+          });
+      }
+
+      log("🎹 Sistema MIDI V2 Activo", "success");
+
+  } catch (e) {
+      log("Error MIDI: " + e.message, "error");
   }
-  if (currentOut) midiOutputSelect.value = currentOut;
-
-  const currentIn = midiInputSelect.value;
-  midiInputSelect.innerHTML = '<option value="">(Selecciona tu Piano...)</option>';
-  
-  for (let input of midiAccess.inputs.values()) {
-    const opt = document.createElement("option");
-    opt.value = input.id;
-    opt.textContent = input.name;
-    midiInputSelect.appendChild(opt);
-  }
-  if (currentIn) midiInputSelect.value = currentIn;
-  
-  updateInputListener();
 }
-
-midiInputSelect.addEventListener("change", updateInputListener);
-
-function updateInputListener() {
-    if (!midiAccess) return;
-    
-    for (let input of midiAccess.inputs.values()) {
-        input.onmidimessage = null; 
-    }
-
-    const selectedId = midiInputSelect.value;
-    const selectedName = midiInputSelect.options[midiInputSelect.selectedIndex]?.text;
-
-    if (selectedId) {
-        const input = midiAccess.inputs.get(selectedId);
-        if (input) {
-            if (selectedName.includes("IAC") || selectedName.includes("loopMIDI")) {
-                log("⚠️ CUIDADO: Has seleccionado un cable virtual como entrada.", "warn");
-            }
-            input.onmidimessage = handleLocalMIDIMessage;
-            log(`MIDI In: Escuchando solo a [${input.name}]`, 'success');
-        }
-    } else {
-        log("MIDI In: Desactivado.", 'warn');
-    }
-}
-
-midiOutputSelect.addEventListener("change", () => {
-  const id = midiOutputSelect.value;
-  midiOutput = id ? midiAccess.outputs.get(id) : null;
-});
-
-toggleMidiOut.addEventListener("change", () => {
-  enableMidiOut = toggleMidiOut.checked;
-  if (enableMidiOut) log("Salida MIDI activada.", "info");
-  else log("Salida MIDI desactivada.", "info");
-});
-
 
 /* ------------ MANEJO DE MENSAJES LOCALES (OPTIMIZADO) ------------ */
 
@@ -971,7 +1233,13 @@ function handleRemoteOrLocalNote(msg) {
   const isNoteOn = (cmd === 0x90 && velocity > 0);
   lightKey(note, isNoteOn, velocity);
 
-  if (role === 'teacher') updateMusicBoard(note, isNoteOn);
+ // ACTUALIZAR PIZARRA
+// 1. Si viene de un profesor (Clase normal)
+// 2. O si YO soy un alumno y recibo cualquier cosa remota (Masterclass/Demo)
+if (role === 'teacher' || (rol === 'student' && type === 'remote')) {
+  console.log(`🎵 Nota recibida. Role: ${msg.fromRole} | MiRol: ${rol}`);
+  updateMusicBoard(note, isNoteOn);
+}
 
   const soyProfe = (rol === "teacher");
   const vieneDeProfe = (role === "teacher");
