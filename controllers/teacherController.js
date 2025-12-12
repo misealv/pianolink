@@ -1,14 +1,26 @@
 /* controllers/teacherController.js */
-const Feedback = require('../models/Feedback');
 
-// Función para recibir y guardar el feedback del fundador
+const Feedback = require('../models/Feedback');
+const Message = require('../models/Message'); // Importante: Necesario para leer las respuestas
+const User = require('../models/User');       // Importante: Necesario para buscar por email si falla la sesión
+
+// 1. Función para recibir y guardar el feedback del fundador (User -> Admin)
 exports.submitFeedback = async (req, res) => {
     try {
-        const { content } = req.body;
+        const { content, email } = req.body; // Aceptamos email también por si acaso
         
-        // Verificamos que el usuario esté logueado (req.user viene del middleware)
-        if (!req.user) {
-            return res.status(401).json({ message: 'No autorizado' });
+        // Intentamos obtener el ID del usuario de dos formas:
+        // A) Por la sesión (req.user) si está autenticado
+        // B) Buscando el email si viene en el cuerpo (fallback)
+        let userId = req.user ? req.user._id : null;
+
+        if (!userId && email) {
+            const userFound = await User.findOne({ email: email });
+            if (userFound) userId = userFound._id;
+        }
+
+        if (!userId) {
+            return res.status(401).json({ message: 'No autorizado o usuario no encontrado' });
         }
 
         if (!content) {
@@ -17,7 +29,7 @@ exports.submitFeedback = async (req, res) => {
 
         // Guardamos en la base de datos
         await Feedback.create({
-            user: req.user._id, // El ID del profesor que envía el mensaje
+            user: userId,
             content: content
         });
 
@@ -26,5 +38,56 @@ exports.submitFeedback = async (req, res) => {
     } catch (error) {
         console.error('Error en submitFeedback:', error);
         res.status(500).json({ message: 'Error del servidor al guardar feedback' });
+    }
+};
+
+// 2. Función para obtener el historial completo de chat (User <-> Admin)
+exports.getMyConversation = async (req, res) => {
+    try {
+        let userId = req.user ? req.user._id : null;
+        
+        // Fallback: Si no hay req.user (sesión), intentamos buscar por el email que llega en la URL (?email=...)
+        if (!userId && req.query.email) {
+            const u = await User.findOne({ email: req.query.email });
+            if (u) userId = u._id;
+        }
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Usuario no identificado' });
+        }
+
+        // A) Buscar mis mensajes enviados (Feedback)
+        // Usamos .lean() para obtener objetos JS puros y poder modificarlos
+        const myFeedbacks = await Feedback.find({ user: userId }).lean();
+        
+        // B) Buscar mensajes recibidos del admin (Message)
+        const adminMessages = await Message.find({ recipient: userId }).lean();
+
+        // C) Mezclar ambos arrays y añadir etiquetas para el frontend
+        const timeline = [
+            ...myFeedbacks.map(f => ({ 
+                _id: f._id,
+                content: f.content,
+                createdAt: f.createdAt,
+                sender: 'me',       // Lo envié yo
+                type: 'feedback'
+            })),
+            ...adminMessages.map(m => ({ 
+                _id: m._id,
+                content: m.content,
+                createdAt: m.createdAt,
+                sender: 'admin',    // Me lo enviaron a mí
+                type: 'message'
+            }))
+        ];
+
+        // D) Ordenar cronológicamente (del más viejo al más nuevo)
+        timeline.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+        res.json(timeline);
+
+    } catch (error) {
+        console.error("Error en getMyConversation:", error);
+        res.status(500).json({ message: 'Error del servidor al cargar chat' });
     }
 };

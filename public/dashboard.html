@@ -85,6 +85,90 @@
         width: 100%; /* Botón ancho completo en sidebar */
     }
     .btn-gold:hover { background: #d4a036; }
+
+/* ESTILOS PARA EL CHAT DEL PROFESOR EN SIDEBAR */
+.founder-chat-container {
+    background: #151515;
+    border: 1px solid #b38728; /* Dorado */
+    border-radius: 8px;
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    height: 300px; /* Altura fija para scroll */
+    overflow: hidden;
+}
+
+.founder-chat-header {
+    background: linear-gradient(135deg, #b38728, #8a6215);
+    color: #000;
+    padding: 8px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    display: flex; justify-content: space-between; align-items: center;
+}
+
+.founder-chat-history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    background: #111;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Burbujas Profe */
+.bubble-me {
+    align-self: flex-end;
+    background: #333;
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border-top-right-radius: 0;
+    font-size: 11px;
+    max-width: 85%;
+    border: 1px solid #444;
+}
+
+/* Burbujas Admin/CEO */
+.bubble-admin {
+    align-self: flex-start;
+    background: #e67e22; /* Naranja Admin */
+    color: #000;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border-top-left-radius: 0;
+    font-size: 11px;
+    max-width: 85%;
+    font-weight: 500;
+}
+
+.chat-input-box {
+    display: flex;
+    border-top: 1px solid #333;
+}
+.chat-input-box input {
+    flex: 1;
+    background: #202020;
+    border: none;
+    color: white;
+    padding: 8px;
+    font-size: 11px;
+    outline: none;
+}
+.chat-btn-mini {
+    background: #b38728;
+    color: #000;
+    border: none;
+    font-weight: bold;
+    padding: 0 10px;
+    cursor: pointer;
+    font-size: 10px;
+}
+
+
+
   </style>
 </head>
 <body>
@@ -106,14 +190,22 @@
             <div id="copyFeedback" style="font-size: 10px; color: #b4e080; margin-top: 5px; min-height: 15px;"></div>
         </div>
 
-        <div id="founderSection" class="founder-card">
-            <div class="founder-header">
-                <span>👑 Panel Fundador</span>
+        <div id="founderSection" style="display:none;">
+            <div class="founder-chat-container">
+                <div class="founder-chat-header">
+                    <span>👑 Línea Directa CEO</span>
+                    <span style="font-size:9px; opacity:0.8;">ONLINE</span>
+                </div>
+                
+                <div id="founderChatHistory" class="founder-chat-history">
+                    <div style="text-align:center; color:#444; font-size:10px; margin-top:10px;">Cargando historial...</div>
+                </div>
+        
+                <div class="chat-input-box">
+                    <input type="text" id="founderChatInput" placeholder="Escribe tu mensaje..." onkeydown="if(event.key==='Enter') sendFounderMsg()">
+                    <button class="chat-btn-mini" onclick="sendFounderMsg()">➤</button>
+                </div>
             </div>
-            <p style="font-size:10px; color:#ccc; margin:0 0 8px 0; line-height: 1.3;">Tu feedback prioritario moldea el futuro de la app.</p>
-            <textarea id="feedbackContent" rows="3" placeholder="Sugerencias o bugs..." required></textarea>
-            <button onclick="sendFeedback()" class="btn-gold">Enviar al CEO</button>
-            <div id="feedbackMsg" style="font-size:10px; margin-top:5px; min-height:15px;"></div>
         </div>
     
         <div style="flex:1"></div> <button class="btn btn-outline" onclick="logout()">Cerrar Sesión</button>
@@ -361,6 +453,76 @@ async function sendFeedback() {
     }
 
     loadData();
+
+/* LÓGICA DE CHAT EN SIDEBAR (REEMPLAZA LAS FUNCIONES VIEJAS DE FEEDBACK) */
+
+async function loadFounderChat() {
+    const container = document.getElementById('founderChatHistory');
+    try {
+        // Usamos el nuevo endpoint unificado
+        const res = await fetch(`${API_URL}/conversation?email=${user.email}`);
+        const messages = await res.json();
+        
+        container.innerHTML = '';
+        
+        if (messages.length === 0) {
+            container.innerHTML = '<div style="text-align:center; color:#444; font-size:10px; margin-top:20px;">Habla directamente con los fundadores aquí.</div>';
+            return;
+        }
+
+        messages.forEach(msg => {
+            const div = document.createElement('div');
+            // msg.sender viene del controlador ('me' o 'admin')
+            if (msg.sender === 'admin') {
+                div.className = 'bubble-admin';
+                div.innerHTML = `<strong>SOPORTE:</strong> ${msg.content}`;
+            } else {
+                div.className = 'bubble-me';
+                div.innerText = msg.content;
+            }
+            container.appendChild(div);
+        });
+
+        // Auto-scroll al final
+        container.scrollTop = container.scrollHeight;
+    } catch (e) { console.error("Error chat", e); }
+}
+
+async function sendFounderMsg() {
+    const input = document.getElementById('founderChatInput');
+    const content = input.value.trim();
+    if(!content) return;
+
+    // Feedback visual inmediato (UX optimista)
+    const history = document.getElementById('founderChatHistory');
+    const tempDiv = document.createElement('div');
+    tempDiv.className = 'bubble-me';
+    tempDiv.style.opacity = "0.5";
+    tempDiv.innerText = content;
+    history.appendChild(tempDiv);
+    history.scrollTop = history.scrollHeight;
+    input.value = '';
+
+    try {
+        const res = await fetch(`${API_URL}/feedback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: user.email, content: content })
+        });
+        
+        if(res.ok) {
+            loadFounderChat(); // Recargar para confirmar y limpiar estado "optimista"
+        }
+    } catch(e) { alert("Error de conexión"); }
+}
+
+// IMPORTANTE: En la función loadData(), donde detectas si es fundador:
+// if (data.isFoundingMember) {
+//    document.getElementById('founderSection').style.display = 'block';
+//    loadFounderChat(); // <--- AGREGAR ESTA LLAMADA
+// }
+
+
   </script>
 </body>
 </html>

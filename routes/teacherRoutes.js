@@ -86,4 +86,8 @@ router.post('/my-messages/read/:id', async (req, res) => {
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
 
+
+const teacherController = require('../controllers/teacherController'); // Asegurar importación
+router.get('/conversation', teacherController.getMyConversation);
+
 module.exports = router;

@@ -128,3 +128,42 @@ const deleteUser = async (req, res) => {
 
 // EXPORTAR TODAS LAS FUNCIONES (CRÍTICO: Si falta esto, el server falla)
 module.exports = { loginUser, registerUser, getTeachers, getTeacherBySlug, deleteUser };
+
+/* controllers/teacherController.js (AÑADIR ESTO) */
+const Message = require('../models/Message'); // Asegúrate de importar Message arriba
+
+// Obtener mi propia conversación (Profe)
+exports.getMyConversation = async (req, res) => {
+    try {
+        // Asumimos que req.user existe gracias al middleware, o usamos el email del query si prefieres mantener compatibilidad
+        let userId = req.user ? req.user._id : null;
+        
+        // Fallback por si tu ruta usa query param ?email=...
+        if (!userId && req.query.email) {
+            const User = require('../models/User');
+            const u = await User.findOne({ email: req.query.email });
+            if (u) userId = u._id;
+        }
+
+        if (!userId) return res.status(401).json({ message: 'Usuario no identificado' });
+
+        // A) Mis mensajes enviados
+        const myFeedbacks = await Feedback.find({ user: userId }).lean();
+        
+        // B) Mensajes recibidos del admin
+        const adminMessages = await Message.find({ recipient: userId }).lean();
+
+        // C) Mezclar
+        const timeline = [
+            ...myFeedbacks.map(f => ({ ...f, sender: 'me', type: 'feedback' })),
+            ...adminMessages.map(m => ({ ...m, sender: 'admin', type: 'message' }))
+        ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+        res.json(timeline);
+
+    } catch (error) {
+        console.error("Error getMyConversation:", error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+};
+

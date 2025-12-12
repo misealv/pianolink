@@ -60,6 +60,45 @@
     .modal-content { background: #202020; padding: 25px; border-radius: 8px; width: 400px; border: 1px solid #444; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     .modal-content h3 { margin-top: 0; color: #ff764d; }
     .modal-content textarea { width: 100%; height: 100px; margin: 10px 0; resize: none; background: #111; color: white; border: 1px solid #444; padding: 10px; }
+  
+  
+  /* NUEVOS ESTILOS PARA EL CHAT ADMIN */
+  .chat-layout { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 140px); background: #202020; border: 1px solid #444; border-radius: 8px; overflow: hidden; }
+    
+    /* Panel Izquierdo: Lista de Usuarios */
+    .chat-sidebar { background: #1a1a1a; border-right: 1px solid #333; overflow-y: auto; }
+    .chat-user-item { padding: 15px; border-bottom: 1px solid #2a2a2a; cursor: pointer; transition: 0.2s; }
+    .chat-user-item:hover, .chat-user-item.active { background: #333; }
+    .chat-user-name { font-weight: bold; color: #fff; font-size: 13px; display: block; }
+    .chat-user-meta { font-size: 11px; color: #888; }
+    .unread-dot { display: inline-block; width: 8px; height: 8px; background: #ff764d; border-radius: 50%; margin-left: 5px; }
+
+    /* Panel Derecho: Conversación */
+    .chat-main { display: flex; flex-direction: column; background: #202020; }
+    .chat-header { padding: 15px; border-bottom: 1px solid #333; background: #262626; font-weight: bold; color: #ddd; }
+    
+    .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+    
+    /* Burbujas */
+    .msg-bubble { max-width: 70%; padding: 10px 15px; border-radius: 8px; font-size: 13px; line-height: 1.4; position: relative; }
+    
+    /* Mensaje del PROFE (Izquierda) */
+    .msg-teacher { align-self: flex-start; background: #333; color: #ddd; border-top-left-radius: 0; }
+    .msg-teacher .sender-name { font-size: 10px; color: #ff764d; margin-bottom: 3px; display: block; font-weight: bold; }
+
+    /* Mensaje del ADMIN (Derecha) */
+    .msg-admin { align-self: flex-end; background: #5dade2; color: #000; border-top-right-radius: 0; }
+    
+    .msg-time { font-size: 9px; opacity: 0.6; display: block; margin-top: 5px; text-align: right; }
+
+    /* Área de Input */
+    .chat-input-area { padding: 15px; background: #262626; border-top: 1px solid #333; display: flex; gap: 10px; }
+    .chat-input-area textarea { flex: 1; height: 40px; background: #111; border: 1px solid #444; color: white; padding: 10px; border-radius: 4px; resize: none; }
+    .btn-send { background: #ff764d; border: none; padding: 0 20px; color: black; font-weight: bold; border-radius: 4px; cursor: pointer; }
+    .btn-send:hover { background: #ff9f7e; }
+  
+  
+  
   </style>
 </head>
 <body>
@@ -349,6 +388,135 @@
     // --- INICIALIZACIÓN AUTOMÁTICA (IMPORTANTE) ---
     loadTeachers();       
     checkNotifications();
+
+/* --- LÓGICA DE CHAT UNIFICADO --- */
+let selectedChatUserId = null;
+
+// 1. Cargar lista de usuarios que han escrito
+async function loadFeedbacks() {
+    // Reutilizamos el endpoint existente o creamos uno que agrupe
+    // Para simplificar, usaremos el de feedbacks y agruparemos por usuario manualmente en JS
+    try {
+        const res = await fetch('/admin/feedbacks'); // Endpoint existente
+        const feedbacks = await res.json();
+        
+        // Agrupar feedbacks por usuario (Set único)
+        const usersMap = new Map();
+        
+        feedbacks.forEach(f => {
+            if(f.user && !usersMap.has(f.user._id)) {
+                usersMap.set(f.user._id, {
+                    id: f.user._id,
+                    name: f.user.name,
+                    email: f.user.email,
+                    lastDate: f.createdAt,
+                    hasUnread: (f.status === 'unread')
+                });
+            } else if (f.user && f.status === 'unread') {
+                // Si ya existe pero encontramos uno no leído, actualizamos flag
+                const u = usersMap.get(f.user._id);
+                u.hasUnread = true;
+            }
+        });
+
+        renderUserList(Array.from(usersMap.values()));
+    } catch (e) { console.error("Error cargando lista chat", e); }
+}
+
+function renderUserList(users) {
+    const list = document.getElementById('chatUserList');
+    list.innerHTML = '';
+    
+    users.forEach(u => {
+        const div = document.createElement('div');
+        div.className = `chat-user-item ${selectedChatUserId === u.id ? 'active' : ''}`;
+        div.onclick = () => loadConversation(u.id);
+        
+        div.innerHTML = `
+            <span class="chat-user-name">
+                ${u.name} ${u.hasUnread ? '<span class="unread-dot"></span>' : ''}
+            </span>
+            <span class="chat-user-meta">${u.email}</span>
+        `;
+        list.appendChild(div);
+    });
+}
+
+// 2. Cargar Conversación Individual
+async function loadConversation(userId) {
+    selectedChatUserId = userId;
+    // Repintar lista para marcar activo
+    document.querySelectorAll('.chat-user-item').forEach(el => el.classList.remove('active'));
+    // (Opcional: añadir clase active al elemento clickeado)
+
+    const container = document.getElementById('chatContainer');
+    const header = document.getElementById('chatHeader');
+    container.innerHTML = '<p style="text-align:center; color:#666;">Cargando historial...</p>';
+
+    try {
+        const res = await fetch(`/admin/conversation/${userId}`);
+        const data = await res.json();
+        
+        header.innerText = `Chat con: ${data.user.name}`;
+        container.innerHTML = ''; // Limpiar
+
+        if(data.conversation.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#555;">No hay mensajes aún.</p>';
+            return;
+        }
+
+        data.conversation.forEach(msg => {
+            const isMe = (msg.sender === 'admin');
+            const div = document.createElement('div');
+            div.className = `msg-bubble ${isMe ? 'msg-admin' : 'msg-teacher'}`;
+            
+            // Si es Teacher, mostrar nombre chiquito
+            const senderTag = !isMe ? `<span class="sender-name">${data.user.name}</span>` : '';
+            
+            div.innerHTML = `
+                ${senderTag}
+                ${msg.content}
+                <span class="msg-time">${new Date(msg.createdAt).toLocaleString()}</span>
+            `;
+            container.appendChild(div);
+        });
+
+        // Scroll al fondo
+        container.scrollTop = container.scrollHeight;
+
+        // Marcar como leídos silenciosamente
+        await fetch('/admin/feedbacks/mark-read', { method: 'POST' }); // Esto marca TODO como leído (se puede refinar)
+
+    } catch (e) {
+        container.innerHTML = '<p style="color:red">Error cargando chat.</p>';
+        console.error(e);
+    }
+}
+
+// 3. Enviar Respuesta Directa
+async function sendReply() {
+    const txt = document.getElementById('replyInput');
+    const content = txt.value.trim();
+    
+    if(!content || !selectedChatUserId) return;
+
+    try {
+        const res = await fetch('/admin/message/send', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ recipientId: selectedChatUserId, content })
+        });
+
+        if(res.ok) {
+            txt.value = ''; // Limpiar
+            loadConversation(selectedChatUserId); // Recargar chat para ver mensaje nuevo
+        } else {
+            alert("Error al enviar");
+        }
+    } catch (e) { console.error(e); }
+}
+
+
 
   </script>
 </body>
