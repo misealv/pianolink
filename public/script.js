@@ -28,28 +28,44 @@ async function iniciarMotorCompleto(esProfe) {
   }
   
   // 1. CUANDO ENTRA UN USUARIO NUEVO (Profesor inicia conexión)
-socket.on("room-users", async (users) => {
-  participants = users || [];
-  renderParticipants();
-
-  // Si soy PROFESOR, inicio conexión con los alumnos nuevos que no tenga conectados
-  if (rol === 'teacher') {
-      participants.forEach(async (u) => {
-          if (u.role === 'student' && u.socketId !== mySocketId) {
-              // El motor verifica internamente si ya existe conexión, si no, la crea
-              const offer = await audioEngine.connectToStudent(u.socketId);
-              if (offer) {
-                socket.emit("signal-webrtc", { 
-                    room: salaActual,
-                    target: u.socketId, 
-                    type: 'offer', 
-                    payload: offer 
-                });
-              }
-          }
-      });
-  }
-});
+  socket.on("room-users", async (users) => {
+    participants = users || [];
+  
+    // --- 🟢 BLOQUE NUEVO (Inicio) ---
+    // Como el filtro ahora es ESTRICTO, debemos agregar a todos los alumnos 
+    // a la lista de "permitidos" por defecto. Si no, entrarán en silencio.
+    participants.forEach(p => {
+        if (p.role === 'student') {
+            listeningTo.add(p.socketId);
+        }
+    });
+  
+    // Sincronizamos inmediatamente la lista con el Motor de Audio
+    if (window.audioEngine && typeof window.audioEngine.setSoloList === 'function') {
+        window.audioEngine.setSoloList(Array.from(listeningTo));
+    }
+    // --- 🟢 BLOQUE NUEVO (Fin) ---
+  
+    renderParticipants();
+  
+    // Si soy PROFESOR, inicio conexión con los alumnos nuevos que no tenga conectados
+    if (rol === 'teacher') {
+        participants.forEach(async (u) => {
+            if (u.role === 'student' && u.socketId !== mySocketId) {
+                // El motor verifica internamente si ya existe conexión, si no, la crea
+                const offer = await audioEngine.connectToStudent(u.socketId);
+                if (offer) {
+                  socket.emit("signal-webrtc", { 
+                      room: salaActual,
+                      target: u.socketId, 
+                      type: 'offer', 
+                      payload: offer 
+                  });
+                }
+            }
+        });
+    }
+  });
 
 // 2. MANEJO DE SEÑALES (Ofertas/Respuestas/Candidatos)
 socket.on("signal-webrtc", async (msg) => {
@@ -690,7 +706,7 @@ function renderParticipants() {
       const cb = document.createElement("input");
       cb.type = "checkbox";
       // Usamos currentListeningTo
-      cb.checked = (currentListeningTo.size === 0) || currentListeningTo.has(u.socketId);
+      cb.checked = currentListeningTo.has(u.socketId);
       cb.addEventListener("change", () => toggleListen(u.socketId, cb.checked));
       listenLabel.appendChild(cb); listenLabel.appendChild(document.createTextNode(" CUE"));
       right.appendChild(listenLabel);
@@ -730,8 +746,15 @@ function renderParticipants() {
 // function toggleListen(id, checked) { ... }
 
 function toggleListen(id, checked) {
+  // 1. Actualizamos la memoria visual
   if (checked) listeningTo.add(id);
   else listeningTo.delete(id);
+
+  // 2. 🟢 COMUNICACIÓN CON EL MOTOR
+  // Le pasamos la lista al motor para que aplique el filtro total
+  if (window.audioEngine && typeof window.audioEngine.setSoloList === 'function') {
+      window.audioEngine.setSoloList(Array.from(listeningTo));
+  }
 }
 
 function sendLiveStudent(studentSocketId) {

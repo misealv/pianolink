@@ -20,33 +20,34 @@ export class WebRTCEngine extends IPianoEngine {
         this.midiAccess = null;
         this.isHost = false;
 
+        // 🟢 NUEVO: Lista de IDs permitidos (Filtro CUE Estricto)
+        this.soloList = new Set();
+
         // CABLEADO INTERNO: Red -> Audio
-        // Ahora recibimos (buffer, fromSocketId) gracias al nuevo NetworkTransport
-        // CABLEADO INTERNO: Red -> Audio
-// Ahora recibimos (buffer, fromSocketId) gracias al nuevo NetworkTransport
-this.net.onDataReceived((buffer, fromSocketId) => {
-    console.log("🌐 [WebRTCEngine] onDataReceived, len:", buffer.byteLength, "from:", fromSocketId);
+        this.net.onDataReceived((buffer, fromSocketId) => {
+            // console.log("🌐 [WebRTCEngine] onDataReceived len:", buffer.byteLength); 
 
-    const data = MidiProtocol.decode(buffer);
-    console.log("🌐 [WebRTCEngine] decode ->", data);
+            const data = MidiProtocol.decode(buffer);
 
-    if (data) {
-        // 1. Quién tocó (ID del peer)
-        data.fromSocketId = fromSocketId;
-        
-        // 2. Guardamos el buffer original por si hay que hacer Relay (Masterclass)
-        data.originalBuffer = buffer; 
+            if (data) {
+                data.fromSocketId = fromSocketId;
+                data.originalBuffer = buffer; 
 
-        // 3. Sonido local en el lado que recibe
-        this.audio.scheduleNote(data);
-        
-        // 4. Avisamos a la UI (piano visual, pizarra, etc.)
-        console.log("🎹 [WebRTCEngine] EMIT noteReceived");
-        this.emit('noteReceived', data);
-    } else {
-        console.warn("⚠️ [WebRTCEngine] decode devolvió null");
-    }
-});
+                // 🟢 FILTRO ESTRICTO (SOLUCIÓN FINAL)
+                // Solo permitimos el paso si el ID está explícitamente en la lista.
+                // Si la lista está vacía, no suena nadie (Silencio Total).
+                const isAllowed = this.soloList.has(fromSocketId);
+
+                if (isAllowed) {
+                    // 1. Sonido
+                    this.audio.scheduleNote(data);
+                    
+                    // 2. Visual (Feedback)
+                    // Al estar dentro del if, el piano visual también se apaga si no está permitido
+                    this.emit('noteReceived', data);
+                }
+            } // <--- ESTA LLAVE FALTABA (Cierre del if(data))
+        }); // <--- Cierre del callback onDataReceived
 
         // Eventos internos de estado
         document.addEventListener('stats-update', (e) => this.emit('stats', e.detail));
@@ -57,6 +58,13 @@ this.net.onDataReceived((buffer, fromSocketId) => {
             this.timeSync.start(this.isHost);
             this.emit('connected');
         });
+
+    } // <--- ESTA LLAVE ES CRÍTICA (Cierre del Constructor)
+
+    // 🟢 NUEVO: Actualizar filtro desde la UI
+    setSoloList(socketIdsArray) {
+        this.soloList = new Set(socketIdsArray);
+        // console.log("🎚️ Filtro actualizado:", this.soloList);
     }
 
     // --- MÉTODOS BASE DEL CONTRATO ---
@@ -96,7 +104,6 @@ this.net.onDataReceived((buffer, fromSocketId) => {
     }
 
     // Retransmitir una nota recibida a los demás (Modo Masterclass)
-    // excludeSourceId = El ID del alumno que tocó (para no devolvérsela y crear eco)
     relayNote(data, excludeSourceId) {
         if (data.originalBuffer) {
             this.net.broadcast(data.originalBuffer, excludeSourceId);
@@ -141,8 +148,6 @@ this.net.onDataReceived((buffer, fromSocketId) => {
             const buffer = this.protocol.encode(status, data1, data2, now);
             
             // MODIFICADO: Usamos broadcast() por defecto.
-            // - Si soy Alumno: Envía a mi único peer (El Profe).
-            // - Si soy Profe: Envía a TODOS los alumnos conectados.
             this.net.broadcast(buffer);
             
             this.emit('noteSent', { status, data1, data2 });
@@ -151,10 +156,8 @@ this.net.onDataReceived((buffer, fromSocketId) => {
         // Smart Routing (Búsqueda automática de salida)
         const outputs = Array.from(this.midiAccess.outputs.values());
         
-        // 1. Coincidencia Exacta
         let match = outputs.find(out => out.name === input.name);
         
-        // 2. Coincidencia Fuzzy (Aproximada)
         if (!match) {
             match = outputs.find(out => out.name.includes(input.name) || input.name.includes(out.name));
         }
@@ -175,7 +178,6 @@ this.net.onDataReceived((buffer, fromSocketId) => {
     }
 
     // --- MÉTODOS MANUALES (LEGACY / FALLBACK) ---
-    // Se mantienen vacíos o como wrappers por compatibilidad con IPianoEngine
     async generateInvitation() { console.warn("Usa connectToStudent en modo V2"); return null; }
     async processInvitation(c) { console.warn("Usa handleIncomingSignal en modo V2"); return null; }
     async confirmConnection(c) { console.warn("Usa handleIncomingSignal en modo V2"); }
