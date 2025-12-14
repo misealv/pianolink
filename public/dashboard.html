@@ -3,437 +3,464 @@
 <head>
   <meta charset="UTF-8">
   <title>Mi Estudio | Piano Link</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  
   <style>
-    body { background: #1a1a1a; color: #dcdcdc; font-family: sans-serif; display: flex; height: 100vh; margin: 0; }
-    
-    .sidebar { width: 250px; background: #262626; padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 20px; overflow-y: auto;}
-    .main { flex: 1; padding: 40px; overflow-y: auto; }
-    
-    h1 { color: #ff764d; text-transform: uppercase; font-size: 20px; margin-top: 0; letter-spacing: 1px;}
-    h2 { color: #888; font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 5px; margin-top: 0;}
-    
-    .card { background: #202020; border: 1px solid #333; padding: 20px; border-radius: 8px; margin-bottom: 20px; max-width: 600px; }
-    
-    label { display: block; margin-bottom: 5px; font-size: 12px; color: #aaa; margin-top: 15px;}
-    input[type="text"], textarea { width: 100%; background: #111; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 4px; box-sizing: border-box; }
-    
-    .preview-box { display: flex; align-items: center; gap: 15px; margin-top: 10px; background: #151515; padding: 10px; border-radius: 4px;}
-    .preview-img { width: 60px; height: 60px; object-fit: contain; background: #000; border: 1px solid #444; border-radius: 4px; }
-    input[type="file"] { font-size: 11px; }
-
-    .btn { background: #ff764d; color: #000; border: none; padding: 12px 24px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; transition: 0.2s;}
-    .btn:hover { background: #ff9f7e; transform: translateY(-2px); }
-    
-    .btn-room { background: #28a745; color: #fff; width: 100%; margin-top: 10px;}
-    .btn-outline { background: transparent; border: 1px solid #ff764d; color: #ff764d; margin-top: auto;}
-
-    #msg { margin-top: 15px; font-weight: bold; min-height: 20px;}
-
-    /* --- ESTILOS PROFESOR FUNDADOR --- */
-    .gold-badge {
-        background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
-        color: #3e2723;
-        padding: 4px 10px;
-        border-radius: 50px;
-        font-weight: 800;
-        font-size: 9px;
-        display: none; /* Oculto por defecto */
-        align-items: center;
-        gap: 5px;
-        border: 1px solid #cfaa56;
-        margin-top: 5px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        width: fit-content;
+    :root {
+      --bg-dark: #121212;
+      --panel-bg: #1e1e1e;
+      --border: #333;
+      --accent: #ff764d;
+      --text-main: #e0e0e0;
+      --text-muted: #888;
     }
 
-    /* CHAT DEL PROFESOR EN SIDEBAR */
-    .founder-chat-container {
-        background: #151515;
-        border: 1px solid #b38728; /* Dorado */
-        border-radius: 8px;
-        margin-top: 15px;
-        display: flex;
-        flex-direction: column;
-        height: 300px; /* Altura fija para scroll */
-        overflow: hidden;
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
     }
 
-    .founder-chat-header {
-        background: linear-gradient(135deg, #b38728, #8a6215);
-        color: #000;
-        padding: 8px;
-        font-size: 11px;
-        font-weight: bold;
-        text-transform: uppercase;
-        display: flex; justify-content: space-between; align-items: center;
+    /* --- SIDEBAR (BARRA LATERAL) --- */
+    .sidebar {
+      width: 280px;
+      background: #181818;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      flex-shrink: 0;
     }
 
-    .founder-chat-history {
-        flex: 1;
-        overflow-y: auto;
-        padding: 10px;
-        background: #111;
-        display: flex;
-        flex-direction: column;
+    /* Área del Logo (Destacado) */
+    .sidebar-header {
+      padding: 30px 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #1f1f1f 0%, #181818 100%);
+    }
+    #sidebarBrand img {
+      max-width: 100%;
+      height: auto;
+      max-height: 130px; /* Logo grande pero controlado */
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    }
+    .brand-fallback {
+        font-size: 20px; font-weight: 800; color: white; letter-spacing: 1px;
+    }
+
+    .sidebar-content {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Tarjetas del Sidebar */
+    .user-summary {
+        text-align: center;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border);
+    }
+    .welcome-text { font-size: 11px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+    .user-name { font-size: 18px; font-weight: 700; color: white; margin: 5px 0; }
+
+    /* Botones de Acción Sidebar */
+    .action-btn {
+        display: flex; align-items: center; justify-content: center;
+        width: 100%; padding: 12px;
+        border-radius: 6px; font-weight: 600; font-size: 13px;
+        cursor: pointer; transition: all 0.2s; border: none;
         gap: 8px;
     }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: #ff9f7e; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(255, 118, 77, 0.2); }
+    
+    .btn-secondary { background: transparent; border: 1px solid #444; color: #aaa; margin-top: 10px; }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* Burbujas Profe */
-    .bubble-me {
-        align-self: flex-end;
-        background: #333;
-        color: #fff;
-        padding: 6px 10px;
-        border-radius: 8px;
-        border-top-right-radius: 0;
-        font-size: 11px;
-        max-width: 85%;
-        border: 1px solid #444;
-    }
-
-    /* Burbujas Admin/CEO */
-    .bubble-admin {
-        align-self: flex-start;
-        background: #e67e22; /* Naranja Admin */
-        color: #000;
-        padding: 6px 10px;
-        border-radius: 8px;
-        border-top-left-radius: 0;
-        font-size: 11px;
-        max-width: 85%;
-        font-weight: 500;
+    /* Badge Fundador */
+    .gold-badge {
+        background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728);
+        color: #3e2723; padding: 4px 12px; border-radius: 50px;
+        font-weight: 800; font-size: 10px; display: none; align-items: center; justify-content: center;
+        margin: 10px auto 0 auto; width: fit-content;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2); border: 1px solid #cfaa56;
     }
 
-    .chat-input-box {
-        display: flex;
-        border-top: 1px solid #333;
+    /* --- ÁREA PRINCIPAL --- */
+    .main {
+      flex: 1;
+      padding: 40px;
+      overflow-y: auto;
+      background: var(--bg-dark);
     }
-    .chat-input-box input {
-        flex: 1;
-        background: #202020;
-        border: none;
-        color: white;
-        padding: 8px;
-        font-size: 11px;
-        outline: none;
+
+    .main-header {
+        display: flex; justify-content: space-between; align-items: flex-end;
+        margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px;
     }
-    .chat-btn-mini {
-        background: #b38728;
-        color: #000;
-        border: none;
-        font-weight: bold;
-        padding: 0 10px;
-        cursor: pointer;
-        font-size: 10px;
+    h1 { margin: 0; color: #fff; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+    .subtitle { color: var(--text-muted); font-size: 14px; margin-top: 5px; }
+
+    /* GRID LAYOUT (Para ordenar el desorden) */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 300px; /* Principal ancho, Panel derecho fijo */
+        gap: 30px;
     }
+    @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+    /* Tarjetas Estilizadas */
+    .card {
+        background: var(--panel-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 20px;
+    }
+    .card h2 { margin-top: 0; color: var(--accent); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; }
+
+    /* Inputs y Forms */
+    label { display: block; margin-bottom: 8px; font-size: 12px; color: #bbb; font-weight: 600; }
+    input[type="text"], textarea {
+        width: 100%; background: #121212; border: 1px solid #333; color: white;
+        padding: 12px; border-radius: 6px; box-sizing: border-box; font-family: inherit;
+        transition: border 0.3s;
+    }
+    input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+
+    /* Preview de Imágenes */
+    .upload-row { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; background: #161616; padding: 10px; border-radius: 8px; border: 1px dashed #333; }
+    .preview-img { width: 50px; height: 50px; object-fit: contain; background: #000; border-radius: 4px; border: 1px solid #333; }
+    input[type="file"] { font-size: 11px; color: #888; }
+
+    /* Selector de Colores */
+    .color-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+    .color-item { text-align: center; background: #161616; padding: 10px; border-radius: 8px; border: 1px solid #333; }
+    input[type="color"] { width: 40px; height: 40px; border: none; background: none; cursor: pointer; padding: 0; }
+
+    /* Botón Guardar Flotante o Fijo */
+    .save-section { margin-top: 30px; text-align: right; }
+    .btn-save {
+        background: #fff; color: #000; border: none; padding: 12px 30px;
+        font-weight: 800; cursor: pointer; border-radius: 6px; font-size: 14px;
+        transition: 0.2s;
+    }
+    .btn-save:hover { background: var(--accent); transform: scale(1.05); }
+
+    /* CHAT (Estilo mejorado) */
+    .founder-chat-container {
+        background: #151515; border: 1px solid #b38728; border-radius: 8px;
+        display: flex; flex-direction: column; height: 250px; overflow: hidden; margin-top: auto;
+    }
+    .founder-chat-header {
+        background: #2a200a; color: #ffbf00; padding: 10px; font-size: 11px; font-weight: 700;
+        text-transform: uppercase; border-bottom: 1px solid #b38728;
+    }
+    .founder-chat-history { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .bubble-me { align-self: flex-end; background: #333; color: #fff; padding: 8px 12px; border-radius: 12px 12px 0 12px; font-size: 11px; max-width: 85%; }
+    .bubble-admin { align-self: flex-start; background: var(--accent); color: #000; padding: 8px 12px; border-radius: 12px 12px 12px 0; font-size: 11px; max-width: 85%; font-weight: 600; }
+    .chat-input-box { display: flex; border-top: 1px solid #333; }
+    .chat-input-box input { flex: 1; background: #121212; border: none; color: white; padding: 10px; font-size: 11px; outline: none; }
+    .chat-btn-mini { background: #b38728; color: #000; border: none; font-weight: bold; padding: 0 15px; cursor: pointer; }
+
+    /* Mensajes Admin */
+    .admin-msg-box { background: rgba(93, 173, 226, 0.1); border: 1px solid #5dade2; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+    .admin-msg-title { color: #5dade2; font-weight: bold; font-size: 12px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+/* --- SCROLLBAR OSCURO MODERNO --- */
+
+/* Ancho de la barra (Vertical y Horizontal) */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+/* Fondo de la barra (Track) */
+::-webkit-scrollbar-track {
+    background: #1a1a1a; /* Mismo color que tu fondo body */
+    border-left: 1px solid #333;
+}
+
+/* El "dedo" o tirador (Thumb) */
+::-webkit-scrollbar-thumb {
+    background: #444; /* Gris oscuro */
+    border-radius: 5px; /* Bordes redondeados */
+    border: 2px solid #1a1a1a; /* Margen interno para efecto flotante */
+}
+
+/* Efecto al pasar el mouse por encima */
+::-webkit-scrollbar-thumb:hover {
+    background: #ff764d; /* Tu color de acento (Naranja/Dorado) */
+}
+
+/* Esquina donde se juntan scroll vertical y horizontal */
+::-webkit-scrollbar-corner {
+    background: #1a1a1a;
+}
   </style>
 </head>
 <body>
 
-    <aside class="sidebar">
-        <div style="font-weight: 800; font-size: 18px; color: #fff;">🎹 PIANO LINK <span style="font-weight:400; font-size:12px;">PRO</span></div>
-        
-        <div style="margin-top: 10px;">
-            <div style="font-size: 10px; color: #aaa;">BIENVENIDO</div>
-            <div id="welcomeName" style="font-size: 16px; color: #fff; font-weight: bold;">Cargando...</div>
-            
+  <aside class="sidebar">
+    <div class="sidebar-header" id="sidebarBrand">
+        <div class="brand-fallback">🎹 PIANO LINK</div>
+    </div>
+
+    <div class="sidebar-content">
+        <div class="user-summary">
+            <div class="welcome-text">Bienvenido</div>
+            <div id="welcomeName" class="user-name">Cargando...</div>
             <div id="founderBadge" class="gold-badge">★ PROFESOR FUNDADOR</div>
-            
-            <button id="btnOpenRoom" class="btn btn-room">⚡ IR A MI SALA</button>
-            
-            <button onclick="copyInviteLink()" class="btn btn-outline" style="margin-top: 10px; font-size: 11px; width: 100%; border-color:#444; color:#aaa;">
-                🔗 COPIAR LINK ALUMNO
-            </button>
-            <div id="copyFeedback" style="font-size: 10px; color: #b4e080; margin-top: 5px; min-height: 15px;"></div>
         </div>
 
-        <div id="founderSection" style="display:none;">
+        <div>
+            <button id="btnOpenRoom" class="action-btn btn-primary">
+                ⚡ IR A MI SALA
+            </button>
+            <button onclick="copyInviteLink()" class="action-btn btn-secondary">
+                🔗 COPIAR LINK ALUMNO
+            </button>
+            <div id="copyFeedback" style="font-size: 10px; color: #b4e080; text-align: center; margin-top: 5px; min-height: 15px;"></div>
+        </div>
+
+        <div id="founderSection" style="display:none; margin-top: auto;">
             <div class="founder-chat-container">
-                <div class="founder-chat-header">
-                    <span>👑 Línea Directa CEO </span>
-                    <span style="font-size:9px; opacity:0.8;">ONLINE</span>
-                </div>
-                
+                <div class="founder-chat-header">👑 Soporte Directo</div>
                 <div id="founderChatHistory" class="founder-chat-history">
                     <div style="text-align:center; color:#444; font-size:10px; margin-top:10px;">Cargando historial...</div>
                 </div>
-        
                 <div class="chat-input-box">
-                    <input type="text" id="founderChatInput" placeholder="Escribe tu mensaje..." onkeydown="if(event.key==='Enter') sendFounderMsg()">
+                    <input type="text" id="founderChatInput" placeholder="Escribir..." onkeydown="if(event.key==='Enter') sendFounderMsg()">
                     <button class="chat-btn-mini" onclick="sendFounderMsg()">➤</button>
                 </div>
             </div>
         </div>
-    
-        <div style="flex:1"></div> <button class="btn btn-outline" onclick="logout()">Cerrar Sesión</button>
-      </aside>
+        
+        <button class="action-btn btn-secondary" onclick="logout()" style="border-color: #ff4d4d; color: #ff4d4d;">
+            Cerrar Sesión
+        </button>
+    </div>
+  </aside>
+
 
   <main class="main">
-    <h1>Configuración del Estudio</h1>
     
+    <div class="main-header">
+        <div>
+            <h1>Configuración del Estudio</h1>
+            <div class="subtitle">Personaliza la experiencia de tu aula virtual</div>
+        </div>
+    </div>
+
     <form id="profileForm">
-      
-      <div class="card">
-
-        <div id="adminMessagesSection" class="card" style="border-color: #5dade2; display:none;">
-            <h2 style="color: #5dade2; border-color: #5dade2;">📨 Mensajes de Administración</h2>
-            <div id="messagesList" style="max-height: 200px; overflow-y: auto;">
-                </div>
-        </div>
-
-        <h2>Identidad Visual</h2>
         
-        <label>LOGO DE TU ACADEMIA (Se verá en la cabecera)</label>
-        <div class="preview-box">
-            <img id="previewLogo" class="preview-img" src="">
-            <input type="file" id="logoInput" accept="image/*">
+        <div id="adminMessagesSection" class="admin-msg-box" style="display:none;">
+            <div class="admin-msg-title">📨 Mensajes de la Administración</div>
+            <div id="messagesList" style="max-height: 150px; overflow-y: auto;"></div>
         </div>
 
-        <label>TU FOTO DE PERFIL (Se verá en la bienvenida)</label>
-        <div class="preview-box">
-            <img id="previewPhoto" class="preview-img" src="">
-            <input type="file" id="photoInput" accept="image/*">
-        </div>
+        <div class="dashboard-grid">
+            
+            <div class="column-left">
+                <div class="card">
+                    <h2>📸 Identidad de Marca</h2>
+                    
+                    <label>LOGO DE TU ACADEMIA</label>
+                    <div class="upload-row">
+                        <img id="previewLogo" class="preview-img" src="">
+                        <div>
+                            <input type="file" id="logoInput" accept="image/*">
+                            <div style="font-size:9px; color:#666; margin-top:4px;">Se verá en la cabecera de la clase.</div>
+                        </div>
+                    </div>
 
-        <label>BIOGRAFÍA CORTA</label>
-        <textarea id="bioInput" rows="3" placeholder="Ej: Pianista de jazz y educador..."></textarea>
-      </div>
+                    <label>FOTO DE PERFIL</label>
+                    <div class="upload-row">
+                        <img id="previewPhoto" class="preview-img" src="">
+                        <div>
+                            <input type="file" id="photoInput" accept="image/*">
+                            <div style="font-size:9px; color:#666; margin-top:4px;">Se verá en la bienvenida.</div>
+                        </div>
+                    </div>
 
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h2 style="border:none; margin:0; padding:0;">Colores de la Sala</h2>
-            <button type="button" onclick="resetColors()" style="background:transparent; border:1px solid #555; color:#888; cursor:pointer; font-size:10px; padding:4px 8px; border-radius:4px;">
-                ↺ RESTABLECER ORIGINALES
-            </button>
-        </div>
-
-        <div style="display:flex; gap: 20px; padding: 10px 0; justify-content: space-around;">
-            <div style="text-align:center">
-                <label style="margin-top:0">Principal</label>
-                <input type="color" id="colorBase" style="cursor:pointer; width:50px; height:50px; padding:0; border:none; background:none;">
+                    <label>BIOGRAFÍA CORTA</label>
+                    <textarea id="bioInput" rows="4" placeholder="Ej: Pianista de jazz y educador..."></textarea>
+                </div>
             </div>
-            <div style="text-align:center">
-                <label style="margin-top:0">Fondo</label>
-                <input type="color" id="colorBg" style="cursor:pointer; width:50px; height:50px; padding:0; border:none; background:none;">
+
+            <div class="column-right">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+                        <h2 style="border:none; margin:0; padding:0;">🎨 Tema de Sala</h2>
+                        <button type="button" onclick="resetColors()" style="background:none; border:none; color:#888; cursor:pointer; font-size:10px; text-decoration:underline;">Restablecer</button>
+                    </div>
+
+                    <div class="color-grid">
+                        <div class="color-item">
+                            <label>Principal</label>
+                            <input type="color" id="colorBase">
+                        </div>
+                        <div class="color-item">
+                            <label>Fondo</label>
+                            <input type="color" id="colorBg">
+                        </div>
+                        <div class="color-item">
+                            <label>Paneles</label>
+                            <input type="color" id="colorPanel">
+                        </div>
+                    </div>
+                    <p style="font-size:10px; color:#666; margin-top:15px; text-align:center;">
+                        Estos colores definirán la atmósfera de tu aula virtual.
+                    </p>
+                </div>
+
+                <div class="save-section">
+                    <div id="msg" style="margin-bottom:10px; font-size:12px; font-weight:bold;"></div>
+                    <button type="submit" class="btn-save">💾 GUARDAR CAMBIOS</button>
+                </div>
             </div>
-            <div style="text-align:center">
-                <label style="margin-top:0">Paneles</label>
-                <input type="color" id="colorPanel" style="cursor:pointer; width:50px; height:50px; padding:0; border:none; background:none;">
-            </div>
+
         </div>
-      </div>
-
-      <button type="submit" class="btn">💾 GUARDAR CAMBIOS</button>
-      <div id="msg"></div>
-
     </form>
   </main>
 
   <script>
-    // 1. SEGURIDAD: Verificar sesión
     const user = JSON.parse(localStorage.getItem('pianoUser'));
     if (!user || user.role !== 'teacher') window.location.href = 'login.html';
-
     const API_URL = '/api/teacher'; 
 
-    // 2. CARGAR DATOS AL INICIAR
     async function loadData() {
         document.getElementById('welcomeName').textContent = user.name;
         document.getElementById('btnOpenRoom').onclick = () => window.open(`/c/${user.slug}`, '_blank');
-
         try {
             const res = await fetch(`${API_URL}/me?email=${user.email}`);
             const data = await res.json();
-            
-            // --- LÓGICA DE FUNDADOR (CORREGIDA) ---
             if (data.isFoundingMember) {
                 document.getElementById('founderBadge').style.display = 'inline-flex';
-                // Mostrar Panel de Feedback (ahora en el sidebar)
                 document.getElementById('founderSection').style.display = 'block';
-
-                // A) Carga Inicial
                 loadFounderChat(); 
-
-                // B) Polling Automático (Cada 5s)
-                setInterval(() => {
-                    loadFounderChat();
-                }, 5000); 
+                setInterval(() => { loadFounderChat(); }, 5000); 
             }
-            // -------------------------------------
-
             if(data.branding) {
                 document.getElementById('bioInput').value = data.branding.bio || '';
                 document.getElementById('colorBase').value = data.branding.colors.base || '#ff764d';
                 document.getElementById('colorBg').value = data.branding.colors.bg || '#1a1a1a';
                 document.getElementById('colorPanel').value = data.branding.colors.panel || '#262626';
-
                 if(data.branding.logoUrl) document.getElementById('previewLogo').src = data.branding.logoUrl;
                 if(data.branding.profilePhotoUrl) document.getElementById('previewPhoto').src = data.branding.profilePhotoUrl;
             }
         } catch (e) { console.error(e); }
     }
 
-    // CARGAR MENSAJES ADMINISTRATIVOS (OLD)
-    async function loadMyMessages() {
+    // --- LOGO DEL SISTEMA (CARGA OPTIMIZADA) ---
+    async function loadGlobalBrand() {
         try {
-            const res = await fetch(`${API_URL}/my-messages?email=${user.email}`);
-            const msgs = await res.json();
+            const res = await fetch('/api/auth/platform-public'); 
+            const config = await res.json();
             
-            if (msgs.length > 0) {
-                document.getElementById('adminMessagesSection').style.display = 'block';
-                const container = document.getElementById('messagesList');
-                container.innerHTML = '';
-
-                msgs.forEach(m => {
-                    const date = new Date(m.createdAt).toLocaleDateString();
-                    const div = document.createElement('div');
-                    div.style.padding = "10px";
-                    div.style.marginBottom = "10px";
-                    div.style.background = "#151515";
-                    div.style.borderLeft = "3px solid #5dade2";
-                    
-                    div.innerHTML = `
-                        <div style="font-size:10px; color:#888; margin-bottom:5px;">${date}</div>
-                        <div style="font-size:13px; color:#fff;">${m.content}</div>
-                    `;
-                    container.appendChild(div);
-                });
+            // 1. Logo
+            if (config.logoUrl) {
+                const brandContainer = document.getElementById('sidebarBrand');
+                // Simplemente inyectamos la imagen, el CSS se encarga del tamaño
+                brandContainer.innerHTML = `<img src="${config.logoUrl}" alt="Piano Link Logo">`;
             }
-        } catch (e) { console.error(e); }
+            // 2. Favicon
+            if (config.faviconUrl) {
+                let link = document.querySelector("link[rel~='icon']");
+                if (!link) {
+                    link = document.createElement('link');
+                    link.rel = 'icon';
+                    document.head.appendChild(link);
+                }
+                link.href = config.faviconUrl;
+            }
+            // 3. Título
+            if (config.name) document.title = `Mi Estudio | ${config.name}`;
+        } catch (e) { console.log("Usando marca por defecto"); }
     }
 
-    // 4. SUBIR ARCHIVOS (UPLOAD)
+    // Subir Formulario
     document.getElementById('profileForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const msg = document.getElementById('msg');
-        msg.textContent = "⏳ Subiendo...";
-        msg.style.color = "#aaa";
-
+        const msg = document.getElementById('msg'); msg.textContent = "⏳ Guardando..."; msg.style.color = "#aaa";
         const formData = new FormData();
         formData.append('email', user.email);
         formData.append('bio', document.getElementById('bioInput').value);
         formData.append('colorBase', document.getElementById('colorBase').value);
         formData.append('colorBg', document.getElementById('colorBg').value);
         formData.append('colorPanel', document.getElementById('colorPanel').value);
-
         const logoFile = document.getElementById('logoInput').files[0];
         const photoFile = document.getElementById('photoInput').files[0];
-
         if(logoFile) formData.append('logo', logoFile);
         if(photoFile) formData.append('photo', photoFile);
-
         try {
-            const res = await fetch(`${API_URL}/update`, {
-                method: 'POST',
-                body: formData 
-            });
+            const res = await fetch(`${API_URL}/update`, { method: 'POST', body: formData });
             const data = await res.json();
-
             if(res.ok) {
-                msg.textContent = "✅ ¡Guardado!";
-                msg.style.color = "#b4e080";
-                
+                msg.textContent = "✅ Cambios guardados"; msg.style.color = "#b4e080";
                 if(data.branding.logoUrl) document.getElementById('previewLogo').src = data.branding.logoUrl;
                 if(data.branding.profilePhotoUrl) document.getElementById('previewPhoto').src = data.branding.profilePhotoUrl;
-            } else {
-                throw new Error(data.message);
-            }
-        } catch (err) {
-            msg.textContent = "❌ Error: " + err.message;
-            msg.style.color = "#ff4d4d";
-        }
+            } else { throw new Error(data.message); }
+        } catch (err) { msg.textContent = "❌ Error"; msg.style.color = "#ff4d4d"; }
     });
 
-    function logout() {
-        localStorage.removeItem('pianoUser');
-        window.location.href = 'login.html';
-    }
-
-    function resetColors() {
-        document.getElementById('colorBase').value = '#ff764d'; 
-        document.getElementById('colorBg').value = '#1a1a1a';   
-        document.getElementById('colorPanel').value = '#262626'; 
-        
-        const msg = document.getElementById('msg');
-        msg.textContent = "🎨 Colores restablecidos.";
-        msg.style.color = "#aaa";
-    }
-
-    function copyInviteLink() {
-        if(!user || !user.slug) return;
-        const domain = window.location.origin; 
-        const link = `${domain}/?role=student&sala=${user.slug.toLowerCase()}`;
-        navigator.clipboard.writeText(link).then(() => {
-            const feedback = document.getElementById('copyFeedback');
-            feedback.textContent = "✅ ¡Copiado!";
-            setTimeout(() => feedback.textContent = "", 3000);
-        }).catch(err => {
-            alert("Error al copiar");
-        });
-    }
-
-    // LÓGICA DE CHAT EN SIDEBAR
+    // Chat Logic
     async function loadFounderChat() {
         const container = document.getElementById('founderChatHistory');
         try {
             const res = await fetch(`${API_URL}/conversation?email=${user.email}`);
             const messages = await res.json();
-            
             container.innerHTML = '';
-            
-            if (messages.length === 0) {
-                container.innerHTML = '<div style="text-align:center; color:#444; font-size:10px; margin-top:20px;">Habla directamente con los fundadores aquí.</div>';
-                return;
-            }
-
+            if (messages.length === 0) { container.innerHTML = '<div style="text-align:center; color:#444; font-size:10px; margin-top:20px;">Habla con soporte aquí.</div>'; return; }
             messages.forEach(msg => {
                 const div = document.createElement('div');
-                if (msg.sender === 'admin') {
-                    div.className = 'bubble-admin';
-                    div.innerHTML = `<strong>SOPORTE:</strong> ${msg.content}`;
-                } else {
-                    div.className = 'bubble-me';
-                    div.innerText = msg.content;
-                }
+                if (msg.sender === 'admin') { div.className = 'bubble-admin'; div.innerHTML = `<strong>SOPORTE:</strong> ${msg.content}`; } 
+                else { div.className = 'bubble-me'; div.innerText = msg.content; }
                 container.appendChild(div);
             });
-
-            // Auto-scroll al final (Solo si no estamos scrolleando arriba)
             container.scrollTop = container.scrollHeight;
-        } catch (e) { console.error("Error chat", e); }
+        } catch (e) {}
     }
-
     async function sendFounderMsg() {
         const input = document.getElementById('founderChatInput');
         const content = input.value.trim();
         if(!content) return;
-
-        // Feedback visual inmediato (UX optimista)
         const history = document.getElementById('founderChatHistory');
-        const tempDiv = document.createElement('div');
-        tempDiv.className = 'bubble-me';
-        tempDiv.style.opacity = "0.5";
-        tempDiv.innerText = content;
-        history.appendChild(tempDiv);
-        history.scrollTop = history.scrollHeight;
-        input.value = '';
-
+        const tempDiv = document.createElement('div'); tempDiv.className = 'bubble-me'; tempDiv.style.opacity = "0.5"; tempDiv.innerText = content;
+        history.appendChild(tempDiv); history.scrollTop = history.scrollHeight; input.value = '';
         try {
             const res = await fetch(`${API_URL}/feedback`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: user.email, content: content })
             });
-            
-            if(res.ok) {
-                loadFounderChat(); // Recargar para confirmar y limpiar estado "optimista"
-            }
-        } catch(e) { alert("Error de conexión"); }
+            if(res.ok) { loadFounderChat(); }
+        } catch(e) {}
+    }
+    function logout() { localStorage.removeItem('pianoUser'); window.location.href = 'login.html'; }
+    function resetColors() {
+        document.getElementById('colorBase').value = '#ff764d'; 
+        document.getElementById('colorBg').value = '#1a1a1a';   
+        document.getElementById('colorPanel').value = '#262626'; 
+    }
+    function copyInviteLink() {
+        if(!user || !user.slug) return;
+        const link = `${window.location.origin}/?role=student&sala=${user.slug.toLowerCase()}`;
+        navigator.clipboard.writeText(link).then(() => {
+            const feedback = document.getElementById('copyFeedback'); feedback.textContent = "✅ Link Copiado";
+            setTimeout(() => feedback.textContent = "", 3000);
+        });
     }
 
-    // INICIAR
     loadData();
-
+    loadGlobalBrand();
+    loadMyMessages(); // Cargar mensajes admin si existen
   </script>
 </body>
 </html>

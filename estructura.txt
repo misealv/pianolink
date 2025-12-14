@@ -10,6 +10,7 @@
 ./estructura.txt
 ./models
 ./models/Feedback.js
+./models/GlobalConfig.js
 ./models/Message.js
 ./models/Score.js
 ./models/User.js
@@ -20,14 +21,6 @@
 ./public/css
 ./public/css/style.css
 ./public/dashboard.html
-./public/engine
-./public/engine/EngineFactory.js
-./public/engine/implementations
-./public/engine/index.js
-./public/engine/interfaces
-./public/engine/NetworkTransport.js
-./public/engine/PianoAdapter.js
-./public/engine/TimeSync.js
 ./public/goodbye.html
 ./public/guard.js
 ./public/index.html
@@ -36,7 +29,6 @@
 ./public/js/Main.js
 ./public/js/modules
 ./public/login.html
-./public/script.js
 ./README.md
 ./routes
 ./routes/adminRoutes.js

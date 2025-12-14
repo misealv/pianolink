@@ -121,3 +121,61 @@ exports.updateTeacherByAdmin = async (req, res) => {
         res.status(500).json({ message: 'Error al actualizar usuario' });
     }
 };
+
+
+/* --- AGREGAR AL FINAL DE adminController.js --- */
+
+// Importar el nuevo modelo
+const GlobalConfig = require('../models/GlobalConfig');
+
+// 1. Obtener Configuración Actual
+exports.getPlatformConfig = async (req, res) => {
+    try {
+        // Buscar la config, si no existe, crearla por defecto
+        let config = await GlobalConfig.findOne({ isDefault: true });
+        if (!config) {
+            config = await GlobalConfig.create({ isDefault: true });
+        }
+        res.json(config);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error al obtener config" });
+    }
+};
+
+// 2. Actualizar Configuración (Logo/Favicon)
+exports.updatePlatformConfig = async (req, res) => {
+    try {
+        const { platformName, logoUrl, faviconUrl } = req.body;
+        
+        let config = await GlobalConfig.findOne({ isDefault: true });
+        if (!config) config = new GlobalConfig({ isDefault: true });
+
+        // Solo actualizamos si envían datos nuevos
+        if (platformName) config.platformName = platformName;
+        if (logoUrl) config.logoUrl = logoUrl;       // Esperamos Base64 o URL
+        if (faviconUrl) config.faviconUrl = faviconUrl; // Esperamos Base64 o URL
+
+        await config.save();
+        res.json({ success: true, message: "¡Identidad de plataforma actualizada!" });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error al guardar configuración" });
+    }
+};
+
+// 3. Endpoint Público para que el index.html lea el logo (Sin Login)
+exports.getPublicPlatformConfig = async (req, res) => {
+    try {
+        const config = await GlobalConfig.findOne({ isDefault: true });
+        // Solo devolvemos lo visual, por seguridad
+        res.json({
+            logoUrl: config ? config.logoUrl : "",
+            faviconUrl: config ? config.faviconUrl : "",
+            name: config ? config.platformName : "Piano Link"
+        });
+    } catch (error) {
+        res.status(500).json({});
+    }
+};

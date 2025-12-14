@@ -113,4 +113,18 @@ router.get('/conversation/:userId', adminController.getConversationWithUser);
 
 router.put('/users/:id', adminController.updateTeacherByAdmin);
 
+
+/* routes/adminRoutes.js - AÑADIR ANTES DEL EXPORT */
+
+// Rutas de Configuración de Plataforma
+router.get('/platform/config', adminController.getPlatformConfig);
+router.post('/platform/config', adminController.updatePlatformConfig);
+
+// Ruta Pública (IMPORTANTE: Esto debería ir idealmente en authRoutes o publicRoutes, 
+// pero podemos dejarlo aquí si permitimos acceso sin auth, O MEJOR AÚN:
+// Añade esta línea específica en tu server.js o authRoutes para que sea pública real.
+// Por ahora, la dejamos protegida para lectura del admin y creamos una pública abajo)
+
+
+
 module.exports = router;

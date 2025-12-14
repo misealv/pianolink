@@ -489,4 +489,36 @@ iframe#pdfFrame.visible { display: block; }
   background: var(--accent);
   color: #000;
   border-color: var(--accent);
+
+}
+
+/* --- SCROLLBAR OSCURO MODERNO --- */
+
+/* Ancho de la barra (Vertical y Horizontal) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+/* Fondo de la barra (Track) */
+::-webkit-scrollbar-track {
+  background: #1a1a1a; /* Mismo color que tu fondo body */
+  border-left: 1px solid #333;
+}
+
+/* El "dedo" o tirador (Thumb) */
+::-webkit-scrollbar-thumb {
+  background: #444; /* Gris oscuro */
+  border-radius: 5px; /* Bordes redondeados */
+  border: 2px solid #1a1a1a; /* Margen interno para efecto flotante */
+}
+
+/* Efecto al pasar el mouse por encima */
+::-webkit-scrollbar-thumb:hover {
+  background: #ff764d; /* Tu color de acento (Naranja/Dorado) */
+}
+
+/* Esquina donde se juntan scroll vertical y horizontal */
+::-webkit-scrollbar-corner {
+  background: #1a1a1a;
 }

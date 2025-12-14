@@ -16,106 +16,32 @@
   <style>
     /* Estilos del Visor PDF (Atril) */
     .pdf-viewer-container {
-        width: 100%;
-        height: calc(100% - 50px);
-        overflow: auto;
-        background-color: #525659;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        position: relative;
+        width: 100%; height: calc(100% - 50px); overflow: auto;
+        background-color: #525659; display: flex; flex-direction: column; align-items: center; position: relative;
     }
-    canvas#pdf-render {
-        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        margin: 20px 0;
-        max-width: 95%;
-    }
+    canvas#pdf-render { box-shadow: 0 4px 10px rgba(0,0,0,0.5); margin: 20px 0; max-width: 95%; }
     .pdf-controls-floating {
-        position: sticky;
-        bottom: 20px;
-        background: rgba(0, 0, 0, 0.8);
-        padding: 8px 15px;
-        border-radius: 20px;
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        z-index: 10;
-        color: white;
-        font-size: 12px;
+        position: sticky; bottom: 20px; background: rgba(0, 0, 0, 0.8);
+        padding: 8px 15px; border-radius: 20px; display: flex; gap: 10px; align-items: center; z-index: 10; color: white; font-size: 12px;
     }
-    .library-modal {
-        display: none; 
-        position: fixed; 
-        z-index: 2000; 
-        left: 0;
-        top: 0;
-        width: 100%; 
-        height: 100%; 
-        background-color: rgba(0,0,0,0.85); 
-        backdrop-filter: blur(5px);
-    }
-    .library-content {
-        background-color: #1e1e1e;
-        color: #eee;
-        margin: 5% auto; 
-        padding: 20px;
-        border: 1px solid #444;
-        width: 80%; 
-        max-width: 800px;
-        border-radius: 8px;
-        max-height: 80vh;
-        overflow-y: auto;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    }
-    .shelf-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 15px;
-        margin-top: 20px;
-    }
-    .score-card {
-        background: #2a2a2a;
-        border: 1px solid #444;
-        border-radius: 6px;
-        padding: 10px;
-        text-align: center;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-    .score-card:hover {
-        background: #3a3a3a;
-        border-color: var(--accent, #ff764d);
-        transform: translateY(-2px);
-    }
+    .library-modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); backdrop-filter: blur(5px); }
+    .library-content { background-color: #1e1e1e; color: #eee; margin: 5% auto; padding: 20px; border: 1px solid #444; width: 80%; max-width: 800px; border-radius: 8px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    .shelf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; }
+    .score-card { background: #2a2a2a; border: 1px solid #444; border-radius: 6px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; }
+    .score-card:hover { background: #3a3a3a; border-color: var(--accent, #ff764d); transform: translateY(-2px); }
     .score-icon { font-size: 30px; margin-bottom: 5px; }
     .score-title { font-weight: bold; font-size: 0.85rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
     .score-meta { font-size: 0.7rem; color: #aaa; }
-    .upload-area {
-        border: 2px dashed #444;
-        padding: 20px;
-        text-align: center;
-        border-radius: 8px;
-        background: #252525;
-        margin-bottom: 20px;
-    }
+    .upload-area { border: 2px dashed #444; padding: 20px; text-align: center; border-radius: 8px; background: #252525; margin-bottom: 20px; }
 
     /* Estilos para el botón de estado */
     .status-indicator {
-          font-size: 11px;
-          padding: 6px 12px;
-          background: #333; /* Color desconectado (Gris/Rojo) */
-          border-radius: 20px;
-          border: 1px solid #444;
-          transition: all 0.3s ease;
-          font-weight: bold;
-          display: flex;
-          align-items: center;
-          gap: 6px;
+          font-size: 11px; padding: 6px 12px; background: #333; border-radius: 20px;
+          border: 1px solid #444; transition: all 0.3s ease; font-weight: bold;
+          display: flex; align-items: center; gap: 6px;
       }
       .status-indicator.connected {
-          background: #2ecc71; /* Verde Éxito */
-          color: #000;
-          border-color: #27ae60;
+          background: #2ecc71; color: #000; border-color: #27ae60;
           box-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
       }
   </style>
@@ -125,8 +51,8 @@
   <audio id="joinSound" src="https://cdn.freesound.org/previews/352/352651_4019029-lq.mp3"></audio>
   
   <div class="app-container">
-    
     <header class="header" style="justify-content: space-between; align-items: center; padding: 0 20px;">
+      
       <div class="brand" style="display: flex; align-items: center; gap: 10px;">
         <div id="headerLogo">🎹</div>
         <div style="display: flex; flex-direction: column; line-height: 1.2;">
@@ -135,23 +61,18 @@
         </div>
       </div>
 
-      <div id="status" class="status-indicator">
-          🔴 Desconectado
-      </div>
+      <div id="systemBrand" style="display: flex; align-items: center; gap: 8px; opacity: 0.6; transform: scale(0.9);"></div>
+
+      <div id="status" class="status-indicator">🔴 Conectando...</div>
     </header>
 
     <aside class="sidebar">
-      
       <div class="panel">
         <h2>Identidad</h2>
         <div class="config-row">
           <input type="text" id="inputName" placeholder="Escribe tu Nombre..." style="color: #fff; cursor: text;" />
         </div>
-        
-        <div id="roleIndicator" class="badge" style="background:var(--prof-color); color:#000; text-align:center; margin-top:4px;">
-            Cargando rol...
-        </div>
-        
+        <div id="roleIndicator" class="badge" style="background:var(--prof-color); color:#000; text-align:center; margin-top:4px;">Cargando rol...</div>
         <div style="display:none;">
             <input type="radio" name="rol" value="teacher" id="radioTeacher">
             <input type="radio" name="rol" value="student" id="radioStudent">
@@ -161,59 +82,38 @@
       <div class="panel">
         <h2>Sesión</h2>
         <div id="cardCrearSala">
-          <button id="btnMagicLink" class="primary" style="width:100%; font-weight:800; padding:15px; margin-bottom:5px;">
-            🚀 COMENZAR CLASE Y GENERAR LINK
-          </button>
+          <button id="btnMagicLink" class="primary" style="width:100%; font-weight:800; padding:15px; margin-bottom:5px;">🚀 COMENZAR CLASE</button>
           <div id="magicFeedback" style="font-size: 10px; color: #b4e080; text-align: center; min-height: 15px;"></div>
-          <button id="btnEndClass" class="danger" style="width:100%; margin-top:15px; font-size:11px; display:none;">
-            🛑 TERMINAR CLASE
-          </button>
+          <button id="btnEndClass" class="danger" style="width:100%; margin-top:15px; font-size:11px; display:none;">🛑 TERMINAR CLASE</button>
         </div>
         <div id="cardUnirseSala" style="display:none;">
           <div id="joinControls" style="display:flex; gap:4px;">
             <input type="text" id="codigoSala" maxlength="20" placeholder="CÓDIGO" style="text-transform:uppercase; text-align:center;">
             <button id="btnUnirse" class="primary">Unirse</button>
           </div>
-          <button id="btnExitClass" class="btn-outline" style="width:100%; border-color:var(--danger); color:var(--danger); margin-top:10px; display:none;">
-            🚪 SALIR DE LA CLASE
-          </button>
+          <button id="btnExitClass" class="btn-outline" style="width:100%; border-color:var(--danger); color:var(--danger); margin-top:10px; display:none;">🚪 SALIR DE LA CLASE</button>
         </div>
       </div>
 
       <div class="panel">
         <h2>MIDI I/O</h2>
-        <div class="config-row">
-          <label>Entrada (Teclado):</label>
-          <select id="midiInputSelect" style="width:100%"><option value="">(Cargando MIDI...)</option></select>
-        </div>
-        <div class="config-row">
-          <label>Salida (Sonido):</label>
-          <select id="midiOutputSelect" style="width:100%"><option value="">(ninguna)</option></select>
-        </div>
+        <div class="config-row"><label>Entrada (Teclado):</label><select id="midiInputSelect" style="width:100%"><option value="">(Cargando MIDI...)</option></select></div>
+        <div class="config-row"><label>Salida (Sonido):</label><select id="midiOutputSelect" style="width:100%"><option value="">(ninguna)</option></select></div>
         <label><input type="checkbox" id="toggleMidiOut"> Enviar a mi sintetizador</label>
       </div>
 
       <div class="panel" id="participantsCard">
         <h2>Participantes</h2>
-        <div id="participantsList" class="participants-list">
-          <div style="color:var(--text-muted); font-size:10px;">Esperando conexiones...</div>
-        </div>
+        <div id="participantsList" class="participants-list"><div style="color:var(--text-muted); font-size:10px;">Esperando conexiones...</div></div>
       </div>
 
       <div id="masterclassSection" class="panel hidden" style="border-color: var(--danger);">        
         <h2 style="color:var(--danger)">📡 Masterclass / Broadcast</h2>
         <div class="config-row">
-          <label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="masterclassToggle"> 
-            <strong>Habilitar Modo "En el Aire"</strong>
-          </label>
+          <label style="cursor:pointer; display:flex; align-items:center; gap:8px;"><input type="checkbox" id="masterclassToggle"> <strong>Habilitar Modo "En el Aire"</strong></label>
         </div>
-        <p style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
-          Selecciona "ON AIR" en un alumno para retransmitir su piano a todos.
-        </p>
-        <button id="clearLiveBtn" class="danger" style="width:100%; font-size:10px;">
-          ⏹ DETENER TRANSMISIÓN
-        </button>
+        <p style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">Selecciona "ON AIR" en un alumno para retransmitir su piano a todos.</p>
+        <button id="clearLiveBtn" class="danger" style="width:100%; font-size:10px;">⏹ DETENER TRANSMISIÓN</button>
       </div>
 
       <div class="panel" style="flex:1; display:flex; flex-direction:column; min-height:100px;">
@@ -235,14 +135,10 @@
       </div>
 
       <div class="board-container">
-        
         <div id="modeMusic" class="board-mode">
             <div id="staffContainer"></div>
-            <div id="chordDisplay">
-              <span class="chord-placeholder">--</span>
-            </div>
+            <div id="chordDisplay"><span class="chord-placeholder">--</span></div>
         </div>
-
         <div id="modePdf" class="board-mode hidden" style="display:none; flex-direction:column; height:100%;">
             <div class="pdf-controls" style="display: flex; align-items: center; justify-content:space-between; padding: 10px; background-color: #333; border-bottom: 2px solid #555; height: 50px; flex-shrink: 0;">
                 <div style="display:flex; align-items:center; gap:10px; width:100%;">
@@ -250,11 +146,9 @@
                     <span id="current-score-title" style="font-size:12px; color:#aaa; font-style:italic; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Sin partitura seleccionada</span>
                 </div>
             </div>
-            
             <div id="pdf-container" class="pdf-viewer-container">
                 <div id="pdf-loading-msg" style="margin-top:50px; color:#777; display:none;">Cargando partitura...</div>
                 <canvas id="pdf-render"></canvas>
-
                 <div class="pdf-controls-floating" id="pdfFloatingControls" style="display:none;">
                     <button id="prev-page" class="btn-sm">❮</button>
                     <span>Pág <span id="page-num">0</span> / <span id="page-count">0</span></span>
@@ -262,64 +156,34 @@
                 </div>
             </div>
         </div>
-
-        <div id="resizeHandle" class="resize-handle" title="Arrastra para redimensionar">
-          <span>••••</span>
-        </div>
-
+        <div id="resizeHandle" class="resize-handle" title="Arrastra para redimensionar"><span>••••</span></div>
       </div> 
       
       <div class="piano-container">
         <div class="piano-toolbar">
-            
             <div class="toolbar-group">
                 <label for="baseColorPicker" style="font-size:10px; margin-right:5px;">Base:</label>
                 <input type="color" id="baseColorPicker" value="#ff764d" style="border:none; width:20px; height:20px; padding:0;"> 
             </div>
-
             <div class="toolbar-group">
                 <label style="cursor:pointer; display:flex; align-items:center; gap:5px; font-size:11px;">
-                    <input type="checkbox" id="chkSplit"> 
-                    <strong>Split</strong>
+                    <input type="checkbox" id="chkSplit"> <strong>Split</strong>
                 </label>
             </div>
-
             <div id="splitControls" class="toolbar-group hidden" style="display:flex; align-items:center; gap:10px;">
-                
-                <div style="display:flex; align-items:center; gap:3px;">
-                    <label style="font-size:9px; color:#aaa;">NOTA:</label>
-                    <input type="number" id="splitPointInput" value="60" min="21" max="108" style="width:40px; text-align:center; font-size:10px;">
-                </div>
-
-                <div style="display:flex; align-items:center; gap:3px;">
-                    <label style="font-size:9px; color:#aaa;">IZQ:</label>
-                    <input type="color" id="leftColorPicker" value="#5dade2" style="border:none; width:20px; height:20px; padding:0;">
-                </div>
-
-                <div style="display:flex; align-items:center; gap:3px;">
-                    <label style="font-size:9px; color:#aaa;">DER:</label>
-                    <input type="color" id="rightColorPicker" value="#f1c40f" style="border:none; width:20px; height:20px; padding:0;">
-                </div>
-
+                <div style="display:flex; align-items:center; gap:3px;"><label style="font-size:9px; color:#aaa;">NOTA:</label><input type="number" id="splitPointInput" value="60" min="21" max="108" style="width:40px; text-align:center; font-size:10px;"></div>
+                <div style="display:flex; align-items:center; gap:3px;"><label style="font-size:9px; color:#aaa;">IZQ:</label><input type="color" id="leftColorPicker" value="#5dade2" style="border:none; width:20px; height:20px; padding:0;"></div>
+                <div style="display:flex; align-items:center; gap:3px;"><label style="font-size:9px; color:#aaa;">DER:</label><input type="color" id="rightColorPicker" value="#f1c40f" style="border:none; width:20px; height:20px; padding:0;"></div>
             </div>
-
             <div style="flex:1"></div>
-            
             <div id="liveStatus" style="font-size:10px; color:var(--text-muted); margin-right:10px;"></div>
             <span id="liveBadge" class="badge badge-live">EN VIVO</span>
             <button id="panicBtn" class="danger">PANIC</button>
         </div>
-
-        <div class="piano-wrapper">
-          <div id="piano" class="piano"></div>
-        </div>
-        <div id="pedalIndicator" class="pedal-bar">
-            <div class="pedal-active"></div>
-            <div id="pedalIndicator-dot" style="display:none"></div> 
-        </div>
+        <div class="piano-wrapper"><div id="piano" class="piano"></div></div>
+        <div id="pedalIndicator" class="pedal-bar"><div class="pedal-active"></div><div id="pedalIndicator-dot" style="display:none"></div></div>
         <div style="text-align:center; font-size:9px; color:var(--text-muted); margin-top:2px;">SUSTAIN</div>
       </div>
-
     </main>
   </div>
 
@@ -332,12 +196,7 @@
         <hr style="border-color:#444; margin:15px 0;">
         <div class="upload-area">
           <h3 style="margin-top:0;">Subir Partitura (PDF)</h3>
-          
-          <p style="font-size:11px; color:#aaa; margin-bottom:10px;">
-              Máximo <strong>10 MB</strong> por archivo. 
-              ¿Muy pesado? <a href="https://www.ilovepdf.com/es/comprimir_pdf" target="_blank" style="color:var(--accent); text-decoration:none;">Comprimir PDF aquí</a>
-          </p>
-
+          <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Máximo <strong>10 MB</strong> por archivo. ¿Muy pesado? <a href="https://www.ilovepdf.com/es/comprimir_pdf" target="_blank" style="color:var(--accent); text-decoration:none;">Comprimir PDF aquí</a></p>
           <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
               <input type="text" id="upload-title" placeholder="Título (ej: Bach Minuet)" style="padding:8px; border-radius:4px; border:1px solid #555; background:#111; color:white; flex:1;">
               <input type="file" id="file-upload" accept="application/pdf" style="color:#aaa;">
@@ -346,9 +205,7 @@
           <p id="upload-status" style="font-size:12px; color:#aaa; margin-top:5px;"></p>
       </div>
         <h3 style="margin-bottom:0;">Partituras Disponibles</h3>
-        <div id="shelf-list" class="shelf-grid">
-            <p style="color:#777; grid-column:1/-1;">Cargando...</p>
-        </div>
+        <div id="shelf-list" class="shelf-grid"><p style="color:#777; grid-column:1/-1;">Cargando...</p></div>
     </div>
   </div>
 
@@ -359,54 +216,33 @@
   <script type="module" src="/js/Main.js"></script>
 
   <script>
+   // 1. CARGAR IDENTIDAD DEL PROFESOR Y PLATAFORMA
    (async function initBranding() {
       let slug = null;
-
-      // 1. Intentar leer desde la ruta (ej: /c/miguel)
       const pathMatch = window.location.pathname.match(/\/c\/([^\/]+)/);
-      if (pathMatch && pathMatch[1]) {
-        slug = pathMatch[1];
-      } 
-      // 2. Si no, intentar leer desde el parámetro ?sala=miguel
-      else {
-        const params = new URLSearchParams(window.location.search);
-        slug = params.get('sala');
-      }
+      if (pathMatch && pathMatch[1]) slug = pathMatch[1];
+      else { const params = new URLSearchParams(window.location.search); slug = params.get('sala'); }
       
-      // Si encontramos una sala, cargamos su identidad
       if (slug) {
         try {
-          // Guardamos la sala globalmente PARA QUE LA BIBLIOTECA SEPA QUÉ CARGAR
           window.PREDEFINED_ROOM = slug; 
-
           const res = await fetch(`/api/auth/public/${slug}`);
           if (res.ok) {
             const teacher = await res.json();
-            
-            // A) Aplicar Colores
             const root = document.documentElement;
             if (teacher.branding && teacher.branding.colors) {
                const c = teacher.branding.colors;
-               root.style.setProperty('--accent', c.base);       
-               root.style.setProperty('--bg', c.bg);             
-               root.style.setProperty('--panel', c.panel);       
-               root.style.setProperty('--prof-color', c.base);
+               root.style.setProperty('--accent', c.base); root.style.setProperty('--bg', c.bg); root.style.setProperty('--panel', c.panel); root.style.setProperty('--prof-color', c.base);
             }
-
-            // B) Inyectar Logo y Textos
             const logoContainer = document.getElementById('headerLogo');
             const titleContainer = document.getElementById('headerTitle');
             const subTitleContainer = document.getElementById('headerSubtitle');
 
             if (teacher.branding && teacher.branding.logoUrl) {
-                logoContainer.innerHTML = `
-                    <img src="${teacher.branding.logoUrl}" 
-                         onerror="this.style.display='none'; this.parentNode.innerHTML='🎹';" 
-                         style="height: 38px; width: 38px; object-fit: cover; border-radius: 6px; border: 1px solid #444;">`;
+                logoContainer.innerHTML = `<img src="${teacher.branding.logoUrl}" onerror="this.style.display='none'; this.parentNode.innerHTML='🎹';" style="height: 38px; width: 38px; object-fit: cover; border-radius: 6px; border: 1px solid #444;">`;
             } else {
                 logoContainer.innerHTML = `<div style="height:35px; width:35px; background:var(--accent); color:#000; border-radius:50%; display:flex; justify-content:center; align-items:center; font-weight:bold;">${teacher.name.charAt(0)}</div>`;
             }
-            
             titleContainer.textContent = teacher.name.toUpperCase();
             subTitleContainer.textContent = "SALA DE CLASES VIRTUAL | Piano Link";
             subTitleContainer.style.color = "var(--accent)";
@@ -415,82 +251,89 @@
       }
     })();
 
- // Lógica de Identidad: Prioridad Link > Login
- (function() {
+/// 2. IDENTIDAD GLOBAL (LOGO + FAVICON)
+(async function loadGlobalBrand() {
+        try {
+            // Conectamos con la configuración del sistema
+            const res = await fetch('/api/auth/platform-public');
+            const config = await res.json();
+
+            // A) LOGO EN LA BARRA (Powered By)
+            if (config.logoUrl) {
+                const sysContainer = document.getElementById('systemBrand');
+                if(sysContainer) {
+                    // Aseguramos visibilidad plena
+                    sysContainer.style.opacity = "1";
+                    sysContainer.style.transform = "none";
+
+                    // Diseño: Fondo oscuro suave para resaltar el logo a color
+                    sysContainer.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:8px; padding: 4px 10px; border-radius: 4px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1);">
+                            <span style="font-size:9px; color:#ccc; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; font-family:'Inter', sans-serif;">
+                                Powered by
+                            </span>
+                            <img src="${config.logoUrl}" 
+                                 style="height:28px; width:auto; vertical-align:middle; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));"
+                                 alt="Piano Link">
+                        </div>
+                    `;
+                }
+            }
+            
+            // B) FAVICON (Icono en la pestaña/URL)
+            if (config.faviconUrl) {
+                // Buscamos si ya existe un link de icono
+                let link = document.querySelector("link[rel~='icon']");
+                // Si no existe, lo creamos
+                if (!link) { 
+                    link = document.createElement('link'); 
+                    link.rel = 'icon'; 
+                    document.head.appendChild(link); 
+                }
+                // Le asignamos la imagen del sistema
+                link.href = config.faviconUrl;
+            }
+
+            // C) TÍTULO DE LA PESTAÑA
+            if (config.name) {
+                document.title = `${config.name} | Aula Virtual`;
+            }
+            
+        } catch (e) { console.log("Usando marca por defecto"); }
+    })();
+
+   // 3. GESTIÓN DE ROL (Login/Invitado)
+   (function() {
         const nameInput = document.getElementById('inputName');
         const roleIndicator = document.getElementById('roleIndicator');
         const urlParams = new URLSearchParams(window.location.search);
         
-        // 1. ¿Viene de un Link de Invitación? (Ej: ?role=student)
         if (urlParams.get('role') === 'student') {
             if(nameInput) {
-                nameInput.value = ""; // Limpiamos para que escriba
-                nameInput.readOnly = false; // DESBLOQUEADO
-                nameInput.disabled = false;
-                nameInput.style.color = "#fff";
-                nameInput.style.cursor = "text";
-                nameInput.placeholder = "Ingresa tu nombre...";
+                nameInput.value = ""; nameInput.readOnly = false; nameInput.disabled = false;
+                nameInput.style.color = "#fff"; nameInput.style.cursor = "text"; nameInput.placeholder = "Ingresa tu nombre...";
             }
-            if(roleIndicator) {
-                roleIndicator.textContent = "Alumno Invitado";
-                roleIndicator.style.background = "#5dade2";
-            }
-            return; // Terminamos aquí, ignorando el localStorage
+            if(roleIndicator) { roleIndicator.textContent = "Alumno Invitado"; roleIndicator.style.background = "#5dade2"; }
+            return; 
         }
 
-        // 2. Si NO es invitación, revisamos si hay Login guardado
         const userRaw = localStorage.getItem('pianoUser');
         if(userRaw) {
             const user = JSON.parse(userRaw);
-            
-            // Es Profesor/Admin -> Bloqueamos nombre
             if(nameInput) {
-                nameInput.value = user.name || "Usuario";
-                nameInput.readOnly = true; 
-                nameInput.style.color = "#888";
-                nameInput.style.cursor = "not-allowed";
+                nameInput.value = user.name || "Usuario"; nameInput.readOnly = true; 
+                nameInput.style.color = "#888"; nameInput.style.cursor = "not-allowed";
             }
-
             const role = user.role === 'admin' ? 'teacher' : (user.role || 'student');
             if(roleIndicator) {
                 roleIndicator.textContent = (role === 'teacher') ? "Profesor" : "Alumno";
                 roleIndicator.style.background = (role === 'teacher') ? "var(--prof-color)" : "#5dade2";
             }
-            
-            // Marcar radio button oculto si es necesario para compatibilidad
-            if(role === 'teacher') {
-                const rt = document.getElementById('radioTeacher');
-                if(rt) rt.checked = true;
-            }
-
+            if(role === 'teacher') { const rt = document.getElementById('radioTeacher'); if(rt) rt.checked = true; }
         } else {
-            // 3. Usuario totalmente nuevo (sin link y sin login)
-            if(nameInput) {
-                nameInput.readOnly = false;
-                nameInput.style.cursor = "text";
-            }
+            if(nameInput) { nameInput.readOnly = false; nameInput.style.cursor = "text"; }
         }
     })();
   </script>
-
-  <script>
-    const socketStatus = io(); 
-    const statusDiv = document.getElementById('status');
-
-    socketStatus.on('connect', () => {
-        statusDiv.innerHTML = '🟢 Conectado';
-        statusDiv.classList.add('connected');
-    });
-
-    socketStatus.on('disconnect', () => {
-        statusDiv.innerHTML = '🔴 Desconectado';
-        statusDiv.classList.remove('connected');
-    });
-
-    socketStatus.on('room-joined', (room) => {
-        statusDiv.innerHTML = `🟢 En Sala: ${room}`;
-    });
-  </script>
-
 </body>
 </html>

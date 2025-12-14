@@ -6,7 +6,7 @@ import { SocketClient } from './modules/SocketClient.js';
 import { AudioEngine } from './modules/AudioEngine.js';
 import { Whiteboard } from './modules/Whiteboard.js';
 import { UIManager } from './modules/UIManager.js';
-import { ScoreLogic } from './modules/ScoreLogic.js'; // ✅ Importamos el nuevo módulo
+import { ScoreLogic } from './modules/ScoreLogic.js'; 
 
 // 1. EVENT BUS (Sistema nervioso central)
 class EventBus extends EventTarget {
@@ -24,9 +24,25 @@ const socketManager = new SocketClient(bus);
 const audio = new AudioEngine(bus);
 const ui = new UIManager(bus);
 const whiteboard = new Whiteboard();
-
-// 3. INICIALIZAR LÓGICA DE PARTITURAS
 const scoreLogic = new ScoreLogic(socketManager.socket); 
+
+// 3. GESTIÓN VISUAL DEL ESTADO (Corregido: Ahora lo maneja Main.js)
+const statusDiv = document.getElementById('status');
+const socket = socketManager.socket;
+
+if (statusDiv && socket) {
+    socket.on('connect', () => {
+        statusDiv.innerHTML = '🟢 Conectado';
+        statusDiv.classList.add('connected');
+        console.log("✅ Socket Conectado (Main.js)");
+    });
+
+    socket.on('disconnect', () => {
+        statusDiv.innerHTML = '🔴 Desconectado';
+        statusDiv.classList.remove('connected');
+        console.log("❌ Socket Desconectado (Main.js)");
+    });
+}
 
 // 4. ARRANQUE
 (async () => {
@@ -34,48 +50,42 @@ const scoreLogic = new ScoreLogic(socketManager.socket);
     await audio.init();
 })();
 
-// ... en Main.js ...
 
 // ============================================
 // 5. ORQUESTACIÓN DE EVENTOS (CABLEADO)
 // ============================================
 
-// --- FLUJO DE AUDIO Y NOTAS (CORREGIDO) ---
+// --- FLUJO DE AUDIO Y NOTAS ---
 
 bus.on("local-note", (data) => {
-    // 1. Enviar siempre a la red (el servidor decide a quién retransmitir)
+    // 1. Enviar siempre a la red
     socketManager.sendMidi(data.status, data.data1, data.data2);
-
-    // 2. Procesar visualmente según el tipo de mensaje
-    processMidiMessage(data, true); // true = es local
+    // 2. Procesar visualmente
+    processMidiMessage(data, true); 
 });
 
 bus.on("remote-note", (data) => {
-    // 1. Sonido (AudioEngine ya tiene su propio filtro interno para notas)
+    // 1. Sonido
     audio.playRemote(data);
-
     // 2. Procesar visualmente
-    processMidiMessage(data, false); // false = es remoto
+    processMidiMessage(data, false); 
 });
 
-// FUNCIÓN HELPER PARA SEPARAR NOTAS DE PEDALES
+// FUNCIÓN HELPER
 function processMidiMessage(data, isLocal) {
     const s = data.status;
     const d1 = data.data1;
     const d2 = data.data2;
 
-    // A) ES UNA NOTA (Status 144 = NoteOn, 128 = NoteOff)
-    // (Aceptamos canales 1-16, por eso el rango 144-159)
     if ((s >= 144 && s <= 159) || (s >= 128 && s <= 143)) {
         ui.highlightKey(d1, d2);
         whiteboard.handleNote(d1, d2);
     }
-    
-    // B) ES EL PEDAL SUSTAIN (Status 176-191 = ControlChange, Data1 64 = Sustain)
     else if (s >= 176 && s <= 191 && d1 === 64) {
-        ui.handlePedal(d2); // d2 es la intensidad (0-127)
+        ui.handlePedal(d2); 
     }
 }
+
 // --- FLUJO DE UI Y SALA ---
 
 bus.on("ui-join", (data) => {
@@ -92,8 +102,14 @@ bus.on("room-users", (users) => {
     ui.updateParticipants(users);
 });
 
-bus.on("room-joined", (code) => bus.emit("room-info", code));
-bus.on("room-created", (code) => bus.emit("room-info", code));
+bus.on("room-joined", (code) => {
+    bus.emit("room-info", code);
+    if(statusDiv) statusDiv.innerHTML = `🟢 En Sala: ${code}`;
+});
+bus.on("room-created", (code) => {
+    bus.emit("room-info", code);
+    if(statusDiv) statusDiv.innerHTML = `🟢 Sala Creada: ${code}`;
+});
 
 bus.on("class-status", (status) => {
     ui.handleClassStatus(status.isActive);
@@ -105,20 +121,15 @@ bus.on("ui-tab-change", (tab) => {
     ui.switchTab(tab); 
 });
 
-// ✅ CABLEADO DE VISTA ALUMNO (Actualizado: Sin confirmación)
 bus.on("ui-spy-user", (pdfState) => {
-    // Carga directa y silenciosa
     scoreLogic.silentLoad(pdfState.url, pdfState.page);
 });
 
 // --- GESTIÓN DE SALIDA Y CIERRE ---
 
-// ✅ CABLEADO DE AUDIO CUE (SOLO)
 bus.on("ui-toggle-cue", (userId) => {
-    // userId es el socket.id del alumno o null para escuchar a todos
     audio.setSoloUser(userId);
 });
-
 
 bus.on("ui-end-class", () => {
     if(confirm("¿Seguro que quieres cerrar la clase para todos?")) {

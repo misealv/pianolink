@@ -1,119 +1,85 @@
-/**
- * Core Engine: Programador de Audio (CON JITTER BUFFER)
- * Maneja osciladores web y salidas MIDI físicas con corrección de tiempo.
- */
-export class AudioScheduler {
-    constructor() {
-        this.ctx = null;
-        this.midiOutput = null; 
-        this.activeVoices = new Map(); // Polifonía: { nota: {osc, gain} }
-        
-        // --- JITTER BUFFER CONFIG ---
-        // 300ms es un valor seguro para transoceánico (Australia->Chile). 
-        // Puedes bajarlo a 100ms para conexiones locales.
-        this.BUFFER_MS = 300; 
-        this.syncOffset = 0;   // Diferencia entre reloj remoto y local
-        this.isSynced = false; // ¿Ya sincronizamos la primera nota?
+/* public/js/modules/AudioEngine.js */
+import { AudioScheduler } from '../core/AudioScheduler.js';
+
+export class AudioEngine {
+    constructor(eventBus) {
+        this.bus = eventBus;
+        this.scheduler = new AudioScheduler();
+        this.midiAccess = null;
+        this.soloUserId = null;
     }
 
     async init() {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        this.ctx = new AudioContext();
-        if (this.ctx.state === 'suspended') await this.ctx.resume();
-        console.log(`🔊 Motor Audio V3: Buffer de seguridad ${this.BUFFER_MS}ms activo.`);
-    }
-
-    setMidiOutput(device) {
-        this.midiOutput = device;
-        console.log(`🎹 Salida Física asignada: ${device.name}`);
-    }
-
-    /**
-     * Toca una nota respetando su tiempo original (Anti-Ráfagas)
-     * @param {Object} event - { status, data1, data2, timestamp } 
-     */
-    play(event) {
-        if (!this.ctx) return;
-
-        const { status, data1, data2, timestamp } = event; // timestamp viene de MidiProtocol
-
-        // 1. CALCULAR TIEMPO EXACTO (Jitter Correction)
-        let scheduledTime = this.ctx.currentTime; // Por defecto: YA
-
-        if (timestamp) {
-            // Si es la primera nota que recibimos, sincronizamos los relojes
-            if (!this.isSynced) {
-                // syncOffset = (HoraLocal - HoraRemota)
-                this.syncOffset = (this.ctx.currentTime * 1000) - timestamp;
-                this.isSynced = true;
-                console.log("⏱️ Sincronización de reloj establecida.");
-            }
-
-            // Calculamos cuándo debe sonar esta nota en el tiempo local
-            // TiempoRemoto + Diferencia + BufferSeguridad
-            const targetTimeMs = timestamp + this.syncOffset + this.BUFFER_MS;
-            scheduledTime = targetTimeMs / 1000; // Convertir a segundos para WebAudio
-
-            // SEGURIDAD: Si la nota llegó muy tarde (lag extremo), la tocamos ya.
-            if (scheduledTime < this.ctx.currentTime) {
-                scheduledTime = this.ctx.currentTime;
-            }
-        }
-
-        // Lógica MIDI estándar
-        const isNoteOn = (status >= 144 && status <= 159) && data2 > 0;
-        const isNoteOff = (status >= 128 && status <= 143) || (status >= 144 && data2 === 0);
-
-        // 2. SONIDO WEB (Sintetizador Agendado)
-        if (isNoteOn) this._noteOn(data1, data2, scheduledTime);
-        else if (isNoteOff) this._noteOff(data1, scheduledTime);
-
-        // 3. SONIDO FÍSICO (Relay al piano USB)
-        // Nota: WebMIDI no siempre soporta agendado futuro preciso, 
-        // pero intentamos enviar con timestamp si el driver lo permite.
-        if (this.midiOutput) {
+        // Inicializar AudioContext
+        await this.scheduler.init();
+        
+        // Inicializar WebMIDI si está disponible
+        if (navigator.requestMIDIAccess) {
             try {
-                // Calculamos el delay en ms para el send()
-                const delay = (scheduledTime - this.ctx.currentTime) * 1000;
-                // Si el delay es positivo, lo usamos. Si es negativo, 0.
-                const safeDelay = Math.max(0, delay); 
+                this.midiAccess = await navigator.requestMIDIAccess();
+                this.scanDevices();
                 
-                this.midiOutput.send([status, data1, data2], window.performance.now() + safeDelay); 
-            } catch (e) { console.warn(e); }
+                // Escuchar cambios de conexión USB (caliente)
+                this.midiAccess.onstatechange = () => this.scanDevices();
+                console.log("🎹 Motor MIDI: Listo y escuchando.");
+            } catch (e) {
+                console.warn("WebMIDI no soportado o denegado:", e);
+            }
         }
     }
 
-    _noteOn(note, velocity, time) {
-        this._noteOff(note, time); // Matar voz anterior
-
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+    scanDevices() {
+        if (!this.midiAccess) return;
+        const inputs = Array.from(this.midiAccess.inputs.values());
+        const outputs = Array.from(this.midiAccess.outputs.values());
         
-        osc.frequency.value = 440 * Math.pow(2, (note - 69) / 12);
-        const vol = velocity / 127;
+        this.updateSelects(inputs, outputs);
         
-        // Usamos 'time' (futuro) en lugar de 'currentTime' (ahora)
-        gain.gain.setValueAtTime(0, time);
-        gain.gain.linearRampToValueAtTime(vol * 0.2, time + 0.01); 
-        gain.gain.linearRampToValueAtTime(vol * 0.1, time + 0.5);  
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        
-        osc.start(time); // <--- AQUÍ ESTÁ LA MAGIA DE LA FLUIDEZ
-        
-        this.activeVoices.set(note, { osc, gain });
+        // Reconectar listeners
+        inputs.forEach(i => {
+            i.onmidimessage = (msg) => {
+                const [s, d1, d2] = msg.data;
+                // Ignorar Clock/SysEx (248+)
+                if (s >= 248) return;
+                this.bus.emit('local-note', { status: s, data1: d1, data2: d2 });
+            };
+        });
     }
 
-    _noteOff(note, time) {
-        const voice = this.activeVoices.get(note);
-        if (voice) {
-            voice.gain.gain.cancelScheduledValues(time);
-            voice.gain.gain.setValueAtTime(voice.gain.gain.value, time);
-            voice.gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    updateSelects(inputs, outputs) {
+        const inSelect = document.getElementById('midiInputSelect');
+        const outSelect = document.getElementById('midiOutputSelect');
+        
+        if(inSelect) {
+            inSelect.innerHTML = '<option value="">-- Entrada MIDI --</option>';
+            inputs.forEach(i => inSelect.innerHTML += `<option value="${i.id}">${i.name}</option>`);
+        }
+        if(outSelect) {
+            outSelect.innerHTML = '<option value="">-- Salida (Sonido) --</option>';
+            outputs.forEach(o => outSelect.innerHTML += `<option value="${o.id}">${o.name}</option>`);
             
-            voice.osc.stop(time + 0.15); // Detener en el futuro
-            this.activeVoices.delete(note);
+            outSelect.onchange = (e) => {
+                const device = outputs.find(o => o.id === e.target.value);
+                if(device) this.scheduler.setMidiOutput(device);
+            };
         }
+    }
+
+    playRemote(data) {
+        // Si hay modo "Solo" y no es el usuario elegido, silenciar
+        if (this.soloUserId && data.userId !== this.soloUserId) return;
+        
+        // Pasar al Scheduler para el Jitter Buffer
+        this.scheduler.play(data);
+    }
+
+    resume() {
+        if (this.scheduler.ctx && this.scheduler.ctx.state === 'suspended') {
+            this.scheduler.ctx.resume();
+        }
+    }
+    
+    setSoloUser(userId) {
+        this.soloUserId = userId;
     }
 }

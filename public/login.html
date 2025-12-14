@@ -9,7 +9,7 @@
       --bg-color: #1a1a1a;
       --card-bg: #262626;
       --text-color: #dcdcdc;
-      --accent: #ff764d; /* El color "Dorado/Naranja" de la marca */
+      --accent: #ff764d; 
       --border: #454545;
     }
 
@@ -38,6 +38,16 @@
       position: relative;
       z-index: 1;
     }
+
+    /* ESTILO PARA EL LOGO CARGADO (DINÁMICO) */
+    #globalLogo {
+        max-width: 350px;
+        height: auto;
+        margin-bottom: 20px;
+        filter: drop-shadow(0 0 10px rgba(255,255,255,0.1));
+        display: none; /* Se muestra con JS si existe */
+    }
+
     .brand-logo {
       font-size: 24px;
       font-weight: 800;
@@ -92,7 +102,7 @@
       font-weight: 500;
     }
 
-    /* --- NUEVO: BOTÓN DE LINK --- */
+    /* --- BOTÓN DE LINK --- */
     .founders-link {
         margin-top: 25px;
         padding-top: 15px;
@@ -109,9 +119,9 @@
     }
     .btn-text:hover { opacity: 1; text-decoration: underline; }
 
-    /* --- NUEVO: ESTILOS DEL MODAL (VENTANA EMERGENTE) --- */
+    /* --- MODAL --- */
     .modal-overlay {
-        display: none; /* Oculto por defecto */
+        display: none;
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0, 0, 0, 0.85);
@@ -134,7 +144,6 @@
         animation: slideUp 0.3s ease-out;
     }
 
-    /* Animaciones */
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
@@ -147,7 +156,6 @@
     }
     .close-btn:hover { color: #fff; }
 
-    /* Grid de Profesores */
     .founders-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -163,7 +171,6 @@
         padding: 20px;
         border-radius: 8px;
         text-align: center;
-        /* AQUÍ ESTÁ EL BORDE DORADO/NARANJA SUPERIOR */
         border-top: 3px solid var(--accent); 
         transition: transform 0.2s;
     }
@@ -183,14 +190,18 @@
         margin: 0 auto 10px auto;
         box-shadow: 0 4px 10px rgba(255, 118, 77, 0.3);
     }
-
   </style>
 </head>
 <body>
 
   <div class="login-card">
-    <div class="brand-logo">🎹 Piano Link</div>
-    <div class="brand-subtitle">Acceso Docente</div>
+    
+    <img id="globalLogo" src="">
+
+    <div id="defaultBrand">
+        <div class="brand-logo">🎹 Piano Link</div>
+        <div class="brand-subtitle">Acceso Docente</div>
+    </div>
     
     <form id="loginForm">
       <input type="email" id="email" placeholder="Correo electrónico" required>
@@ -221,16 +232,38 @@
 
         <div class="founders-grid" id="foundersGrid">
           <p style="grid-column: 1 / -1; text-align: center;">Cargando...</p>
-      </div>
-
-      
-
         </div>
     </div>
   </div>
 
   <script>
-    // --- LÓGICA DE LOGIN ---
+    // --- 0. LÓGICA DE IDENTIDAD (LOGO DEFINIDO) ---
+    (async function loadBrand() {
+        try {
+            const res = await fetch('/api/auth/platform-public');
+            const config = await res.json();
+            
+            if (config.logoUrl) {
+                const img = document.getElementById('globalLogo');
+                img.src = config.logoUrl;
+                img.style.display = 'inline-block'; // Mostrar imagen
+                
+                // Ocultar el texto por defecto para que no se duplique
+                const def = document.getElementById('defaultBrand');
+                if(def) def.style.display = 'none';
+            }
+
+            if (config.name) document.title = `Acceso | ${config.name}`;
+            
+            if (config.faviconUrl) {
+                let link = document.createElement('link');
+                link.rel = 'icon'; link.href = config.faviconUrl;
+                document.head.appendChild(link);
+            }
+        } catch (e) { console.log("Usando marca por defecto"); }
+    })();
+
+    // --- 1. LÓGICA DE LOGIN (CORREGIDA PARA REDIRECCIÓN) ---
     const form = document.getElementById('loginForm');
     const msg = document.getElementById('msg');
 
@@ -255,15 +288,21 @@
         const data = await response.json();
 
         if (response.ok) {
-          msg.style.color = "#b4e080"; // Verde éxito
+          msg.style.color = "#b4e080"; 
           msg.textContent = "✅ Acceso concedido. Redirigiendo...";
           
-          localStorage.setItem('pianoUser', JSON.stringify(data));
+          // ✅ FIX IMPORTANTE: 
+          // Detectamos si el servidor devuelve { user: ... } o el objeto user directo
+          // para asegurarnos de guardar y leer los datos correctamente.
+          const userToSave = data.user || data;
+
+          localStorage.setItem('pianoUser', JSON.stringify(userToSave));
           
           setTimeout(() => {
-            if (data.role === 'admin') {
+            // Usamos userToSave para leer el rol
+            if (userToSave.role === 'admin') {
               window.location.href = "admin.html";
-            } else if (data.role === 'teacher') {
+            } else if (userToSave.role === 'teacher') {
               window.location.href = "dashboard.html";
             } else {
               window.location.href = "/";
@@ -271,12 +310,13 @@
           }, 800);
 
         } else {
-          msg.style.color = "#ff4d4d"; // Rojo error
+          msg.style.color = "#ff4d4d"; 
           msg.textContent = "❌ " + (data.message || "Credenciales incorrectas");
           btn.disabled = false;
           btn.textContent = "INGRESAR";
         }
       } catch (error) {
+        console.error(error);
         msg.textContent = "⚠️ Error de conexión.";
         msg.style.color = "#ff4d4d";
         btn.disabled = false;
@@ -284,83 +324,59 @@
       }
     });
 
-// --- LÓGICA DEL MODAL (POP-UP) ---
-const modal = document.getElementById('foundersModal');
+    // --- 2. LÓGICA DEL MODAL DE FUNDADORES ---
+    const modal = document.getElementById('foundersModal');
     const btnOpen = document.getElementById('btnFounders');
     const btnClose = document.getElementById('btnCloseModal');
-    // Referencia al contenedor donde inyectaremos las tarjetas
-    const gridContainer = document.querySelector('.founders-grid'); 
-
-    // Helper: Generar iniciales si no hay foto
-    function getInitials(name) {
-        return name ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'PL';
-    }
-
-   // --- FUNCIÓN ACTUALIZADA PARA GENERAR TU DISEÑO EXACTO ---
-   async function loadFounders() {
+    
+    async function loadFounders() {
         const gridContainer = document.querySelector('.founders-grid');
         gridContainer.innerHTML = '<p style="color:#888; text-align:center; grid-column:1/-1;">Cargando maestros...</p>';
 
         try {
             const response = await fetch('/api/teacher/founders');
-            // Usamos 'let' para poder reordenar la lista
             let founders = await response.json(); 
 
-            gridContainer.innerHTML = ''; // Limpiar mensaje de carga
+            gridContainer.innerHTML = ''; 
 
             if (!founders || founders.length === 0) {
                 gridContainer.innerHTML = '<p style="color:#888; text-align:center; grid-column:1/-1;">Pronto anunciaremos a nuestros fundadores.</p>';
                 return;
             }
 
-            // --- LÓGICA DE ORDENAMIENTO (TU NOMBRE PRIMERO) ---
-            const nameToPrioritize = "Miguel"; // <--- CAMBIA ESTO POR TU NOMBRE EXACTO EN LA BD
-            
+            // Ordenar: Tu nombre primero
+            const nameToPrioritize = "Miguel"; 
             founders.sort((a, b) => {
-                // Si el nombre incluye "Miguel", va primero (-1)
                 if (a.name && a.name.includes(nameToPrioritize)) return -1;
                 if (b.name && b.name.includes(nameToPrioritize)) return 1;
-                return 0; // El resto mantiene su orden
+                return 0; 
             });
-            // --------------------------------------------------
 
             founders.forEach(founder => {
-                // 1. Preparamos los datos (con valores por defecto si faltan)
                 const branding = founder.branding || {};
                 const colors = branding.colors || {};
-                
                 const name = founder.name;
                 const bio = branding.bio || 'Profesor Fundador de Piano Link.';
-                // Campo País (nuevo)
                 const country = branding.country || '🏳️ Internacional'; 
-                const baseColor = colors.base || '#ff764d'; // Color naranja por defecto
+                const baseColor = colors.base || '#ff764d'; 
 
-                // 2. Lógica del Avatar: ¿Foto o Iniciales?
                 let avatarHtml;
                 if (branding.profilePhotoUrl) {
-                    // Si tiene foto, usamos <img>
                     avatarHtml = `<img src="${branding.profilePhotoUrl}" class="avatar-circle" style="object-fit:cover; width:50px; height:50px;">`;
                 } else {
-                    // Si NO tiene foto, usamos <div> con iniciales
                     const initials = name ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'PL';
-                    // Inyectamos el color dinámico del profesor
                     avatarHtml = `<div class="avatar-circle" style="background: ${baseColor}; color:white;">${initials}</div>`;
                 }
 
-                // 3. Crear la tarjeta
                 const card = document.createElement('div');
                 card.className = 'founder-card';
-                
-                // Agregamos el borde superior del color del profesor
                 card.style.borderTop = `3px solid ${baseColor}`;
-
                 card.innerHTML = `
                     ${avatarHtml}
                     <h3>${name}</h3>
                     <span class="flag">${country}</span>
                     <p>${bio}</p>
                 `;
-                
                 gridContainer.appendChild(card);
             });
 
@@ -370,22 +386,14 @@ const modal = document.getElementById('foundersModal');
         }
     }
 
-    // EVENTOS
     btnOpen.addEventListener('click', (e) => {
         e.preventDefault();
         modal.style.display = 'flex';
-        loadFounders(); // <--- Llamada dinámica al abrir
+        loadFounders();
     });
 
-    btnClose.addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
-
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
+    btnClose.addEventListener('click', () => { modal.style.display = 'none'; });
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
   </script>
 
 </body>
