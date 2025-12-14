@@ -259,7 +259,19 @@ export class UIManager {
                         🎧
                     </button>
                 `;
+                // C) BOTÓN BROADCAST (NUEVO)
+                const isBroadcasting = (this.currentBroadcasterId === u.socketId);
+                const castColor = isBroadcasting ? '#e74c3c' : '#bbb'; 
+                const castBg = isBroadcasting ? 'rgba(231, 76, 60, 0.2)' : 'rgba(255, 255, 255, 0.1)';
 
+                controls += `
+                    <button class="btn-cast" data-id="${u.socketId}" title="Transmitir a toda la clase"
+                        style="background:${castBg}; border:1px solid ${castColor}; color:${castColor}; 
+                            border-radius:4px; margin-right:8px; cursor:pointer; 
+                            padding:2px 6px; font-size:14px;">
+                        📡
+                    </button>
+                `;
                 // B) BOTÓN OJO (👁️)
                 if (u.pdfState && u.pdfState.url) {
                     const safeData = encodeURIComponent(JSON.stringify(u.pdfState));
@@ -308,6 +320,14 @@ export class UIManager {
                 this.currentSoloId = newSoloId;
                 if(this.lastUserList) this.updateParticipants(this.lastUserList);
                 this.bus.emit("ui-toggle-cue", newSoloId);
+            });
+        });
+
+        // Listener Broadcast 
+        this.participantsList.querySelectorAll('.btn-cast').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.bus.emit("ui-set-broadcaster", btn.dataset.id);
             });
         });
     }
@@ -521,4 +541,30 @@ export class UIManager {
         }
         return `rgba(${r},${g},${b},${alpha})`;
     }
+        //  Manejar aviso visual de "En Vivo"
+    handleBroadcasterChange(broadcasterId, myId) {
+        this.currentBroadcasterId = broadcasterId;
+        if (this.lastUserList) this.updateParticipants(this.lastUserList); // Refrescar botones
+
+        const statusDiv = document.getElementById('status');
+        if (!statusDiv) return;
+
+        if (broadcasterId && broadcasterId === myId) {
+            // SOY YO
+            statusDiv.innerHTML = `🔴 <b>TRANSMITIENDO EN VIVO</b>`;
+            statusDiv.style.background = "#e74c3c";
+            statusDiv.style.color = "#fff";
+            document.body.style.border = "4px solid #e74c3c";
+        } else {
+            // RESTAURAR
+            const code = document.getElementById("codigoSala")?.value || "";
+            statusDiv.innerHTML = `🟢 En Sala: ${code}`;
+            statusDiv.style.background = "";
+            statusDiv.style.color = "";
+            document.body.style.border = "none";
+        }
+    }
+
+
+
 }

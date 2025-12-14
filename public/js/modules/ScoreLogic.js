@@ -66,9 +66,9 @@ export class ScoreLogic {
         if(btnNext) btnNext.onclick = () => this.changePage(1);
 
         // 6. Sockets
-        if(this.socket) {
-            this.socket.on('user-pdf-updated', (data) => this.handleRemoteUpdate(data));
-        }
+       // if(this.socket) {
+         //   this.socket.on('user-pdf-updated', (data) => this.handleRemoteUpdate(data));
+        //}
     }
 
     switchTab(tab) {
@@ -210,36 +210,39 @@ async loadShelf() {
 
     // --- PDF.JS (Visor) ---
 
-    openPdf(url, title) {
-        this.currentUrl = url;
-        const titleEl = this.el('current-score-title');
-        if(titleEl) titleEl.innerText = title || "Documento";
-        
-        const loader = this.el('pdf-loading-msg');
-        const controls = this.el('pdfFloatingControls');
+  // Modificado para aceptar una página inicial
+  openPdf(url, title, initialPage = 1) {
+    this.currentUrl = url;
+    const titleEl = this.el('current-score-title');
+    if(titleEl) titleEl.innerText = title || "Documento";
+    
+    const loader = this.el('pdf-loading-msg');
+    const controls = this.el('pdfFloatingControls');
 
-        if(loader) loader.style.display = 'block';
-        if(controls) controls.style.display = 'flex';
+    if(loader) loader.style.display = 'block';
+    if(controls) controls.style.display = 'flex';
 
-        // Usamos librería global
-        if(typeof pdfjsLib === 'undefined') {
-            alert("Error: La librería PDF.js no se cargó correctamente.");
-            return;
-        }
-
-        pdfjsLib.getDocument(url).promise.then(pdf => {
-            this.pdfDoc = pdf;
-            const countEl = this.el('page-count');
-            if(countEl) countEl.textContent = this.pdfDoc.numPages;
-            
-            if(loader) loader.style.display = 'none';
-            this.pageNum = 1;
-            this.renderPage(this.pageNum);
-        }).catch(err => {
-            console.error("Error PDF:", err);
-            if(loader) loader.innerText = "Error al abrir PDF.";
-        });
+    if(typeof pdfjsLib === 'undefined') {
+        alert("Error: La librería PDF.js no se cargó correctamente.");
+        return;
     }
+
+    pdfjsLib.getDocument(url).promise.then(pdf => {
+        this.pdfDoc = pdf;
+        const countEl = this.el('page-count');
+        if(countEl) countEl.textContent = this.pdfDoc.numPages;
+        
+        if(loader) loader.style.display = 'none';
+        
+        // USAR LA PÁGINA QUE NOS MANDARON (O la 1 por defecto)
+        this.pageNum = initialPage || 1;
+        this.renderPage(this.pageNum);
+        
+    }).catch(err => {
+        console.error("Error PDF:", err);
+        if(loader) loader.innerText = "Error al abrir PDF.";
+    });
+}
 
     renderPage(num) {
         this.pageRendering = true;
@@ -279,7 +282,11 @@ async loadShelf() {
         if(newPage >= 1 && newPage <= this.pdfDoc.numPages) {
             this.pageNum = newPage;
             this.renderPage(this.pageNum); // Render local rápido
-            this.socket.emit('update-pdf-state', { page: this.pageNum }); // Avisar red
+            // Enviamos URL y PAGE para forzar a los demás a abrir MI libro
+            this.socket.emit('update-pdf-state', { 
+                url: this.currentUrl, 
+                page: this.pageNum 
+            });
         }
     }
 
@@ -287,10 +294,13 @@ async loadShelf() {
         const state = data.pdfState;
         if(!state) return;
 
+        // CASO 1: Cambio de Libro (o libro diferente al mío)
         if (state.url && state.url !== this.currentUrl) {
-            this.openPdf(state.url, "Sincronizado");
+            // Abrimos el libro Y le decimos que vaya directo a la página 'state.page'
+            this.openPdf(state.url, "Sincronizado", state.page);
         }
-        if (state.page && state.page !== this.pageNum) {
+        // CASO 2: Mismo libro, solo cambio de página
+        else if (state.page && state.page !== this.pageNum) {
             this.pageNum = state.page;
             if(this.pdfDoc) this.renderPage(this.pageNum);
         }

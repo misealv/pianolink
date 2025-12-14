@@ -25,6 +25,10 @@ const audio = new AudioEngine(bus);
 const ui = new UIManager(bus);
 const whiteboard = new Whiteboard();
 const scoreLogic = new ScoreLogic(socketManager.socket); 
+// Estado Global
+let currentBroadcaster = null;
+let teacherId = null;
+let myId = null;
 
 // 3. GESTIÓN VISUAL DEL ESTADO (Corregido: Ahora lo maneja Main.js)
 const statusDiv = document.getElementById('status');
@@ -35,6 +39,7 @@ if (statusDiv && socket) {
         statusDiv.innerHTML = '🟢 Conectado';
         statusDiv.classList.add('connected');
         console.log("✅ Socket Conectado (Main.js)");
+        myId = socket.id; 
     });
 
     socket.on('disconnect', () => {
@@ -63,12 +68,34 @@ bus.on("local-note", (data) => {
     // 2. Procesar visualmente
     processMidiMessage(data, true); 
 });
-
+// --- Lógica de Filtrado (Clase Magistral) ---
 bus.on("remote-note", (data) => {
-    // 1. Sonido
-    audio.playRemote(data);
-    // 2. Procesar visualmente
-    processMidiMessage(data, false); 
+    const senderId = data.fromId;
+    
+    // Obtener rol local
+    const myRole = JSON.parse(localStorage.getItem('pianoUser') || '{}').role;
+    const iAmTeacher = (myRole === 'teacher' || myRole === 'admin');
+
+    let shouldPlay = true;
+
+    // Si hay Clase Magistral activa...
+    if (currentBroadcaster) {
+        const isSenderTeacher = (senderId === teacherId);
+        const isSenderBroadcaster = (senderId === currentBroadcaster);
+
+        // Si soy alumno, SOLO escucho al Profe o al Elegido
+        if (!iAmTeacher) {
+            if (!isSenderTeacher && !isSenderBroadcaster) {
+                shouldPlay = false; // Silenciar compañeros
+            }
+        }
+        // El profesor siempre escucha a todos (default)
+    }
+
+    if (shouldPlay) {
+        audio.playRemote(data);
+        processMidiMessage(data, false);
+    }
 });
 
 // FUNCIÓN HELPER
@@ -99,6 +126,10 @@ bus.on("ui-create", (data) => {
 });
 
 bus.on("room-users", (users) => {
+    //  Detectar Profe
+    const teacher = users.find(u => u.role === 'teacher');
+    if (teacher) teacherId = teacher.socketId;
+    
     ui.updateParticipants(users);
 });
 
@@ -115,6 +146,13 @@ bus.on("class-status", (status) => {
     ui.handleClassStatus(status.isActive);
 });
 
+// Eventos Broadcaster
+bus.on("net-broadcaster-changed", (id) => {
+    currentBroadcaster = id;
+    ui.handleBroadcasterChange(id, myId);
+});
+bus.on("ui-set-broadcaster", (id) => socketManager.setBroadcaster(id));
+
 // --- FLUJO DE BIBLIOTECA (PDF) ---
 
 bus.on("ui-tab-change", (tab) => {
@@ -123,6 +161,38 @@ bus.on("ui-tab-change", (tab) => {
 
 bus.on("ui-spy-user", (pdfState) => {
     scoreLogic.silentLoad(pdfState.url, pdfState.page);
+});
+
+// 👇 NUEVO: Lógica del "Atril Compartido" (Broadcast PDF)
+bus.on("remote-pdf", (data) => {
+    const senderId = data.userId; // ID de quien cambió la página
+    
+    // 1. Obtener mi rol
+    const myRole = JSON.parse(localStorage.getItem('pianoUser') || '{}').role;
+    const iAmTeacher = (myRole === 'teacher' || myRole === 'admin');
+
+    let shouldSync = false; // Por defecto: MODO PRIVADO (Ignorar a los demás)
+
+    // 2. Reglas de la Clase Magistral
+    if (currentBroadcaster) {
+        // Estamos en modo "En Vivo"
+        const isSenderTeacher = (senderId === teacherId);
+        const isSenderBroadcaster = (senderId === currentBroadcaster);
+
+        // Aceptamos la orden SOLO si viene del Profe o de la Estrella
+        if (isSenderTeacher || isSenderBroadcaster) {
+            shouldSync = true;
+        }
+    } 
+    // NOTA: Si currentBroadcaster es null, shouldSync se queda en false.
+    // Esto garantiza que en práctica normal, nadie le mueve la hoja a nadie.
+
+    // 3. Ejecutar sincronización
+    if (shouldSync) {
+        // Forzamos visualmente la pestaña de PDF para que todos presten atención
+        ui.switchTab('pdf'); 
+        scoreLogic.handleRemoteUpdate(data);
+    }
 });
 
 // --- GESTIÓN DE SALIDA Y CIERRE ---

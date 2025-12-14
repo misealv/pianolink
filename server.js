@@ -125,7 +125,36 @@ io.on("connection", (socket) => {
             delete rooms[roomCode]; // Limpieza
         }
     });
-
+    
+    socket.on("set-broadcaster", (targetId) => {
+        const roomCode = socket.roomCode;
+        if (!roomCode || !rooms[roomCode]) return;
+        
+        // Seguridad: Solo el profesor
+        if (socket.userRole !== 'teacher') return;
+    
+        // Toggle (encender/apagar)
+        const current = rooms[roomCode].broadcaster;
+        const newBroadcaster = (current === targetId) ? null : targetId;
+        
+        rooms[roomCode].broadcaster = newBroadcaster;
+    
+        // 1. Avisar quién es la nueva estrella
+        io.to(roomCode).emit("broadcaster-changed", newBroadcaster);
+    
+        // 2. MAGIA DE SINCRONIZACIÓN INMEDIATA (NUEVO)
+        // Si hay un nuevo broadcaster, enviamos SU partitura a todos YA.
+        if (newBroadcaster) {
+            const broadcasterUser = rooms[roomCode].users[newBroadcaster];
+            // Verificamos que el usuario exista y tenga un PDF abierto
+            if (broadcasterUser && broadcasterUser.pdfState && broadcasterUser.pdfState.url) {
+                io.to(roomCode).emit("user-pdf-updated", {
+                    userId: newBroadcaster,
+                    pdfState: broadcasterUser.pdfState
+                });
+            }
+        }
+    });
     // Desconexión
     socket.on("disconnect", () => {
         const roomCode = socket.roomCode;
@@ -148,19 +177,28 @@ function setupUserInRoom(socket, roomCode, name, role) {
     socket.userRole = role;
     socket.join(roomCode);
 
-    if (!rooms[roomCode]) rooms[roomCode] = { users: {}, isActive: false };
+    // 1. Si la sala no existe, la creamos con la estructura completa (incluyendo broadcaster)
+    if (!rooms[roomCode]) {
+        rooms[roomCode] = { 
+            users: {}, 
+            isActive: false,
+            broadcaster: null // <--- Estado del alumno estrella
+        };
+    }
     
-    // Estado inicial del usuario
+    // 2. GUARDAR AL USUARIO (¡Esta es la parte que faltaba!)
     rooms[roomCode].users[socket.id] = {
-        name,
-        role,
-        pdfState: { url: null, page: 1 }
+        name: name,
+        role: role,
+        pdfState: { url: null, page: 1 } // Estado inicial del PDF
     };
 }
 
 function syncRoomState(roomCode) {
     if(!rooms[roomCode]) return;
     io.to(roomCode).emit("class-status", { isActive: rooms[roomCode].isActive });
+    //  Sincronizar Broadcaster
+    io.to(roomCode).emit("broadcaster-changed", rooms[roomCode].broadcaster);
     broadcastUserList(roomCode);
 }
 

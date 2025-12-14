@@ -29,7 +29,8 @@ export class SocketClient {
         
         this.socket.on("room-created", (code) => { this.roomCode = code; this.bus.emit("room-created", code); });
         this.socket.on("room-joined", (code) => { this.roomCode = code; this.bus.emit("room-joined", code); });
-
+        //  Escuchar cambio de Broadcaster
+        this.socket.on("broadcaster-changed", (id) => this.bus.emit("net-broadcaster-changed", id));
         // 👇 NUEVO: Escuchar orden de expulsión (GoodBye)
         this.socket.on("force-disconnect", () => {
             this.bus.emit("app-force-exit"); 
@@ -53,6 +54,13 @@ export class SocketClient {
     endClass() {
         if (this.roomCode) {
             this.socket.emit("end-class", this.roomCode);
+        }
+    }
+
+    //  Activar alumno estrella
+    setBroadcaster(userId) {
+        if (this.roomCode) {
+            this.socket.emit("set-broadcaster", userId);
         }
     }
 
