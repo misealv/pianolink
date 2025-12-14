@@ -2,7 +2,8 @@
 
 // Importamos el modelo User para poder buscar en la base de datos
 const User = require('../models/User');
-
+const Feedback = require('../models/Feedback'); 
+const Message = require('../models/Message');   
 // Función para cambiar el estado de "Profesor Fundador"
 exports.toggleFounderStatus = async (req, res) => {
     try {
@@ -85,5 +86,38 @@ exports.getConversationWithUser = async (req, res) => {
     } catch (error) {
         console.error('Error en getConversationWithUser:', error);
         res.status(500).json({ message: 'Error obteniendo conversación' });
+    }
+};
+
+// NUEVA FUNCIÓN: Editar usuario desde el Admin
+exports.updateTeacherByAdmin = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, slug, country } = req.body;
+
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        // Actualizamos campos básicos
+        user.name = name || user.name;
+        user.email = email || user.email;
+        
+        // El slug es opcional, si viene vacío lo dejamos undefined o mantenemos el anterior
+        if (slug !== undefined) user.slug = slug; 
+
+        // Actualizamos el objeto branding (asegurando que exista)
+        if (!user.branding) user.branding = {};
+        
+        // Aquí guardamos el PAÍS
+        user.branding.country = country || '🏳️ Internacional';
+
+        await user.save();
+        res.json({ success: true, message: 'Profesor actualizado correctamente' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al actualizar usuario' });
     }
 };

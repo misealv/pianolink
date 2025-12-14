@@ -45,27 +45,9 @@
     .btn-founder.active { background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728); border: 1px solid #cfaa56; color: #3e2723; font-weight: bold; box-shadow: 0 0 5px rgba(255, 215, 0, 0.4); }
     .btn-delete { background-color: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
 
-    .feedback-msg { background: #222; padding: 15px; border-radius: 6px; border-left: 3px solid #555; margin-bottom: 10px; transition: 0.3s; }
-    .feedback-msg.unread { border-left-color: #ff764d; background: #2a2520; }
-    .feedback-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; }
-    .feedback-content { color: #eee; font-size: 13px; line-height: 1.4; }
-    .new-tag { background: #ff764d; color: black; font-weight: bold; padding: 1px 4px; border-radius: 3px; font-size: 9px; margin-right: 5px; display: none; }
-    .unread .new-tag { display: inline-block; }
-
-    .view-section { display: none; }
-    .view-section.active { display: block; }
-
-    /* Modal */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
-    .modal-content { background: #202020; padding: 25px; border-radius: 8px; width: 400px; border: 1px solid #444; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-    .modal-content h3 { margin-top: 0; color: #ff764d; }
-    .modal-content textarea { width: 100%; height: 100px; margin: 10px 0; resize: none; background: #111; color: white; border: 1px solid #444; padding: 10px; }
-  
-  
-  /* NUEVOS ESTILOS PARA EL CHAT ADMIN */
-  .chat-layout { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 140px); background: #202020; border: 1px solid #444; border-radius: 8px; overflow: hidden; }
+    /* Estilos del Chat */
+    .chat-layout { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 140px); background: #202020; border: 1px solid #444; border-radius: 8px; overflow: hidden; }
     
-    /* Panel Izquierdo: Lista de Usuarios */
     .chat-sidebar { background: #1a1a1a; border-right: 1px solid #333; overflow-y: auto; }
     .chat-user-item { padding: 15px; border-bottom: 1px solid #2a2a2a; cursor: pointer; transition: 0.2s; }
     .chat-user-item:hover, .chat-user-item.active { background: #333; }
@@ -73,32 +55,33 @@
     .chat-user-meta { font-size: 11px; color: #888; }
     .unread-dot { display: inline-block; width: 8px; height: 8px; background: #ff764d; border-radius: 50%; margin-left: 5px; }
 
-    /* Panel Derecho: Conversación */
     .chat-main { display: flex; flex-direction: column; background: #202020; }
     .chat-header { padding: 15px; border-bottom: 1px solid #333; background: #262626; font-weight: bold; color: #ddd; }
     
     .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
     
-    /* Burbujas */
     .msg-bubble { max-width: 70%; padding: 10px 15px; border-radius: 8px; font-size: 13px; line-height: 1.4; position: relative; }
     
-    /* Mensaje del PROFE (Izquierda) */
     .msg-teacher { align-self: flex-start; background: #333; color: #ddd; border-top-left-radius: 0; }
     .msg-teacher .sender-name { font-size: 10px; color: #ff764d; margin-bottom: 3px; display: block; font-weight: bold; }
 
-    /* Mensaje del ADMIN (Derecha) */
     .msg-admin { align-self: flex-end; background: #5dade2; color: #000; border-top-right-radius: 0; }
     
     .msg-time { font-size: 9px; opacity: 0.6; display: block; margin-top: 5px; text-align: right; }
 
-    /* Área de Input */
     .chat-input-area { padding: 15px; background: #262626; border-top: 1px solid #333; display: flex; gap: 10px; }
     .chat-input-area textarea { flex: 1; height: 40px; background: #111; border: 1px solid #444; color: white; padding: 10px; border-radius: 4px; resize: none; }
     .btn-send { background: #ff764d; border: none; padding: 0 20px; color: black; font-weight: bold; border-radius: 4px; cursor: pointer; }
     .btn-send:hover { background: #ff9f7e; }
-  
-  
-  
+
+    .view-section { display: none; }
+    .view-section.active { display: block; }
+
+    /* Modals */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-content { background: #202020; padding: 25px; border-radius: 8px; width: 400px; border: 1px solid #444; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    .modal-content h3 { margin-top: 0; color: #ff764d; }
+    .modal-content textarea { width: 100%; height: 100px; margin: 10px 0; resize: none; background: #111; color: white; border: 1px solid #444; padding: 10px; }
   </style>
 </head>
 <body>
@@ -145,6 +128,7 @@
     </div>
 
     <div class="list-panel">
+        
         <div id="view-teachers" class="view-section active">
             <h2>Staff Docente Activo</h2>
             <table>
@@ -158,12 +142,33 @@
         </div>
 
         <div id="view-feedback" class="view-section">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h2>📨 Mensajes de Fundadores</h2>
-                <button onclick="loadFeedbacks()" style="background:transparent; border:none; color:#888; cursor:pointer; font-size:11px;">↻ Actualizar</button>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2>📨 Centro de Mensajería</h2>
+                <button onclick="loadChatSystem()" style="background:transparent; border:none; color:#888; cursor:pointer; font-size:11px;">↻ Recargar</button>
             </div>
-            <div id="feedbackList"><p style="color:#666;">Cargando mensajes...</p></div>
+
+            <div class="chat-layout">
+                <div class="chat-sidebar" id="chatUserList">
+                    <div style="padding:15px; color:#666;">Cargando usuarios...</div>
+                </div>
+
+                <div class="chat-main">
+                    <div class="chat-header" id="chatHeader">Selecciona un profesor</div>
+                    
+                    <div class="chat-messages" id="chatContainer">
+                        <div style="display:flex; height:100%; align-items:center; justify-content:center; color:#555;">
+                            Selecciona un usuario de la izquierda para ver el historial.
+                        </div>
+                    </div>
+
+                    <div class="chat-input-area">
+                        <textarea id="replyInput" placeholder="Escribe una respuesta..."></textarea>
+                        <button class="btn-send" onclick="sendReply()">Enviar</button>
+                    </div>
+                </div>
+            </div>
         </div>
+
     </div>
   </div>
 
@@ -179,6 +184,30 @@
     </div>
   </div>
 
+  <div id="editModal" class="modal-overlay">
+    <div class="modal-content" style="width: 350px;">
+        <h3>✏️ Editar Profesor</h3>
+        <input type="hidden" id="editUserId">
+        
+        <label>Nombre</label>
+        <input type="text" id="editName">
+        
+        <label>Email</label>
+        <input type="email" id="editEmail">
+        
+        <label>URL (Slug)</label>
+        <input type="text" id="editSlug">
+
+        <label>🏳️ País (Ej: 🇨🇱 Chile)</label>
+        <input type="text" id="editCountry" placeholder="Ej: 🇨🇱 Chile">
+
+        <div style="text-align:right; margin-top:15px;">
+            <button onclick="saveTeacherChanges()" class="action-btn" style="width:auto; padding:8px 15px;">Guardar</button>
+            <button onclick="document.getElementById('editModal').style.display='none'" class="action-btn" style="background:#555; width:auto; padding:8px 15px;">Cancelar</button>
+        </div>
+    </div>
+  </div>
+
   <script>
     const API_TEACHERS = '/api/auth/teachers'; 
     const API_FEEDBACK = '/admin/feedbacks';   
@@ -189,13 +218,13 @@
     if (!userSession || userSession.role !== 'admin') {
       window.location.href = 'login.html';
     } else {
-        // Logout simple
         window.logout = function() {
             localStorage.removeItem('pianoUser');
             window.location.href = 'login.html';
         }
     }
 
+    // NAVEGACIÓN ENTRE VISTAS
     async function switchView(viewName) {
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
@@ -205,8 +234,10 @@
             document.getElementById('btnTeachers').classList.add('active');
             loadTeachers();
         } else {
+            // CORREGIDO: Ahora llamamos a la función del chat
             document.getElementById('btnFeedback').classList.add('active');
-            loadFeedbacks(); 
+            loadChatSystem(); 
+            
             const badge = document.getElementById('msgBadge');
             if (badge.style.display !== 'none') {
                 badge.style.display = 'none'; 
@@ -229,22 +260,33 @@
 
     async function markAllAsRead() { try { await fetch(API_MARK_READ, { method: 'POST' }); } catch (e) {} }
 
+    // --- PROFESORES ---
+    let allTeachersData = []; 
+
     async function loadTeachers() {
       try {
         const res = await fetch(API_TEACHERS);
-        const teachers = await res.json();
+        allTeachersData = await res.json(); 
+        
         const tbody = document.getElementById('teachersTable');
         tbody.innerHTML = '';
-        teachers.forEach(t => {
+        
+        allTeachersData.forEach(t => {
           const isFounder = t.isFoundingMember ? 'active' : '';
           const founderText = t.isFoundingMember ? '★ FUNDADOR' : '☆ Asignar';
+          const country = (t.branding && t.branding.country) ? t.branding.country : '';
+
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td style="font-weight:bold; color:#fff;">${t.name}</td>
+            <td style="font-weight:bold; color:#fff;">
+                ${t.name} <br> 
+                <span style="font-size:10px; color:#888;">${country}</span>
+            </td>
             <td style="color:#aaa;">${t.email}</td>
             <td><a href="/?sala=${t.slug || ''}" target="_blank" style="color:#5dade2;">${t.slug ? '/c/'+t.slug : '--'}</a></td>
             <td><button class="btn-founder ${isFounder}" onclick="toggleFounder('${t._id}', event)">${founderText}</button></td>
             <td>
+                <button onclick="openEditModal('${t._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Editar">✏️</button>
                 <button onclick="openMsgModal('${t._id}', '${t.name}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Enviar Mensaje">✉️</button>
                 <button class="btn-delete" onclick="deleteTeacher('${t._id}')">🗑️</button>
             </td>
@@ -254,31 +296,44 @@
       } catch (err) { console.error(err); }
     }
 
-    async function loadFeedbacks() {
-        const container = document.getElementById('feedbackList');
-        try {
-            const res = await fetch(API_FEEDBACK);
-            const list = await res.json();
-            container.innerHTML = list.length === 0 ? '<p style="color:#666;">Bandeja vacía.</p>' : '';
-            list.forEach(msg => {
-                const userName = msg.user ? msg.user.name : 'Usuario Eliminado';
-                const unreadClass = msg.status === 'unread' ? 'unread' : '';
-                const div = document.createElement('div');
-                div.className = `feedback-msg ${unreadClass}`;
-                div.innerHTML = `
-                    <div class="feedback-header">
-                        <span><span class="new-tag">NUEVO</span> <strong>${userName}</strong></span>
-                        <div>
-                            <span>${new Date(msg.createdAt).toLocaleString()}</span>
-                            <button onclick="deleteFeedback('${msg._id}')" style="background:none; border:none; color:#ff4d4d; cursor:pointer;">✕</button>
-                        </div>
-                    </div>
-                    <div class="feedback-content">${msg.content}</div>`;
-                container.appendChild(div);
-            });
-        } catch (e) { container.innerHTML = 'Error cargando mensajes.'; }
+    // --- EDICIÓN ---
+    function openEditModal(id) {
+        const teacher = allTeachersData.find(t => t._id === id);
+        if(!teacher) return;
+
+        document.getElementById('editUserId').value = teacher._id;
+        document.getElementById('editName').value = teacher.name;
+        document.getElementById('editEmail').value = teacher.email;
+        document.getElementById('editSlug').value = teacher.slug || '';
+        document.getElementById('editCountry').value = (teacher.branding && teacher.branding.country) ? teacher.branding.country : '';
+        document.getElementById('editModal').style.display = 'flex';
     }
 
+    async function saveTeacherChanges() {
+        const id = document.getElementById('editUserId').value;
+        const name = document.getElementById('editName').value;
+        const email = document.getElementById('editEmail').value;
+        const slug = document.getElementById('editSlug').value;
+        const country = document.getElementById('editCountry').value;
+        
+        const btn = document.querySelector('#editModal button.action-btn'); 
+        btn.innerText = "Guardando...";
+
+        try {
+            const res = await fetch(`/admin/users/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, slug, country })
+            });
+            if(res.ok) {
+                document.getElementById('editModal').style.display = 'none';
+                loadTeachers();
+            } else { alert("Error al actualizar"); }
+        } catch (e) { alert("Error de conexión"); } 
+        finally { btn.innerText = "Guardar"; }
+    }
+
+    // --- ACCIONES RÁPIDAS ---
     async function toggleFounder(id, event) {
         event.target.innerText = "...";
         try { const res = await fetch(`/admin/users/${id}/toggle-founder`, { method: 'POST' }); if (res.ok) loadTeachers(); } catch (e) {}
@@ -286,15 +341,10 @@
 
     async function deleteTeacher(id) {
         if(!confirm("¿Estás seguro de ELIMINAR a este profesor?")) return;
-        try { const res = await fetch(`/api/auth/delete/${id}`, { method: 'DELETE' }); if(res.ok) loadTeachers(); else alert("Error al eliminar"); } catch (e) { console.error(e); }
+        try { const res = await fetch(`/api/auth/delete/${id}`, { method: 'DELETE' }); if(res.ok) loadTeachers(); } catch (e) {}
     }
 
-    async function deleteFeedback(id) {
-        if(!confirm("¿Borrar?")) return;
-        try { const res = await fetch(`/admin/feedbacks/${id}`, { method: 'DELETE' }); if(res.ok) loadFeedbacks(); } catch (e) {}
-    }
-
-    // Modal Logic
+    // --- MODALES MENSAJE GENERAL / INDIVIDUAL ---
     let currentRecipientId = null;
     function openMsgModal(id, name) {
         currentRecipientId = id;
@@ -315,209 +365,163 @@
         if(!content) return;
         const url = (currentRecipientId === 'ALL') ? '/admin/message/send-all' : '/admin/message/send';
         const body = (currentRecipientId === 'ALL') ? { content } : { recipientId: currentRecipientId, content };
-        
         try {
             const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
             if(res.ok) { alert("Enviado"); closeModal(); } else { alert("Error"); }
         } catch(e) { alert("Error conexión"); }
     }
 
-    // --- LÓGICA DE REGISTRO DE USUARIO (CORREGIDA) ---
+    // --- CREAR PROFESOR ---
     const createForm = document.getElementById('createForm');
     if (createForm) {
         createForm.addEventListener('submit', async (e) => {
             e.preventDefault(); 
-
             const statusMsg = document.getElementById('statusMsg');
             const btn = e.target.querySelector('button');
             
-            // 1. Capturar datos
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            // Capturamos el checkbox, usando un fallback seguro
             const chk = document.getElementById('chkFounder');
             const isFoundingMember = chk ? chk.checked : false; 
-            
-            // TRUCO PARA EL SLUG: Si está vacío, enviamos undefined
             let slug = document.getElementById('slug').value.trim();
             if (slug === "") slug = undefined;
 
-            // 2. Feedback visual
-            btn.disabled = true;
-            btn.innerText = "Guardando...";
-            statusMsg.innerText = "";
+            btn.disabled = true; btn.innerText = "Guardando..."; statusMsg.innerText = "";
 
             try {
-                // 3. Enviar al Servidor
                 const res = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name,
-                        email,
-                        password,
-                        slug,
-                        isFoundingMember // ¡Aquí viaja el dato nuevo!
-                    })
+                    body: JSON.stringify({ name, email, password, slug, isFoundingMember })
                 });
-
                 const data = await res.json();
-
                 if (res.ok) {
-                    statusMsg.style.color = "#2ecc71"; // Verde
-                    statusMsg.innerText = "✅ " + (data.message || "Profesor creado correctamente");
-                    createForm.reset();
-                    loadTeachers();
+                    statusMsg.style.color = "#2ecc71"; statusMsg.innerText = "✅ " + (data.message || "OK");
+                    createForm.reset(); loadTeachers();
                 } else {
-                    statusMsg.style.color = "#ff4d4d"; // Rojo
-                    statusMsg.innerText = "⚠️ Error: " + (data.message || "Error desconocido");
+                    statusMsg.style.color = "#ff4d4d"; statusMsg.innerText = "⚠️ " + (data.message || "Error");
                 }
-
-            } catch (error) {
-                console.error(error);
-                statusMsg.style.color = "#ff4d4d";
-                statusMsg.innerText = "❌ Error de conexión con el servidor.";
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "CREAR CUENTA";
-            }
+            } catch (error) { statusMsg.style.color = "#ff4d4d"; statusMsg.innerText = "❌ Error conexión"; } 
+            finally { btn.disabled = false; btn.innerText = "CREAR CUENTA"; }
         });
     }
 
-    // --- INICIALIZACIÓN AUTOMÁTICA (IMPORTANTE) ---
-    loadTeachers();       
-    checkNotifications();
+    // --- 📨 SISTEMA DE CHAT UNIFICADO ---
+    let selectedChatUserId = null;
 
-/* --- LÓGICA DE CHAT UNIFICADO --- */
-let selectedChatUserId = null;
-
-// 1. Cargar lista de usuarios que han escrito
-async function loadFeedbacks() {
-    // Reutilizamos el endpoint existente o creamos uno que agrupe
-    // Para simplificar, usaremos el de feedbacks y agruparemos por usuario manualmente en JS
-    try {
-        const res = await fetch('/admin/feedbacks'); // Endpoint existente
-        const feedbacks = await res.json();
-        
-        // Agrupar feedbacks por usuario (Set único)
-        const usersMap = new Map();
-        
-        feedbacks.forEach(f => {
-            if(f.user && !usersMap.has(f.user._id)) {
-                usersMap.set(f.user._id, {
-                    id: f.user._id,
-                    name: f.user.name,
-                    email: f.user.email,
-                    lastDate: f.createdAt,
-                    hasUnread: (f.status === 'unread')
-                });
-            } else if (f.user && f.status === 'unread') {
-                // Si ya existe pero encontramos uno no leído, actualizamos flag
-                const u = usersMap.get(f.user._id);
-                u.hasUnread = true;
-            }
-        });
-
-        renderUserList(Array.from(usersMap.values()));
-    } catch (e) { console.error("Error cargando lista chat", e); }
-}
-
-function renderUserList(users) {
-    const list = document.getElementById('chatUserList');
-    list.innerHTML = '';
-    
-    users.forEach(u => {
-        const div = document.createElement('div');
-        div.className = `chat-user-item ${selectedChatUserId === u.id ? 'active' : ''}`;
-        div.onclick = () => loadConversation(u.id);
-        
-        div.innerHTML = `
-            <span class="chat-user-name">
-                ${u.name} ${u.hasUnread ? '<span class="unread-dot"></span>' : ''}
-            </span>
-            <span class="chat-user-meta">${u.email}</span>
-        `;
-        list.appendChild(div);
-    });
-}
-
-// 2. Cargar Conversación Individual
-async function loadConversation(userId) {
-    selectedChatUserId = userId;
-    // Repintar lista para marcar activo
-    document.querySelectorAll('.chat-user-item').forEach(el => el.classList.remove('active'));
-    // (Opcional: añadir clase active al elemento clickeado)
-
-    const container = document.getElementById('chatContainer');
-    const header = document.getElementById('chatHeader');
-    container.innerHTML = '<p style="text-align:center; color:#666;">Cargando historial...</p>';
-
-    try {
-        const res = await fetch(`/admin/conversation/${userId}`);
-        const data = await res.json();
-        
-        header.innerText = `Chat con: ${data.user.name}`;
-        container.innerHTML = ''; // Limpiar
-
-        if(data.conversation.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#555;">No hay mensajes aún.</p>';
-            return;
-        }
-
-        data.conversation.forEach(msg => {
-            const isMe = (msg.sender === 'admin');
-            const div = document.createElement('div');
-            div.className = `msg-bubble ${isMe ? 'msg-admin' : 'msg-teacher'}`;
+    async function loadChatSystem() { 
+        try {
+            const res = await fetch('/admin/feedbacks'); 
+            const feedbacks = await res.json();
             
-            // Si es Teacher, mostrar nombre chiquito
-            const senderTag = !isMe ? `<span class="sender-name">${data.user.name}</span>` : '';
+            // Agrupar feedbacks por usuario (Set único)
+            const usersMap = new Map();
+            
+            feedbacks.forEach(f => {
+                if(f.user && f.user._id) {
+                    if(!usersMap.has(f.user._id)) {
+                        usersMap.set(f.user._id, {
+                            id: f.user._id,
+                            name: f.user.name,
+                            email: f.user.email,
+                            lastDate: f.createdAt,
+                            hasUnread: (f.status === 'unread')
+                        });
+                    } else if (f.status === 'unread') {
+                        const u = usersMap.get(f.user._id);
+                        u.hasUnread = true;
+                    }
+                }
+            });
+            renderUserList(Array.from(usersMap.values()));
+        } catch (e) { console.error("Error cargando lista chat", e); }
+    }
+
+    function renderUserList(users) {
+        const list = document.getElementById('chatUserList');
+        list.innerHTML = '';
+        
+        users.forEach(u => {
+            const div = document.createElement('div');
+            div.className = `chat-user-item ${selectedChatUserId === u.id ? 'active' : ''}`;
+            div.onclick = () => loadConversation(u.id);
             
             div.innerHTML = `
-                ${senderTag}
-                ${msg.content}
-                <span class="msg-time">${new Date(msg.createdAt).toLocaleString()}</span>
+                <span class="chat-user-name">
+                    ${u.name} ${u.hasUnread ? '<span class="unread-dot"></span>' : ''}
+                </span>
+                <span class="chat-user-meta">${u.email}</span>
             `;
-            container.appendChild(div);
+            list.appendChild(div);
         });
-
-        // Scroll al fondo
-        container.scrollTop = container.scrollHeight;
-
-        // Marcar como leídos silenciosamente
-        await fetch('/admin/feedbacks/mark-read', { method: 'POST' }); // Esto marca TODO como leído (se puede refinar)
-
-    } catch (e) {
-        container.innerHTML = '<p style="color:red">Error cargando chat.</p>';
-        console.error(e);
     }
-}
 
-// 3. Enviar Respuesta Directa
-async function sendReply() {
-    const txt = document.getElementById('replyInput');
-    const content = txt.value.trim();
-    
-    if(!content || !selectedChatUserId) return;
+    async function loadConversation(userId) {
+        selectedChatUserId = userId;
+        document.querySelectorAll('.chat-user-item').forEach(el => el.classList.remove('active'));
+        
+        const container = document.getElementById('chatContainer');
+        const header = document.getElementById('chatHeader');
+        container.innerHTML = '<p style="text-align:center; color:#666;">Cargando historial...</p>';
 
-    try {
-        const res = await fetch('/admin/message/send', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ recipientId: selectedChatUserId, content })
-        });
+        try {
+            const res = await fetch(`/admin/conversation/${userId}`);
+            const data = await res.json();
+            
+            header.innerText = `Chat con: ${data.user.name}`;
+            container.innerHTML = ''; 
 
-        if(res.ok) {
-            txt.value = ''; // Limpiar
-            loadConversation(selectedChatUserId); // Recargar chat para ver mensaje nuevo
-        } else {
-            alert("Error al enviar");
+            if(data.conversation.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#555;">No hay mensajes aún.</p>';
+                return;
+            }
+
+            data.conversation.forEach(msg => {
+                const isMe = (msg.sender === 'admin');
+                const div = document.createElement('div');
+                div.className = `msg-bubble ${isMe ? 'msg-admin' : 'msg-teacher'}`;
+                
+                const senderTag = !isMe ? `<span class="sender-name">${data.user.name}</span>` : '';
+                div.innerHTML = `
+                    ${senderTag}
+                    ${msg.content}
+                    <span class="msg-time">${new Date(msg.createdAt).toLocaleString()}</span>
+                `;
+                container.appendChild(div);
+            });
+
+            container.scrollTop = container.scrollHeight;
+            await fetch('/admin/feedbacks/mark-read', { method: 'POST' }); 
+
+        } catch (e) {
+            container.innerHTML = '<p style="color:red">Error cargando chat.</p>';
+            console.error(e);
         }
-    } catch (e) { console.error(e); }
-}
+    }
 
+    async function sendReply() {
+        const txt = document.getElementById('replyInput');
+        const content = txt.value.trim();
+        if(!content || !selectedChatUserId) return;
 
+        try {
+            const res = await fetch('/admin/message/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ recipientId: selectedChatUserId, content })
+            });
 
+            if(res.ok) {
+                txt.value = ''; 
+                loadConversation(selectedChatUserId); 
+            } else { alert("Error al enviar"); }
+        } catch (e) { console.error(e); }
+    }
+
+    // Inicializar
+    loadTeachers();       
+    checkNotifications();
   </script>
 </body>
 </html>

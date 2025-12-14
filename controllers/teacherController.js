@@ -91,3 +91,20 @@ exports.getMyConversation = async (req, res) => {
         res.status(500).json({ message: 'Error del servidor al cargar chat' });
     }
 };
+
+// ... (resto del código anterior submitFeedback y getMyConversation)
+
+// 3. NUEVO: Obtener Profesores Fundadores (Público)
+exports.getFounders = async (req, res) => {
+    try {
+        // Busca usuarios que tengan la bandera isFoundingMember: true
+        // .select() trae solo nombre, branding y la bandera para ser más eficiente
+        const founders = await User.find({ isFoundingMember: true })
+            .select('name branding isFoundingMember');
+
+        res.json(founders);
+    } catch (error) {
+        console.error("Error obteniendo fundadores:", error);
+        res.status(500).json({ message: 'Error al cargar fundadores' });
+    }
+};

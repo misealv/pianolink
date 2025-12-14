@@ -111,6 +111,6 @@ router.post('/message/send-all', async (req, res) => {
 
 router.get('/conversation/:userId', adminController.getConversationWithUser);
 
-
+router.put('/users/:id', adminController.updateTeacherByAdmin);
 
 module.exports = router;

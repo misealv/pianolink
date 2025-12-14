@@ -1,61 +1,75 @@
 const express = require('express');
 const router = express.Router();
-const Score = require('../models/Score'); // Importamos la "Ficha"
-const { upload } = require('../config/cloudinary'); // Importamos el "Camión"
+const Score = require('../models/Score'); 
+// Importamos 'upload' para subir y 'cloudinary' para borrar
+const { upload, cloudinary } = require('../config/cloudinary'); 
 
 // ==========================================
-// VENTANILLA 1: SUBIR ARCHIVO (POST)
+// 1. SUBIR ARCHIVO (POST)
 // ==========================================
-// Recibe: Un archivo 'file' y datos de texto (title, roomCode, uploaderName)
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
-    // 1. Validaciones básicas
-    if (!req.file) {
-      return res.status(400).json({ msg: 'Error: No has seleccionado ningún archivo.' });
-    }
-    if (!req.body.roomCode) {
-      return res.status(400).json({ msg: 'Error: No se detectó el código de sala.' });
-    }
+    if (!req.file) return res.status(400).json({ msg: 'Error: Falta archivo.' });
+    if (!req.body.roomCode) return res.status(400).json({ msg: 'Error: Falta código de sala.' });
 
-    // 2. Crear la ficha para la base de datos
     const newScore = new Score({
-      title: req.body.title || req.file.originalname, // Si no pone título, usamos el nombre del archivo
-      url: req.file.path,        // La dirección web segura que nos dio Cloudinary
-      publicId: req.file.filename, // Identificador único en la nube
-      roomCode: req.body.roomCode.toUpperCase(), // Guardamos siempre en mayúsculas
+      title: req.body.title || req.file.originalname,
+      url: req.file.path,
+      publicId: req.file.filename,
+      roomCode: req.body.roomCode.toUpperCase(),
       uploaderName: req.body.uploaderName || 'Participante',
-      size: req.file.size // (Opcional) Guardamos el peso en bytes
+      size: req.file.size
     });
 
-    // 3. Guardar en MongoDB
     const savedScore = await newScore.save();
-
-    console.log(`PDF subido exitosamente a la sala ${req.body.roomCode}`);
-    res.json(savedScore); // Respondemos con los datos guardados
+    console.log(`PDF subido a sala ${req.body.roomCode}`);
+    res.json(savedScore);
     
   } catch (err) {
-    console.error("Error en subida:", err);
-    res.status(500).send('Error del servidor al subir el archivo');
+    console.error("Error subida:", err);
+    res.status(500).send('Error del servidor');
   }
 });
 
 // ==========================================
-// VENTANILLA 2: LISTAR ARCHIVOS DE UNA SALA (GET)
+// 2. LISTAR ARCHIVOS DE UNA SALA (GET)
 // ==========================================
-// Uso: /api/scores/CODIGO123
 router.get('/:roomCode', async (req, res) => {
   try {
     const code = req.params.roomCode.toUpperCase();
-
-    // Buscamos solo los archivos que tengan esa etiqueta de sala
-    // .sort({ createdAt: -1 }) hace que los más nuevos salgan primero
     const scores = await Score.find({ roomCode: code }).sort({ createdAt: -1 });
-
     res.json(scores);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error obteniendo lista');
+  }
+});
+
+// ==========================================
+// 3. ELIMINAR ARCHIVO (DELETE) - ¡NUEVO!
+// ==========================================
+router.delete('/:id', async (req, res) => {
+  try {
+    const score = await Score.findById(req.params.id);
+    if (!score) return res.status(404).json({ msg: 'Partitura no encontrada' });
+
+    // 1. Borrar de la nube (Cloudinary)
+    if (score.publicId) {
+       // Asegúrate de que tu config/cloudinary.js exporte 'cloudinary'
+       // Si no lo hace, avísame para darte el arreglo.
+       if(cloudinary) {
+           await cloudinary.uploader.destroy(score.publicId, { resource_type: 'raw' });
+       }
+    }
+
+    // 2. Borrar de la base de datos
+    await score.deleteOne();
+    
+    res.json({ msg: 'Partitura eliminada correctamente' });
 
   } catch (err) {
     console.error(err);
-    res.status(500).send('Error al obtener la biblioteca');
+    res.status(500).send('Error al eliminar');
   }
 });
 

@@ -5,10 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Acceso Profesores | Piano Link</title>
   <style>
-    /* Estilo oscuro 'Piano Link' */
+    :root {
+      --bg-color: #1a1a1a;
+      --card-bg: #262626;
+      --text-color: #dcdcdc;
+      --accent: #ff764d; /* El color "Dorado/Naranja" de la marca */
+      --border: #454545;
+    }
+
+    /* --- ESTILOS GENERALES --- */
     body {
-      background-color: #1a1a1a;
-      color: #dcdcdc;
+      background-color: var(--bg-color);
+      color: var(--text-color);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       display: flex;
       justify-content: center;
@@ -16,15 +24,19 @@
       height: 100vh;
       margin: 0;
     }
+
+    /* --- TARJETA DE LOGIN --- */
     .login-card {
-      background: #262626;
-      border: 1px solid #454545;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
       padding: 40px;
       border-radius: 8px;
       width: 100%;
       max-width: 320px;
       text-align: center;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      position: relative;
+      z-index: 1;
     }
     .brand-logo {
       font-size: 24px;
@@ -36,7 +48,7 @@
     }
     .brand-subtitle {
       font-size: 11px;
-      color: #ff764d; /* Naranja Ableton */
+      color: var(--accent);
       margin-bottom: 30px;
       letter-spacing: 2px;
       text-transform: uppercase;
@@ -46,7 +58,7 @@
       padding: 12px;
       margin-bottom: 15px;
       background: #121212;
-      border: 1px solid #454545;
+      border: 1px solid var(--border);
       color: #fff;
       border-radius: 4px;
       box-sizing: border-box;
@@ -54,12 +66,12 @@
       outline: none;
       transition: border-color 0.3s;
     }
-    input:focus { border-color: #ff764d; }
+    input:focus { border-color: var(--accent); }
     
-    button {
+    button.btn-login {
       width: 100%;
       padding: 12px;
-      background: #ff764d;
+      background: var(--accent);
       color: #000;
       font-weight: 700;
       cursor: pointer;
@@ -70,8 +82,8 @@
       text-transform: uppercase;
       transition: background 0.3s, transform 0.1s;
     }
-    button:hover { background: #ff9f7e; }
-    button:active { transform: translateY(1px); }
+    button.btn-login:hover { background: #ff9f7e; }
+    button.btn-login:active { transform: translateY(1px); }
     
     #msg {
       margin-top: 20px;
@@ -79,6 +91,99 @@
       min-height: 20px;
       font-weight: 500;
     }
+
+    /* --- NUEVO: BOTÓN DE LINK --- */
+    .founders-link {
+        margin-top: 25px;
+        padding-top: 15px;
+        border-top: 1px solid #333;
+    }
+    .btn-text {
+        background: none; border: none;
+        color: var(--accent);
+        cursor: pointer;
+        font-size: 13px;
+        text-decoration: none;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+    .btn-text:hover { opacity: 1; text-decoration: underline; }
+
+    /* --- NUEVO: ESTILOS DEL MODAL (VENTANA EMERGENTE) --- */
+    .modal-overlay {
+        display: none; /* Oculto por defecto */
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+        animation: fadeIn 0.3s ease;
+    }
+
+    .modal-content {
+        background: #222;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 600px;
+        border: 1px solid #444;
+        position: relative;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        animation: slideUp 0.3s ease-out;
+    }
+
+    /* Animaciones */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .close-btn {
+        position: absolute;
+        top: 10px; right: 15px;
+        background: none; border: none;
+        color: #888; font-size: 28px; cursor: pointer;
+        transition: color 0.2s;
+    }
+    .close-btn:hover { color: #fff; }
+
+    /* Grid de Profesores */
+    .founders-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-top: 20px;
+    }
+    @media (max-width: 600px) {
+        .founders-grid { grid-template-columns: 1fr; }
+    }
+
+    .founder-card {
+        background: #2a2a2a;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        /* AQUÍ ESTÁ EL BORDE DORADO/NARANJA SUPERIOR */
+        border-top: 3px solid var(--accent); 
+        transition: transform 0.2s;
+    }
+    .founder-card:hover { transform: translateY(-3px); }
+
+    .founder-card h3 { margin: 10px 0 5px 0; color: white; font-size: 16px; }
+    .founder-card .flag { font-size: 12px; color: #aaa; display: block; margin-bottom: 10px; }
+    .founder-card p { font-size: 13px; color: #ccc; line-height: 1.4; margin: 0; }
+
+    .avatar-circle {
+        width: 50px; height: 50px;
+        background: var(--accent);
+        color: #000;
+        border-radius: 50%;
+        display: flex; justify-content: center; align-items: center;
+        font-weight: 800; font-size: 18px;
+        margin: 0 auto 10px auto;
+        box-shadow: 0 4px 10px rgba(255, 118, 77, 0.3);
+    }
+
   </style>
 </head>
 <body>
@@ -90,13 +195,42 @@
     <form id="loginForm">
       <input type="email" id="email" placeholder="Correo electrónico" required>
       <input type="password" id="password" placeholder="Contraseña" required>
-      <button type="submit">INGRESAR</button>
+      <button type="submit" class="btn-login">INGRESAR</button>
     </form>
     
     <div id="msg"></div>
+
+    <div class="founders-link">
+        <span style="color: #666; font-size: 12px;">Respaldo Académico</span><br>
+        <button id="btnFounders" class="btn-text">
+            ✨ Ver Profesores Fundadores
+        </button>
+    </div>
+  </div>
+
+  <div id="foundersModal" class="modal-overlay">
+    <div class="modal-content">
+        <button id="btnCloseModal" class="close-btn">&times;</button>
+        
+        <h2 style="color:var(--accent); margin-bottom:10px; text-align:center; font-size: 20px; text-transform: uppercase; letter-spacing: 1px;">
+            Maestros Fundadores
+        </h2>
+        <p style="text-align:center; color:#888; margin-bottom:25px; font-size: 13px;">
+            La visión pedagógica detrás de Piano Link.
+        </p>
+
+        <div class="founders-grid" id="foundersGrid">
+          <p style="grid-column: 1 / -1; text-align: center;">Cargando...</p>
+      </div>
+
+      
+
+        </div>
+    </div>
   </div>
 
   <script>
+    // --- LÓGICA DE LOGIN ---
     const form = document.getElementById('loginForm');
     const msg = document.getElementById('msg');
 
@@ -124,17 +258,14 @@
           msg.style.color = "#b4e080"; // Verde éxito
           msg.textContent = "✅ Acceso concedido. Redirigiendo...";
           
-          // 1. Guardar la sesión (IMPORTANTE: Esto permite entrar a los otros paneles)
           localStorage.setItem('pianoUser', JSON.stringify(data));
           
-          // 2. Redirigir según el rol con un pequeño delay
           setTimeout(() => {
             if (data.role === 'admin') {
               window.location.href = "admin.html";
             } else if (data.role === 'teacher') {
               window.location.href = "dashboard.html";
             } else {
-              // Por si acaso, fallback a la home
               window.location.href = "/";
             }
           }, 800);
@@ -146,11 +277,114 @@
           btn.textContent = "INGRESAR";
         }
       } catch (error) {
-        msg.textContent = "⚠️ Error de conexión con el servidor.";
+        msg.textContent = "⚠️ Error de conexión.";
         msg.style.color = "#ff4d4d";
         btn.disabled = false;
         btn.textContent = "INGRESAR";
       }
+    });
+
+// --- LÓGICA DEL MODAL (POP-UP) ---
+const modal = document.getElementById('foundersModal');
+    const btnOpen = document.getElementById('btnFounders');
+    const btnClose = document.getElementById('btnCloseModal');
+    // Referencia al contenedor donde inyectaremos las tarjetas
+    const gridContainer = document.querySelector('.founders-grid'); 
+
+    // Helper: Generar iniciales si no hay foto
+    function getInitials(name) {
+        return name ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'PL';
+    }
+
+   // --- FUNCIÓN ACTUALIZADA PARA GENERAR TU DISEÑO EXACTO ---
+   async function loadFounders() {
+        const gridContainer = document.querySelector('.founders-grid');
+        gridContainer.innerHTML = '<p style="color:#888; text-align:center; grid-column:1/-1;">Cargando maestros...</p>';
+
+        try {
+            const response = await fetch('/api/teacher/founders');
+            // Usamos 'let' para poder reordenar la lista
+            let founders = await response.json(); 
+
+            gridContainer.innerHTML = ''; // Limpiar mensaje de carga
+
+            if (!founders || founders.length === 0) {
+                gridContainer.innerHTML = '<p style="color:#888; text-align:center; grid-column:1/-1;">Pronto anunciaremos a nuestros fundadores.</p>';
+                return;
+            }
+
+            // --- LÓGICA DE ORDENAMIENTO (TU NOMBRE PRIMERO) ---
+            const nameToPrioritize = "Miguel"; // <--- CAMBIA ESTO POR TU NOMBRE EXACTO EN LA BD
+            
+            founders.sort((a, b) => {
+                // Si el nombre incluye "Miguel", va primero (-1)
+                if (a.name && a.name.includes(nameToPrioritize)) return -1;
+                if (b.name && b.name.includes(nameToPrioritize)) return 1;
+                return 0; // El resto mantiene su orden
+            });
+            // --------------------------------------------------
+
+            founders.forEach(founder => {
+                // 1. Preparamos los datos (con valores por defecto si faltan)
+                const branding = founder.branding || {};
+                const colors = branding.colors || {};
+                
+                const name = founder.name;
+                const bio = branding.bio || 'Profesor Fundador de Piano Link.';
+                // Campo País (nuevo)
+                const country = branding.country || '🏳️ Internacional'; 
+                const baseColor = colors.base || '#ff764d'; // Color naranja por defecto
+
+                // 2. Lógica del Avatar: ¿Foto o Iniciales?
+                let avatarHtml;
+                if (branding.profilePhotoUrl) {
+                    // Si tiene foto, usamos <img>
+                    avatarHtml = `<img src="${branding.profilePhotoUrl}" class="avatar-circle" style="object-fit:cover; width:50px; height:50px;">`;
+                } else {
+                    // Si NO tiene foto, usamos <div> con iniciales
+                    const initials = name ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'PL';
+                    // Inyectamos el color dinámico del profesor
+                    avatarHtml = `<div class="avatar-circle" style="background: ${baseColor}; color:white;">${initials}</div>`;
+                }
+
+                // 3. Crear la tarjeta
+                const card = document.createElement('div');
+                card.className = 'founder-card';
+                
+                // Agregamos el borde superior del color del profesor
+                card.style.borderTop = `3px solid ${baseColor}`;
+
+                card.innerHTML = `
+                    ${avatarHtml}
+                    <h3>${name}</h3>
+                    <span class="flag">${country}</span>
+                    <p>${bio}</p>
+                `;
+                
+                gridContainer.appendChild(card);
+            });
+
+        } catch (error) {
+            console.error(error);
+            gridContainer.innerHTML = '<p style="color:#ff4d4d; text-align:center; grid-column:1/-1;">Error de conexión.</p>';
+        }
+    }
+
+    // EVENTOS
+    btnOpen.addEventListener('click', (e) => {
+        e.preventDefault();
+        modal.style.display = 'flex';
+        loadFounders(); // <--- Llamada dinámica al abrir
+    });
+
+    btnClose.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
     });
   </script>
 

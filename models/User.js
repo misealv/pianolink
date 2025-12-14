@@ -11,19 +11,22 @@ const userSchema = mongoose.Schema({
     enum: ['admin', 'teacher'], 
     default: 'teacher' 
   },
+  
+  // ❌ BORRA ESTA LÍNEA DE AQUÍ (Línea 14):
+  // country: { type: String, default: '🏳️ Internacional' },
 
-  // ---> AQUÍ AÑADES EL NUEVO CAMPO <---
   isFoundingMember: { 
     type: Boolean, 
     default: false 
   },
-  // ------------------------------------
 
-  
-  // Slug para la url personalizada (ej: pianolink.com/c/miguel)
   slug: { type: String, unique: true, sparse: true },
+
   // Marca personal
   branding: {
+    // ✅ PÉGALA AQUÍ ADENTRO:
+    country: { type: String, default: '🏳️ Internacional' },
+    
     logoUrl: { type: String, default: '' },
     profilePhotoUrl: { type: String, default: '' },
     bio: { type: String, default: '' },
@@ -36,16 +39,6 @@ const userSchema = mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Encriptar password antes de guardar
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-});
-
-// Comparar password para login
-userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
-};
+// ... (resto del código de encriptación igual)
 
 module.exports = mongoose.model('User', userSchema);

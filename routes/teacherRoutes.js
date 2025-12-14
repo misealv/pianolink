@@ -90,4 +90,8 @@ router.post('/my-messages/read/:id', async (req, res) => {
 const teacherController = require('../controllers/teacherController'); // Asegurar importación
 router.get('/conversation', teacherController.getMyConversation);
 
+// Es pública, permite obtener la lista para el modal del login
+router.get('/founders', teacherController.getFounders);
+
+
 module.exports = router;

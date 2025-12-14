@@ -29,7 +29,7 @@
 
     #msg { margin-top: 15px; font-weight: bold; min-height: 20px;}
 
-    /* --- ESTILOS PROFESOR FUNDADOR (Ajustados para Sidebar) --- */
+    /* --- ESTILOS PROFESOR FUNDADOR --- */
     .gold-badge {
         background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
         color: #3e2723;
@@ -46,129 +46,86 @@
         width: fit-content;
     }
 
-    .founder-card {
-        background: linear-gradient(to bottom right, #2a2215, #1f1a12);
-        border: 1px solid #634d28;
-        display: none; /* Oculto por defecto */
-        padding: 15px;
+    /* CHAT DEL PROFESOR EN SIDEBAR */
+    .founder-chat-container {
+        background: #151515;
+        border: 1px solid #b38728; /* Dorado */
         border-radius: 8px;
-        margin-top: 10px;
+        margin-top: 15px;
+        display: flex;
+        flex-direction: column;
+        height: 300px; /* Altura fija para scroll */
+        overflow: hidden;
     }
 
-    .founder-header {
-        display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
-        color: #eecfa1;
-        font-size: 12px;
-        text-transform: uppercase;
-        border-bottom: 1px solid #634d28;
-        padding-bottom: 8px;
-        font-weight: bold;
-    }
-
-    .founder-card textarea {
-        background: #15120e;
-        border: 1px solid #634d28;
-        font-size: 11px;
-        margin-bottom: 8px;
-    }
-
-    .btn-gold {
-        background: #b38728;
-        color: #fff;
-        border: none;
+    .founder-chat-header {
+        background: linear-gradient(135deg, #b38728, #8a6215);
+        color: #000;
         padding: 8px;
+        font-size: 11px;
         font-weight: bold;
-        cursor: pointer;
-        border-radius: 4px;
         text-transform: uppercase;
-        font-size: 10px;
-        width: 100%; /* Botón ancho completo en sidebar */
+        display: flex; justify-content: space-between; align-items: center;
     }
-    .btn-gold:hover { background: #d4a036; }
 
-/* ESTILOS PARA EL CHAT DEL PROFESOR EN SIDEBAR */
-.founder-chat-container {
-    background: #151515;
-    border: 1px solid #b38728; /* Dorado */
-    border-radius: 8px;
-    margin-top: 15px;
-    display: flex;
-    flex-direction: column;
-    height: 300px; /* Altura fija para scroll */
-    overflow: hidden;
-}
+    .founder-chat-history {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+        background: #111;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
 
-.founder-chat-header {
-    background: linear-gradient(135deg, #b38728, #8a6215);
-    color: #000;
-    padding: 8px;
-    font-size: 11px;
-    font-weight: bold;
-    text-transform: uppercase;
-    display: flex; justify-content: space-between; align-items: center;
-}
+    /* Burbujas Profe */
+    .bubble-me {
+        align-self: flex-end;
+        background: #333;
+        color: #fff;
+        padding: 6px 10px;
+        border-radius: 8px;
+        border-top-right-radius: 0;
+        font-size: 11px;
+        max-width: 85%;
+        border: 1px solid #444;
+    }
 
-.founder-chat-history {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-    background: #111;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
+    /* Burbujas Admin/CEO */
+    .bubble-admin {
+        align-self: flex-start;
+        background: #e67e22; /* Naranja Admin */
+        color: #000;
+        padding: 6px 10px;
+        border-radius: 8px;
+        border-top-left-radius: 0;
+        font-size: 11px;
+        max-width: 85%;
+        font-weight: 500;
+    }
 
-/* Burbujas Profe */
-.bubble-me {
-    align-self: flex-end;
-    background: #333;
-    color: #fff;
-    padding: 6px 10px;
-    border-radius: 8px;
-    border-top-right-radius: 0;
-    font-size: 11px;
-    max-width: 85%;
-    border: 1px solid #444;
-}
-
-/* Burbujas Admin/CEO */
-.bubble-admin {
-    align-self: flex-start;
-    background: #e67e22; /* Naranja Admin */
-    color: #000;
-    padding: 6px 10px;
-    border-radius: 8px;
-    border-top-left-radius: 0;
-    font-size: 11px;
-    max-width: 85%;
-    font-weight: 500;
-}
-
-.chat-input-box {
-    display: flex;
-    border-top: 1px solid #333;
-}
-.chat-input-box input {
-    flex: 1;
-    background: #202020;
-    border: none;
-    color: white;
-    padding: 8px;
-    font-size: 11px;
-    outline: none;
-}
-.chat-btn-mini {
-    background: #b38728;
-    color: #000;
-    border: none;
-    font-weight: bold;
-    padding: 0 10px;
-    cursor: pointer;
-    font-size: 10px;
-}
-
-
-
+    .chat-input-box {
+        display: flex;
+        border-top: 1px solid #333;
+    }
+    .chat-input-box input {
+        flex: 1;
+        background: #202020;
+        border: none;
+        color: white;
+        padding: 8px;
+        font-size: 11px;
+        outline: none;
+    }
+    .chat-btn-mini {
+        background: #b38728;
+        color: #000;
+        border: none;
+        font-weight: bold;
+        padding: 0 10px;
+        cursor: pointer;
+        font-size: 10px;
+    }
   </style>
 </head>
 <body>
@@ -193,7 +150,7 @@
         <div id="founderSection" style="display:none;">
             <div class="founder-chat-container">
                 <div class="founder-chat-header">
-                    <span>👑 Línea Directa CEO</span>
+                    <span>👑 Línea Directa CEO </span>
                     <span style="font-size:9px; opacity:0.8;">ONLINE</span>
                 </div>
                 
@@ -288,13 +245,21 @@
             const res = await fetch(`${API_URL}/me?email=${user.email}`);
             const data = await res.json();
             
-            // --- LÓGICA DE FUNDADOR ---
+            // --- LÓGICA DE FUNDADOR (CORREGIDA) ---
             if (data.isFoundingMember) {
                 document.getElementById('founderBadge').style.display = 'inline-flex';
                 // Mostrar Panel de Feedback (ahora en el sidebar)
                 document.getElementById('founderSection').style.display = 'block';
+
+                // A) Carga Inicial
+                loadFounderChat(); 
+
+                // B) Polling Automático (Cada 5s)
+                setInterval(() => {
+                    loadFounderChat();
+                }, 5000); 
             }
-            // --------------------------
+            // -------------------------------------
 
             if(data.branding) {
                 document.getElementById('bioInput').value = data.branding.bio || '';
@@ -308,8 +273,8 @@
         } catch (e) { console.error(e); }
     }
 
-// FUNCIÓN NUEVA: CARGAR MENSAJES
-async function loadMyMessages() {
+    // CARGAR MENSAJES ADMINISTRATIVOS (OLD)
+    async function loadMyMessages() {
         try {
             const res = await fetch(`${API_URL}/my-messages?email=${user.email}`);
             const msgs = await res.json();
@@ -322,7 +287,6 @@ async function loadMyMessages() {
                 msgs.forEach(m => {
                     const date = new Date(m.createdAt).toLocaleDateString();
                     const div = document.createElement('div');
-                    // Estilo simple: Fondo oscuro, borde sutil
                     div.style.padding = "10px";
                     div.style.marginBottom = "10px";
                     div.style.background = "#151515";
@@ -336,50 +300,6 @@ async function loadMyMessages() {
                 });
             }
         } catch (e) { console.error(e); }
-    }
-
-
-
-
-// 3. ENVIAR FEEDBACK DE FUNDADOR (ACTUALIZADA)
-async function sendFeedback() {
-        const content = document.getElementById('feedbackContent').value;
-        const msgBox = document.getElementById('feedbackMsg');
-        
-        if(!content.trim()) {
-            msgBox.textContent = "Escribe algo primero...";
-            msgBox.style.color = "#ff4d4d";
-            return;
-        }
-
-        msgBox.textContent = "Enviando...";
-        msgBox.style.color = "#aaa";
-
-        try {
-            // AHORA ENVIAMOS TAMBIÉN EL EMAIL
-            const res = await fetch(`${API_URL}/feedback`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    content: content,
-                    email: user.email // <--- IMPORTANTE: Enviamos el email para saber quién es
-                })
-            });
-
-            const data = await res.json();
-
-            if (res.ok) {
-                msgBox.textContent = "✅ Mensaje recibido. ¡Gracias, Fundador!";
-                msgBox.style.color = "#b4e080";
-                document.getElementById('feedbackContent').value = ""; 
-            } else {
-                msgBox.textContent = "❌ " + data.message;
-                msgBox.style.color = "#ff4d4d";
-            }
-        } catch (err) {
-            console.error(err);
-            msgBox.textContent = "Error de conexión";
-        }
     }
 
     // 4. SUBIR ARCHIVOS (UPLOAD)
@@ -452,76 +372,67 @@ async function sendFeedback() {
         });
     }
 
-    loadData();
-
-/* LÓGICA DE CHAT EN SIDEBAR (REEMPLAZA LAS FUNCIONES VIEJAS DE FEEDBACK) */
-
-async function loadFounderChat() {
-    const container = document.getElementById('founderChatHistory');
-    try {
-        // Usamos el nuevo endpoint unificado
-        const res = await fetch(`${API_URL}/conversation?email=${user.email}`);
-        const messages = await res.json();
-        
-        container.innerHTML = '';
-        
-        if (messages.length === 0) {
-            container.innerHTML = '<div style="text-align:center; color:#444; font-size:10px; margin-top:20px;">Habla directamente con los fundadores aquí.</div>';
-            return;
-        }
-
-        messages.forEach(msg => {
-            const div = document.createElement('div');
-            // msg.sender viene del controlador ('me' o 'admin')
-            if (msg.sender === 'admin') {
-                div.className = 'bubble-admin';
-                div.innerHTML = `<strong>SOPORTE:</strong> ${msg.content}`;
-            } else {
-                div.className = 'bubble-me';
-                div.innerText = msg.content;
+    // LÓGICA DE CHAT EN SIDEBAR
+    async function loadFounderChat() {
+        const container = document.getElementById('founderChatHistory');
+        try {
+            const res = await fetch(`${API_URL}/conversation?email=${user.email}`);
+            const messages = await res.json();
+            
+            container.innerHTML = '';
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:#444; font-size:10px; margin-top:20px;">Habla directamente con los fundadores aquí.</div>';
+                return;
             }
-            container.appendChild(div);
-        });
 
-        // Auto-scroll al final
-        container.scrollTop = container.scrollHeight;
-    } catch (e) { console.error("Error chat", e); }
-}
+            messages.forEach(msg => {
+                const div = document.createElement('div');
+                if (msg.sender === 'admin') {
+                    div.className = 'bubble-admin';
+                    div.innerHTML = `<strong>SOPORTE:</strong> ${msg.content}`;
+                } else {
+                    div.className = 'bubble-me';
+                    div.innerText = msg.content;
+                }
+                container.appendChild(div);
+            });
 
-async function sendFounderMsg() {
-    const input = document.getElementById('founderChatInput');
-    const content = input.value.trim();
-    if(!content) return;
+            // Auto-scroll al final (Solo si no estamos scrolleando arriba)
+            container.scrollTop = container.scrollHeight;
+        } catch (e) { console.error("Error chat", e); }
+    }
 
-    // Feedback visual inmediato (UX optimista)
-    const history = document.getElementById('founderChatHistory');
-    const tempDiv = document.createElement('div');
-    tempDiv.className = 'bubble-me';
-    tempDiv.style.opacity = "0.5";
-    tempDiv.innerText = content;
-    history.appendChild(tempDiv);
-    history.scrollTop = history.scrollHeight;
-    input.value = '';
+    async function sendFounderMsg() {
+        const input = document.getElementById('founderChatInput');
+        const content = input.value.trim();
+        if(!content) return;
 
-    try {
-        const res = await fetch(`${API_URL}/feedback`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: user.email, content: content })
-        });
-        
-        if(res.ok) {
-            loadFounderChat(); // Recargar para confirmar y limpiar estado "optimista"
-        }
-    } catch(e) { alert("Error de conexión"); }
-}
+        // Feedback visual inmediato (UX optimista)
+        const history = document.getElementById('founderChatHistory');
+        const tempDiv = document.createElement('div');
+        tempDiv.className = 'bubble-me';
+        tempDiv.style.opacity = "0.5";
+        tempDiv.innerText = content;
+        history.appendChild(tempDiv);
+        history.scrollTop = history.scrollHeight;
+        input.value = '';
 
-// IMPORTANTE: En la función loadData(), donde detectas si es fundador:
-// if (data.isFoundingMember) {
-//    document.getElementById('founderSection').style.display = 'block';
-//    loadFounderChat(); // <--- AGREGAR ESTA LLAMADA
-// }
+        try {
+            const res = await fetch(`${API_URL}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email, content: content })
+            });
+            
+            if(res.ok) {
+                loadFounderChat(); // Recargar para confirmar y limpiar estado "optimista"
+            }
+        } catch(e) { alert("Error de conexión"); }
+    }
 
+    // INICIAR
+    loadData();
 
   </script>
 </body>
