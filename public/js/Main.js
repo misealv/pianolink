@@ -136,10 +136,19 @@ bus.on("room-users", (users) => {
 bus.on("room-joined", (code) => {
     bus.emit("room-info", code);
     if(statusDiv) statusDiv.innerHTML = `🟢 En Sala: ${code}`;
+    
+    // --- CORRECCIÓN CRÍTICA: AVISAR A SCORELOGIC ---
+    console.log(`🔗 Main: Vinculando ScoreLogic a sala ${code}`);
+    scoreLogic.setRoomCode(code); 
 });
+
 bus.on("room-created", (code) => {
     bus.emit("room-info", code);
     if(statusDiv) statusDiv.innerHTML = `🟢 Sala Creada: ${code}`;
+    
+    // --- CORRECCIÓN CRÍTICA: AVISAR A SCORELOGIC ---
+    console.log(`🔗 Main: Vinculando ScoreLogic a sala ${code}`);
+    scoreLogic.setRoomCode(code);
 });
 
 bus.on("class-status", (status) => {

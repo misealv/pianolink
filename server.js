@@ -155,6 +155,24 @@ io.on("connection", (socket) => {
             }
         }
     });
+
+        // Rebotar dibujo
+        socket.on('wb-draw', (data) => {
+            // Enviar a todos en la sala MENOS al que dibujó
+            socket.to(data.room).emit('wb-draw', data);
+        });
+
+        // Rebotar borrado
+        socket.on('wb-clear', (data) => {
+            socket.to(data.room).emit('wb-clear', data);
+        });
+
+        socket.on('wb-pointer', (data) => {
+            // Volatile significa: si hay lag, salta paquetes. 
+            // No queremos que el puntero se mueva con retraso acumulado.
+            socket.to(data.room).volatile.emit('wb-pointer', data);
+        });
+
     // Desconexión
     socket.on("disconnect", () => {
         const roomCode = socket.roomCode;

@@ -12,6 +12,7 @@
   <script>
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 
   <style>
     /* Estilos del Visor PDF (Atril) */
@@ -19,8 +20,18 @@
         width: 100%; height: calc(100% - 50px); overflow: auto;
         background-color: #525659; display: flex; flex-direction: column; align-items: center; position: relative;
     }
-    canvas#pdf-render { box-shadow: 0 4px 10px rgba(0,0,0,0.5); margin: 20px 0; max-width: 95%; }
-    .pdf-controls-floating {
+    canvas#pdf-render { 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+    display: block; /* Elimina espacios fantasma */
+    }   
+
+/* Aplica el margen al wrapper para que AMBOS canvas se muevan juntos */
+    #score-wrapper {
+    margin: 20px 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5); /* Sombra al conjunto */
+}
+
+ .pdf-controls-floating {
         position: sticky; bottom: 20px; background: rgba(0, 0, 0, 0.8);
         padding: 8px 15px; border-radius: 20px; display: flex; gap: 10px; align-items: center; z-index: 10; color: white; font-size: 12px;
     }
@@ -147,14 +158,35 @@
                 </div>
             </div>
             <div id="pdf-container" class="pdf-viewer-container">
-                <div id="pdf-loading-msg" style="margin-top:50px; color:#777; display:none;">Cargando partitura...</div>
-                <canvas id="pdf-render"></canvas>
-                <div class="pdf-controls-floating" id="pdfFloatingControls" style="display:none;">
-                    <button id="prev-page" class="btn-sm">❮</button>
-                    <span>Pág <span id="page-num">0</span> / <span id="page-count">0</span></span>
-                    <button id="next-page" class="btn-sm">❯</button>
-                </div>
+              <div id="pdf-loading-msg" style="margin-top:50px; color:#777; display:none;">Cargando partitura...</div>
+              <div id="drawing-toolbar" class="drawing-toolbar" style="display:none;">
+                <button id="tool-move" class="tool-btn active" title="Modo Navegación (Mover)">✋</button>
+                
+                <button id="tool-pencil" class="tool-btn" title="Modo Dibujo">✏️</button>
+                <div class="tool-separator"></div>
+               <button id="tool-laser" class="tool-btn" title="Puntero Láser">🔴</button>
+                <div class="tool-separator"></div>
+                <input type="color" id="tool-color" value="#ff0000" title="Color del Lápiz">
+                
+                <div class="tool-separator"></div>
+                <button id="tool-clear" class="tool-btn btn-danger" title="Borrar Pizarra">🗑️</button>
             </div>
+              <div id="score-wrapper" style="position: relative; display: inline-block;">
+                  <canvas id="pdf-render" style="display: block;"></canvas>
+                  <canvas id="annotation-layer"></canvas> </div>
+                  <canvas id="pdf-render" style="display: block;"></canvas>
+                  <canvas id="annotation-layer"></canvas>
+        
+             <div id="remote-laser" class="laser-dot"></div>
+              <div class="pdf-controls-floating" id="pdfFloatingControls" style="display:none;">
+                  <button id="zoom-out" class="btn-sm" title="Zoom -">🔍-</button>
+                  <button id="zoom-in" class="btn-sm" title="Zoom +">🔍+</button>
+                  <span style="margin: 0 5px; color:#555;">|</span>
+                  <button id="prev-page" class="btn-sm">❮</button>
+                  <span>Pág <span id="page-num">0</span> / <span id="page-count">0</span></span>
+                  <button id="next-page" class="btn-sm">❯</button>
+              </div>
+          </div>
         </div>
         <div id="resizeHandle" class="resize-handle" title="Arrastra para redimensionar"><span>••••</span></div>
       </div> 

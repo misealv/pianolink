@@ -522,3 +522,210 @@ iframe#pdfFrame.visible { display: block; }
 ::-webkit-scrollbar-corner {
   background: #1a1a1a;
 }
+
+/* --- CAPA DE ANOTACIONES Y ZOOM --- */
+#score-wrapper {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    margin: 20px 0;
+    /* El wrapper crece con el contenido */
+}
+
+/* Forzar posición absoluta al contenedor que genera Fabric.js */
+.canvas-container { 
+    position: absolute !important; 
+    top: 0; 
+    left: 0; 
+    z-index: 10; /* Encima del PDF */
+}
+
+/* El PDF queda al fondo */
+#pdf-render {
+    position: relative;
+    z-index: 1; 
+}
+/* --- BARRA DE HERRAMIENTAS DE DIBUJO --- */
+.drawing-toolbar {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  z-index: 100; /* Por encima de todo */
+}
+
+.tool-btn {
+  background: #333;
+  border: 1px solid #555;
+  color: #eee;
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tool-btn:hover { background: #444; }
+
+/* Estado Activo (Cuando la herramienta está seleccionada) */
+.tool-btn.active {
+  background: var(--accent, #ff764d);
+  color: #000;
+  border-color: var(--accent, #ff764d);
+  box-shadow: 0 0 8px rgba(255, 118, 77, 0.4);
+}
+
+.tool-btn.btn-danger:hover { background: #ff4d4d; border-color: #ff4d4d; }
+
+.tool-separator {
+  height: 1px;
+  background: #444;
+  margin: 4px 0;
+}
+
+/* Ajuste del input color para que parezca un botón */
+input[type="color"]#tool-color {
+  width: 36px; height: 36px;
+  border: 1px solid #555;
+  background: none;
+  padding: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* public/css/style.css */
+
+/* Cuando esta clase está activa, el canvas es "invisible" al mouse */
+/* Esto permite hacer clic "a través" de él para tocar el PDF o hacer scroll */
+.disable-pointer-events {
+  pointer-events: none !important;
+}
+
+.canvas-container {
+  z-index: 10; /* Aseguramos que esté encima visualmente */
+}
+
+
+/* public/css/style.css */
+
+/* --- SOLUCIÓN FINAL MODO MANO --- */
+
+/* Cuando el wrapper está en modo mano, desactivamos los eventos del canvas de Fabric */
+#score-wrapper.hand-mode .canvas-container,
+#score-wrapper.hand-mode canvas {
+    pointer-events: none !important; /* El !important es VITAL aquí */
+}
+
+/* Opcional: Cambiar cursor para indicar que se puede mover */
+#score-wrapper.hand-mode {
+    cursor: grab;
+}
+
+/* --- CONTROLES FLOTANTES DEL PDF (Z-INDEX FIX) --- */
+.pdf-controls-floating {
+  position: sticky; 
+  bottom: 20px; 
+  background: rgba(0, 0, 0, 0.8);
+  padding: 8px 15px; 
+  border-radius: 20px; 
+  display: flex; 
+  gap: 10px; 
+  align-items: center; 
+  justify-content: center;
+  color: white; 
+  font-size: 12px;
+  width: fit-content;
+  margin: 0 auto; /* Centrado horizontal */
+
+  /* CRÍTICO: Esto hace que los botones funcionen sobre el dibujo */
+  z-index: 100 !important; 
+  cursor: default;
+}
+
+/* Estilo para los botones internos (< >) */
+.pdf-controls-floating button {
+  background: #444;
+  border: 1px solid #666;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  pointer-events: auto; /* Asegura que reciban el clic */
+  transition: background 0.2s;
+}
+
+.pdf-controls-floating button:hover {
+  background: var(--accent, #ff764d);
+  color: black;
+  border-color: var(--accent, #ff764d);
+}
+/* --- ARREGLO DE BOTONES FLOTANTES --- */
+.pdf-controls-floating {
+  position: sticky; 
+  bottom: 20px; 
+  background: rgba(0, 0, 0, 0.8);
+  padding: 8px 15px; 
+  border-radius: 20px; 
+  display: flex; 
+  gap: 10px; 
+  align-items: center; 
+  justify-content: center;
+  color: white; 
+  font-size: 12px;
+  width: fit-content;
+  margin: 0 auto;
+  
+  /* ESTO ES LO QUE HACE QUE FUNCIONE: */
+  z-index: 200 !important; /* Muy alto para ganar al canvas */
+  pointer-events: auto;
+}
+
+/* Asegurar que los botones internos sean clickeables */
+.pdf-controls-floating button {
+  pointer-events: auto;
+  cursor: pointer;
+  background: #444;
+  border: 1px solid #666;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+.pdf-controls-floating button:hover {
+  background: #ff764d;
+  color: black;
+}
+/* --- PUNTERO LÁSER --- */
+.laser-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: rgba(255, 0, 0, 0.8); /* Rojo semitransparente */
+  border-radius: 50%;
+  box-shadow: 0 0 10px 2px rgba(255, 0, 0, 0.6); /* Resplandor */
+  pointer-events: none; /* El mouse lo atraviesa */
+  z-index: 50; /* Encima del dibujo */
+  display: none; /* Oculto por defecto */
+  transform: translate(-50%, -50%); /* Centrado en el cursor */
+  transition: top 0.05s linear, left 0.05s linear; /* Movimiento fluido */
+}
+
+/* Animación opcional para que pulse */
+@keyframes pulse-red {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+}
+
+.laser-dot.active {
+  display: block;
+  animation: pulse-red 1.5s infinite;
+}
