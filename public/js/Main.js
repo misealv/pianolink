@@ -7,6 +7,7 @@ import { AudioEngine } from './modules/AudioEngine.js';
 import { Whiteboard } from './modules/Whiteboard.js';
 import { UIManager } from './modules/UIManager.js';
 import { ScoreLogic } from './modules/ScoreLogic.js'; 
+import { FreeBoard } from './modules/FreeBoard.js';
 
 // 1. EVENT BUS (Sistema nervioso central)
 class EventBus extends EventTarget {
@@ -25,6 +26,7 @@ const audio = new AudioEngine(bus);
 const ui = new UIManager(bus);
 const whiteboard = new Whiteboard();
 const scoreLogic = new ScoreLogic(socketManager.socket); 
+const freeBoard = new FreeBoard(scoreLogic); // Nueva Pizarra Musical
 // Estado Global
 let currentBroadcaster = null;
 let teacherId = null;
@@ -55,7 +57,63 @@ if (statusDiv && socket) {
     await audio.init();
 })();
 
+/* EN public/js/Main.js */
 
+// ... (después de tus imports y lógica de conexión) ...
+
+function initResizer() {
+    const handle = document.getElementById('resizeHandle');
+    const board = document.querySelector('.board-container');
+    const piano = document.querySelector('.piano-container');
+    const container = document.querySelector('.main-stage');
+
+    if (!handle || !board || !piano || !container) return;
+
+    let isResizing = false;
+
+    handle.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        document.body.style.cursor = 'row-resize'; // Cambiar cursor global
+        e.preventDefault(); // Evitar selección de texto
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+
+        // Calcular nueva altura
+        // Restamos el offset del header y márgenes aproximados (ajustar según tu CSS)
+        const containerRect = container.getBoundingClientRect();
+        const newHeight = e.clientY - containerRect.top;
+
+        // Límites (Mínimo 100px para partitura, Mínimo 100px para piano)
+        const minSize = 100;
+        const maxSize = containerRect.height - minSize;
+
+        if (newHeight > minSize && newHeight < maxSize) {
+            // Aplicamos altura usando porcentajes para mantener responsive
+            const percentage = (newHeight / containerRect.height) * 100;
+            board.style.flex = `0 0 ${percentage}%`;
+            board.style.height = `${percentage}%`;
+            // El piano tomará el resto del espacio automáticamente por flex-grow
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = 'default';
+            
+            // IMPORTANTE: Disparar evento de resize para que el PDF se ajuste
+            window.dispatchEvent(new Event('resize'));
+        }
+    });
+}
+
+// EJECUTAR AL INICIO
+document.addEventListener('DOMContentLoaded', () => {
+    initResizer();
+    // ... tus otras inicializaciones ...
+});
 // ============================================
 // 5. ORQUESTACIÓN DE EVENTOS (CABLEADO)
 // ============================================

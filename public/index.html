@@ -25,13 +25,13 @@
     display: block; /* Elimina espacios fantasma */
     }   
 
-/* Aplica el margen al wrapper para que AMBOS canvas se muevan juntos */
+    /* Aplica el margen al wrapper para que AMBOS canvas se muevan juntos */
     #score-wrapper {
-    margin: 20px 0;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5); /* Sombra al conjunto */
-}
+        margin: 20px 0;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5); /* Sombra al conjunto */
+    }
 
- .pdf-controls-floating {
+    .pdf-controls-floating {
         position: sticky; bottom: 20px; background: rgba(0, 0, 0, 0.8);
         padding: 8px 15px; border-radius: 20px; display: flex; gap: 10px; align-items: center; z-index: 10; color: white; font-size: 12px;
     }
@@ -54,6 +54,14 @@
       .status-indicator.connected {
           background: #2ecc71; color: #000; border-color: #27ae60;
           box-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
+      }
+      
+      /* Ajuste para que la barra de herramientas flote correctamente sobre cualquier modo */
+      .drawing-toolbar {
+          position: absolute;
+          top: 10px;
+          right: 20px;
+          z-index: 1000; /* Asegurar que esté por encima de todo */
       }
   </style>
 </head>
@@ -143,13 +151,36 @@
       <div class="board-tabs">
         <button id="tabMusicBtn" class="tab-btn active">🎹 ACORDES</button>
         <button id="tabPdfBtn" class="tab-btn">📚 BIBLIOTECA PDF</button> 
+        <button id="tabBoardBtn" class="tab-btn">🖍 PIZARRA</button>
       </div>
 
-      <div class="board-container">
+      <div class="board-container" style="position: relative;">
+        
+        <div id="drawing-toolbar" class="drawing-toolbar" style="display:none;">
+            <button id="tool-move" class="tool-btn active" title="Modo Navegación (Mover)">✋</button>
+            <button id="tool-pencil" class="tool-btn" title="Modo Dibujo">✏️</button>
+            <button id="tool-text" class="tool-btn" title="Insertar Texto">T</button>
+            
+            <button id="tool-circle" class="tool-btn" title="Círculo (Nota)">⭕</button>
+
+            <div class="tool-separator"></div>
+            <button id="btn-add-stave" class="tool-btn" title="Agregar Pentagrama">🎼</button>
+            <button id="btn-add-grand-stave" class="tool-btn" title="Agregar Piano">🎹</button>
+            
+            <div class="tool-separator"></div>
+            <button id="tool-laser" class="tool-btn" title="Puntero Láser">🔴</button>
+            <div class="tool-separator"></div>
+            <input type="color" id="tool-color" value="#ff0000" title="Color del Lápiz">
+            
+            <div class="tool-separator"></div>
+            <button id="tool-clear" class="tool-btn btn-danger" title="Borrar Pizarra">🗑️</button>
+        </div>
+
         <div id="modeMusic" class="board-mode">
             <div id="staffContainer"></div>
             <div id="chordDisplay"><span class="chord-placeholder">--</span></div>
         </div>
+
         <div id="modePdf" class="board-mode hidden" style="display:none; flex-direction:column; height:100%;">
             <div class="pdf-controls" style="display: flex; align-items: center; justify-content:space-between; padding: 10px; background-color: #333; border-bottom: 2px solid #555; height: 50px; flex-shrink: 0;">
                 <div style="display:flex; align-items:center; gap:10px; width:100%;">
@@ -157,27 +188,16 @@
                     <span id="current-score-title" style="font-size:12px; color:#aaa; font-style:italic; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Sin partitura seleccionada</span>
                 </div>
             </div>
+
             <div id="pdf-container" class="pdf-viewer-container">
               <div id="pdf-loading-msg" style="margin-top:50px; color:#777; display:none;">Cargando partitura...</div>
-              <div id="drawing-toolbar" class="drawing-toolbar" style="display:none;">
-                <button id="tool-move" class="tool-btn active" title="Modo Navegación (Mover)">✋</button>
-                
-                <button id="tool-pencil" class="tool-btn" title="Modo Dibujo">✏️</button>
-                <div class="tool-separator"></div>
-               <button id="tool-laser" class="tool-btn" title="Puntero Láser">🔴</button>
-                <div class="tool-separator"></div>
-                <input type="color" id="tool-color" value="#ff0000" title="Color del Lápiz">
-                
-                <div class="tool-separator"></div>
-                <button id="tool-clear" class="tool-btn btn-danger" title="Borrar Pizarra">🗑️</button>
-            </div>
+              
               <div id="score-wrapper" style="position: relative; display: inline-block;">
                   <canvas id="pdf-render" style="display: block;"></canvas>
-                  <canvas id="annotation-layer"></canvas> </div>
-                  <canvas id="pdf-render" style="display: block;"></canvas>
                   <canvas id="annotation-layer"></canvas>
-        
-             <div id="remote-laser" class="laser-dot"></div>
+                  <div id="remote-laser" class="laser-dot"></div>
+              </div>
+
               <div class="pdf-controls-floating" id="pdfFloatingControls" style="display:none;">
                   <button id="zoom-out" class="btn-sm" title="Zoom -">🔍-</button>
                   <button id="zoom-in" class="btn-sm" title="Zoom +">🔍+</button>
@@ -188,6 +208,15 @@
               </div>
           </div>
         </div>
+
+        <div id="modeWhiteboard" class="board-mode hidden" style="display:none; position: relative; background: white; flex-direction: column;">
+            
+            <div id="whiteboard-wrapper" style="position: relative; flex: 1; width: 100%; overflow: hidden; cursor: crosshair;">
+                <canvas id="wb-background" style="position: absolute; top:0; left:0; z-index: 0; pointer-events: none;"></canvas>
+                <canvas id="wb-layer"></canvas> 
+            </div>
+
+        </div>      
         <div id="resizeHandle" class="resize-handle" title="Arrastra para redimensionar"><span>••••</span></div>
       </div> 
       

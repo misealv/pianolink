@@ -729,3 +729,36 @@ input[type="color"]#tool-color {
   display: block;
   animation: pulse-red 1.5s infinite;
 }
+
+
+/* =========================================
+   ESTILOS FALTANTES PARA LA PIZARRA BLANCA
+   ========================================= */
+
+   #whiteboard-wrapper {
+    width: 100%;
+    height: 100%;       /* Vital para que ocupe todo el espacio disponible */
+    position: relative; /* Para que los canvas absolutos se posicionen respecto a esto */
+    background: #fff;   /* Fondo base blanco */
+    overflow: hidden;
+}
+
+/* Forzamos a FabricJS a posicionarse sobre el fondo */
+#whiteboard-wrapper .canvas-container {
+    background: transparent !important; /* Transparente para ver la plantilla de fondo */
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    z-index: 10; /* Por encima del fondo (#wb-background) */
+}
+
+/* El canvas de fondo (pentagramas estáticos) */
+#wb-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1; /* Al fondo */
+    pointer-events: none; /* Que no intercepte clics */
+}

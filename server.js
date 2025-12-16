@@ -4,6 +4,7 @@ const path = require("path");
 const { Server } = require("socket.io");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
+const Annotation = require('./models/Annotation');
 
 // 1. Configuración Inicial
 dotenv.config();
@@ -154,22 +155,69 @@ io.on("connection", (socket) => {
         }
     });
 
-        // Rebotar dibujo
-        socket.on('wb-draw', (data) => {
-            // Enviar a todos en la sala MENOS al que dibujó
-            socket.to(data.room).emit('wb-draw', data);
-        });
+    // --- PIZARRA CON BASE DE DATOS ---
 
-        // Rebotar borrado
-        socket.on('wb-clear', (data) => {
-            socket.to(data.room).emit('wb-clear', data);
-        });
+    // DIBUJAR: Rebotar y Guardar
+    socket.on('wb-draw', async (data) => {
+        // 1. Enviar a los demás (Rápido)
+        socket.to(data.room).emit('wb-draw', data);
 
-        socket.on('wb-pointer', (data) => {
-            // Volatile significa: si hay lag, salta paquetes. 
-            // No queremos que el puntero se mueva con retraso acumulado.
-            socket.to(data.room).volatile.emit('wb-pointer', data);
-        });
+        // 2. Guardar en MongoDB (Si es una partitura guardada)
+        if (data.scoreId) {
+            try {
+                await Annotation.create({
+                    scoreId: data.scoreId,
+                    page: data.page,
+                    data: data.path // El trazo JSON
+                });
+            } catch (e) {
+                console.error("Error guardando trazo:", e);
+            }
+        }
+    });
+
+    // NUEVO: BORRAR OBJETO INDIVIDUAL
+    socket.on('wb-delete', async (data) => {
+        // 1. Avisar a los demás
+        socket.to(data.room).emit('wb-delete', data);
+
+        // 2. Borrar de la BD
+        if (data.scoreId && data.id) {
+            try {
+                // Buscamos el documento donde annotation.data.id coincida con el ID recibido
+                await Annotation.deleteOne({ 
+                    scoreId: data.scoreId,
+                    page: data.page,
+                    "data.id": data.id 
+                });
+                console.log(`🗑️ Elemento borrado: ${data.id}`);
+            } catch (e) {
+                console.error("Error borrando elemento:", e);
+            }
+        }
+    });
+
+    // BORRAR TODO (CLEAR): Rebotar y Actualizar BD
+    socket.on('wb-clear', async (data) => {
+        socket.to(data.room).emit('wb-clear', data);
+
+        if (data.scoreId) {
+            try {
+                // Borrar anotaciones de ESA página
+                await Annotation.deleteMany({ 
+                    scoreId: data.scoreId, 
+                    page: data.page 
+                });
+            } catch (e) {
+                console.error("Error borrando anotaciones:", e);
+            }
+        }
+    });
+
+    // LÁSER (No se guarda, solo rebota)
+    socket.on('wb-pointer', (data) => {
+        socket.to(data.room).volatile.emit('wb-pointer', data);
+    });
 
     // Desconexión
     socket.on("disconnect", () => {
@@ -202,7 +250,7 @@ function setupUserInRoom(socket, roomCode, name, role) {
         };
     }
     
-    // 2. GUARDAR AL USUARIO (¡Esta es la parte que faltaba!)
+    // 2. GUARDAR AL USUARIO
     rooms[roomCode].users[socket.id] = {
         name: name,
         role: role,
