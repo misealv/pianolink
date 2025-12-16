@@ -87,12 +87,10 @@ io.on("connection", (socket) => {
     socket.on("midi-binary", (buffer) => {
         const roomCode = socket.roomCode;
         if (!roomCode || !rooms[roomCode]) return;
-
-        // VOLATILE: Si el cliente está lento, no encolamos paquetes. Se pierden.
-        // Esto evita que el piano suene "acelerado" después de un lag.
-        socket.broadcast.to(roomCode).volatile.emit("midi-binary", {
-            src: socket.id, // Source ID (¿Quién tocó?)
-            dat: buffer     // Payload Binario
+       
+        socket.broadcast.to(roomCode).emit("midi-binary", {
+            src: socket.id,
+            dat: buffer
         });
     });
 

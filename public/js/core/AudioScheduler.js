@@ -66,8 +66,8 @@ export class AudioScheduler {
         const isNoteOff = (status >= 128 && status <= 143) || (status >= 144 && data2 === 0);
 
         // 2. SONIDO WEB (Sintetizador Agendado)
-        if (isNoteOn) this._noteOn(data1, data2, scheduledTime);
-        else if (isNoteOff) this._noteOff(data1, scheduledTime);
+       // if (isNoteOn) this._noteOn(data1, data2, scheduledTime);
+        //else if (isNoteOff) this._noteOff(data1, scheduledTime);
 
         // 3. SONIDO FÍSICO (Relay al piano USB)
         // Nota: WebMIDI no siempre soporta agendado futuro preciso, 

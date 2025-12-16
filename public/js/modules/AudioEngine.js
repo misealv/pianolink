@@ -45,19 +45,45 @@ export class AudioEngine {
             };
         });
     }
+    // Apagado de emergencia
+    
+    stopAll() {
+        this.activeVoices.forEach((voice) => {
+            try {
+                voice.gain.gain.cancelScheduledValues(this.ctx.currentTime);
+                voice.gain.gain.setValueAtTime(0, this.ctx.currentTime);
+                voice.osc.stop();
+            } catch(e) {}
+        });
+        this.activeVoices.clear();
+        console.log("🔇 SILENCIO TOTAL EJECUTADO");
+    }
 
     updateSelects(inputs, outputs) {
         const inSelect = document.getElementById('midiInputSelect');
         const outSelect = document.getElementById('midiOutputSelect');
         
+        // 1. Guardar selección actual antes de borrar (Memoria)
+        const savedIn = inSelect ? inSelect.value : "";
+        const savedOut = outSelect ? outSelect.value : "";
+        
         if(inSelect) {
             inSelect.innerHTML = '<option value="">-- Entrada MIDI --</option>';
-            inputs.forEach(i => inSelect.innerHTML += `<option value="${i.id}">${i.name}</option>`);
+            inputs.forEach(i => {
+                // Restaurar si coincide el ID
+                const isSelected = (i.id === savedIn) ? 'selected' : '';
+                inSelect.innerHTML += `<option value="${i.id}" ${isSelected}>${i.name}</option>`;
+            });
         }
+
         if(outSelect) {
             outSelect.innerHTML = '<option value="">-- Salida (Sonido) --</option>';
-            outputs.forEach(o => outSelect.innerHTML += `<option value="${o.id}">${o.name}</option>`);
+            outputs.forEach(o => {
+                const isSelected = (o.id === savedOut) ? 'selected' : '';
+                outSelect.innerHTML += `<option value="${o.id}" ${isSelected}>${o.name}</option>`;
+            });
             
+            // Reasignar el evento onchange
             outSelect.onchange = (e) => {
                 const device = outputs.find(o => o.id === e.target.value);
                 if(device) this.scheduler.setMidiOutput(device);

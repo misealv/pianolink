@@ -204,6 +204,11 @@ bus.on("remote-pdf", (data) => {
     }
 });
 
+
+bus.on("ui-panic", () => {
+    audio.scheduler.stopAll(); // Mata el sonido
+    whiteboard.drawEmpty();    // Limpia las teclas rojas de la pantalla
+});
 // --- GESTIÓN DE SALIDA Y CIERRE ---
 
 bus.on("ui-toggle-cue", (userId) => {
