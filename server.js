@@ -95,26 +95,31 @@ io.on("connection", (socket) => {
         });
     });
 
-    // --- GESTIÓN DE ESTADO (PDF Y CLASE) ---
+   // --- GESTIÓN DE ESTADO (PDF Y CLASE) ---
 
-    socket.on("update-pdf-state", (newState) => {
-        const room = rooms[socket.roomCode];
-        if (!room || !room.users[socket.id]) return;
+   socket.on("update-pdf-state", (newState) => {
+    const room = rooms[socket.roomCode];
+    if (!room || !room.users[socket.id]) return;
 
-        // Actualizar memoria del servidor
-        const userState = room.users[socket.id].pdfState;
-        if (newState.url) userState.url = newState.url;
-        if (newState.page) userState.page = newState.page;
+    // Actualizar memoria del servidor
+    const userState = room.users[socket.id].pdfState;
+    if (newState.url) userState.url = newState.url;
+    if (newState.page) userState.page = newState.page;
+    
+    // --- FIX: GUARDAR SCORE ID ---
+    // Esto permite que el profesor sepa qué anotaciones buscar en la DB al usar el modo espía
+    if (newState.scoreId) userState.scoreId = newState.scoreId; 
+    // -----------------------------
 
-        // Rebotar a todos (para modo espía instantáneo)
-        io.to(socket.roomCode).emit("user-pdf-updated", {
-            userId: socket.id,
-            pdfState: userState
-        });
-        
-        // Actualizar lista de participantes (para iconos)
-        broadcastUserList(socket.roomCode);
+    // Rebotar a todos (para modo espía instantáneo)
+    io.to(socket.roomCode).emit("user-pdf-updated", {
+        userId: socket.id,
+        pdfState: userState
     });
+    
+    // Actualizar lista de participantes (para iconos)
+    broadcastUserList(socket.roomCode);
+});
 
     socket.on("end-class", (roomCode) => {
         if (rooms[roomCode]) {

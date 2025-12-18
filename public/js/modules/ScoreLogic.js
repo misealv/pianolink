@@ -7,8 +7,8 @@ export class ScoreLogic {
         this.pdfDoc = null;
         
         // Estado de Navegación
-        this.pageNum = 1;         // Puede ser numero (PDF) o 'whiteboard'
-        this.lastPdfPage = 1;     // Para recordar donde estabas al volver del PDF
+        this.pageNum = 1;         
+        this.lastPdfPage = 1;     
         
         this.pageRendering = false;
         this.pageNumPending = null;
@@ -64,20 +64,17 @@ export class ScoreLogic {
         
         // --- LISTENERS DE SOCKET (Entrantes) ---
         
-        // A) RECIBIR DIBUJO (Tiempo Real)
         this.socket.on('wb-draw', (data) => {
-            // Usamos comparación laxa (==) por si string vs number
             if (this.annotations && data.page == this.pageNum) {
                 this.annotations.drawRemotePath(data.path);
                 this.saveLocalState();
             } else {
-                // Si no estamos viendo esa página, guardamos el cambio en memoria para verlo después
-                // (Opcional: Podría requerir lógica más compleja para mergear JSON, 
-                // por ahora confiamos en el sync al cambiar de página)
+                // Si llega un dibujo de otra página, necesitamos actualizar la memoria 'pageData'
+                // para que cuando cambiemos a esa página, el dibujo esté ahí.
+                // NOTA: Esto requeriría fusionar JSONs, por simplicidad confiamos en el sync al cambiar página.
             }
         });
 
-        // B) RECIBIR BORRADO INDIVIDUAL
         this.socket.on('wb-delete', (data) => {
             if (this.annotations && data.page == this.pageNum) {
                 this.annotations.removeObjectById(data.id);
@@ -85,7 +82,6 @@ export class ScoreLogic {
             }
         });
 
-        // C) RECIBIR BORRADO TOTAL
         this.socket.on('wb-clear', (data) => {
             if (this.annotations && data.page == this.pageNum) {
                 this.annotations.clear(false); 
@@ -93,16 +89,13 @@ export class ScoreLogic {
             }
         });
 
-        // D) RECIBIR LÁSER
         this.socket.on('wb-pointer', (data) => {
             if (this.annotations && data.page == this.pageNum) {
                 this.annotations.updateRemoteLaser(data.x, data.y);
             }
         });
 
-        // E) RECIBIR SINCRONIZACIÓN (Soy el alumno que llegó tarde)
         this.socket.on('wb-sync-response', (data) => {
-            // Si estoy viendo la página que me mandaron, la cargo
             if (data.page == this.pageNum && data.canvasState) {
                 console.log("📥 Recibida sincronización de pizarra completa");
                 if(this.annotations) {
@@ -110,32 +103,26 @@ export class ScoreLogic {
                     this.saveLocalState();
                 }
             } 
-            // También guardamos en memoria por si acaso cambio a esa página luego
             if (data.canvasState) {
                 this.pageData[data.page] = data.canvasState;
             }
         });
         
-        // F) SOLICITUD DE SYNC (Soy el profesor y alguien me pide datos)
         this.socket.on('wb-request-sync', (data) => {
             const user = JSON.parse(localStorage.getItem('pianoUser') || '{}');
-            
-            // Solo el profesor responde para no saturar la red con respuestas de todos los alumnos
             if (user.role !== 'teacher') return;
 
             let stateToSend = null;
 
-            // Opción 1: Estoy mirando la pizarra ahora mismo
             if (this.pageNum == data.page && this.annotations) {
                 stateToSend = this.annotations.getJSON();
             } 
-            // Opción 2: No la estoy mirando (estoy en PDF), pero tengo datos guardados en memoria
             else if (this.pageData[data.page]) {
                 stateToSend = this.pageData[data.page];
             }
 
             if (stateToSend) {
-                console.log(`📤 Enviando estado de pizarra (${data.page}) a nuevo usuario`);
+                // console.log(`📤 Enviando estado de pizarra (${data.page})`);
                 this.socket.emit('wb-sync-response', {
                     room: this.getRoomCode(),
                     page: data.page,
@@ -144,7 +131,6 @@ export class ScoreLogic {
             }
         });
 
-        // 3. OBSERVER PARA REDIMENSIONAR (Responsive)
         window.addEventListener('resize', () => {
              if (this.currentTab === 'whiteboard') {
                  this.resizeWhiteboard();
@@ -157,7 +143,6 @@ export class ScoreLogic {
         });
     }
 
-    // --- Ajuste de tamaño específico para Pizarra ---
     resizeWhiteboard() {
         if (this.currentTab !== 'whiteboard' || !this.annotations) return;
         
@@ -165,16 +150,23 @@ export class ScoreLogic {
         if (wrapper) {
             const width = wrapper.clientWidth;
             const height = wrapper.clientHeight;
-            
             if (width === 0 || height === 0) return;
             this.annotations.updateDimensions(width, height, 1); 
         }
     }
 
-    // --- GESTIÓN DE CANVAS DINÁMICO ---
     setupCanvasContext(canvasId) {
-        console.log(`🖌️ ScoreLogic: Contexto dibujo -> '${canvasId}'`);
-        // Nota: AnnotationLayer se encarga de limpiar listeners viejos si el canvas se reusa
+        // --- FIX CRÍTICO: EVITAR DUPLICACIÓN DE CANVASES ---
+        // Si ya existe una instancia de anotaciones vinculada a este ID de HTML, no la recreamos.
+        if (this.annotations) {
+            if (this.annotations.canvas.getElement().id === canvasId) {
+                return; // Ya está configurado, no hacer nada
+            }
+            // Si cambiamos de 'pdf' a 'whiteboard', limpiamos la instancia anterior
+            this.annotations.canvas.dispose();
+        }
+        
+        console.log(`🖌️ ScoreLogic: Iniciando capa de dibujo en '${canvasId}'`);
         this.annotations = new AnnotationLayer(canvasId);
         this.bindAnnotationEvents();
     }
@@ -221,41 +213,51 @@ export class ScoreLogic {
         });
     }
 
-    // --- CARGAR ANOTACIONES (BD) ---
+    // --- CORRECCIÓN CLAVE: CARGAR ANOTACIONES (BD) ---
     async loadAnnotationsFromDB(scoreId) {
         if (!scoreId) return;
         try {
+            console.log(`📥 Cargando anotaciones para ScoreID: ${scoreId}`);
             const res = await fetch(`/api/scores/${scoreId}/annotations`);
             if (!res.ok) return;
             const annotations = await res.json(); 
 
+            // 1. Limpiamos la memoria local de la partitura anterior
             this.pageData = {};
             const map = {};
+
+            // 2. Agrupamos por página
             annotations.forEach(note => {
                 if(!map[note.page]) map[note.page] = [];
                 map[note.page].push(note.data);
             });
 
+            // 3. Reconstruimos el formato JSON de FabricJS
             for (const [page, objects] of Object.entries(map)) {
                 this.pageData[page] = JSON.stringify({ version: "5.3.0", objects: objects });
             }
+
+            console.log(`✅ Anotaciones cargadas en memoria para ${Object.keys(this.pageData).length} páginas.`);
             
-            // Cargar datos actuales si existen
-            if (this.annotations && this.pageData[this.pageNum]) {
-                this.annotations.loadJSON(this.pageData[this.pageNum]);
+            // 4. FIX CRÍTICO: Si el usuario ya está viendo una página y acaban de llegar los datos,
+            // forzamos la carga inmediata. (Resuelve el problema de la condición de carrera).
+            if (this.annotations && this.currentTab === 'pdf') {
+                const currentPageData = this.pageData[this.pageNum];
+                if (currentPageData) {
+                    console.log(`🔄 Aplicando anotaciones tardías a página ${this.pageNum}`);
+                    this.annotations.loadJSON(currentPageData);
+                }
             }
             
         } catch (e) { console.error("Error cargando notas:", e); }
     }
 
     bindUI() {
-        // Zoom
         const btnZoomIn = this.el('zoom-in');
         const btnZoomOut = this.el('zoom-out');
         if(btnZoomIn) btnZoomIn.onclick = () => this.changeZoom(0.2);
         if(btnZoomOut) btnZoomOut.onclick = () => this.changeZoom(-0.2);
 
-        // Pestañas
         const tabMusic = this.el('tabMusicBtn');
         const tabPdf = this.el('tabPdfBtn');
         const tabBoard = this.el('tabBoardBtn');
@@ -264,7 +266,6 @@ export class ScoreLogic {
         if(tabPdf) tabPdf.onclick = () => { this.saveLocalState(); this.switchTab('pdf'); };
         if(tabBoard) tabBoard.onclick = () => { this.saveLocalState(); this.switchTab('whiteboard'); };
 
-        // Estante y Paginación
         const btnOpen = this.el('btnOpenShelf');
         const btnClose = this.el('btnCloseShelf');
         if(btnOpen) btnOpen.onclick = () => { this.el('shelf-modal').style.display = 'block'; this.loadShelf(); };
@@ -278,7 +279,6 @@ export class ScoreLogic {
         const btnUpload = this.el('btnUploadScore');
         if(btnUpload) btnUpload.onclick = () => this.uploadScore();
 
-        // --- BARRA DE HERRAMIENTAS ---
         const toolbar = this.el('drawing-toolbar');
         if (toolbar) {
             const btnMove = this.el('tool-move');
@@ -349,7 +349,6 @@ export class ScoreLogic {
         this.renderPage(this.pageNum);
     }
 
-    // --- LÓGICA DE PESTAÑAS Y ACTIVACIÓN ---
     switchTab(tab) {
         this.currentTab = tab;
         
@@ -362,11 +361,9 @@ export class ScoreLogic {
         const btnBoard = this.el('tabBoardBtn');
         const toolbar = this.el('drawing-toolbar');
 
-        // 1. Ocultar todo
         [modeMusic, modePdf, modeBoard].forEach(el => { if(el) { el.classList.add('hidden'); el.style.display = 'none'; }});
         [btnMusic, btnPdf, btnBoard].forEach(el => { if(el) el.classList.remove('active'); });
 
-        // 2. Activar seleccionado
         if (tab === 'music') {
             if(modeMusic) { modeMusic.classList.remove('hidden'); modeMusic.style.display = 'flex'; }
             if(btnMusic) btnMusic.classList.add('active');
@@ -385,7 +382,6 @@ export class ScoreLogic {
             else this.loadShelf();
 
         } else if (tab === 'whiteboard') {
-            // Guardar última página PDF
             if (typeof this.pageNum === 'number') this.lastPdfPage = this.pageNum;
             this.pageNum = 'whiteboard'; 
 
@@ -399,12 +395,9 @@ export class ScoreLogic {
                 this.resizeWhiteboard();
                 window.dispatchEvent(new CustomEvent('whiteboard-active')); 
                 
-                // LÓGICA DE PERSISTENCIA Y SYNC
                 if (this.pageData['whiteboard']) {
-                    // Si ya tengo datos locales, los cargo
                     this.annotations.loadJSON(this.pageData['whiteboard']);
                 } else {
-                    // Si no tengo datos, los PIDO A LA SALA (Sync tardío)
                     console.log("📡 Nuevo en pizarra: Pidiendo estado al profesor...");
                     this.socket.emit('wb-request-sync', { room: this.getRoomCode(), page: 'whiteboard' });
                 }
@@ -423,11 +416,12 @@ export class ScoreLogic {
             this.pageNum = newPage;
             this.renderPage(this.pageNum);
             
+            // --- FIX: ENVIAR SCORE ID AL SERVIDOR ---
             this.socket.emit('update-pdf-state', { 
                 url: this.currentUrl, 
                 page: this.pageNum,
                 roomCode: this.getRoomCode(),
-                scoreId: this.currentScoreId
+                scoreId: this.currentScoreId // <--- IMPORTANTE
             });
         }
     }
@@ -446,6 +440,9 @@ export class ScoreLogic {
         if(controls) controls.style.display = 'flex';
 
         this.zoomLevel = 1.0;
+        
+        // Iniciamos la carga de anotaciones, pero NO esperamos (await) aquí para no bloquear la UI.
+        // La función loadAnnotationsFromDB ahora se encarga de actualizar la UI cuando termine.
         if(scoreId) this.loadAnnotationsFromDB(scoreId);
 
         pdfjsLib.getDocument(url).promise.then(pdf => {
@@ -465,60 +462,99 @@ export class ScoreLogic {
     }
 
     renderPage(num) {
+        const safeNum = Math.max(1, parseInt(num) || 1);
+        this.pageNum = safeNum;
+        
+        // FIX: Actualizar número de página en la UI ANTES del proceso asíncrono
+        // Esto elimina el "0 / 5" en Aurora
+        if(this.el('page-num')) this.el('page-num').textContent = safeNum;
+    
+        if (this.annotations) this.annotations.canvas.clear(); 
+    
+        if (!this.pdfDoc) return;
+    
         this.pageRendering = true;
-        this.pdfDoc.getPage(num).then(page => {
+        this.pdfDoc.getPage(safeNum).then(page => {
             const container = this.el('pdf-container');
             const canvas = this.el('pdf-render');
             if(!container || !canvas) return;
-
+    
+            let availableWidth = container.clientWidth * 0.95;
+            
+            // FIX PANTALLA GRIS: Re-intento si el contenedor no tiene tamaño aún
+            if (availableWidth <= 0) {
+                console.warn("⚠️ Contenedor sin ancho, re-intentando render en 150ms...");
+                setTimeout(() => this.renderPage(safeNum), 150);
+                return;
+            }
+    
             const viewportRaw = page.getViewport({scale: 1});
-            const availableWidth = container.clientWidth * 0.95;
             this.baseScale = availableWidth / viewportRaw.width;
             const finalScale = this.baseScale * this.zoomLevel;
             const viewport = page.getViewport({scale: finalScale});
-
+    
             canvas.height = viewport.height;
             canvas.width = viewport.width;
-
+    
             const ctx = canvas.getContext('2d');
             page.render({ canvasContext: ctx, viewport: viewport }).promise.then(() => {
                 this.pageRendering = false;
                 
                 if (this.annotations && this.currentTab === 'pdf') {
                     this.annotations.updateDimensions(viewport.width, viewport.height, finalScale);
-                    const savedData = this.pageData[num];
-                    this.annotations.loadJSON(savedData || null);
+                    const savedData = this.pageData[safeNum] || this.pageData[String(safeNum)];
+                    if (savedData) this.annotations.loadJSON(savedData);
                 }
             });
         });
-        if(this.el('page-num')) this.el('page-num').textContent = num;
     }
 
     handleRemoteUpdate(data) {
         const state = data.pdfState;
         if(!state) return;
-
-        if (state.url && state.url !== this.currentUrl) {
-            this.openPdf(state.url, "Sincronizado", state.page, data.scoreId); 
-        } else if (state.page && parseInt(state.page) !== parseInt(this.pageNum)) {
-            if (this.currentTab === 'pdf') {
-                this.saveLocalState();
-                this.pageNum = parseInt(state.page);
-                if(this.pdfDoc) this.renderPage(this.pageNum);
-            } else {
-                this.lastPdfPage = parseInt(state.page);
-            }
+    
+        if (state.scoreId && state.scoreId !== this.currentScoreId) {
+            this.currentScoreId = state.scoreId;
+            this.loadAnnotationsFromDB(state.scoreId);
         }
+    
+        // Delay de 350ms: tiempo suficiente para que Aurora (Firefox) abra la pestaña 
+        // y el contenedor tenga dimensiones reales antes de dibujar.
+        setTimeout(() => {
+            if (state.url && (state.url !== this.currentUrl || !this.pdfDoc)) {
+                this.openPdf(state.url, "Sincronizado", state.page, state.scoreId); 
+            } else if (state.page) {
+                const targetPage = Math.max(1, parseInt(state.page) || 1);
+                if (parseInt(this.pageNum) !== targetPage) {
+                    this.saveLocalState();
+                    if(this.pdfDoc) this.renderPage(targetPage);
+                }
+            }
+        }, 350);
     }
-
-    silentLoad(url, page) {
+    silentLoad(url, page, scoreId) {
         if(!url) return;
+        
+        // 1. Cambiar a la pestaña PDF primero para que el contenedor tenga tamaño
         this.switchTab('pdf'); 
+        
+        // 2. Cargar anotaciones de la base de datos inmediatamente
+        this.currentScoreId = scoreId;
+        if(scoreId) this.loadAnnotationsFromDB(scoreId);
+    
         if (this.currentUrl !== url) {
-            this.openPdf(url, "Modo Espía", page);
+            // 3. Si es un PDF nuevo, abrirlo (esto hace el renderPage internamente)
+            this.openPdf(url, "Modo Espía", page, scoreId);
         } else {
+            // 4. Si ya es el mismo PDF, solo saltar de página
             this.pageNum = parseInt(page);
-            this.renderPage(this.pageNum);
+            
+            // El retraso de 100ms evita el "cuadro gris" al esperar que el CSS se asiente
+            setTimeout(() => {
+                if(this.pdfDoc) {
+                    this.renderPage(this.pageNum);
+                }
+            }, 100);
         }
     }
 

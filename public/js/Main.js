@@ -31,6 +31,7 @@ const freeBoard = new FreeBoard(scoreLogic); // Nueva Pizarra Musical
 let currentBroadcaster = null;
 let teacherId = null;
 let myId = null;
+let spiedUserId = null;
 
 // 3. GESTIÓN VISUAL DEL ESTADO (Corregido: Ahora lo maneja Main.js)
 const statusDiv = document.getElementById('status');
@@ -226,42 +227,44 @@ bus.on("ui-tab-change", (tab) => {
     ui.switchTab(tab); 
 });
 
-bus.on("ui-spy-user", (pdfState) => {
-    scoreLogic.silentLoad(pdfState.url, pdfState.page);
+bus.on("ui-spy-user", (data) => {
+    spiedUserId = data.userId; 
+    // Limpiamos memoria para que los dibujos del alumno anterior no se vean en el nuevo
+    scoreLogic.pageData = {}; 
+    scoreLogic.silentLoad(data.url, data.page, data.scoreId);
 });
-
 // 👇 NUEVO: Lógica del "Atril Compartido" (Broadcast PDF)
 bus.on("remote-pdf", (data) => {
-    const senderId = data.userId; // ID de quien cambió la página
+    const senderId = data.userId; 
+    let userRole = 'student';
+    try {
+        const saved = localStorage.getItem('pianoUser');
+        if (saved) userRole = JSON.parse(saved).role || 'student';
+    } catch(e) {}
     
-    // 1. Obtener mi rol
-    const myRole = JSON.parse(localStorage.getItem('pianoUser') || '{}').role;
-    const iAmTeacher = (myRole === 'teacher' || myRole === 'admin');
+    const iAmTeacher = (userRole === 'teacher' || userRole === 'admin');
+    let shouldSync = false;
 
-    let shouldSync = false; // Por defecto: MODO PRIVADO (Ignorar a los demás)
-
-    // 2. Reglas de la Clase Magistral
-    if (currentBroadcaster) {
-        // Estamos en modo "En Vivo"
-        const isSenderTeacher = (senderId === teacherId);
-        const isSenderBroadcaster = (senderId === currentBroadcaster);
-
-        // Aceptamos la orden SOLO si viene del Profe o de la Estrella
-        if (isSenderTeacher || isSenderBroadcaster) {
-            shouldSync = true;
-        }
+    if (currentBroadcaster && senderId === currentBroadcaster) {
+        shouldSync = true;
     } 
-    // NOTA: Si currentBroadcaster es null, shouldSync se queda en false.
-    // Esto garantiza que en práctica normal, nadie le mueve la hoja a nadie.
+    else if (!iAmTeacher && !currentBroadcaster && senderId === teacherId) {
+        shouldSync = true;
+    }
+    else if (iAmTeacher && senderId === spiedUserId) {
+        shouldSync = true;
+    }
 
-    // 3. Ejecutar sincronización
     if (shouldSync) {
-        // Forzamos visualmente la pestaña de PDF para que todos presten atención
-        ui.switchTab('pdf'); 
+        // AUTOMÁTICO: Forzamos la pestaña PDF para asegurar que el visor exista
+        // Esto evita que Aurora se quede en una pantalla muerta al iniciar broadcast
+        if (ui.currentTab !== 'pdf') {
+            ui.switchTab('pdf'); 
+        }
+        
         scoreLogic.handleRemoteUpdate(data);
     }
 });
-
 
 bus.on("ui-panic", () => {
     audio.scheduler.stopAll(); // Mata el sonido

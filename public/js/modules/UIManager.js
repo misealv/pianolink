@@ -5,7 +5,7 @@
 export class UIManager {
     constructor(eventBus) {
         this.bus = eventBus;
-        
+        this.currentTab = 'music';
         // --- REFERENCIAS DOM ---
         this.piano = document.getElementById("piano");
         this.participantsList = document.getElementById("participantsList");
@@ -272,16 +272,20 @@ export class UIManager {
                         📡
                     </button>
                 `;
-                // B) BOTÓN OJO (👁️)
-                if (u.pdfState && u.pdfState.url) {
-                    const safeData = encodeURIComponent(JSON.stringify(u.pdfState));
-                    controls += `
-                        <button class="btn-spy" data-pdf="${safeData}" title="Ver Partitura" 
-                            style="background:none; border:none; cursor:pointer; font-size:15px; opacity:0.8;">
-                            👁️
-                        </button>`;
-                }
+               // B) BOTÓN OJO (👁️)
+               if (u.pdfState && u.pdfState.url) {
+                // El scoreId debe venir dentro de pdfState (lo configuramos en server.js)
+                const safeData = encodeURIComponent(JSON.stringify(u.pdfState));
+                controls += `
+                <button class="btn-spy" 
+                data-pdf="${safeData}" 
+                data-user-id="${u.socketId}" 
+                title="Ver Partitura"
+                style="background:none; border:none; cursor:pointer; font-size:15px; opacity:0.8;">
+                👁️
+            </button>`;
             }
+        }
 
             return `
             <div class="participant-row" style="display:flex; align-items:center; padding:5px; border-bottom:1px solid #333;">
@@ -305,8 +309,16 @@ export class UIManager {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 try {
-                    const pdfData = JSON.parse(decodeURIComponent(btn.dataset.pdf));
-                    this.bus.emit("ui-spy-user", pdfData);
+                    const pdfState = JSON.parse(decodeURIComponent(btn.dataset.pdf));
+                    const targetUserId = btn.dataset.userId; // <--- CAPTURAMOS EL ID
+        
+                    this.bus.emit("ui-spy-user", {
+                        url: pdfState.url,
+                        page: pdfState.page,
+                        scoreId: pdfState.scoreId,
+                        userId: targetUserId // <--- ENVIAMOS EL ID AL BUS
+                    });
+                    
                 } catch(err) { console.error("Error spy:", err); }
             });
         });
@@ -490,23 +502,45 @@ export class UIManager {
             }
         }
     }
-
     switchTab(mode) {
+        if (this.currentTab === mode) return; 
+        this.currentTab = mode;
+    
         const music = document.getElementById("modeMusic");
         const pdf = document.getElementById("modePdf");
+        const board = document.getElementById("modeWhiteboard");
+        
         const btnM = document.getElementById("tabMusicBtn");
         const btnP = document.getElementById("tabPdfBtn");
+        const btnB = document.getElementById("tabBoardBtn");
+    
+        // 1. Ocultar contenedores
+        [music, pdf, board].forEach(el => {
+            if (el) {
+                el.classList.add("hidden");
+                el.style.display = "none";
+            }
+        });
+        [btnM, btnP, btnB].forEach(btn => btn?.classList.remove("active"));
+    
+        // 2. Mostrar modo seleccionado
         if (mode === 'music') {
-            music?.classList.remove("hidden");
-            if(pdf) { pdf.classList.add("hidden"); pdf.style.display = "none"; }
-            btnM?.classList.add("active"); btnP?.classList.remove("active");
-        } else {
-            music?.classList.add("hidden");
-            if(pdf) { pdf.classList.remove("hidden"); pdf.style.display = "flex"; }
-            btnP?.classList.add("active"); btnM?.classList.remove("active");
+            if (music) { music.classList.remove("hidden"); music.style.display = "flex"; }
+            btnM?.classList.add("active");
+        } else if (mode === 'pdf') {
+            if (pdf) { pdf.classList.remove("hidden"); pdf.style.display = "flex"; }
+            btnP?.classList.add("active");
+        } else if (mode === 'whiteboard') {
+            if (board) { board.classList.remove("hidden"); board.style.display = "flex"; }
+            btnB?.classList.add("active");
         }
+        
+        // 3. FIX: Delay para que el navegador recalcule dimensiones (Evita pantalla gris)
+        // Usamos un pequeño delay para asegurar que el display:flex ya sea efectivo
+        setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+        }, 20); 
     }
-
     initLogger() {
         if (!this.logTerminal) return;
         this.bus.on("net-status", (status) => this.log(`Red: ${status}`, status === 'ONLINE' ? 'success' : 'error'));

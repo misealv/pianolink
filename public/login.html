@@ -119,6 +119,39 @@
     }
     .btn-text:hover { opacity: 1; text-decoration: underline; }
 
+    /* --- NUEVA SECCIÓN: PARTNERSHIP --- */
+    .partnership-box {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #333;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .partnership-label {
+        font-size: 10px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+    .partnership-logo {
+        max-width: 140px;
+        height: auto;
+        border-radius: 4px;
+        transition: transform 0.2s, opacity 0.2s;
+        
+        /* 🔥 TRUCO CSS: Convierte el logo a BLANCO PURO */
+        filter: brightness(0) invert(1);
+        opacity: 0.7; /* Un poco transparente para que no brille tanto */
+    }
+    
+    .partnership-logo:hover {
+        transform: scale(1.05);
+        opacity: 1; /* Al pasar el mouse se pone 100% blanco brillante */
+        cursor: pointer;
+    }
+
     /* --- MODAL --- */
     .modal-overlay {
         display: none;
@@ -217,6 +250,14 @@
             ✨ Ver Profesores Fundadores
         </button>
     </div>
+
+    <div class="partnership-box">
+        <span class="partnership-label">Alianza Estratégica</span>
+        <a href="https://www.mysolutions.cl" target="_blank" rel="noopener noreferrer">
+            <img src="MySolutions-231x73.webp" alt="MySolutions Logo" class="partnership-logo">
+        </a>
+    </div>
+
   </div>
 
   <div id="foundersModal" class="modal-overlay">
@@ -263,7 +304,7 @@
         } catch (e) { console.log("Usando marca por defecto"); }
     })();
 
-    // --- 1. LÓGICA DE LOGIN (CORREGIDA PARA REDIRECCIÓN) ---
+    // --- 1. LÓGICA DE LOGIN ---
     const form = document.getElementById('loginForm');
     const msg = document.getElementById('msg');
 
@@ -291,15 +332,11 @@
           msg.style.color = "#b4e080"; 
           msg.textContent = "✅ Acceso concedido. Redirigiendo...";
           
-          // ✅ FIX IMPORTANTE: 
-          // Detectamos si el servidor devuelve { user: ... } o el objeto user directo
-          // para asegurarnos de guardar y leer los datos correctamente.
           const userToSave = data.user || data;
 
           localStorage.setItem('pianoUser', JSON.stringify(userToSave));
           
           setTimeout(() => {
-            // Usamos userToSave para leer el rol
             if (userToSave.role === 'admin') {
               window.location.href = "admin.html";
             } else if (userToSave.role === 'teacher') {
