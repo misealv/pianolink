@@ -94,7 +94,11 @@ io.on("connection", (socket) => {
             dat: buffer
         });
     });
-
+   
+   //Ping para saber latencia
+    socket.on("latency-ping", (startTime) => {
+        socket.emit("latency-pong", startTime); 
+    });
    // --- GESTIÓN DE ESTADO (PDF Y CLASE) ---
 
    socket.on("update-pdf-state", (newState) => {

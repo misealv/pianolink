@@ -50,6 +50,10 @@ export class UIManager {
         // Activamos el Resizer (Arrastrar pizarra)
         this.initResizer();
         
+        // Para el auto-release automático
+        this.noteTimeouts = new Map();
+
+
         console.log("✅ UIManager Listo. Overlay detectado:", !!this.waitingOverlay);
     }
 
@@ -164,29 +168,54 @@ export class UIManager {
 
     // --- ILUMINACIÓN DE TECLAS (CON SPLIT) ---
     highlightKey(note, velocity) {
-        // Buscamos la tecla (asegurando compatibilidad de selectores)
+        // 1. Buscar la tecla física en el piano visual
         const key = this.piano.querySelector(`.key[data-note-midi="${note}"]`);
-        if (!key) return;
-
-        let color = this.baseColor;
-        
-        // A) Determinar el color si el split está activo
-        if (this.isSplit) {
-            color = (note < this.splitPoint) ? this.splitColorL : this.splitColorR;
+        if (!key) return; // Si la nota está fuera del rango (21-108), salir
+    
+        // 2. GESTIÓN DEL WATCHDOG (Limpieza automática)
+        if (this.noteTimeouts.has(note)) {
+            clearTimeout(this.noteTimeouts.get(note));
+            this.noteTimeouts.delete(note);
         }
-
-        // B) Aplicar el color y el brillo
+    
+        // 3. LÓGICA DE COLOREADO
         if (velocity > 0) {
+            // Determinamos el color (Normal o Split)
+            let color = this.baseColor;
+            if (this.isSplit) {
+                color = (note < this.splitPoint) ? this.splitColorL : this.splitColorR;
+            }
+    
+            // Aplicamos el estilo visual
             const opacity = 0.4 + (velocity / 127) * 0.6;
             key.style.backgroundColor = this.hexToRgba(color, opacity);
             key.style.boxShadow = `0 0 10px ${color}`;
             key.classList.add("note-active");
+    
+            // PROGRAMAR AUTO-RELEASE: Si no llega el NoteOff en 10s, se limpia sola
+            const timeout = setTimeout(() => {
+                console.warn(`⏱️ Watchdog: Nota ${note} liberada por timeout.`);
+                this.highlightKey(note, 0); 
+            }, 10000); 
+    
+            this.noteTimeouts.set(note, timeout);
+    
         } else {
+            // 4. NOTA LIBERADA (Velocity 0)
             key.classList.remove("note-active");
-            this.restoreKeyColor(key, note);
+            this.restoreKeyColor(key, note); // Restaura el color base
         }
     }
-
+    clearPiano() {
+        if (!this.piano) return;
+        // Buscamos todas las teclas que tengan la clase de actividad
+        const activeKeys = this.piano.querySelectorAll(".note-active");
+        activeKeys.forEach(key => {
+            key.classList.remove("note-active");
+            const note = parseInt(key.getAttribute('data-note-midi'), 10);
+            this.restoreKeyColor(key, note); // Restauramos color original según Split
+        });
+    }
     // Helper para restaurar el color de reposo (Negro/Blanco o Zona Split)
     restoreKeyColor(key, note) {
         if (!key) return;
@@ -599,6 +628,28 @@ export class UIManager {
         }
     }
 
-
+    updateLatencyUI(rtt) {
+        // Buscamos el div de estado que ya tienes en el HTML
+        const statusDiv = document.getElementById('status');
+        if (!statusDiv) return;
+    
+        // Determinamos un color sutil (gris si está bien, naranja si hay riesgo)
+        let color = "#666"; // Muy discreto
+        if (rtt > 300) color = "#e67e22"; // Naranja si supera el Jitter Buffer
+    
+        // Buscamos o creamos un pequeño span para no romper el texto actual
+        let latencySpan = document.getElementById('latency-monitor');
+        if (!latencySpan) {
+            latencySpan = document.createElement('span');
+            latencySpan.id = 'latency-monitor';
+            latencySpan.style.fontSize = '9px';
+            latencySpan.style.marginLeft = '10px';
+            latencySpan.style.opacity = '0.7';
+            statusDiv.appendChild(latencySpan);
+        }
+    
+        latencySpan.innerText = `[Ping: ${rtt}ms]`;
+        latencySpan.style.color = color;
+    }
 
 }

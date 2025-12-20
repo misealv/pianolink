@@ -23,6 +23,10 @@ export class SocketClient {
             if (decoded) this.bus.emit("remote-note", { ...decoded, fromId: packet.src });
         });
 
+        this.socket.on("latency-pong", (startTime) => {
+            const rtt = Date.now() - startTime;
+            this.bus.emit("net-latency", rtt); // Notificar al sistema el RTT (Round Trip Time)
+        });
         this.socket.on("room-users", (users) => this.bus.emit("room-users", users));
         this.socket.on("class-status", (status) => this.bus.emit("class-status", status));
         this.socket.on("user-pdf-updated", (data) => this.bus.emit("remote-pdf", data));
@@ -36,7 +40,11 @@ export class SocketClient {
             this.bus.emit("app-force-exit"); 
         });
     }
-
+    sendPing() {
+        if (this.socket.connected) {
+            this.socket.emit("latency-ping", Date.now());
+        }
+    }
     joinRoom(code, name, role) {
         this.roomCode = code;
         this.socket.emit("join-room", { roomCode: code, username: name, userRole: role });

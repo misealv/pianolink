@@ -41,25 +41,26 @@ export class AudioScheduler {
         // 1. CALCULAR TIEMPO EXACTO (Jitter Correction)
         let scheduledTime = this.ctx.currentTime; // Por defecto: YA
 
-        if (timestamp) {
-            // Si es la primera nota que recibimos, sincronizamos los relojes
-            if (!this.isSynced) {
-                // syncOffset = (HoraLocal - HoraRemota)
-                this.syncOffset = (this.ctx.currentTime * 1000) - timestamp;
-                this.isSynced = true;
-                console.log("⏱️ Sincronización de reloj establecida.");
-            }
+if (timestamp) {
+    if (!this.isSynced) {
+        this.syncOffset = (this.ctx.currentTime * 1000) - timestamp;
+        this.isSynced = true;
+    }
 
-            // Calculamos cuándo debe sonar esta nota en el tiempo local
-            // TiempoRemoto + Diferencia + BufferSeguridad
-            const targetTimeMs = timestamp + this.syncOffset + this.BUFFER_MS;
-            scheduledTime = targetTimeMs / 1000; // Convertir a segundos para WebAudio
+    const targetTimeMs = timestamp + this.syncOffset + this.BUFFER_MS;
+    scheduledTime = targetTimeMs / 1000;
 
-            // SEGURIDAD: Si la nota llegó muy tarde (lag extremo), la tocamos ya.
-            if (scheduledTime < this.ctx.currentTime) {
-                scheduledTime = this.ctx.currentTime;
-            }
-        }
+    // --- CORRECCIÓN DE DERIVA ---
+    // Si la nota llega con más de 1.5 segundos de desvío del reloj actual,
+    // forzamos una re-sincronización en la siguiente nota.
+    if (Math.abs(scheduledTime - this.ctx.currentTime) > 1.5) {
+        this.isSynced = false; 
+    }
+
+    if (scheduledTime < this.ctx.currentTime) {
+        scheduledTime = this.ctx.currentTime;
+    }
+}
 
         // Lógica MIDI estándar
         const isNoteOn = (status >= 144 && status <= 159) && data2 > 0;

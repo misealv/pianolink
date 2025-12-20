@@ -31,7 +31,7 @@ export class MidiProtocol {
         this.view.setUint8(11, data1);
         this.view.setUint8(12, data2);
 
-        return this.buffer; // Retorna la referencia al buffer
+        return this.buffer.slice(0); // Retorna la referencia al buffer
     }
 
     /**

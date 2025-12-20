@@ -58,6 +58,28 @@ if (statusDiv && socket) {
     await audio.init();
 })();
 
+// --- MONITOR DE LATENCIA DISCRETO (SOLO PROFE) ---
+const checkTeacherRole = () => {
+    try {
+        const saved = JSON.parse(localStorage.getItem('pianoUser') || '{}');
+        return saved.role === 'teacher' || saved.role === 'admin';
+    } catch(e) { return false; }
+};
+
+if (checkTeacherRole()) {
+    // 1. Escuchar el resultado y enviarlo a la UI
+    bus.on("net-latency", (rtt) => {
+        ui.updateLatencyUI(rtt);
+    });
+
+    // 2. Iniciar pulso cada 5 segundos (discreto y bajo consumo)
+    setInterval(() => {
+        socketManager.sendPing();
+    }, 5000);
+}
+
+
+
 /* EN public/js/Main.js */
 
 // ... (después de tus imports y lógica de conexión) ...
@@ -267,8 +289,9 @@ bus.on("remote-pdf", (data) => {
 });
 
 bus.on("ui-panic", () => {
-    audio.scheduler.stopAll(); // Mata el sonido
-    whiteboard.drawEmpty();    // Limpia las teclas rojas de la pantalla
+    audio.scheduler.stopAll(); // Detiene el sonido en el Scheduler
+    ui.clearPiano();           // Limpia las teclas visuales (NUEVO)
+    whiteboard.drawEmpty();    // Limpia la pizarra
 });
 // --- GESTIÓN DE SALIDA Y CIERRE ---
 
