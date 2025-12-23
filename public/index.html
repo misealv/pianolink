@@ -13,7 +13,8 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-
+  <script src="https://unpkg.com/fabric-eraser-brush@2.0.2/dist/index.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     /* Estilos del Visor PDF (Atril) */
     .pdf-viewer-container {
@@ -22,13 +23,12 @@
     }
     canvas#pdf-render { 
     box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
-    display: block; /* Elimina espacios fantasma */
+    display: block; 
     }   
 
-    /* Aplica el margen al wrapper para que AMBOS canvas se muevan juntos */
     #score-wrapper {
         margin: 20px 0;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.5); /* Sombra al conjunto */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
 
     .pdf-controls-floating {
@@ -42,10 +42,8 @@
     .score-card:hover { background: #3a3a3a; border-color: var(--accent, #ff764d); transform: translateY(-2px); }
     .score-icon { font-size: 30px; margin-bottom: 5px; }
     .score-title { font-weight: bold; font-size: 0.85rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
-    .score-meta { font-size: 0.7rem; color: #aaa; }
     .upload-area { border: 2px dashed #444; padding: 20px; text-align: center; border-radius: 8px; background: #252525; margin-bottom: 20px; }
 
-    /* Estilos para el botón de estado */
     .status-indicator {
           font-size: 11px; padding: 6px 12px; background: #333; border-radius: 20px;
           border: 1px solid #444; transition: all 0.3s ease; font-weight: bold;
@@ -56,13 +54,217 @@
           box-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
       }
       
-      /* Ajuste para que la barra de herramientas flote correctamente sobre cualquier modo */
       .drawing-toolbar {
           position: absolute;
           top: 10px;
           right: 20px;
-          z-index: 1000; /* Asegurar que esté por encima de todo */
+          z-index: 1000;
       }
+/* --- NUEVO CÓDIGO: Estilos para la Barra Profesional y Sub-menú --- */
+
+/* Contenedor principal de la barra vertical */
+.drawing-toolbar {
+    background: rgba(30, 30, 30, 0.95);
+    padding: 10px 6px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Botones generales de herramientas */
+.tool-btn, .tool-sub-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: #333;
+    color: #eee;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s ease;
+}
+
+.tool-btn:hover, .tool-sub-btn:hover {
+    background: #444;
+    color: var(--accent, #ff764d);
+    transform: scale(1.05);
+}
+
+.tool-btn.active {
+    background: var(--accent, #ff764d);
+    color: #000;
+    box-shadow: 0 0 10px rgba(255, 118, 77, 0.4);
+}
+
+/* Separadores visuales */
+.tool-separator {
+    width: 80%;
+    height: 1px;
+    background: #444;
+    margin: 4px 0;
+}
+
+/* LÓGICA DEL SUB-MENÚ (🎼) */
+.tool-group {
+    position: relative; /* Base para el posicionamiento absoluto del sub-menú */
+}
+
+/* Nueva clase para mostrar el menú mediante clic */
+.tool-group.open .tool-submenu {
+    display: flex !important;
+}
+
+/* Ajuste de posición para que no haya huecos */
+.tool-submenu {
+    display: none;
+    position: absolute;
+    right: 48px; /* Ajustado para que pegue a la barra */
+    top: -5px;
+    background: rgba(30, 30, 30, 0.98);
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.4);
+    z-index: 1100;
+}
+
+/* Añadimos un "puente" invisible para que el mouse no pierda el foco */
+.tool-submenu::after {
+    content: "";
+    position: absolute;
+    right: -15px;
+    top: 0;
+    width: 20px;
+    height: 100%;
+}
+
+/* Estilo específico para los símbolos de notación dentro del sub-menú */
+.tool-sub-btn {
+    font-family: 'serif';
+    font-size: 22px;
+    width: 40px;
+    height: 40px;
+}
+.folder-card {
+    background: #2c3e50 !important;
+    border-bottom: 4px solid #f1c40f !important;
+}
+.folder-card:hover {
+    background: #34495e !important;
+}
+
+.score-card[draggable="true"] {
+    cursor: grab;
+}
+.score-card[draggable="true"]:active {
+    cursor: grabbing;
+}
+.folder-card.drag-over {
+    background: #34495e !important;
+    border: 2px dashed var(--accent) !important;
+    transform: scale(1.05);
+    transition: 0.2s;
+}
+.btn-delete {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(255,0,0,0.2);
+    border: none;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 10px;
+    padding: 2px 5px;
+    opacity: 0;
+    transition: 0.2s;
+}
+.score-card:hover .btn-delete {
+    opacity: 1;
+}
+.btn-delete:hover {
+    background: red;
+}
+.folder-card {
+    position: relative; /* Para posicionar el botón de borrado */
+}
+
+/* Feedback visual al arrastrar */
+.folder-card.drag-over {
+    background: #34495e !important;
+    border: 2px dashed var(--accent, #ff764d) !important;
+    transform: scale(1.05);
+}
+
+.score-card { position: relative; }
+.btn-delete {
+    position: absolute; top: 5px; right: 5px;
+    background: rgba(255,0,0,0.6); color: white; border: none;
+    border-radius: 3px; cursor: pointer; opacity: 0; transition: 0.2s;
+    font-size: 10px; padding: 2px 5px;
+}
+.score-card:hover .btn-delete { opacity: 1; }
+.btn-delete:hover { background: red; }
+
+.btn-edit {
+    position: absolute;
+    top: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 10px;
+    padding: 2px 5px;
+    opacity: 0;
+    transition: 0.2s;
+}
+.score-card:hover .btn-edit { opacity: 1; }
+.btn-edit:hover { background: var(--accent); color: black; }
+/* public/index.html o style.css */
+.btn-delete, .btn-edit {
+    position: absolute;
+    top: 5px;
+    z-index: 10; /* Asegura que el botón esté sobre el contenido */
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    font-size: 11px;
+    opacity: 0.6;
+    transition: 0.2s;
+}
+
+.score-card:hover .btn-delete, 
+.score-card:hover .btn-edit {
+    opacity: 1;
+}
+
+.btn-edit:hover {
+    background: #ff764d !important;
+    color: black !important;
+}
+@font-face {
+    font-family: 'Bravura';
+    src: url('https://cdn.jsdelivr.net/gh/rism-digital/verovio@gh-pages/fonts/Bravura.woff2') format('woff2');
+  }
+
+  /* Aplicar la fuente específicamente a los botones del sub-menú */
+  .tool-sub-btn {
+    font-family: 'Bravura', serif !important; /* Prioriza la fuente musical */
+    font-size: 28px !important; /* Los glifos musicales suelen ser pequeños, aumentamos el tamaño */
+  }
   </style>
 </head>
 
@@ -126,15 +328,6 @@
         <div id="participantsList" class="participants-list"><div style="color:var(--text-muted); font-size:10px;">Esperando conexiones...</div></div>
       </div>
 
-      <div id="masterclassSection" class="panel hidden" style="border-color: var(--danger);">        
-        <h2 style="color:var(--danger)">📡 Masterclass / Broadcast</h2>
-        <div class="config-row">
-          <label style="cursor:pointer; display:flex; align-items:center; gap:8px;"><input type="checkbox" id="masterclassToggle"> <strong>Habilitar Modo "En el Aire"</strong></label>
-        </div>
-        <p style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">Selecciona "ON AIR" en un alumno para retransmitir su piano a todos.</p>
-        <button id="clearLiveBtn" class="danger" style="width:100%; font-size:10px;">⏹ DETENER TRANSMISIÓN</button>
-      </div>
-
       <div class="panel" style="flex:1; display:flex; flex-direction:column; min-height:100px;">
         <h2>System Log</h2>
         <div id="log" class="log-terminal"></div>
@@ -157,24 +350,40 @@
       <div class="board-container" style="position: relative;">
         
         <div id="drawing-toolbar" class="drawing-toolbar" style="display:none;">
-            <button id="tool-move" class="tool-btn active" title="Modo Navegación (Mover)">✋</button>
-            <button id="tool-pencil" class="tool-btn" title="Modo Dibujo">✏️</button>
-            <button id="tool-text" class="tool-btn" title="Insertar Texto">T</button>
-            
-            <button id="tool-circle" class="tool-btn" title="Círculo (Nota)">⭕</button>
-
-            <div class="tool-separator"></div>
-            <button id="btn-add-stave" class="tool-btn" title="Agregar Pentagrama">🎼</button>
-            <button id="btn-add-grand-stave" class="tool-btn" title="Agregar Piano">🎹</button>
-            
-            <div class="tool-separator"></div>
-            <button id="tool-laser" class="tool-btn" title="Puntero Láser">🔴</button>
-            <div class="tool-separator"></div>
-            <input type="color" id="tool-color" value="#ff0000" title="Color del Lápiz">
-            
-            <div class="tool-separator"></div>
-            <button id="tool-clear" class="tool-btn btn-danger" title="Borrar Pizarra">🗑️</button>
-        </div>
+          <button id="tool-move" class="tool-btn active" title="Mover">✋</button>
+          <button id="tool-pencil" class="tool-btn" title="Lápiz">✏️</button>
+          <button id="tool-eraser" class="tool-btn" title="Goma">🧽</button>
+          <button id="tool-text" class="tool-btn" title="Texto">T</button>
+      
+          <div class="tool-separator"></div>
+      
+          <div class="tool-group">
+              <button id="tool-notation" class="tool-btn" title="Notación Musical">🎼</button>
+              <div class="tool-submenu" id="notation-submenu">
+                  <button id="tool-sol" class="tool-sub-btn" title="Clave de Sol">𝄞</button>
+                  <button id="tool-fa" class="tool-sub-btn" title="Clave de Fa">𝄢</button>
+                  <button id="tool-do" class="tool-sub-btn" title="Clave de Do">𝄡</button>
+                  <div class="tool-separator"></div>
+                  <button id="tool-redonda" class="tool-sub-btn" title="Redonda">𝅝</button>
+                  <button id="tool-blanca" class="tool-sub-btn" title="Blanca">𝅗𝅥</button>
+                  <button id="tool-negra" class="tool-sub-btn" title="Negra">𝅘𝅥</button>
+                  <button id="tool-circle" class="tool-sub-btn" title="Pelotita">⭕</button>
+                  <div class="tool-separator"></div>
+                  <button id="tool-timesig" class="tool-sub-btn" title="Compás">4/4</button>
+              </div>
+          </div>
+      
+          <button id="tool-barline" class="tool-btn" title="Línea de Compás">|</button>
+          <button id="tool-stave" class="tool-btn" title="Añadir Pentagrama">🎹</button>
+      
+          <div class="tool-separator"></div>
+          <button id="tool-laser" class="tool-btn" title="Láser">🔴</button>
+          <input type="color" id="tool-color" value="#ff0000">
+          
+          <div class="tool-separator"></div>
+          <button id="btn-export-pdf" class="tool-btn" style="background:#2ecc71; color:white;" title="Guardar como Tarea">💾</button>
+          <button id="tool-clear" class="tool-btn btn-danger" title="Borrar">🗑️</button>
+      </div>
 
         <div id="modeMusic" class="board-mode">
             <div id="staffContainer"></div>
@@ -210,14 +419,11 @@
         </div>
 
         <div id="modeWhiteboard" class="board-mode hidden" style="display:none; position: relative; background: white; flex-direction: column;">
-            
-            <div id="whiteboard-wrapper" style="position: relative; flex: 1; width: 100%; overflow: hidden; cursor: crosshair;">
-                <canvas id="wb-background" style="position: absolute; top:0; left:0; z-index: 0; pointer-events: none;"></canvas>
+            <div id="whiteboard-wrapper" style="position: relative; flex: 1; width: 100%; overflow: hidden;">
                 <canvas id="wb-layer"></canvas> 
             </div>
-
         </div>      
-        <div id="resizeHandle" class="resize-handle" title="Arrastra para redimensionar"><span>••••</span></div>
+        <div id="resizeHandle" class="resize-handle" title="Redimensionar"><span>••••</span></div>
       </div> 
       
       <div class="piano-container">
@@ -237,12 +443,10 @@
                 <div style="display:flex; align-items:center; gap:3px;"><label style="font-size:9px; color:#aaa;">DER:</label><input type="color" id="rightColorPicker" value="#f1c40f" style="border:none; width:20px; height:20px; padding:0;"></div>
             </div>
             <div style="flex:1"></div>
-            <div id="liveStatus" style="font-size:10px; color:var(--text-muted); margin-right:10px;"></div>
-            <span id="liveBadge" class="badge badge-live">EN VIVO</span>
             <button id="panicBtn" class="danger">PANIC</button>
         </div>
         <div class="piano-wrapper"><div id="piano" class="piano"></div></div>
-        <div id="pedalIndicator" class="pedal-bar"><div class="pedal-active"></div><div id="pedalIndicator-dot" style="display:none"></div></div>
+        <div id="pedalIndicator" class="pedal-bar"><div class="pedal-active"></div></div>
         <div style="text-align:center; font-size:9px; color:var(--text-muted); margin-top:2px;">SUSTAIN</div>
       </div>
     </main>
@@ -256,16 +460,15 @@
         </div>
         <hr style="border-color:#444; margin:15px 0;">
         <div class="upload-area">
-          <h3 style="margin-top:0;">Subir Partitura (PDF)</h3>
-          <p style="font-size:11px; color:#aaa; margin-bottom:10px;">Máximo <strong>10 MB</strong> por archivo. ¿Muy pesado? <a href="https://www.ilovepdf.com/es/comprimir_pdf" target="_blank" style="color:var(--accent); text-decoration:none;">Comprimir PDF aquí</a></p>
+          <h3>Subir Partitura (PDF)</h3>
           <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-              <input type="text" id="upload-title" placeholder="Título (ej: Bach Minuet)" style="padding:8px; border-radius:4px; border:1px solid #555; background:#111; color:white; flex:1;">
+              <input type="text" id="upload-title" placeholder="Título" style="padding:8px; border-radius:4px; border:1px solid #555; background:#111; color:white; flex:1;">
               <input type="file" id="file-upload" accept="application/pdf" style="color:#aaa;">
               <button id="btnUploadScore" class="primary">☁️ Subir</button>
+              <button id="btnNewFolder" class="btn-sm" style="background:#f1c40f; color:#000; margin-left:10px;">+ Carpeta</button>
           </div>
           <p id="upload-status" style="font-size:12px; color:#aaa; margin-top:5px;"></p>
       </div>
-        <h3 style="margin-bottom:0;">Partituras Disponibles</h3>
         <div id="shelf-list" class="shelf-grid"><p style="color:#777; grid-column:1/-1;">Cargando...</p></div>
     </div>
   </div>
@@ -277,7 +480,6 @@
   <script type="module" src="/js/Main.js"></script>
 
   <script>
-   // 1. CARGAR IDENTIDAD DEL PROFESOR Y PLATAFORMA
    (async function initBranding() {
       let slug = null;
       const pathMatch = window.location.pathname.match(/\/c\/([^\/]+)/);
@@ -293,106 +495,58 @@
             const root = document.documentElement;
             if (teacher.branding && teacher.branding.colors) {
                const c = teacher.branding.colors;
-               root.style.setProperty('--accent', c.base); root.style.setProperty('--bg', c.bg); root.style.setProperty('--panel', c.panel); root.style.setProperty('--prof-color', c.base);
+               root.style.setProperty('--accent', c.base); root.style.setProperty('--bg', c.bg); root.style.setProperty('--panel', c.panel);
             }
             const logoContainer = document.getElementById('headerLogo');
             const titleContainer = document.getElementById('headerTitle');
             const subTitleContainer = document.getElementById('headerSubtitle');
 
             if (teacher.branding && teacher.branding.logoUrl) {
-                logoContainer.innerHTML = `<img src="${teacher.branding.logoUrl}" onerror="this.style.display='none'; this.parentNode.innerHTML='🎹';" style="height: 38px; width: 38px; object-fit: cover; border-radius: 6px; border: 1px solid #444;">`;
-            } else {
-                logoContainer.innerHTML = `<div style="height:35px; width:35px; background:var(--accent); color:#000; border-radius:50%; display:flex; justify-content:center; align-items:center; font-weight:bold;">${teacher.name.charAt(0)}</div>`;
+                logoContainer.innerHTML = `<img src="${teacher.branding.logoUrl}" style="height: 38px; width: 38px; object-fit: cover; border-radius: 6px;">`;
             }
             titleContainer.textContent = teacher.name.toUpperCase();
-            subTitleContainer.textContent = "SALA DE CLASES VIRTUAL | Piano Link";
-            subTitleContainer.style.color = "var(--accent)";
+            subTitleContainer.textContent = "SALA DE CLASES VIRTUAL";
           }
-        } catch (e) { console.error("Error branding:", e); }
+        } catch (e) {}
       }
     })();
 
-/// 2. IDENTIDAD GLOBAL (LOGO + FAVICON)
-(async function loadGlobalBrand() {
+    (async function loadGlobalBrand() {
         try {
-            // Conectamos con la configuración del sistema
             const res = await fetch('/api/auth/platform-public');
             const config = await res.json();
-
-            // A) LOGO EN LA BARRA (Powered By)
             if (config.logoUrl) {
                 const sysContainer = document.getElementById('systemBrand');
                 if(sysContainer) {
-                    // Aseguramos visibilidad plena
-                    sysContainer.style.opacity = "1";
-                    sysContainer.style.transform = "none";
-
-                    // Diseño: Fondo oscuro suave para resaltar el logo a color
                     sysContainer.innerHTML = `
-                        <div style="display:flex; align-items:center; gap:8px; padding: 4px 10px; border-radius: 4px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1);">
-                            <span style="font-size:9px; color:#ccc; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; font-family:'Inter', sans-serif;">
-                                Powered by
-                            </span>
-                            <img src="${config.logoUrl}" 
-                                 style="height:28px; width:auto; vertical-align:middle; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));"
-                                 alt="Piano Link">
-                        </div>
-                    `;
+                        <div style="display:flex; align-items:center; gap:8px; padding: 4px 10px; border-radius: 4px; background: rgba(0,0,0,0.25);">
+                            <span style="font-size:9px; color:#ccc;">Powered by</span>
+                            <img src="${config.logoUrl}" style="height:28px; width:auto;">
+                        </div>`;
                 }
             }
-            
-            // B) FAVICON (Icono en la pestaña/URL)
-            if (config.faviconUrl) {
-                // Buscamos si ya existe un link de icono
-                let link = document.querySelector("link[rel~='icon']");
-                // Si no existe, lo creamos
-                if (!link) { 
-                    link = document.createElement('link'); 
-                    link.rel = 'icon'; 
-                    document.head.appendChild(link); 
-                }
-                // Le asignamos la imagen del sistema
-                link.href = config.faviconUrl;
-            }
-
-            // C) TÍTULO DE LA PESTAÑA
-            if (config.name) {
-                document.title = `${config.name} | Aula Virtual`;
-            }
-            
-        } catch (e) { console.log("Usando marca por defecto"); }
+        } catch (e) {}
     })();
 
-   // 3. GESTIÓN DE ROL (Login/Invitado)
    (function() {
         const nameInput = document.getElementById('inputName');
         const roleIndicator = document.getElementById('roleIndicator');
         const urlParams = new URLSearchParams(window.location.search);
         
         if (urlParams.get('role') === 'student') {
-            if(nameInput) {
-                nameInput.value = ""; nameInput.readOnly = false; nameInput.disabled = false;
-                nameInput.style.color = "#fff"; nameInput.style.cursor = "text"; nameInput.placeholder = "Ingresa tu nombre...";
-            }
-            if(roleIndicator) { roleIndicator.textContent = "Alumno Invitado"; roleIndicator.style.background = "#5dade2"; }
+            if(nameInput) { nameInput.value = ""; nameInput.readOnly = false; }
+            if(roleIndicator) { roleIndicator.textContent = "Alumno Invitado"; }
             return; 
         }
 
         const userRaw = localStorage.getItem('pianoUser');
         if(userRaw) {
             const user = JSON.parse(userRaw);
-            if(nameInput) {
-                nameInput.value = user.name || "Usuario"; nameInput.readOnly = true; 
-                nameInput.style.color = "#888"; nameInput.style.cursor = "not-allowed";
-            }
+            if(nameInput) { nameInput.value = user.name || "Usuario"; nameInput.readOnly = true; }
             const role = user.role === 'admin' ? 'teacher' : (user.role || 'student');
             if(roleIndicator) {
                 roleIndicator.textContent = (role === 'teacher') ? "Profesor" : "Alumno";
-                roleIndicator.style.background = (role === 'teacher') ? "var(--prof-color)" : "#5dade2";
             }
-            if(role === 'teacher') { const rt = document.getElementById('radioTeacher'); if(rt) rt.checked = true; }
-        } else {
-            if(nameInput) { nameInput.readOnly = false; nameInput.style.cursor = "text"; }
         }
     })();
   </script>

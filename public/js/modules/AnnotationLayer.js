@@ -3,157 +3,199 @@ export class AnnotationLayer {
     constructor(canvasId) {
         this.canvas = new fabric.Canvas(canvasId, {
             isDrawingMode: false,
-            selection: false,
+            selection: true,
             preserveObjectStacking: true
         });
 
-        // Configuración inicial
-        this.canvas.freeDrawingBrush = new fabric.PencilBrush(this.canvas);
-        this.canvas.freeDrawingBrush.width = 3;
-        this.canvas.freeDrawingBrush.color = "#ff0000";
+        this.pencilBrush = new fabric.PencilBrush(this.canvas);
+        this.pencilBrush.width = 3;
+        this.pencilBrush.color = "#ff0000";
+
+        this.eraserBrush = null;
+        if (typeof fabric.EraserBrush === 'function') {
+            this.eraserBrush = new fabric.EraserBrush(this.canvas);
+            this.eraserBrush.width = 15;
+        }
+
         this.currentScale = 1.0;
-        this.isLaserMode = false;
         this.textColor = "#ff0000";
         this.currentMode = 'move'; 
 
-        this.laserEl = document.getElementById('remote-laser');
+        this.initEvents();
+    }
 
-        // --- EVENTOS INTERNOS ---
-
-        // 1. DIBUJO CREADO (Lápiz)
-        this.canvas.on('path:created', (e) => {
-            if (!e.path.remote) {
-                e.path.set({ id: this.generateUid(), selectable: false, evented: false });
-                this.emitCreation(e.path);
-            }
-        });
-
-        // 2. DETECTAR CLIC PARA CREAR OBJETOS (Texto o Círculos)
+    initEvents() {
         this.canvas.on('mouse:down', (opt) => {
-            if (opt.target) return; // Si clicamos sobre un objeto, no crear nada nuevo
-
+            if (opt.target && this.currentMode === 'move') return;
             const pointer = this.canvas.getPointer(opt.e);
+            const musicalModes = ['sol', 'fa', 'do', 'redonda', 'blanca', 'negra', 'circle', 'stave', 'timesig', 'barline'];
 
             if (this.currentMode === 'text') {
                 this.addTextAt(pointer);
-            } else if (this.currentMode === 'circle') {
-                this.addCircleAt(pointer);
-            }
-        });
-
-        // 3. TEXTO TERMINADO
-        this.canvas.on('text:editing:exited', (e) => {
-            if (!e.target.remote) {
-                e.target.set({ selectable: true, evented: true });
-                if(!e.target.id) {
-                    e.target.set('id', this.generateUid());
-                    this.emitCreation(e.target);
+            } else if (this.currentMode === 'stave') {
+                this.addStaveAt(pointer);
+            } else if (musicalModes.includes(this.currentMode)) {
+                if (this.currentMode === 'barline') {
+                    this.addBarlineAt(pointer);
+                } else if (this.currentMode === 'timesig') {
+                    this.addTimeSigAt(pointer);
+                } else {
+                    this.addMusicalSymbol(pointer, this.currentMode);
                 }
             }
         });
 
-        // 4. LÁSER
-        this.canvas.on('mouse:move', (opt) => {
-            if (this.isLaserMode && this.onPointerMoveCallback) {
-                const pointer = this.canvas.getPointer(opt.e);
-                this.onPointerMoveCallback({ 
-                    x: pointer.x / this.canvas.width, 
-                    y: pointer.y / this.canvas.height 
-                });
-            }
-        });
-
-        // 5. BORRAR CON TECLADO
-        window.addEventListener('keydown', (e) => {
-            if(this.canvas.getActiveObject()) {
-                if(e.key === 'Delete' || e.key === 'Backspace') {
-                    if(this.canvas.getActiveObject().isEditing) return;
-                    this.deleteSelected();
-                }
+        this.canvas.on('path:created', (e) => {
+            if (!e.path.remote) {
+                e.path.set({ id: this.generateUid() });
+                this.emitCreation(e.path);
             }
         });
     }
 
-    // --- MÉTODOS DE CREACIÓN ---
+    setMode(mode) {
+        this.currentMode = mode;
+        this.canvas.isDrawingMode = (mode === 'draw' || mode === 'eraser');
+        this.canvas.selection = (mode === 'move'); // Desactiva el cuadro azul al poner notas
+        
+        const isDrawingTool = mode !== 'move';
+        this.canvas.getObjects().forEach(o => {
+            o.set({ selectable: !isDrawingTool, evented: !isDrawingTool });
+        });
 
-    generateUid() {
-        return Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+        if (mode === 'draw') this.canvas.freeDrawingBrush = this.pencilBrush;
+        if (mode === 'eraser' && this.eraserBrush) this.canvas.freeDrawingBrush = this.eraserBrush;
+        this.canvas.requestRenderAll();
     }
 
-    emitCreation(obj) {
-        if (this.onPathCreatedCallback) {
-            // Serializamos propiedades clave incluyendo el radio y colores
-            this.onPathCreatedCallback(obj.toObject(['id', 'type', 'left', 'top', 'radius', 'stroke', 'strokeWidth', 'fill', 'width', 'height', 'scaleX', 'scaleY']));
-        }
+    addMusicalSymbol(pointer, type) {
+        const glyphs = { 
+            'sol': '\uD834\uDD1E', 'fa': '\uD834\uDD22', 'do': '\uD834\uDD21',
+            'redonda': '\uD834\uDD5D', 'blanca': '\uD834\uDD5E', 'negra': '\uD834\uDD5F', 'circle': '●' 
+        };
+        const fontSize = 40 * this.currentScale;
+        const finalY = this.calculateMagneticY(pointer.y); 
+
+        const symbol = new fabric.IText(glyphs[type] || '●', {
+            left: pointer.x, top: finalY, fontSize: fontSize,
+            fontFamily: 'Bravura, serif', fill: this.textColor,
+            originY: 'center', id: this.generateUid()
+        });
+        this.canvas.add(symbol);
+        this.emitCreation(symbol);
+    }
+
+    addStaveAt(pointer) {
+        const staveWidth = 800 * this.currentScale; 
+        const spacing = 12 * this.currentScale;
+        const createStaveGroup = (yOffset) => {
+            const lines = [];
+            for (let i = 0; i < 5; i++) {
+                lines.push(new fabric.Line([0, i * spacing, staveWidth, i * spacing], {
+                    stroke: this.textColor, strokeWidth: 1.5, selectable: false
+                }));
+            }
+            return new fabric.Group(lines, {
+                left: pointer.x, top: pointer.y + yOffset,
+                data: { type: 'stave', spacing: spacing },
+                id: this.generateUid(), selectable: true
+            });
+        };
+        const s1 = createStaveGroup(0);
+        const s2 = createStaveGroup(spacing * 7);
+        this.canvas.add(s1, s2);
+        this.emitCreation(s1); this.emitCreation(s2);
+        this.canvas.requestRenderAll();
+    }
+
+    calculateMagneticY(y) {
+        let finalY = y;
+        const staves = this.canvas.getObjects().filter(o => o.data?.type === 'stave');
+        staves.forEach(stave => {
+            if (y > stave.top - 25 && y < (stave.top + stave.height * stave.scaleY) + 25) {
+                const step = ((stave.data.spacing || 12) * stave.scaleY) / 2;
+                finalY = stave.top + Math.round((y - stave.top) / step) * step;
+            }
+        });
+        return finalY;
     }
 
     addTextAt(pointer) {
-        const text = new fabric.IText('Texto', {
+        const text = new fabric.IText('Texto...', {
             left: pointer.x, top: pointer.y,
-            fontFamily: 'Arial', fill: this.textColor, fontSize: 20 * this.currentScale,
-            id: this.generateUid(), selectable: true, evented: true
+            fontFamily: 'Arial', fontSize: 20 * this.currentScale,
+            fill: this.textColor, id: this.generateUid()
         });
         this.canvas.add(text);
-        this.canvas.setActiveObject(text);
-        text.enterEditing();
-        text.selectAll();
+        this.emitCreation(text);
     }
 
-    // --- CÍRCULO AJUSTADO A PENTAGRAMA ---
-    addCircleAt(pointer) {
-        // Radio 7px = Diámetro 14px (ideal para espacios de 15px)
-        const radius = 7 * this.currentScale; 
-        
-        const circle = new fabric.Circle({
-            left: pointer.x - radius, // Centrado exacto en el clic
-            top: pointer.y - radius,
-            radius: radius,
-            fill: 'transparent',
-            stroke: this.textColor,
-            strokeWidth: 2, // Borde un poco más fino para mayor precisión
-            id: this.generateUid(),
-            selectable: true,
-            evented: true,
-            perPixelTargetFind: true // Facilita seleccionar solo tocando el borde
+    addBarlineAt(pointer) {
+        const stave = this.canvas.getObjects().find(obj => 
+            obj.data?.type === 'stave' && 
+            pointer.y > obj.top - 20 && pointer.y < (obj.top + obj.height * obj.scaleY) + 20
+        );
+        const height = stave ? (stave.height * stave.scaleY) : 60;
+        const top = stave ? stave.top : pointer.y - 30;
+        const line = new fabric.Line([pointer.x, top, pointer.x, top + height], {
+            stroke: this.textColor, strokeWidth: 2, id: this.generateUid()
         });
-        
-        this.canvas.add(circle);
-        this.canvas.setActiveObject(circle);
-        this.emitCreation(circle); 
+        this.canvas.add(line);
+        this.emitCreation(line);
     }
 
-    // --- ACCIONES PÚBLICAS ---
+    addTimeSigAt(pointer) {
+        const text = new fabric.IText('4\n4', {
+            left: pointer.x, top: this.calculateMagneticY(pointer.y),
+            fontFamily: 'serif', fontSize: 30 * this.currentScale,
+            textAlign: 'center', fill: this.textColor, originY: 'center', id: this.generateUid()
+        });
+        this.canvas.add(text);
+        this.emitCreation(text);
+    }
 
-    deleteSelected() {
-        const activeObjects = this.canvas.getActiveObjects();
-        if (activeObjects.length) {
-            this.canvas.discardActiveObject();
-            activeObjects.forEach((obj) => {
-                const id = obj.id;
-                this.canvas.remove(obj);
-                if (this.onObjectRemovedCallback && id) {
-                    this.onObjectRemovedCallback(id);
-                }
-            });
+    generateUid() { return Math.random().toString(36).substr(2, 9) + '_' + Date.now(); }
+    emitCreation(obj) {
+        if (this.onPathCreatedCallback) {
+            this.onPathCreatedCallback(obj.toObject(['id', 'data', 'selectable', 'evented', 'scaleX', 'scaleY']));
         }
+    }
+
+    drawRemotePath(pathData) {
+        fabric.util.enlivenObjects([pathData], (objects) => {
+            objects.forEach((o) => {
+                const existing = this.canvas.getObjects().find(old => old.id === o.id);
+                if (existing) this.canvas.remove(existing);
+                o.remote = true;
+                this.canvas.add(o);
+            });
+            this.canvas.requestRenderAll();
+        });
     }
 
     removeObjectById(id) {
-        const objects = this.canvas.getObjects();
-        const obj = objects.find(o => o.id === id);
-        if (obj) {
-            this.canvas.remove(obj);
-            this.canvas.requestRenderAll();
-        }
+        const obj = this.canvas.getObjects().find(o => o.id === id);
+        if (obj) { this.canvas.remove(obj); this.canvas.requestRenderAll(); }
     }
 
-    // --- CALLBACKS ---
-    onPathCreated(cb) { this.onPathCreatedCallback = cb; }
-    onClear(cb) { this.onClearCallback = cb; }
-    onPointerMove(cb) { this.onPointerMoveCallback = cb; }
-    onObjectRemoved(cb) { this.onObjectRemovedCallback = cb; }
+    getJSON() { return JSON.stringify(this.canvas.toJSON(['id', 'data'])); }
 
-    // --- MODOS Y VISUALIZACIÓN ---
+    loadJSON(json) {
+        if (!json) return;
+        this.canvas.loadFromJSON(json, () => {
+            this.canvas.getObjects().forEach(obj => {
+                const user = JSON.parse(localStorage.getItem('pianoUser') || '{}');
+                if (user.role !== 'teacher') { obj.set({ selectable: false, evented: false }); }
+            });
+            this.canvas.requestRenderAll();
+        }, (o, object) => { object.id = o.id; object.data = o.data; });
+    }
+
+    clear(emit = true) {
+        this.canvas.clear();
+        if (emit && this.onClearCallback) this.onClearCallback();
+    }
+
     updateDimensions(w, h, s) {
         this.currentScale = s || 1;
         this.canvas.setDimensions({width: w, height: h});
@@ -161,91 +203,20 @@ export class AnnotationLayer {
         this.canvas.requestRenderAll();
     }
 
-    setMode(mode) {
-        const wrapper = document.getElementById('score-wrapper');
-        this.currentMode = mode;
-        this.isLaserMode = false;
-        
-        this.canvas.discardActiveObject();
-        this.canvas.requestRenderAll();
+    setBrushColor(color) { this.textColor = color; this.pencilBrush.color = color; }
 
-        // 1. DIBUJO LIBRE
-        if (mode === 'draw') {
-            this.canvas.isDrawingMode = true;
-            this.canvas.selection = false;
-            this.canvas.getObjects().forEach(o => o.set({ selectable: false, evented: false }));
-            if(wrapper) wrapper.classList.remove('hand-mode');
-            this.canvas.defaultCursor = 'crosshair';
-        } 
-        // 2. MODOS DE OBJETO (Texto, Círculo)
-        else if (mode === 'text' || mode === 'circle') {
-            this.canvas.isDrawingMode = false;
-            this.canvas.selection = true;
-            this.canvas.getObjects().forEach(o => o.set({ selectable: true, evented: true }));
-            if(wrapper) wrapper.classList.remove('hand-mode');
-            this.canvas.defaultCursor = 'copy'; 
-        }
-        // 3. LÁSER
-        else if (mode === 'laser') {
-            this.canvas.isDrawingMode = false;
-            this.isLaserMode = true;
-            this.canvas.selection = false;
-            this.canvas.getObjects().forEach(o => o.set({ selectable: false, evented: false }));
-            if(wrapper) wrapper.classList.remove('hand-mode');
-            this.canvas.defaultCursor = 'cell';
-        }
-        // 4. MOVER (MANO)
-        else { 
-            this.canvas.isDrawingMode = false;
-            this.canvas.selection = false;
-            this.canvas.getObjects().forEach(o => o.set({ selectable: false, evented: false }));
-            if(wrapper) wrapper.classList.add('hand-mode');
-            this.canvas.defaultCursor = 'grab';
-        }
-        this.canvas.requestRenderAll();
-    }
-
-    setBrushColor(c) {
-        this.textColor = c; 
-        this.canvas.freeDrawingBrush.color = c;
-        
-        const active = this.canvas.getActiveObject();
-        if(active) {
-            if (active.type === 'i-text') active.set('fill', c);
-            if (active.type === 'circle') active.set('stroke', c);
-            
-            this.canvas.requestRenderAll();
-            this.emitCreation(active); 
-        }
-    }
-
-    clear(emit = true) {
-        this.canvas.clear();
-        if (emit && this.onClearCallback) this.onClearCallback();
-    }
-    
-    drawRemotePath(pathData) {
-        fabric.util.enlivenObjects([pathData], (objects) => {
-            objects.forEach((o) => {
-                o.remote = true;
-                o.selectable = false; 
-                o.evented = false;
-                if(pathData.id) o.id = pathData.id; 
-                this.canvas.add(o);
+    deleteSelected() {
+        const activeObjects = this.canvas.getActiveObjects();
+        if (activeObjects.length) {
+            activeObjects.forEach(obj => {
+                if (this.onObjectRemovedCallback) this.onObjectRemovedCallback(obj.id);
+                this.canvas.remove(obj);
             });
-            this.canvas.requestRenderAll();
-        });
+            this.canvas.discardActiveObject().requestRenderAll();
+        }
     }
 
-    updateRemoteLaser(x, y) {
-        if (!this.laserEl) return;
-        this.laserEl.style.left = `${x * this.canvas.width}px`;
-        this.laserEl.style.top = `${y * this.canvas.height}px`;
-        this.laserEl.classList.add('active');
-        if (this.tOut) clearTimeout(this.tOut);
-        this.tOut = setTimeout(() => this.laserEl.classList.remove('active'), 2000);
-    }
-    
-    getJSON() { return JSON.stringify(this.canvas.toJSON(['id'])); }
-    loadJSON(j) { this.canvas.clear(); if(j) this.canvas.loadFromJSON(j, () => this.canvas.requestRenderAll()); }
+    onPathCreated(cb) { this.onPathCreatedCallback = cb; }
+    onObjectRemoved(cb) { this.onObjectRemovedCallback = cb; }
+    onClear(cb) { this.onClearCallback = cb; }
 }

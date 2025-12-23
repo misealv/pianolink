@@ -1,6 +1,6 @@
 /**
  * /public/js/Main.js
- * Controlador Principal - PianoLink V3
+ * Controlador Principal - PianoLink V3 (Actualizado: Pizarra Inteligente)
  */
 import { SocketClient } from './modules/SocketClient.js';
 import { AudioEngine } from './modules/AudioEngine.js';
@@ -26,14 +26,15 @@ const audio = new AudioEngine(bus);
 const ui = new UIManager(bus);
 const whiteboard = new Whiteboard();
 const scoreLogic = new ScoreLogic(socketManager.socket); 
-const freeBoard = new FreeBoard(scoreLogic); // Nueva Pizarra Musical
+const freeBoard = new FreeBoard(scoreLogic); 
+
 // Estado Global
 let currentBroadcaster = null;
 let teacherId = null;
 let myId = null;
 let spiedUserId = null;
 
-// 3. GESTIÓN VISUAL DEL ESTADO (Corregido: Ahora lo maneja Main.js)
+// 3. GESTIÓN VISUAL DEL ESTADO
 const statusDiv = document.getElementById('status');
 const socket = socketManager.socket;
 
@@ -41,14 +42,12 @@ if (statusDiv && socket) {
     socket.on('connect', () => {
         statusDiv.innerHTML = '🟢 Conectado';
         statusDiv.classList.add('connected');
-        console.log("✅ Socket Conectado (Main.js)");
         myId = socket.id; 
     });
 
     socket.on('disconnect', () => {
         statusDiv.innerHTML = '🔴 Desconectado';
         statusDiv.classList.remove('connected');
-        console.log("❌ Socket Desconectado (Main.js)");
     });
 }
 
@@ -56,6 +55,8 @@ if (statusDiv && socket) {
 (async () => {
     console.log("🚀 Iniciando PianoLink V3 Modular...");
     await audio.init();
+    initResizer(); // Inicializar el arrastre de paneles
+    bindToolbarExtra(); // Vincular nuevas herramientas (Goma)
 })();
 
 // --- MONITOR DE LATENCIA DISCRETO (SOLO PROFE) ---
@@ -67,57 +68,37 @@ const checkTeacherRole = () => {
 };
 
 if (checkTeacherRole()) {
-    // 1. Escuchar el resultado y enviarlo a la UI
-    bus.on("net-latency", (rtt) => {
-        ui.updateLatencyUI(rtt);
-    });
-
-    // 2. Iniciar pulso cada 5 segundos (discreto y bajo consumo)
-    setInterval(() => {
-        socketManager.sendPing();
-    }, 5000);
+    bus.on("net-latency", (rtt) => ui.updateLatencyUI(rtt));
+    setInterval(() => socketManager.sendPing(), 5000);
 }
 
-
-
-/* EN public/js/Main.js */
-
-// ... (después de tus imports y lógica de conexión) ...
-
+// --- GESTIÓN DEL RESIZER (PIZARRA VS PIANO) ---
 function initResizer() {
     const handle = document.getElementById('resizeHandle');
     const board = document.querySelector('.board-container');
-    const piano = document.querySelector('.piano-container');
     const container = document.querySelector('.main-stage');
 
-    if (!handle || !board || !piano || !container) return;
+    if (!handle || !board || !container) return;
 
     let isResizing = false;
 
     handle.addEventListener('mousedown', (e) => {
         isResizing = true;
-        document.body.style.cursor = 'row-resize'; // Cambiar cursor global
-        e.preventDefault(); // Evitar selección de texto
+        document.body.style.cursor = 'row-resize';
+        e.preventDefault();
     });
 
     window.addEventListener('mousemove', (e) => {
         if (!isResizing) return;
-
-        // Calcular nueva altura
-        // Restamos el offset del header y márgenes aproximados (ajustar según tu CSS)
         const containerRect = container.getBoundingClientRect();
         const newHeight = e.clientY - containerRect.top;
-
-        // Límites (Mínimo 100px para partitura, Mínimo 100px para piano)
         const minSize = 100;
         const maxSize = containerRect.height - minSize;
 
         if (newHeight > minSize && newHeight < maxSize) {
-            // Aplicamos altura usando porcentajes para mantener responsive
             const percentage = (newHeight / containerRect.height) * 100;
             board.style.flex = `0 0 ${percentage}%`;
             board.style.height = `${percentage}%`;
-            // El piano tomará el resto del espacio automáticamente por flex-grow
         }
     });
 
@@ -125,18 +106,22 @@ function initResizer() {
         if (isResizing) {
             isResizing = false;
             document.body.style.cursor = 'default';
-            
-            // IMPORTANTE: Disparar evento de resize para que el PDF se ajuste
             window.dispatchEvent(new Event('resize'));
         }
     });
 }
 
-// EJECUTAR AL INICIO
-document.addEventListener('DOMContentLoaded', () => {
-    initResizer();
-    // ... tus otras inicializaciones ...
-});
+// --- VINCULACIÓN DE HERRAMIENTAS EXTRAS (GOMA) ---
+
+    // Helper para gestionar la clase CSS 'active' en la barra
+    function updateActiveTool(activeBtn) {
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        if (activeBtn) activeBtn.classList.add('active');
+    }
+    
+   
+
+
 // ============================================
 // 5. ORQUESTACIÓN DE EVENTOS (CABLEADO)
 // ============================================
@@ -144,33 +129,21 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- FLUJO DE AUDIO Y NOTAS ---
 
 bus.on("local-note", (data) => {
-    // 1. Enviar siempre a la red
     socketManager.sendMidi(data.status, data.data1, data.data2);
-    // 2. Procesar visualmente
     processMidiMessage(data, true); 
 });
-// --- Lógica de Filtrado (Clase Magistral) ---
+
 bus.on("remote-note", (data) => {
     const senderId = data.fromId;
-    
-    // Obtener rol local
     const myRole = JSON.parse(localStorage.getItem('pianoUser') || '{}').role;
     const iAmTeacher = (myRole === 'teacher' || myRole === 'admin');
 
     let shouldPlay = true;
 
-    // Si hay Clase Magistral activa...
     if (currentBroadcaster) {
-        const isSenderTeacher = (senderId === teacherId);
-        const isSenderBroadcaster = (senderId === currentBroadcaster);
-
-        // Si soy alumno, SOLO escucho al Profe o al Elegido
-        if (!iAmTeacher) {
-            if (!isSenderTeacher && !isSenderBroadcaster) {
-                shouldPlay = false; // Silenciar compañeros
-            }
+        if (!iAmTeacher && senderId !== teacherId && senderId !== currentBroadcaster) {
+            shouldPlay = false; 
         }
-        // El profesor siempre escucha a todos (default)
     }
 
     if (shouldPlay) {
@@ -179,17 +152,12 @@ bus.on("remote-note", (data) => {
     }
 });
 
-// FUNCIÓN HELPER
 function processMidiMessage(data, isLocal) {
-    const s = data.status;
-    const d1 = data.data1;
-    const d2 = data.data2;
-
+    const { status: s, data1: d1, data2: d2 } = data;
     if ((s >= 144 && s <= 159) || (s >= 128 && s <= 143)) {
         ui.highlightKey(d1, d2);
         whiteboard.handleNote(d1, d2);
-    }
-    else if (s >= 176 && s <= 191 && d1 === 64) {
+    } else if (s >= 176 && s <= 191 && d1 === 64) {
         ui.handlePedal(d2); 
     }
 }
@@ -207,55 +175,49 @@ bus.on("ui-create", (data) => {
 });
 
 bus.on("room-users", (users) => {
-    //  Detectar Profe
     const teacher = users.find(u => u.role === 'teacher');
     if (teacher) teacherId = teacher.socketId;
-    
     ui.updateParticipants(users);
 });
 
 bus.on("room-joined", (code) => {
-    bus.emit("room-info", code);
     if(statusDiv) statusDiv.innerHTML = `🟢 En Sala: ${code}`;
-    
-    // --- CORRECCIÓN CRÍTICA: AVISAR A SCORELOGIC ---
-    console.log(`🔗 Main: Vinculando ScoreLogic a sala ${code}`);
     scoreLogic.setRoomCode(code); 
 });
 
 bus.on("room-created", (code) => {
-    bus.emit("room-info", code);
     if(statusDiv) statusDiv.innerHTML = `🟢 Sala Creada: ${code}`;
-    
-    // --- CORRECCIÓN CRÍTICA: AVISAR A SCORELOGIC ---
-    console.log(`🔗 Main: Vinculando ScoreLogic a sala ${code}`);
     scoreLogic.setRoomCode(code);
 });
 
-bus.on("class-status", (status) => {
-    ui.handleClassStatus(status.isActive);
-});
+bus.on("class-status", (status) => ui.handleClassStatus(status.isActive));
 
-// Eventos Broadcaster
 bus.on("net-broadcaster-changed", (id) => {
     currentBroadcaster = id;
     ui.handleBroadcasterChange(id, myId);
 });
 bus.on("ui-set-broadcaster", (id) => socketManager.setBroadcaster(id));
 
-// --- FLUJO DE BIBLIOTECA (PDF) ---
+// --- FLUJO DE BIBLIOTECA Y PIZARRA ---
 
 bus.on("ui-tab-change", (tab) => {
     ui.switchTab(tab); 
+    scoreLogic.switchTab(tab); // Sincroniza el motor de dibujo con la pestaña activa
 });
 
 bus.on("ui-spy-user", (data) => {
+    // Si el ojo aparece, data debe tener userId, url, page y scoreId
     spiedUserId = data.userId; 
-    // Limpiamos memoria para que los dibujos del alumno anterior no se vean en el nuevo
-    scoreLogic.pageData = {}; 
-    scoreLogic.silentLoad(data.url, data.page, data.scoreId);
+    scoreLogic.pageData = {}; // Limpiar dibujos locales del profe antes de entrar
+    
+    if (data.url) {
+        console.log(`👁️ Entrando en Modo Espía para: ${data.userId}`);
+        scoreLogic.silentLoad(data.url, data.page, data.scoreId);
+    } else {
+        alert("El alumno no tiene ninguna partitura abierta.");
+    }
 });
-// 👇 NUEVO: Lógica del "Atril Compartido" (Broadcast PDF)
+
 bus.on("remote-pdf", (data) => {
     const senderId = data.userId; 
     let userRole = 'student';
@@ -267,37 +229,27 @@ bus.on("remote-pdf", (data) => {
     const iAmTeacher = (userRole === 'teacher' || userRole === 'admin');
     let shouldSync = false;
 
-    if (currentBroadcaster && senderId === currentBroadcaster) {
-        shouldSync = true;
-    } 
-    else if (!iAmTeacher && !currentBroadcaster && senderId === teacherId) {
-        shouldSync = true;
-    }
-    else if (iAmTeacher && senderId === spiedUserId) {
-        shouldSync = true;
-    }
+    if (currentBroadcaster && senderId === currentBroadcaster) shouldSync = true;
+    else if (!iAmTeacher && !currentBroadcaster && senderId === teacherId) shouldSync = true;
+    else if (iAmTeacher && senderId === spiedUserId) shouldSync = true;
 
     if (shouldSync) {
-        // AUTOMÁTICO: Forzamos la pestaña PDF para asegurar que el visor exista
-        // Esto evita que Aurora se quede en una pantalla muerta al iniciar broadcast
-        if (ui.currentTab !== 'pdf') {
-            ui.switchTab('pdf'); 
-        }
-        
+        if (ui.currentTab !== 'pdf') ui.switchTab('pdf'); 
         scoreLogic.handleRemoteUpdate(data);
     }
 });
 
+// --- RESET Y EMERGENCIA ---
 bus.on("ui-panic", () => {
-    audio.scheduler.stopAll(); // Detiene el sonido en el Scheduler
-    ui.clearPiano();           // Limpia las teclas visuales (NUEVO)
-    whiteboard.drawEmpty();    // Limpia la pizarra
+    audio.scheduler.stopAll(); 
+    ui.clearPiano();           
+    whiteboard.drawEmpty();    
+    if (scoreLogic.activeEngine) scoreLogic.activeEngine.clear(true);
 });
+
 // --- GESTIÓN DE SALIDA Y CIERRE ---
 
-bus.on("ui-toggle-cue", (userId) => {
-    audio.setSoloUser(userId);
-});
+bus.on("ui-toggle-cue", (userId) => audio.setSoloUser(userId));
 
 bus.on("ui-end-class", () => {
     if(confirm("¿Seguro que quieres cerrar la clase para todos?")) {
@@ -306,11 +258,17 @@ bus.on("ui-end-class", () => {
 });
 
 bus.on("ui-leave", () => {
-    if(confirm("¿Quieres salir de la clase?")) {
-        window.location.href = "/goodbye.html";
+    if(confirm("¿Quieres salir de la clase?")) window.location.href = "/goodbye.html";
+});
+
+bus.on("app-force-exit", () => window.location.href = "/goodbye.html");
+
+window.addEventListener('keydown', (e) => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && scoreLogic.activeEngine) {
+        // Solo borramos si no estamos escribiendo en un input
+        if (document.activeElement.tagName !== 'INPUT') {
+            scoreLogic.activeEngine.deleteSelected();
+        }
     }
 });
 
-bus.on("app-force-exit", () => {
-    window.location.href = "/goodbye.html";
-});
