@@ -1,0 +1,38 @@
+# Render Deployment Configuration
+# Place this in the root of your repository
+
+# Build settings
+buildCommand: ""
+startCommand: "node server.js"
+
+# Environment
+services:
+  - type: web
+    name: pianolink-v4
+    env: node
+    region: oregon # or your preferred region
+    plan: free # or starter/standard
+    branch: main
+    buildCommand: ""
+    startCommand: node server.js
+    
+    # Environment variables (configure in Render Dashboard)
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false # Set in dashboard (sensitive)
+      - key: JWT_SECRET
+        sync: false # Set in dashboard (sensitive)
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false # Set in dashboard
+      - key: CLOUDINARY_API_KEY
+        sync: false # Set in dashboard
+      - key: CLOUDINARY_API_SECRET
+        sync: false # Set in dashboard (sensitive)
+
+# Health check
+healthCheckPath: /
+
+# Auto-deploy
+autoDeploy: true
