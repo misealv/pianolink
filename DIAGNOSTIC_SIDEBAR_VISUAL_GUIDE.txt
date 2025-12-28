@@ -1,0 +1,282 @@
+/*
+ * GUÍA VISUAL DEL DIAGNOSTIC SIDEBAR
+ * ASCII Art para visualizar la estructura
+ */
+
+/*
+┌─────────────────────────────────────────────────────────────┐
+│                     PANTALLA COMPLETA                       │
+│                                                             │
+│                                            ┌──────┐         │
+│                                            │  ⚡  │ ← Botón │
+│                                            └──────┘   Float │
+│                                                             │
+│   ┌─────────────────────────────┐                          │
+│   │  CONTENIDO DE PIANOLINK     │                          │
+│   │  (Piano, Partitura, etc.)   │                          │
+│   │                             │                          │
+│   │                             │                          │
+│   └─────────────────────────────┘                          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+
+
+CUANDO SE ABRE EL SIDEBAR (Click en ⚡ o presionar D):
+
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│   ┌────────────────────┐   ╔═══════════════════════════╗  │
+│   │  CONTENIDO         │   ║ 🔬 Diagnóstico del Sistema║  │
+│   │  (se comprime)     │   ║                       [×] ║  │
+│   │                    │   ╠═══════════════════════════╣  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ 📊 Latencia (RTT)         ║  │
+│   │                    │   ║  ┌──────┐                 ║  │
+│   │                    │   ║  │  ●  │ 45 ms            ║  │
+│   │                    │   ║  └──────┘                 ║  │
+│   │                    │   ║    🟢 Verde (Excelente)   ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ ━━━━━━━━━━━━━━━━━━━━━━━━ ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ 🩺 Salud MIDI             ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ Echos Bloqueados:     42 ║  │
+│   │                    │   ║ Notas Rescatadas:      7 ║  │
+│   │                    │   ║ Auto-Liberaciones:     2 ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ ━━━━━━━━━━━━━━━━━━━━━━━━ ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ 📈 Actividad              ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ ███████░░░░░░░  45 msg/s ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ ━━━━━━━━━━━━━━━━━━━━━━━━ ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ 🎹 Dispositivo de Salida  ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ ✅ Yamaha P-45            ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ ━━━━━━━━━━━━━━━━━━━━━━━━ ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ 🌐 Estado de Conexión     ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ 🟢 Conectado              ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ ━━━━━━━━━━━━━━━━━━━━━━━━ ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ ┌──────────┐ ┌──────────┐║  │
+│   │                    │   ║ │🚨 PÁNICO │ │🔄 Resync │║  │
+│   │                    │   ║ └──────────┘ └──────────┘║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ ━━━━━━━━━━━━━━━━━━━━━━━━ ║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ 📊 Estadísticas Detalladas║  │
+│   │                    │   ║                           ║  │
+│   │                    │   ║ Mensajes enviados:   1,234║  │
+│   │                    │   ║ Mensajes filtrados:     42║  │
+│   │                    │   ║ Cambios de dispositivo:  3║  │
+│   │                    │   ║ AudioContext:      running║  │
+│   │                    │   ║                           ║  │
+│   └────────────────────┘   ╚═══════════════════════════╝  │
+│                              ↑                              │
+│                           320px width                       │
+└─────────────────────────────────────────────────────────────┘
+
+
+ESTADOS VISUALES DEL INDICADOR DE LATENCIA:
+
+1. 🟢 EXCELENTE (< 50ms)
+   ┌──────┐
+   │  ●  │ → Verde brillante con resplandor
+   └──────┘
+   box-shadow: 0 0 15px rgba(74, 222, 128, 0.6)
+
+2. 🟡 ACEPTABLE (50-150ms)
+   ┌──────┐
+   │  ●  │ → Amarillo con resplandor
+   └──────┘
+   box-shadow: 0 0 15px rgba(251, 191, 36, 0.6)
+
+3. 🔴 PROBLEMÁTICO (> 150ms)
+   ┌──────┐
+   │  ◉  │ → Rojo pulsando (animación)
+   └──────┘
+   animation: pulse-warning 1s infinite
+   box-shadow: 0 0 15px rgba(239, 68, 68, 0.6)
+
+
+ANIMACIONES:
+
+1. SLIDE-IN DEL SIDEBAR:
+   Cerrado: right: -320px
+   Abierto:  right: 0
+   Duración: 0.4s cubic-bezier(0.4, 0, 0.2, 1)
+
+2. PULSO DEL BOTÓN FLOTANTE:
+   @keyframes pulse-diagnostic (2s infinite)
+   0%:   box-shadow normal
+   50%:  box-shadow expandido (10px)
+   100%: box-shadow normal
+
+3. FEEDBACK DE BOTONES:
+   Click: scale(0.95) por 300ms + opacity: 0.7
+
+4. ESTADO RECONECTANDO:
+   animation: pulse-reconnect 1s infinite
+   Indicador amarillo parpadeando
+
+
+RESPONSIVE MÓVIL (≤ 768px):
+
+┌─────────────────────────────────────┐
+│                 ┌──┐                │
+│                 │⚡│                │
+│                 └──┘                │
+├─────────────────────────────────────┤
+│                                     │
+│ ╔═══════════════════════════════╗  │
+│ ║ 🔬 Diagnóstico del Sistema    ║  │
+│ ║                           [×] ║  │
+│ ╠═══════════════════════════════╣  │
+│ ║                               ║  │
+│ ║  (Todo el contenido igual)    ║  │
+│ ║  pero a pantalla completa     ║  │
+│ ║                               ║  │
+│ ║                               ║  │
+│ ║                               ║  │
+│ ╚═══════════════════════════════╝  │
+│                                     │
+└─────────────────────────────────────┘
+  ↑
+  100% width
+
+
+GLASSMORPHISM EFFECT:
+
+Fondo del Sidebar:
+┌────────────────────────────────┐
+│                                │
+│  rgba(26, 26, 26, 0.95) ← Base │
+│  + blur(20px) ← Desenfoque     │
+│  + saturate(180%) ← Saturación │
+│                                │
+│  ═══ EFECTO DE VIDRIO ═══      │
+│                                │
+│  Se puede ver a través pero    │
+│  borroso, como un panel de     │
+│  cristal esmerilado            │
+│                                │
+└────────────────────────────────┘
+
+
+KEYBOARD SHORTCUTS:
+
+Tecla [D]:
+  - Si el sidebar está CERRADO → ABRE
+  - Si el sidebar está ABIERTO → CIERRA
+  - NO funciona si estás escribiendo en un input/textarea
+
+
+Z-INDEX HIERARCHY:
+
+10000 │ (Reservado para modales críticos)
+ 9999 │ ← Diagnostic Sidebar (siempre visible)
+ 9998 │ ← Botón Flotante Toggle
+  ... │
+  200 │ ← Controles PDF
+  100 │ ← Drawing Toolbar
+   50 │ ← Laser Pointer
+   10 │ ← Canvas de Fabric.js
+    1 │ ← Contenido base
+
+
+COLOR PALETTE:
+
+Primarios:
+  --diagnostic-bg:     rgba(26, 26, 26, 0.95)
+  --diagnostic-accent: #ff764d (Naranja PianoLink)
+  --diagnostic-border: rgba(255, 118, 77, 0.2)
+
+Semáforo:
+  --latency-good:  #4ade80 (Verde)
+  --latency-fair:  #fbbf24 (Amarillo)
+  --latency-poor:  #ef4444 (Rojo)
+
+Acciones:
+  --panic-color:   rgba(239, 68, 68, 0.2) → Rojo
+  --resync-color:  rgba(74, 222, 128, 0.2) → Verde
+
+Texto:
+  --text-main:  #eee
+  --text-muted: #888
+
+
+PERFORMANCE:
+
+Actualización de Métricas:
+┌────────────────────────────────────────┐
+│  setInterval(500ms)                    │
+│  ├─ audioEngine.getStats()             │
+│  ├─ audioEngine.getOutputStats()       │
+│  ├─ audioEngine.getCurrentMidiOutput() │
+│  └─ Update DOM con nuevos valores      │
+└────────────────────────────────────────┘
+
+Actualización Visual (Animaciones):
+┌────────────────────────────────────────┐
+│  requestAnimationFrame()               │
+│  ├─ Cambiar colores del semáforo       │
+│  ├─ Actualizar width de activity-bar   │
+│  ├─ Smooth transitions                 │
+│  └─ Loop hasta dispose()               │
+└────────────────────────────────────────┘
+
+Optimización:
+  ✓ Solo actualiza si isOpen === true
+  ✓ Usa requestAnimationFrame para 60fps
+  ✓ setInterval solo para métricas pesadas
+  ✓ dispose() limpia todos los timers
+
+
+FLUJO DE EVENTOS:
+
+1. Usuario presiona [D] o click en ⚡
+   └─> DiagnosticSidebar.toggle()
+       └─> sidebar.classList.add('open')
+           └─> CSS transition: right -320px → 0
+
+2. Botón PÁNICO clickeado
+   └─> handlePanic()
+       └─> bus.emit('ui-panic')
+           └─> Main.js: audio.scheduler.stopAll()
+               └─> Todas las notas se silencian
+
+3. Botón RESYNC clickeado
+   └─> handleResync()
+       └─> socketClient.requestClockSync()
+           └─> socket.emit('clock-sync-request', Date.now())
+               └─> Servidor recalcula offset NTP
+
+4. Latencia cambia
+   └─> SocketClient emite 'net-latency'
+       └─> DiagnosticSidebar escucha
+           └─> Actualiza this.latency
+               └─> updateVisualIndicators() cambia color
+
+
+TESTING CHECKLIST:
+
+□ Abrir como profesor → Botón flotante visible
+□ Abrir como alumno → Botón flotante NO visible
+□ Click en botón flotante → Sidebar se desliza
+□ Presionar [D] → Sidebar se cierra/abre
+□ Escribir en input y presionar [D] → NO debe activar
+□ Cambiar output MIDI → "Dispositivo de Salida" actualiza
+□ Desconectar WiFi → Estado cambia a "Desconectado" 🔴
+□ Reconectar WiFi → Estado cambia a "Conectado" 🟢
+□ Click en PÁNICO → Todas las notas se silencian
+□ Click en Resync → Se envía clock-sync-request
+□ Scroll en sidebar → Scrollbar personalizado funciona
+□ Resize ventana < 768px → Sidebar ocupa 100%
+
+*/

@@ -67,6 +67,17 @@ export class UIManager {
         document.getElementById("panicBtn")?.addEventListener("click", () => this.bus.emit("ui-panic"));
         document.getElementById("baseColorPicker")?.addEventListener("input", (e) => this.baseColor = e.target.value);
 
+        // --- FASE 4: SELECTOR DE MIDI OUTPUT ---
+        const midiOutputSelect = document.getElementById("midiOutputSelect");
+        if (midiOutputSelect) {
+            midiOutputSelect.addEventListener("change", (e) => {
+                const outputId = e.target.value;
+                if (outputId) {
+                    this.bus.emit("ui-select-midi-output", outputId);
+                }
+            });
+        }
+
         // --- LÓGICA SPLIT AVANZADA ---
         const chkSplit = document.getElementById("chkSplit");
         const splitControls = document.getElementById("splitControls");

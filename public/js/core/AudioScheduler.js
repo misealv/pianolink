@@ -1,19 +1,30 @@
 /**
- * Core Engine: Programador de Audio (CON JITTER BUFFER)
+ * Core Engine: Programador de Audio (CON JITTER BUFFER Y STATE MANAGER)
  * Maneja osciladores web y salidas MIDI físicas con corrección de tiempo.
+ * Ahora incluye gestión de estado para prevenir notas pegadas.
  */
+import { MidiStateManager } from './MidiStateManager.js';
+
 export class AudioScheduler {
     constructor() {
         this.ctx = null;
-        this.midiOutput = null; 
+        this.midiOutput = null; // DEPRECATED: Reemplazado por outputManager (Fase 4)
         this.activeVoices = new Map(); // Polifonía: { nota: {osc, gain} }
         
+        // --- STATE MANAGER (NUEVA ARQUITECTURA) ---
+        this.stateManager = new MidiStateManager();
+        
+        // --- FASE 4: OUTPUT MANAGER ---
+        this.outputManager = null; // Inyectado desde AudioEngine
+        
         // --- JITTER BUFFER CONFIG ---
-        // 300ms es un valor seguro para transoceánico (Australia->Chile). 
-        // Puedes bajarlo a 100ms para conexiones locales.
-        this.BUFFER_MS = 300; 
+        // Reducido de 300ms a 150ms después de implementar state management
+        this.BUFFER_MS = 150; 
         this.syncOffset = 0;   // Diferencia entre reloj remoto y local
         this.isSynced = false; // ¿Ya sincronizamos la primera nota?
+        
+        // --- LIFECYCLE ---
+        this._isDestroyed = false;
     }
 
     async init() {
@@ -21,67 +32,82 @@ export class AudioScheduler {
         this.ctx = new AudioContext();
         // Resume necesario por políticas de navegadores
         if (this.ctx.state === 'suspended') await this.ctx.resume();
-        console.log(`🔊 Motor Audio V3: Buffer de seguridad ${this.BUFFER_MS}ms activo.`);
+        
+        // --- INICIAR STATE MANAGER Y CONECTAR CALLBACKS ---
+        this.stateManager.onNoteOn = (noteId, velocity, source) => {
+            this._handleStateNoteOn(noteId, velocity, source);
+        };
+        this.stateManager.onNoteOff = (noteId, source) => {
+            this._handleStateNoteOff(noteId, source);
+        };
+        this.stateManager.onStateChange = (activeCount) => {
+            // Útil para debugging o métricas UI
+            if (activeCount === 0) {
+                console.debug('[AudioScheduler] Todas las notas liberadas.');
+            }
+        };
+        
+        this.stateManager.start();
+        console.log(`🔊 Motor Audio V4: Buffer ${this.BUFFER_MS}ms + State Management activo.`);
     }
 
     setMidiOutput(device) {
         this.midiOutput = device;
         console.log(`🎹 Salida Física asignada: ${device.name}`);
     }
+    
+    /**
+     * FASE 4: Inyecta el OutputManager desde AudioEngine
+     */
+    setOutputManager(outputManager) {
+        this.outputManager = outputManager;
+        console.log('[AudioScheduler] MidiOutputManager conectado.');
+    }
 
     /**
      * Toca una nota respetando su tiempo original (Anti-Ráfagas)
+     * AHORA CON STATE MANAGEMENT para prevenir notas pegadas
      * @param {Object} event - { status, data1, data2, timestamp } 
      */
     play(event) {
         if (!this.ctx) return;
 
-        const { status, data1, data2, timestamp } = event; // timestamp viene de MidiProtocol
+        const { status, data1, data2, timestamp } = event;
 
         // 1. CALCULAR TIEMPO EXACTO (Jitter Correction)
-        let scheduledTime = this.ctx.currentTime; // Por defecto: YA
+        let scheduledTime = this.ctx.currentTime;
 
-if (timestamp) {
-    if (!this.isSynced) {
-        this.syncOffset = (this.ctx.currentTime * 1000) - timestamp;
-        this.isSynced = true;
-    }
+        if (timestamp) {
+            if (!this.isSynced) {
+                this.syncOffset = (this.ctx.currentTime * 1000) - timestamp;
+                this.isSynced = true;
+            }
 
-    const targetTimeMs = timestamp + this.syncOffset + this.BUFFER_MS;
-    scheduledTime = targetTimeMs / 1000;
+            const targetTimeMs = timestamp + this.syncOffset + this.BUFFER_MS;
+            scheduledTime = targetTimeMs / 1000;
 
-    // --- CORRECCIÓN DE DERIVA ---
-    // Si la nota llega con más de 1.5 segundos de desvío del reloj actual,
-    // forzamos una re-sincronización en la siguiente nota.
-    if (Math.abs(scheduledTime - this.ctx.currentTime) > 1.5) {
-        this.isSynced = false; 
-    }
+            // --- CORRECCIÓN DE DERIVA ---
+            if (Math.abs(scheduledTime - this.ctx.currentTime) > 1.5) {
+                this.isSynced = false; 
+            }
 
-    if (scheduledTime < this.ctx.currentTime) {
-        scheduledTime = this.ctx.currentTime;
-    }
-}
+            if (scheduledTime < this.ctx.currentTime) {
+                scheduledTime = this.ctx.currentTime;
+            }
+        }
 
-        // Lógica MIDI estándar
+        // Guardar el tiempo programado para uso en callbacks
+        this._scheduledTime = scheduledTime;
+
+        // 2. PASAR AL STATE MANAGER (NUEVA ARQUITECTURA)
+        // El state manager decide si esta nota debe procesarse o ignorarse
         const isNoteOn = (status >= 144 && status <= 159) && data2 > 0;
         const isNoteOff = (status >= 128 && status <= 143) || (status >= 144 && data2 === 0);
 
-        // 2. SONIDO WEB (Sintetizador Agendado)
-       // if (isNoteOn) this._noteOn(data1, data2, scheduledTime);
-        //else if (isNoteOff) this._noteOff(data1, scheduledTime);
-
-        // 3. SONIDO FÍSICO (Relay al piano USB)
-        // Nota: WebMIDI no siempre soporta agendado futuro preciso, 
-        // pero intentamos enviar con timestamp si el driver lo permite.
-        if (this.midiOutput) {
-            try {
-                // Calculamos el delay en ms para el send()
-                const delay = (scheduledTime - this.ctx.currentTime) * 1000;
-                // Si el delay es positivo, lo usamos. Si es negativo, 0.
-                const safeDelay = Math.max(0, delay); 
-                
-                this.midiOutput.send([status, data1, data2], window.performance.now() + safeDelay); 
-            } catch (e) { console.warn(e); }
+        if (isNoteOn) {
+            this.stateManager.handleNoteOn(data1, data2, 'REMOTE');
+        } else if (isNoteOff) {
+            this.stateManager.handleNoteOff(data1, 'REMOTE');
         }
     }
 
@@ -117,8 +143,130 @@ if (timestamp) {
             voice.gain.gain.setValueAtTime(voice.gain.gain.value, time);
             voice.gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
             
-            voice.osc.stop(time + 0.15); // Detener en el futuro
+            voice.osc.stop(time + 0.15);
             this.activeVoices.delete(note);
         }
+    }
+
+    /**
+     * Callbacks del State Manager (CON OUTPUT MANAGER - FASE 4)
+     */
+    _handleStateNoteOn(noteId, velocity, source) {
+        const time = this._scheduledTime || this.ctx.currentTime;
+        
+        // Ejecutar síntesis web
+        this._noteOn(noteId, velocity, time);
+        
+        // --- FASE 4: ENVIAR A HARDWARE CON SOURCE TAGGING ---
+        if (this.outputManager) {
+            const status = 144; // NoteOn en canal 1
+            this.outputManager.send(status, noteId, velocity, source);
+        } else if (this.midiOutput) {
+            // Fallback al sistema antiguo (DEPRECATED)
+            try {
+                const status = 144;
+                const delay = Math.max(0, (time - this.ctx.currentTime) * 1000);
+                this.midiOutput.send([status, noteId, velocity], window.performance.now() + delay);
+            } catch (e) { 
+                console.warn('[AudioScheduler] Error enviando NoteOn a hardware:', e); 
+            }
+        }
+    }
+
+    _handleStateNoteOff(noteId, source) {
+        const time = this._scheduledTime || this.ctx.currentTime;
+        
+        // Ejecutar síntesis web
+        this._noteOff(noteId, time);
+        
+        // --- FASE 4: ENVIAR A HARDWARE CON SOURCE TAGGING ---
+        if (this.outputManager) {
+            const status = 128; // NoteOff en canal 1
+            this.outputManager.send(status, noteId, 0, source);
+        } else if (this.midiOutput) {
+            // Fallback al sistema antiguo (DEPRECATED)
+            try {
+                const status = 128;
+                const delay = Math.max(0, (time - this.ctx.currentTime) * 1000);
+                this.midiOutput.send([status, noteId, 0], window.performance.now() + delay);
+            } catch (e) { 
+                console.warn('[AudioScheduler] Error enviando NoteOff a hardware:', e); 
+            }
+        }
+    }
+
+    /**
+     * Pánico: Apagar todas las notas (MEJORADO CON STATE MANAGER)
+     */
+    stopAll() {
+        console.log('🔇 PÁNICO: Liberando todas las notas...');
+        
+        // Usar el state manager para liberar
+        this.stateManager.releaseAll('PANIC');
+        
+        // Limpieza manual del sintetizador web por si acaso
+        this.activeVoices.forEach((voice) => {
+            try {
+                voice.gain.gain.cancelScheduledValues(this.ctx.currentTime);
+                voice.gain.gain.setValueAtTime(0, this.ctx.currentTime);
+                voice.osc.stop();
+            } catch(e) {}
+        });
+        this.activeVoices.clear();
+    }
+
+    /**
+     * Protocolo de reconciliación con el servidor
+     * @param {Array<number>} serverNotes - Notas que el servidor reporta como activas
+     */
+    reconcile(serverNotes) {
+        this.stateManager.reconcile(serverNotes);
+    }
+
+    /**
+     * Obtener estadísticas del state manager
+     */
+    getStats() {
+        return this.stateManager.getStats();
+    }
+
+    /**
+     * Destructor: Limpieza completa (FASE 3 MEJORADO)
+     */
+    destroy() {
+        if (this._isDestroyed) {
+            console.warn('[AudioScheduler] Ya fue destruido.');
+            return;
+        }
+        
+        console.log('[AudioScheduler] Iniciando destrucción...');
+        
+        // 1. Destruir state manager
+        if (this.stateManager) {
+            this.stateManager.destroy();
+            this.stateManager = null;
+        }
+        
+        // 2. Silenciar todo
+        this.stopAll();
+        
+        // 3. Limpiar voces activas
+        this.activeVoices.clear();
+        
+        // 4. Cerrar AudioContext
+        if (this.ctx) {
+            this.ctx.close().then(() => {
+                console.log('[AudioScheduler] AudioContext cerrado.');
+            }).catch(e => {
+                console.warn('[AudioScheduler] Error cerrando AudioContext:', e);
+            });
+            this.ctx = null;
+        }
+        
+        // 5. Limpiar MIDI output
+        this.midiOutput = null;
+        
+        this._isDestroyed = true;
+        console.log('[AudioScheduler] ✅ Destruido.');
     }
 }

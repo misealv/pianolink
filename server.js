@@ -50,6 +50,31 @@ app.get(['/', '/c/:slug'], (req, res) => {
 // 3. LÓGICA DE TIEMPO REAL (RELAY V3)
 // ==================================================
 const rooms = {};
+let snapshotHeartbeatInterval = null; // Heartbeat global del snapshot protocol
+
+// === SEGURIDAD: Validación de autorización de usuario ===
+function validateUserInRoom(socket, roomCode, requiredRole = null) {
+    const room = rooms[roomCode];
+    
+    if (!room) {
+        console.warn(`[Security] Sala inexistente: ${roomCode}`);
+        return false;
+    }
+    
+    const user = room.users[socket.id];
+    
+    if (!user) {
+        console.warn(`[Security] Usuario no autorizado en sala ${roomCode}: ${socket.id}`);
+        return false;
+    }
+    
+    if (requiredRole && user.role !== requiredRole) {
+        console.warn(`[Security] Usuario sin permisos (requiere ${requiredRole}): ${socket.id}`);
+        return false;
+    }
+    
+    return true;
+}
 
 io.on("connection", (socket) => {
     // console.log(`🔌 Cliente conectado: ${socket.id}`);
@@ -70,7 +95,6 @@ io.on("connection", (socket) => {
     socket.on("join-room", (payload) => {
         const roomCode = (payload.roomCode || "").toUpperCase();
         if (!rooms[roomCode]) {
-            // Si la sala no existe, la creamos inactiva (sala de espera)
             rooms[roomCode] = { users: {}, isActive: false };
         }
         
@@ -80,18 +104,110 @@ io.on("connection", (socket) => {
         if(rooms[roomCode].isActive) socket.broadcast.to(roomCode).emit("user-entered-sound");
         
         syncRoomState(roomCode);
+        
+        // --- FULL SNAPSHOT AL UNIRSE (CRÍTICO PARA RECONEXIÓN) ---
+        setTimeout(() => {
+            const room = rooms[roomCode];
+            if (room && room.teacherActiveNotes) {
+                const snapshot = Array.from(room.teacherActiveNotes);
+                socket.emit('midi-snapshot', {
+                    notes: snapshot,
+                    timestamp: Date.now(),
+                    type: 'full'
+                });
+                console.log(`[Snapshot] Full snapshot enviado a ${socket.id}: ${snapshot.length} notas`);
+            }
+        }, 100); // Pequeño delay para asegurar que el cliente esté listo
     });
 
-    // --- RELAY DE AUDIO/MIDI (EL NÚCLEO V3) ---
+    // --- RELAY DE AUDIO/MIDI (V4 CON SNAPSHOT REACTIVO) ---
     
     // Recibimos un ArrayBuffer (Binario puro)
     socket.on("midi-binary", (buffer) => {
         const roomCode = socket.roomCode;
         if (!roomCode || !rooms[roomCode]) return;
+        
+        // VALIDACIÓN DE SEGURIDAD
+        if (!validateUserInRoom(socket, roomCode)) {
+            return; // Silenciar mensaje no autorizado
+        }
+        
+        const room = rooms[roomCode];
+        
+        // Solo permitir MIDI si la clase está activa
+        if (!room.isActive) {
+            return;
+        }
+
+        // --- STATE TRACKING MIDI (SERVER-SIDE) ---
+        try {
+            const view = new DataView(buffer);
+            if (buffer.byteLength === 13) {
+                const status = view.getUint8(10);
+                const noteId = view.getUint8(11);
+                const velocity = view.getUint8(12);
+
+                const isNoteOn = (status >= 144 && status <= 159) && velocity > 0;
+                const isNoteOff = (status >= 128 && status <= 143) || (status >= 144 && velocity === 0);
+
+                const user = rooms[roomCode].users[socket.id];
+                const room = rooms[roomCode];
+                
+                if (user) {
+                    let stateChanged = false;
+                    
+                    if (isNoteOn) {
+                        user.activeNotes.add(noteId);
+                        if (socket.userRole === 'teacher') {
+                            room.teacherActiveNotes.add(noteId);
+                            stateChanged = true;
+                        }
+                    } else if (isNoteOff) {
+                        user.activeNotes.delete(noteId);
+                        if (socket.userRole === 'teacher') {
+                            room.teacherActiveNotes.delete(noteId);
+                            stateChanged = true;
+                        }
+                    }
+
+                    // --- SNAPSHOT REACTIVO ---
+                    if (stateChanged && socket.userRole === 'teacher') {
+                        room.lastActivityTime = Date.now();
+                        
+                        // Limpiar timer de inactividad anterior
+                        if (room.inactivityTimer) {
+                            clearTimeout(room.inactivityTimer);
+                        }
+                        
+                        // Si todas las notas se apagaron, enviar snapshot vacío inmediato
+                        if (room.teacherActiveNotes.size === 0 && room.lastSnapshot.length > 0) {
+                            const emptySnapshot = new Int8Array(0);
+                            io.to(roomCode).emit('midi-snapshot', {
+                                notes: Array.from(emptySnapshot),
+                                timestamp: Date.now(),
+                                type: 'immediate'
+                            });
+                            room.lastSnapshot = [];
+                            console.log(`[Snapshot] Sala ${roomCode}: Snapshot vacío inmediato enviado`);
+                        } else {
+                            // Programar snapshot reactivo después de 200ms de inactividad
+                            room.inactivityTimer = setTimeout(() => {
+                                sendSnapshot(roomCode);
+                            }, 200);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[MIDI State] Error decodificando:', e.message);
+        }
        
+        // Broadcast con identificación verificada del servidor
+        const user = room.users[socket.id];
         socket.broadcast.to(roomCode).emit("midi-binary", {
             src: socket.id,
-            dat: buffer
+            dat: buffer,
+            userId: user.name // Identificación verificada
         });
     });
    
@@ -126,20 +242,40 @@ io.on("connection", (socket) => {
 });
 
     socket.on("end-class", (roomCode) => {
-        if (rooms[roomCode]) {
-            rooms[roomCode].isActive = false;
-            io.to(roomCode).emit("class-status", { isActive: false });
-            io.to(roomCode).emit("force-disconnect");
-            delete rooms[roomCode]; // Limpieza
+        // VALIDACIÓN: Solo profesores pueden cerrar la clase
+        if (!validateUserInRoom(socket, roomCode, 'teacher')) {
+            socket.emit('error', { message: 'No autorizado para cerrar la clase' });
+            return;
         }
+        
+        const room = rooms[roomCode];
+        if (!room) return;
+        
+        room.isActive = false;
+        io.to(roomCode).emit("class-status", { isActive: false });
+        io.to(roomCode).emit("force-disconnect");
+        console.log(`[Admin] Clase cerrada por profesor: ${roomCode}`);
+        
+        // Limpiar sala
+        Object.keys(room.users).forEach(sid => {
+            const s = io.sockets.sockets.get(sid);
+            if (s) s.leave(roomCode);
+        });
+        
+        if (room.snapshotTimer) clearTimeout(room.snapshotTimer);
+        if (room.inactivityTimer) clearTimeout(room.inactivityTimer);
+        delete rooms[roomCode];
     });
     
     socket.on("set-broadcaster", (targetId) => {
         const roomCode = socket.roomCode;
         if (!roomCode || !rooms[roomCode]) return;
         
-        // Seguridad: Solo el profesor
-        if (socket.userRole !== 'teacher') return;
+        // VALIDACIÓN: Solo profesores pueden cambiar broadcaster
+        if (!validateUserInRoom(socket, roomCode, 'teacher')) {
+            socket.emit('error', { message: 'No autorizado para cambiar broadcaster' });
+            return;
+        }
     
         // Toggle (encender/apagar)
         const current = rooms[roomCode].broadcaster;
@@ -232,10 +368,35 @@ io.on("connection", (socket) => {
     socket.on("disconnect", () => {
         const roomCode = socket.roomCode;
         if (roomCode && rooms[roomCode]) {
-            delete rooms[roomCode].users[socket.id];
-            // Si no queda nadie, borramos la sala tras un tiempo (opcional) o inmediatamente
-            if (Object.keys(rooms[roomCode].users).length === 0) {
+            const room = rooms[roomCode];
+            
+            // Limpiar timers de snapshot si existen
+            if (room.snapshotTimer) clearTimeout(room.snapshotTimer);
+            if (room.inactivityTimer) clearTimeout(room.inactivityTimer);
+            
+            // Si era el profesor, limpiar las notas globales
+            if (socket.userRole === 'teacher' && room.teacherActiveNotes) {
+                room.teacherActiveNotes.clear();
+            }
+            
+            delete room.users[socket.id];
+            
+            if (Object.keys(room.users).length === 0) {
+                // Última persona saliendo: limpiar sala completamente
+                console.log(`[Cleanup] Sala ${roomCode} vacía. Limpiando recursos...`);
+                
+                // Limpiar timers de la sala si no fueron limpiados antes
+                if (room.snapshotTimer) clearTimeout(room.snapshotTimer);
+                if (room.inactivityTimer) clearTimeout(room.inactivityTimer);
+                
                 delete rooms[roomCode];
+                
+                // Si no quedan salas activas, detener el heartbeat global
+                if (Object.keys(rooms).length === 0 && snapshotHeartbeatInterval) {
+                    console.log('[Snapshot] No hay salas activas. Deteniendo heartbeat.');
+                    clearInterval(snapshotHeartbeatInterval);
+                    snapshotHeartbeatInterval = null;
+                }
             } else {
                 broadcastUserList(roomCode);
             }
@@ -255,15 +416,28 @@ function setupUserInRoom(socket, roomCode, name, role) {
         rooms[roomCode] = { 
             users: {}, 
             isActive: false,
-            broadcaster: null // <--- Estado del alumno estrella
+            broadcaster: null,
+            teacherActiveNotes: new Set(),
+            // --- SNAPSHOT PROTOCOL V2 ---
+            lastSnapshot: [],
+            lastActivityTime: Date.now(),
+            snapshotTimer: null,
+            inactivityTimer: null
         };
+        
+        // Reiniciar heartbeat si estaba detenido
+        if (!snapshotHeartbeatInterval) {
+            console.log('[Snapshot] Primera sala creada. Iniciando heartbeat...');
+            startSnapshotHeartbeat();
+        }
     }
     
     // 2. GUARDAR AL USUARIO
     rooms[roomCode].users[socket.id] = {
         name: name,
         role: role,
-        pdfState: { url: null, page: 1 } // Estado inicial del PDF
+        pdfState: { url: null, page: 1 }, // Estado inicial del PDF
+        activeNotes: new Set() // <--- NUEVO: Notas activas de este usuario
     };
 }
 
@@ -291,5 +465,69 @@ function generateCode() {
     return Math.random().toString(36).substring(2, 6).toUpperCase();
 }
 
+// ==================================================
+// 4. SNAPSHOT PROTOCOL (OPTIMIZADO Y REACTIVO)
+// ==================================================
+
+/**
+ * Envía un snapshot del estado actual de una sala
+ */
+function sendSnapshot(roomCode) {
+    const room = rooms[roomCode];
+    if (!room || !room.isActive) return;
+    
+    const currentNotes = Array.from(room.teacherActiveNotes || []);
+    
+    // Solo enviar si el snapshot cambió
+    const snapshotChanged = JSON.stringify(currentNotes) !== JSON.stringify(room.lastSnapshot);
+    
+    if (snapshotChanged || currentNotes.length > 0) {
+        io.to(roomCode).emit('midi-snapshot', {
+            notes: currentNotes,
+            timestamp: Date.now(),
+            type: 'periodic'
+        });
+        
+        room.lastSnapshot = currentNotes;
+        
+        if (currentNotes.length > 0) {
+            console.log(`[Snapshot] Sala ${roomCode}: ${currentNotes.length} notas [${currentNotes.join(', ')}]`);
+        }
+    }
+}
+
+// Heartbeat periódico cada 5 segundos (backup del sistema reactivo)
+function startSnapshotHeartbeat() {
+    // Limpiar intervalo anterior si existe
+    if (snapshotHeartbeatInterval) {
+        clearInterval(snapshotHeartbeatInterval);
+    }
+    
+    snapshotHeartbeatInterval = setInterval(() => {
+        Object.keys(rooms).forEach(roomCode => {
+            sendSnapshot(roomCode);
+        });
+    }, 5000);
+    
+    console.log('[Snapshot] Heartbeat iniciado.');
+}
+
+// Iniciar el heartbeat
+startSnapshotHeartbeat();
+
+// ==================================================
+// 5. CLOCK SYNC PROTOCOL (NTP BÁSICO)
+// ==================================================
+io.on("connection", (socket) => {
+    socket.on('clock-sync-request', (clientTimestamp) => {
+        const serverTimestamp = Date.now();
+        socket.emit('clock-sync-response', {
+            clientTimestamp,
+            serverTimestamp,
+            serverResponseTime: Date.now()
+        });
+    });
+});
+
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`🎹 PianoLink V3 (Relay) corriendo en puerto ${PORT}`));
+server.listen(PORT, () => console.log(`🎹 PianoLink V4 (State-Aware Relay) corriendo en puerto ${PORT}`));
