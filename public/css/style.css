@@ -1212,3 +1212,144 @@ input[type="color"]#tool-color {
     z-index: 1; /* Al fondo */
     pointer-events: none; /* Que no intercepte clics */
 }
+
+/* ========================================
+   AGORA AV - FASE 1: VENTANAS FLOTANTES
+   ======================================== */
+
+/**
+ * Ventana de video flotante (Glassmorphism ligero)
+ * Z-Index: 900-950 (debajo de sidebar 1000+)
+ * Optimizado para no ralentizar el renderizado
+ */
+.video-window {
+    position: fixed;
+    width: 320px;
+    background: rgba(20, 20, 30, 0.85);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 900;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    user-select: none;
+}
+
+.video-window:hover {
+    border-color: rgba(0, 255, 255, 0.6);
+    box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
+}
+
+/* Header draggable */
+.video-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: rgba(0, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+    cursor: move;
+}
+
+.video-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #00ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    letter-spacing: 0.5px;
+}
+
+.video-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.video-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #fff;
+}
+
+.video-btn:hover {
+    background: rgba(0, 255, 255, 0.2);
+    border-color: rgba(0, 255, 255, 0.5);
+    transform: scale(1.05);
+}
+
+.video-btn:active {
+    transform: scale(0.95);
+}
+
+/* Body de la ventana */
+.video-body {
+    padding: 12px;
+    position: relative;
+}
+
+.video-player {
+    width: 100%;
+    height: 240px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.video-player video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.video-status {
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;
+    font-size: 11px;
+    color: #aaa;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.video-status.connected {
+    background: rgba(0, 255, 0, 0.15);
+    border-color: rgba(0, 255, 0, 0.3);
+    color: #0f0;
+}
+
+/* Minimized state */
+.video-window.minimized {
+    width: 200px;
+}
+
+.video-window.minimized .video-body {
+    display: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .video-window {
+        width: 280px;
+    }
+    
+    .video-player {
+        height: 200px;
+    }
+}
+
+/* Performance optimization: will-change para smooth dragging */
+.video-window {
+    will-change: transform;
+}

@@ -9,6 +9,7 @@ import { UIManager } from './modules/UIManager.js';
 import { ScoreLogic } from './modules/ScoreLogic.js'; 
 import { FreeBoard } from './modules/FreeBoard.js';
 import { DiagnosticSidebar } from './modules/DiagnosticSidebar.js';
+import { DraggableToolbar } from './modules/DraggableToolbar.js';
 
 // 1. EVENT BUS (Sistema nervioso central)
 class EventBus extends EventTarget {
@@ -30,6 +31,11 @@ const ui = new UIManager(bus);
 const whiteboard = new Whiteboard();
 const scoreLogic = new ScoreLogic(socketManager.socket); 
 const freeBoard = new FreeBoard(scoreLogic); 
+
+// ==================================================
+// AGORA AV - FASE 0: VARIABLES GLOBALES
+// ==================================================
+let videoManager = null; // Se inicializa de forma diferida (3 segundos después del bootstrap)
 
 // 2.5. HELPER FUNCTION (Debe estar ANTES de usarse)
 const checkTeacherRole = function() {
@@ -80,14 +86,206 @@ if (statusDiv && socket) {
     });
 }
 
+// ==================================================
+// AGORA AV - FASE 0: INICIALIZACIÓN NO BLOQUEANTE
+// ==================================================
+/**
+ * Inicializa el VideoManager de forma diferida y resiliente
+ * NO BLOQUEA el bootstrap principal
+ * Si falla, el sistema MIDI/Logs sigue funcionando
+ */
+const initVideoManager = function() {
+    console.log('[Main] ⏳ Iniciando VideoManager (delayed initialization)...');
+    
+    return new Promise(function(resolve) {
+        try {
+            // Verificar que el SDK esté cargado
+            if (typeof AgoraRTC === 'undefined') {
+                console.warn('[Main] ⚠️ Agora SDK no disponible - Fase AV deshabilitada');
+                return resolve();
+            }
+
+            if (typeof VideoManager === 'undefined') {
+                console.warn('[Main] ⚠️ VideoManager no disponible - Módulo no cargado');
+                return resolve();
+            }
+
+            // Crear VideoManager
+            videoManager = new VideoManager({ bus: bus });
+
+            // Inicializar con circuit breaker (fetch con timeout)
+            videoManager.initialize()
+                .then(function() {
+                    console.log('✅ [Main] VideoManager inicializado correctamente');
+                    bus.emit('video-manager-ready');
+                    
+                    // Mostrar botón de video una vez que el sistema está listo
+                    _showVideoButton();
+                })
+                .catch(function(error) {
+                    console.error('[Main] ❌ VideoManager falló (no crítico):', error.message);
+                    videoManager = null; // Limpiamos si falla
+                })
+                .finally(function() {
+                    resolve(); // SIEMPRE resuelve, nunca bloquea
+                });
+
+        } catch (error) {
+            console.error('[Main] ❌ Error inesperado en initVideoManager:', error);
+            videoManager = null;
+            resolve();
+        }
+    });
+};
+
+/**
+ * Muestra el botón de video una vez que VideoManager está listo
+ * @private
+ */
+const _showVideoButton = function() {
+    const videoBtn = document.getElementById('videoToggleBtn');
+    
+    if (!videoBtn) {
+        console.warn('[Main] Botón de video no encontrado en el DOM');
+        return;
+    }
+    
+    // Mostrar botón
+    videoBtn.style.display = 'inline-block';
+    
+    // Agregar event listener
+    videoBtn.addEventListener('click', async function() {
+        if (!videoManager || !videoManager.isReady()) {
+            console.error('[Main] VideoManager no está listo');
+            alert('Sistema de video no disponible');
+            return;
+        }
+        
+        // Obtener roomCode del socketManager
+        const roomCode = socketManager.roomCode;
+        
+        if (!roomCode) {
+            alert('Debes estar en una sala para activar el video');
+            console.error('[Main] No hay roomCode disponible');
+            return;
+        }
+        
+        // Deshabilitar botón mientras se activa
+        videoBtn.disabled = true;
+        videoBtn.textContent = '⏳ Activando...';
+        
+        try {
+            // Activar UI de video (incluye join automático)
+            const activated = await videoManager.activateUI(roomCode);
+            
+            if (activated) {
+                console.log('✅ [Main] Sistema de video activado completamente');
+                videoBtn.textContent = '✅ Video Activo';
+                videoBtn.style.background = '#00ff00';
+                
+                // Conectar event handlers de botones de control
+                _connectVideoControls();
+            } else {
+                throw new Error('No se pudo activar el sistema de video');
+            }
+        } catch (error) {
+            console.error('[Main] Error activando video:', error);
+            alert('Error al activar video: ' + error.message);
+            videoBtn.disabled = false;
+            videoBtn.textContent = '📹 Video';
+            videoBtn.style.background = '#00aaff';
+        }
+    });
+    
+    console.log('[Main] 📹 Botón de video habilitado');
+};
+
+/**
+ * Conecta event handlers de los botones de control de video
+ * @private
+ */
+const _connectVideoControls = function() {
+    // Botón mute audio
+    const muteAudioBtn = document.getElementById('local-mute-audio');
+    if (muteAudioBtn) {
+        muteAudioBtn.addEventListener('click', async function() {
+            if (!videoManager) return;
+            
+            const isMuted = videoManager.isMuted.audio;
+            await videoManager.muteAudio(!isMuted);
+            
+            // Update UI
+            this.textContent = isMuted ? '🎤' : '🔇';
+            this.style.opacity = isMuted ? '1' : '0.5';
+        });
+    }
+    
+    // Botón mute video
+    const muteVideoBtn = document.getElementById('local-mute-video');
+    if (muteVideoBtn) {
+        muteVideoBtn.addEventListener('click', async function() {
+            if (!videoManager) return;
+            
+            const isMuted = videoManager.isMuted.video;
+            await videoManager.muteVideo(!isMuted);
+            
+            // Update UI
+            this.textContent = isMuted ? '📹' : '🚫';
+            this.style.opacity = isMuted ? '1' : '0.5';
+        });
+    }
+    
+    // Botón minimize local
+    const minimizeLocalBtn = document.getElementById('local-minimize');
+    if (minimizeLocalBtn) {
+        minimizeLocalBtn.addEventListener('click', function() {
+            const container = document.getElementById('local-video');
+            if (container) {
+                container.classList.toggle('minimized');
+            }
+        });
+    }
+    
+    // Botón minimize remote
+    const minimizeRemoteBtn = document.getElementById('remote-minimize');
+    if (minimizeRemoteBtn) {
+        minimizeRemoteBtn.addEventListener('click', function() {
+            const container = document.getElementById('remote-video');
+            if (container) {
+                container.classList.toggle('minimized');
+            }
+        });
+    }
+    
+    console.log('[Main] ✅ Controles de video conectados');
+};
+
 // 4. FUNCIÓN DE ARRANQUE PRINCIPAL
 async function bootstrap() {
     try {
-        console.log("🚀 Iniciando PianoLink V4 Modular + State Management...");
+        console.log("🚀 Iniciando PianoLink V4 Modular + State Management + Agora AV (Fase 0)...");
         
-        // Init crítico de audio
+        // ========================================
+        // PRIORIDAD ALTA: MIDI y Logs (CRÍTICO)
+        // ========================================
+        
+        // Inicializar AudioEngine (el AudioContext se reanudará con primer click/teclado)
         await audio.init();
         console.log('✅ [Main] AudioEngine inicializado.');
+        
+        // Reanudar AudioContext con primer click del usuario (browser autoplay policy)
+        const resumeAudioContext = function() {
+            if (audio.scheduler.ctx.state === 'suspended') {
+                audio.scheduler.ctx.resume().then(function() {
+                    console.log('✅ [Main] AudioContext reanudado después de user gesture');
+                });
+            }
+            // Remover listener después del primer click
+            document.removeEventListener('click', resumeAudioContext);
+            document.removeEventListener('keydown', resumeAudioContext);
+        };
+        document.addEventListener('click', resumeAudioContext, { once: true });
+        document.addEventListener('keydown', resumeAudioContext, { once: true });
         
         // Init no-crítico del sidebar (no debe bloquear)
         initDiagnosticSidebar();
@@ -96,10 +294,30 @@ async function bootstrap() {
         initResizer();
         bindToolbarExtra();
         
+        // ========================================
+        // NUEVO: TOOLBAR DRAGGABLE
+        // ========================================
+        const draggableToolbar = new DraggableToolbar('drawing-toolbar');
+        console.log('✅ [Main] Toolbar draggable inicializado.');
+        
+        // NOTA: Los osciladores web están permanentemente deshabilitados
+        // No se necesita listener para silenciar AudioScheduler
+        
         // Configurar event listeners DESPUÉS de que todo esté inicializado
         setupEventHandlers();
         
-        console.log('✅ [Main] Sistema completamente inicializado.');
+        console.log('✅ [Main] Sistema CRÍTICO inicializado (MIDI/Logs operativos).');
+        
+        // ========================================
+        // PRIORIDAD BAJA: Video (NO CRÍTICO - DELAYED 3s)
+        // ========================================
+        // Video se inicializa SIN await y con delay de 3 segundos
+        // Esto asegura que el hilo principal esté libre para MIDI/Logs
+        setTimeout(function() {
+            initVideoManager(); // Sin await - ejecuta en background
+        }, 3000);
+        
+        console.log('✅ [Main] Sistema completamente inicializado (Video se cargará en 3s).');
     } catch (error) {
         console.error('❌ [Main] ERROR CRÍTICO en inicialización:', error);
         alert('Error al inicializar PianoLink. Por favor, recarga la página.');
@@ -220,6 +438,22 @@ function bindToolbarExtra() {
 function setupEventHandlers() {
     // --- MONITOR DE LATENCIA ---
     setupLatencyMonitor();
+    
+    // --- VIDEO ERROR HANDLING (Silent) ---
+    bus.on("video-error", function(data) {
+        console.error('[Main] Video error:', data.type, data.message);
+        
+        // Si es error silencioso, solo loguear (no bloquear MIDI)
+        if (data.silent) {
+            // TODO: Mostrar en DiagnosticSidebar si está disponible
+            if (diagnosticSidebar) {
+                // diagnosticSidebar.addLog('video-error', data.message);
+            }
+        } else {
+            // Error crítico - mostrar al usuario
+            alert('Error de video: ' + data.message);
+        }
+    });
     
     // --- FLUJO DE AUDIO Y NOTAS ---
 

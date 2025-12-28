@@ -10,6 +10,7 @@ export class AudioScheduler {
         this.ctx = null;
         this.midiOutput = null; // DEPRECATED: Reemplazado por outputManager (Fase 4)
         this.activeVoices = new Map(); // Polifonía: { nota: {osc, gain} }
+        this.masterGain = null; // Master gain para silenciar tonos web cuando video activo
         
         // --- STATE MANAGER (NUEVA ARQUITECTURA) ---
         this.stateManager = new MidiStateManager();
@@ -29,9 +30,26 @@ export class AudioScheduler {
 
     async init() {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
+        
+        // Crear AudioContext
         this.ctx = new AudioContext();
+        
+        // Crear Master Gain (DESCONECTADO - no queremos tonos web)
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = 0.0; // SIEMPRE en 0 - sin tonos web
+        // NO conectar a destination - los osciladores no deben escucharse NUNCA
+        // this.masterGain.connect(this.ctx.destination); // ← COMENTADO
+        
+        console.log('[AudioScheduler] ⚠️ OSCILADORES WEB DESHABILITADOS - Solo MIDI físico');
+        
         // Resume necesario por políticas de navegadores
-        if (this.ctx.state === 'suspended') await this.ctx.resume();
+        if (this.ctx.state === 'suspended') {
+            console.warn('[AudioScheduler] ⚠️ AudioContext suspended - se reanudará con primer click/tecla');
+            // NO lanzamos error, simplemente avisamos
+            // El contexto se reanudará automáticamente con el primer evento de usuario
+        }
+        
+        console.log('[AudioScheduler] AudioContext creado. Estado:', this.ctx.state);
         
         // --- INICIAR STATE MANAGER Y CONECTAR CALLBACKS ---
         this.stateManager.onNoteOn = (noteId, velocity, source) => {
@@ -62,6 +80,17 @@ export class AudioScheduler {
     setOutputManager(outputManager) {
         this.outputManager = outputManager;
         console.log('[AudioScheduler] MidiOutputManager conectado.');
+    }
+    
+    /**
+     * ZERO LATENCY EXPERIENCE: Controla volumen master de tonos web
+     * DESHABILITADO - PianoLink usa solo MIDI físico
+     * @param {number} volume - 0.0 (silencio) a 1.0 (normal)
+     */
+    setMasterVolume(volume) {
+        // NOTA: Este método está deshabilitado porque PianoLink no usa osciladores web
+        // Solo MIDI físico se transmite y reproduce en los pianos digitales
+        console.log('[AudioScheduler] ℹ️ setMasterVolume ignorado (solo MIDI físico activo)');
     }
 
     /**
@@ -111,41 +140,22 @@ export class AudioScheduler {
         }
     }
 
+    /**
+     * OSCILADORES WEB DESHABILITADOS PERMANENTEMENTE
+     * PianoLink usa transmisión MIDI pura sin síntesis web
+     */
     _noteOn(note, velocity, time) {
-        this._noteOff(note, time); // Matar voz anterior
-
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        
-        // Fórmula de frecuencia MIDI
-        osc.frequency.value = 440 * Math.pow(2, (note - 69) / 12);
-        
-        const vol = velocity / 127;
-        
-        // Usamos 'time' (futuro) en lugar de 'currentTime' (ahora)
-        gain.gain.setValueAtTime(0, time);
-        gain.gain.linearRampToValueAtTime(vol * 0.2, time + 0.01); // Ataque rápido
-        gain.gain.linearRampToValueAtTime(vol * 0.1, time + 0.5);  // Sustain suave
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        
-        osc.start(time); // <--- AQUÍ ESTÁ LA MAGIA DE LA FLUIDEZ
-        
-        this.activeVoices.set(note, { osc, gain });
+        // MÉTODO DESHABILITADO - NO CREAR OSCILADORES
+        // Solo MIDI físico se reproduce en los instrumentos
+        return;
     }
 
+    /**
+     * OSCILADORES WEB DESHABILITADOS PERMANENTEMENTE
+     */
     _noteOff(note, time) {
-        const voice = this.activeVoices.get(note);
-        if (voice) {
-            // Release suave para evitar "click"
-            voice.gain.gain.cancelScheduledValues(time);
-            voice.gain.gain.setValueAtTime(voice.gain.gain.value, time);
-            voice.gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
-            
-            voice.osc.stop(time + 0.15);
-            this.activeVoices.delete(note);
-        }
+        // MÉTODO DESHABILITADO - NO HAY OSCILADORES QUE DETENER
+        return;
     }
 
     /**
@@ -154,8 +164,10 @@ export class AudioScheduler {
     _handleStateNoteOn(noteId, velocity, source) {
         const time = this._scheduledTime || this.ctx.currentTime;
         
-        // Ejecutar síntesis web
-        this._noteOn(noteId, velocity, time);
+        // === OSCILADORES WEB DESHABILITADOS ===
+        // PianoLink usa transmisión MIDI pura.
+        // Cada usuario escucha su piano físico directamente (latencia 0ms).
+        // NO se generan tonos web sintéticos.
         
         // --- FASE 4: ENVIAR A HARDWARE CON SOURCE TAGGING ---
         if (this.outputManager) {
@@ -176,8 +188,8 @@ export class AudioScheduler {
     _handleStateNoteOff(noteId, source) {
         const time = this._scheduledTime || this.ctx.currentTime;
         
-        // Ejecutar síntesis web
-        this._noteOff(noteId, time);
+        // === OSCILADORES WEB DESHABILITADOS ===
+        // Solo MIDI físico, sin síntesis web
         
         // --- FASE 4: ENVIAR A HARDWARE CON SOURCE TAGGING ---
         if (this.outputManager) {
@@ -198,20 +210,17 @@ export class AudioScheduler {
     /**
      * Pánico: Apagar todas las notas (MEJORADO CON STATE MANAGER)
      */
+    /**
+     * PÁNICO: Detener todas las notas activas
+     * NOTA: Solo limpia el state manager, no hay osciladores que detener
+     */
     stopAll() {
         console.log('🔇 PÁNICO: Liberando todas las notas...');
         
         // Usar el state manager para liberar
         this.stateManager.releaseAll('PANIC');
         
-        // Limpieza manual del sintetizador web por si acaso
-        this.activeVoices.forEach((voice) => {
-            try {
-                voice.gain.gain.cancelScheduledValues(this.ctx.currentTime);
-                voice.gain.gain.setValueAtTime(0, this.ctx.currentTime);
-                voice.osc.stop();
-            } catch(e) {}
-        });
+        // NO hay osciladores web que limpiar - solo MIDI físico
         this.activeVoices.clear();
     }
 

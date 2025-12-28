@@ -13,10 +13,14 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 
-// Configuración Socket.io para Binarios
+// Configuración Socket.io para Binarios con Keepalive Anti-Zombie
 const io = new Server(server, {
     cors: { origin: "*" },
-    maxHttpBufferSize: 1e7 // 10 MB (Suficiente para PDFs y MIDI)
+    maxHttpBufferSize: 1e7, // 10 MB (Suficiente para PDFs y MIDI)
+    pingTimeout: 60000,     // 60s antes de considerar desconexión
+    pingInterval: 25000,    // Enviar ping cada 25s
+    connectTimeout: 45000,  // Timeout para establecer conexión inicial
+    transports: ['websocket', 'polling'] // Fallback a polling si websocket falla
 });
 
 // 2. Middlewares y Rutas
@@ -29,6 +33,34 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/teacher', require('./routes/teacherRoutes'));
 app.use('/api/scores', require('./routes/scoreRoutes'));
 app.use('/admin', require('./routes/adminRoutes'));
+
+// ==================================================
+// AGORA AV - FASE 0: ENDPOINT RESILIENTE
+// ==================================================
+/**
+ * Endpoint para obtener credenciales de Agora
+ * RESILIENCIA: Nunca falla, retorna valores vacíos si no existen variables
+ */
+app.get('/api/agora/credentials', (req, res) => {
+    const appId = process.env.AGORA_APP_ID || '';
+    const appCertificate = process.env.AGORA_APP_CERTIFICATE || '';
+    
+    if (!appId) {
+        console.warn('[Agora] ⚠️ AGORA_APP_ID no configurado en .env');
+    }
+    
+    if (!appCertificate) {
+        console.warn('[Agora] ⚠️ AGORA_APP_CERTIFICATE no configurado en .env');
+    }
+    
+    // SIEMPRE responde 200 OK, nunca 500
+    res.status(200).json({
+        success: !!appId, // true si existe AppId
+        appId: appId,
+        hasToken: !!appCertificate, // Indica si hay certificado (para tokens futuros)
+        timestamp: Date.now()
+    });
+});
 
 app.get('/', (req, res) => {
   // A) Si la URL tiene parámetros (ej: ?sala=123 o ?role=student) -> Mostrar Piano
@@ -215,6 +247,17 @@ io.on("connection", (socket) => {
     socket.on("latency-ping", (startTime) => {
         socket.emit("latency-pong", startTime); 
     });
+    
+    // Heartbeat del cliente para mantener conexión viva
+    socket.on("client-heartbeat", (data) => {
+        const room = rooms[data.roomCode];
+        if (room && room.users[socket.id]) {
+            room.users[socket.id].lastHeartbeat = Date.now();
+            // Responder para confirmar (opcional)
+            socket.emit("heartbeat-ack", { timestamp: Date.now() });
+        }
+    });
+    
    // --- GESTIÓN DE ESTADO (PDF Y CLASE) ---
 
    socket.on("update-pdf-state", (newState) => {

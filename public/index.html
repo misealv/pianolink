@@ -52,28 +52,69 @@
       .status-indicator.connected {
           background: #2ecc71; color: #000; border-color: #27ae60;
           box-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
-      }
       
+      /* OPTIMIZADO: Toolbar draggable con estructura contenida */
       .drawing-toolbar {
           position: absolute;
           top: 10px;
           right: 20px;
-          z-index: 1000;
+          z-index: 5000; /* Aumentado para estar sobre canvas pero bajo modales */
+          background: rgba(30, 30, 30, 0.95);
+          padding: 10px 6px;
+          border-radius: 8px;
+          border: 1px solid #444;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          align-items: center;
+          transition: box-shadow 0.2s ease;
+          backdrop-filter: blur(5px); /* Mejor separación visual */
       }
-/* --- NUEVO CÓDIGO: Estilos para la Barra Profesional y Sub-menú --- */
-
-/* Contenedor principal de la barra vertical */
-.drawing-toolbar {
-    background: rgba(30, 30, 30, 0.95);
-    padding: 10px 6px;
-    border-radius: 8px;
-    border: 1px solid #444;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      
+      .drawing-toolbar:hover {
+          box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+      }
+      
+/* --- OPTIMIZADO: Header del Toolbar con mejor cursor --- */
+.toolbar-header {
+    width: 100%;
+    padding: 6px 8px;
+    background: rgba(255, 118, 77, 0.15);
+    border-radius: 6px;
+    cursor: grab !important;
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    justify-content: space-between;
     align-items: center;
+    user-select: none;
+    margin-bottom: 4px;
+    transition: background 0.2s ease;
 }
+
+.toolbar-header:hover {
+    background: rgba(255, 118, 77, 0.25);
+}
+
+.toolbar-header:active {
+    cursor: grabbing !important;
+    background: rgba(255, 118, 77, 0.35);
+}
+
+.toolbar-title {
+    font-size: 10px;
+    font-weight: bold;
+    color: var(--accent, #ff764d);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.toolbar-drag-hint {
+    font-size: 12px;
+    color: #888;
+    letter-spacing: -2px;
+}
+
+/* --- NUEVO CÓDIGO: Estilos para la Barra Profesional y Sub-menú --- */
 
 /* Botones generales de herramientas */
 .tool-btn, .tool-sub-btn {
@@ -89,6 +130,8 @@
     justify-content: center;
     font-size: 18px;
     transition: all 0.2s ease;
+    position: relative; /* Asegura que estén dentro del toolbar */
+    z-index: 1; /* Dentro del contexto del toolbar */
 }
 
 .tool-btn:hover, .tool-sub-btn:hover {
@@ -121,12 +164,10 @@
     display: flex !important;
 }
 
-/* Ajuste de posición para que no haya huecos */
+/* OPTIMIZADO: Submenú con mejor posicionamiento y z-index */
 .tool-submenu {
     display: none;
-    position: absolute;
-    right: 48px; /* Ajustado para que pegue a la barra */
-    top: -5px;
+    position: fixed; /* Cambio de absolute a fixed para evitar problemas con scroll */
     background: rgba(30, 30, 30, 0.98);
     padding: 8px;
     border-radius: 8px;
@@ -134,7 +175,8 @@
     flex-direction: column;
     gap: 6px;
     box-shadow: -5px 0 15px rgba(0,0,0,0.4);
-    z-index: 1100;
+    z-index: 10000; /* Más alto que toolbar (1000) */
+    pointer-events: auto;
 }
 
 /* Añadimos un "puente" invisible para que el mouse no pierda el foco */
@@ -154,6 +196,17 @@
     width: 40px;
     height: 40px;
 }
+
+/* Input de color integrado en el toolbar */
+#tool-color {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+}
+
 .folder-card {
     background: #2c3e50 !important;
     border-bottom: 4px solid #f1c40f !important;
@@ -350,9 +403,17 @@
       <div class="board-container" style="position: relative;">
         
         <div id="drawing-toolbar" class="drawing-toolbar" style="display:none;">
-          <button id="tool-move" class="tool-btn active" title="Mover">✋</button>
-          <button id="tool-pencil" class="tool-btn" title="Lápiz">✏️</button>
-          <button id="tool-eraser" class="tool-btn" title="Goma">🧽</button>
+          <!-- HEADER DRAGGABLE -->
+          <div class="toolbar-header" title="Arrastra para mover">
+            <span class="toolbar-title">🎨 HERRAMIENTAS</span>
+            <span class="toolbar-drag-hint">⋮⋮</span>
+          </div>
+          
+          <div class="tool-separator"></div>
+          
+          <button id="tool-move" class="tool-btn active" title="Mover (Seleccionar)">✋</button>
+          <button id="tool-pencil" class="tool-btn" title="Lápiz (Dibujar)">✏️</button>
+          <button id="tool-eraser" class="tool-btn" title="Goma (Borrar)">🧽</button>
           <button id="tool-text" class="tool-btn" title="Texto">T</button>
       
           <div class="tool-separator"></div>
@@ -443,6 +504,7 @@
                 <div style="display:flex; align-items:center; gap:3px;"><label style="font-size:9px; color:#aaa;">DER:</label><input type="color" id="rightColorPicker" value="#f1c40f" style="border:none; width:20px; height:20px; padding:0;"></div>
             </div>
             <div style="flex:1"></div>
+            <button id="videoToggleBtn" class="btn" style="background:#00aaff; display:none;">📹 Video</button>
             <button id="panicBtn" class="danger">PANIC</button>
         </div>
         <div class="piano-wrapper"><div id="piano" class="piano"></div></div>
@@ -476,6 +538,12 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tonaljs/tonal/browser/tonal.min.js"></script>
+  
+  <!-- Agora AV - Fase 0: SDK + VideoManager (Carga opcional) -->
+  <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.20.0.js"></script>
+  <script src="/js/modules/DraggableVideo.js"></script>
+  <script src="/js/modules/VideoManager.js"></script>
+  <script src="/js/modules/DraggableToolbar.js"></script>
   
   <script type="module" src="/js/Main.js"></script>
 

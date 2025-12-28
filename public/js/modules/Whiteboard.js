@@ -1,7 +1,7 @@
 /**
  * /public/js/modules/Whiteboard.js
  * Lógica Visual Musical (VexFlow + Tonal).
- * AJUSTE: Llave permanente y tamaño original restaurado.
+ * OPTIMIZACIÓN: Cache de renderer y SVG para hardware antiguo.
  */
 export class Whiteboard {
     constructor() {
@@ -10,6 +10,11 @@ export class Whiteboard {
         
         this.teacherActiveNotes = new Set();
         this.renderTimeout = null;
+        
+        // OPTIMIZACIÓN: Mantener renderer y contexto vivos para evitar recrear SVG
+        this.renderer = null;
+        this.ctx = null;
+        this.lastRenderedNotes = "";
         
         // Inicializar (Dibujamos el Grand Staff vacío al arrancar)
         this.drawEmpty();
@@ -37,6 +42,11 @@ export class Whiteboard {
 
         // Ordenamos las notas de grave a agudo
         const notes = Array.from(this.teacherActiveNotes).sort((a,b) => a-b);
+        
+        // OPTIMIZACIÓN: Evitar re-render si las notas no cambiaron
+        const notesKey = notes.join(',');
+        if (notesKey === this.lastRenderedNotes) return;
+        this.lastRenderedNotes = notesKey;
 
         // 1. Detección de Acordes
         if (notes.length > 0) {
@@ -68,45 +78,56 @@ export class Whiteboard {
 
     // Dibuja el pentagrama con llave PERO sin notas
     drawEmpty() {
-        this.container.innerHTML = "";
-        const VF = Vex.Flow;
-        const renderer = new VF.Renderer(this.container, VF.Renderer.Backends.SVG);
+        // OPTIMIZACIÓN: Solo limpiar SVG si ya existía un renderer
+        if (!this.renderer) {
+            const VF = Vex.Flow;
+            this.renderer = new VF.Renderer(this.container, VF.Renderer.Backends.SVG);
+            this.renderer.resize(420, 450); 
+            this.ctx = this.renderer.getContext();
+        } else {
+            // Reutilizar renderer, solo limpiar canvas
+            this.ctx.clear();
+        }
         
-        // RESTAURADO: Tamaño grande original
-        renderer.resize(420, 450); 
-        const ctx = renderer.getContext();
+        const VF = Vex.Flow;
         
         // Creamos los pentagramas igual que en el modo activo
-        const trebleStave = new VF.Stave(30, 100, 350).addClef("treble").setContext(ctx);
-        const bassStave = new VF.Stave(30, 250, 350).addClef("bass").setContext(ctx);
+        const trebleStave = new VF.Stave(30, 100, 350).addClef("treble").setContext(this.ctx);
+        const bassStave = new VF.Stave(30, 250, 350).addClef("bass").setContext(this.ctx);
         
         trebleStave.draw();
         bassStave.draw();
 
         // AGREGADO: Dibujamos la llave abrazadora (Brace) también en vacío
-        new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.BRACE).setContext(ctx).draw();
-        new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.SINGLE_LEFT).setContext(ctx).draw();
+        new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.BRACE).setContext(this.ctx).draw();
+        new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.SINGLE_LEFT).setContext(this.ctx).draw();
+        
+        this.lastRenderedNotes = "";
     }
 
     // Dibuja el pentagrama con llave Y notas
     drawGrandStaff(midiNotes) {
-        this.container.innerHTML = "";
-        const VF = Vex.Flow;
-        const renderer = new VF.Renderer(this.container, VF.Renderer.Backends.SVG);
+        // OPTIMIZACIÓN: Reutilizar renderer y contexto
+        if (!this.renderer) {
+            const VF = Vex.Flow;
+            this.renderer = new VF.Renderer(this.container, VF.Renderer.Backends.SVG);
+            this.renderer.resize(420, 450);
+            this.ctx = this.renderer.getContext();
+        } else {
+            this.ctx.clear();
+        }
         
-        // RESTAURADO: Tamaño grande original
-        renderer.resize(420, 450);
-        const ctx = renderer.getContext();
+        const VF = Vex.Flow;
 
         // 1. Crear Staves (Pentagramas)
-        const trebleStave = new VF.Stave(30, 100, 350).addClef("treble").setContext(ctx);
-        const bassStave = new VF.Stave(30, 250, 350).addClef("bass").setContext(ctx);
+        const trebleStave = new VF.Stave(30, 100, 350).addClef("treble").setContext(this.ctx);
+        const bassStave = new VF.Stave(30, 250, 350).addClef("bass").setContext(this.ctx);
         trebleStave.draw();
         bassStave.draw();
 
         // Conector (La llave que une los dos pentagramas)
-        new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.BRACE).setContext(ctx).draw();
-        new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.SINGLE_LEFT).setContext(ctx).draw();
+        new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.BRACE).setContext(this.ctx).draw();
+        new VF.StaveConnector(trebleStave, bassStave).setType(VF.StaveConnector.type.SINGLE_LEFT).setContext(this.ctx).draw();
 
         // 2. Separar notas para cada mano
         const trebleMidis = midiNotes.filter(n => n >= 60);
@@ -143,7 +164,7 @@ export class Whiteboard {
             
             // Ajustamos el ancho del format para centrar bien
             new VF.Formatter().joinVoices([voice]).format([voice], 300);
-            voice.draw(ctx, stave);
+            voice.draw(this.ctx, stave);
         };
 
         // 3. Ejecutar dibujo

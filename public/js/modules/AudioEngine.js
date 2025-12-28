@@ -242,19 +242,9 @@ export class AudioEngine {
                 // No podemos hacer resume() sin interacción del usuario
                 // Pero registramos el evento para debugging
             } else if (this.scheduler.ctx && this.scheduler.ctx.state === 'running') {
-                // Pulso silencioso para mantener el contexto activo
-                const now = this.scheduler.ctx.currentTime;
-                const osc = this.scheduler.ctx.createOscillator();
-                const gain = this.scheduler.ctx.createGain();
-                
-                gain.gain.value = 0.0001; // Volumen imperceptible
-                osc.frequency.value = 20; // 20Hz (infrasonido, no audible)
-                
-                osc.connect(gain);
-                gain.connect(this.scheduler.ctx.destination);
-                
-                osc.start(now);
-                osc.stop(now + 0.01); // 10ms
+                // KEEP-ALIVE DESHABILITADO - No necesitamos pulsos de audio
+                // PianoLink usa solo MIDI físico, sin osciladores web
+                console.debug('[AudioEngine] Keep-alive check (osciladores deshabilitados)');
             }
         }, 30000); // Cada 30 segundos
     }

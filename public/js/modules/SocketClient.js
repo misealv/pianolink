@@ -7,9 +7,18 @@ import { MidiProtocol } from '../core/MidiProtocol.js';
 export class SocketClient {
     constructor(eventBus) {
         this.bus = eventBus;
-        this.socket = io({ transports: ['websocket'], upgrade: false });
+        this.socket = io({ 
+            transports: ['websocket', 'polling'],
+            upgrade: true,
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            timeout: 20000
+        });
         this.protocol = new MidiProtocol();
         this.roomCode = null;
+        this._heartbeatInterval = null; // Heartbeat manual adicional
         
         // --- FASE 3: MIDDLEWARE DE ESTADO ---
         this._connectionState = 'disconnected'; // 'disconnected', 'connecting', 'connected', 'hibernating'
@@ -35,6 +44,7 @@ export class SocketClient {
         // --- LIFECYCLE: DISCONNECT ---
         this.socket.on("disconnect", (reason) => {
             console.warn(`[SocketClient] 🔴 Desconectado. Razón: ${reason}`);
+            this.stopHeartbeat(); // Detener keepalive
             this._enterHibernation();
             this.bus.emit("net-status", "OFFLINE");
             this.bus.emit("net-disconnect-cleanup");
@@ -54,6 +64,7 @@ export class SocketClient {
             this._connectionState = 'connected';
             this.bus.emit("net-status", "ONLINE");
             this.bus.emit("net-reconnected");
+            if (this.roomCode) this.startHeartbeat(); // Reactivar keepalive
         });
         
         // --- LIFECYCLE: CONNECT ERROR ---
@@ -110,9 +121,34 @@ export class SocketClient {
             this.socket.emit("latency-ping", Date.now());
         }
     }
+    
+    // Heartbeat manual para prevenir timeout por inactividad
+    startHeartbeat() {
+        if (this._heartbeatInterval) return; // Ya está iniciado
+        
+        this._heartbeatInterval = setInterval(() => {
+            if (this.socket.connected && this.roomCode) {
+                this.socket.emit('client-heartbeat', { 
+                    roomCode: this.roomCode, 
+                    timestamp: Date.now() 
+                });
+            }
+        }, 15000); // Cada 15s
+        
+        console.log('[SocketClient] ❤️ Heartbeat iniciado');
+    }
+    
+    stopHeartbeat() {
+        if (this._heartbeatInterval) {
+            clearInterval(this._heartbeatInterval);
+            this._heartbeatInterval = null;
+            console.log('[SocketClient] 💔 Heartbeat detenido');
+        }
+    }
     joinRoom(code, name, role) {
         this.roomCode = code;
         this.socket.emit("join-room", { roomCode: code, username: name, userRole: role });
+        this.startHeartbeat(); // Iniciar keepalive
     }
 
     createRoom(payload) {
@@ -225,6 +261,9 @@ export class SocketClient {
         }
         
         console.log('[SocketClient] Iniciando limpieza de recursos...');
+        
+        // 0. Detener heartbeat
+        this.stopHeartbeat();
         
         // 1. Remover listeners de Socket.IO
         if (this.socket) {

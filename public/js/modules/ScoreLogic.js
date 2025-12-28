@@ -215,6 +215,8 @@ export class ScoreLogic {
         this.el('tool-text').onclick = () => { if(this.activeEngine) { this.activeEngine.setMode('text'); setActive(this.el('tool-text')); } };
         this.el('tool-laser').onclick = () => { if(this.activeEngine) { this.activeEngine.setMode('laser'); setActive(this.el('tool-laser')); } };
         this.el('tool-stave').onclick = () => { if(this.activeEngine) { this.activeEngine.setMode('stave'); setActive(this.el('tool-stave')); } };
+        // NUEVO: Handler para línea de compás
+        if (this.el('tool-barline')) this.el('tool-barline').onclick = () => { if(this.activeEngine) { this.activeEngine.setMode('barline'); setActive(this.el('tool-barline')); } };
         
         if (this.el('btn-export-pdf')) this.el('btn-export-pdf').onclick = () => this.exportAsTask();
         this.el('tool-color').oninput = (e) => { if(this.activeEngine) this.activeEngine.setBrushColor(e.target.value); };
@@ -225,7 +227,20 @@ export class ScoreLogic {
         };
 
         if (btnNotation) {
-            btnNotation.onclick = (e) => { e.stopPropagation(); groupNotation.classList.toggle('open'); };
+            btnNotation.onclick = (e) => { 
+                e.stopPropagation(); 
+                groupNotation.classList.toggle('open'); 
+                
+                // Posicionar submenú con position: fixed
+                if (groupNotation.classList.contains('open')) {
+                    const submenu = document.getElementById('notation-submenu');
+                    const btnRect = btnNotation.getBoundingClientRect();
+                    if (submenu) {
+                        submenu.style.right = (window.innerWidth - btnRect.left + 8) + 'px';
+                        submenu.style.top = (btnRect.top - 5) + 'px';
+                    }
+                }
+            };
             const musicTools = ['tool-sol', 'tool-fa', 'tool-do', 'tool-redonda', 'tool-blanca', 'tool-negra', 'tool-circle', 'tool-timesig'];
             musicTools.forEach(toolId => {
                 const btn = this.el(toolId);
@@ -367,23 +382,76 @@ export class ScoreLogic {
     }
 
     async exportAsTask() {
-        if (!this.whiteboardEngine || this.currentTab !== 'whiteboard') return alert("Abre la pizarra.");
+        if (!this.whiteboardEngine || this.currentTab !== 'whiteboard') {
+            return alert("❌ Debes estar en la pestaña PIZARRA para guardar una tarea.");
+        }
         const taskName = prompt("Nombre de la tarea:", `Tarea-${new Date().toLocaleTimeString()}`);
         if (!taskName) return;
+        
         try {
-            const dataUrl = this.whiteboardEngine.canvas.toDataURL({ format: 'png', multiplier: 2 });
+            console.log('[ExportTask] Generando imagen del canvas...');
+            // OPTIMIZADO: Usar multiplier 1.5 en lugar de 2 para reducir tamaño de archivo
+            const dataUrl = this.whiteboardEngine.canvas.toDataURL({ 
+                format: 'jpeg', // JPEG en lugar de PNG para menor tamaño
+                quality: 0.85,  // 85% calidad - buen balance
+                multiplier: 1.5 // Reducido de 2 a 1.5
+            });
+            
+            console.log('[ExportTask] Creando PDF...');
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'l', unit: 'px', format: [this.whiteboardEngine.canvas.width, this.whiteboardEngine.canvas.height] });
-            doc.addImage(dataUrl, 'PNG', 0, 0, this.whiteboardEngine.canvas.width, this.whiteboardEngine.canvas.height);
+            
+            // Calcular dimensiones optimizadas (máximo A4 landscape)
+            const maxWidth = 1200;
+            const maxHeight = 850;
+            let width = this.whiteboardEngine.canvas.width;
+            let height = this.whiteboardEngine.canvas.height;
+            
+            if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width = width * ratio;
+                height = height * ratio;
+                console.log(`[ExportTask] Redimensionando a ${width}x${height}`);
+            }
+            
+            const doc = new jsPDF({ 
+                orientation: 'l', 
+                unit: 'px', 
+                format: [width, height] 
+            });
+            doc.addImage(dataUrl, 'JPEG', 0, 0, width, height);
+            
+            console.log('[ExportTask] Preparando upload...');
+            const blob = doc.output('blob');
+            console.log(`[ExportTask] Tamaño del PDF: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+            
+            if (blob.size > 45 * 1024 * 1024) {
+                return alert("❌ El archivo es demasiado grande (>45MB). Intenta con menos contenido.");
+            }
+            
             const formData = new FormData();
-            formData.append('file', doc.output('blob'), `${taskName}.pdf`);
+            formData.append('file', blob, `${taskName}.pdf`);
             formData.append('title', taskName);
             formData.append('roomCode', this.getRoomCode());
             formData.append('category', 'tareas');
             formData.append('folder', 'Tareas'); 
+            
+            console.log('[ExportTask] Subiendo a servidor...');
             const res = await fetch('/api/scores/upload', { method: 'POST', body: formData });
-            if (res.ok) { alert("✅ Tarea guardada!"); this.loadShelf(); }
-        } catch (error) { console.error(error); }
+            
+            if (res.ok) { 
+                const data = await res.json();
+                console.log('[ExportTask] ✅ Tarea guardada:', data);
+                alert("✅ Tarea guardada en carpeta 'Tareas'!"); 
+                this.loadShelf(); 
+            } else {
+                const errorText = await res.text();
+                console.error('[ExportTask] ❌ Error del servidor:', errorText);
+                alert(`❌ Error al guardar: ${res.status} - Archivo muy grande o error del servidor`);
+            }
+        } catch (error) { 
+            console.error('[ExportTask] ❌ Error:', error); 
+            alert(`❌ Error al exportar tarea: ${error.message}`);
+        }
     }
 
     async createNewFolder(name) { this.localFolders.add(name); this.loadShelf(); }

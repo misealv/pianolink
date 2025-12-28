@@ -30,7 +30,7 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 } 
+    limits: { fileSize: 50 * 1024 * 1024 } // Aumentado a 50MB para PDFs de pizarra
 });
 
 module.exports = { upload, cloudinary };

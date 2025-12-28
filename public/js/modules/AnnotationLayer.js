@@ -73,7 +73,8 @@ export class AnnotationLayer {
             'sol': '\uD834\uDD1E', 'fa': '\uD834\uDD22', 'do': '\uD834\uDD21',
             'redonda': '\uD834\uDD5D', 'blanca': '\uD834\uDD5E', 'negra': '\uD834\uDD5F', 'circle': '●' 
         };
-        const fontSize = 40 * this.currentScale;
+        // DIFERENCIADO: Círculos pequeños (30px), figuras musicales grandes (72px)
+        const fontSize = (type === 'circle') ? 30 * this.currentScale : 72 * this.currentScale;
         const finalY = this.calculateMagneticY(pointer.y); 
 
         const symbol = new fabric.IText(glyphs[type] || '●', {
@@ -86,8 +87,9 @@ export class AnnotationLayer {
     }
 
     addStaveAt(pointer) {
-        const staveWidth = 800 * this.currentScale; 
-        const spacing = 12 * this.currentScale;
+        const staveWidth = 800 * this.currentScale;
+        // OPTIMIZADO: Spacing aumentado de 12px a 15px para mejor legibilidad
+        const spacing = 15 * this.currentScale;
         const createStaveGroup = (yOffset) => {
             const lines = [];
             for (let i = 0; i < 5; i++) {
@@ -113,7 +115,8 @@ export class AnnotationLayer {
         const staves = this.canvas.getObjects().filter(o => o.data?.type === 'stave');
         staves.forEach(stave => {
             if (y > stave.top - 25 && y < (stave.top + stave.height * stave.scaleY) + 25) {
-                const step = ((stave.data.spacing || 12) * stave.scaleY) / 2;
+                // Actualizado default spacing de 12 a 15 para consistencia
+                const step = ((stave.data.spacing || 15) * stave.scaleY) / 2;
                 finalY = stave.top + Math.round((y - stave.top) / step) * step;
             }
         });
@@ -147,7 +150,7 @@ export class AnnotationLayer {
     addTimeSigAt(pointer) {
         const text = new fabric.IText('4\n4', {
             left: pointer.x, top: this.calculateMagneticY(pointer.y),
-            fontFamily: 'serif', fontSize: 30 * this.currentScale,
+            fontFamily: 'serif', fontSize: 45 * this.currentScale,
             textAlign: 'center', fill: this.textColor, originY: 'center', id: this.generateUid()
         });
         this.canvas.add(text);
@@ -192,7 +195,12 @@ export class AnnotationLayer {
     }
 
     clear(emit = true) {
+        // OPTIMIZACIÓN: Limpiar listeners de objetos antes de borrar
+        this.canvas.getObjects().forEach(obj => {
+            if (obj.dispose) obj.dispose();
+        });
         this.canvas.clear();
+        this.canvas.requestRenderAll();
         if (emit && this.onClearCallback) this.onClearCallback();
     }
 
@@ -209,6 +217,8 @@ export class AnnotationLayer {
         const activeObjects = this.canvas.getActiveObjects();
         if (activeObjects.length) {
             activeObjects.forEach(obj => {
+                // OPTIMIZACIÓN: Limpiar recursos antes de remover
+                if (obj.dispose) obj.dispose();
                 if (this.onObjectRemovedCallback) this.onObjectRemovedCallback(obj.id);
                 this.canvas.remove(obj);
             });

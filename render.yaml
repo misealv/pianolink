@@ -30,6 +30,10 @@ services:
         sync: false # Set in dashboard
       - key: CLOUDINARY_API_SECRET
         sync: false # Set in dashboard (sensitive)
+      - key: AGORA_APP_ID
+        sync: false # Set in dashboard (video system)
+      - key: AGORA_APP_CERTIFICATE
+        sync: false # Set in dashboard (video system)
 
 # Health check
 healthCheckPath: /
