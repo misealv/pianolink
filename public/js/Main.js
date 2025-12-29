@@ -463,23 +463,67 @@ function setupEventHandlers() {
     });
 
     bus.on("remote-note", function(data) {
+        // DEBUG VISUAL: Mostrar en pantalla
+        const debugDiv = document.getElementById('debug-remote') || createDebugDiv();
+        
         const senderId = data.fromId;
         const myRole = JSON.parse(localStorage.getItem('pianoUser') || '{}').role;
         const iAmTeacher = (myRole === 'teacher' || myRole === 'admin');
+
+        console.log('[Main] remote-note recibido:', {
+            senderId,
+            myRole,
+            iAmTeacher,
+            teacherId,
+            currentBroadcaster,
+            userId: data.userId,
+            status: data.status,
+            nota: data.data1
+        });
+
+        debugDiv.textContent = `🎹 ${data.status} nota=${data.data1} vel=${data.data2} de ${data.userId} | Role:${myRole} | Teacher:${teacherId} | Broad:${currentBroadcaster}`;
+        debugDiv.style.backgroundColor = 'lime';
+        setTimeout(() => debugDiv.style.backgroundColor = 'green', 100);
 
         let shouldPlay = true;
 
         if (currentBroadcaster) {
             if (!iAmTeacher && senderId !== teacherId && senderId !== currentBroadcaster) {
-                shouldPlay = false; 
+                shouldPlay = false;
+                debugDiv.textContent += ' ❌ BLOQUEADO (broadcaster)';
+                debugDiv.style.backgroundColor = 'red';
+                console.warn('[Main] BLOQUEADO por broadcaster logic');
             }
         }
 
         if (shouldPlay) {
+            console.log('[Main] Llamando audio.playRemote()');
             audio.playRemote(data);
             processMidiMessage(data, false);
+        } else {
+            debugDiv.textContent += ' ⚠️ NO SE REPRODUCE';
+            console.warn('[Main] NO SE REPRODUCE - shouldPlay=false');
         }
     });
+    
+    // Crear div de debug
+    function createDebugDiv() {
+        const div = document.createElement('div');
+        div.id = 'debug-remote';
+        div.style.position = 'fixed';
+        div.style.top = '10px';
+        div.style.right = '10px';
+        div.style.padding = '10px';
+        div.style.backgroundColor = 'green';
+        div.style.color = 'white';
+        div.style.fontFamily = 'monospace';
+        div.style.fontSize = '12px';
+        div.style.zIndex = '99999';
+        div.style.borderRadius = '5px';
+        div.textContent = 'Esperando MIDI...';
+        document.body.appendChild(div);
+        return div;
+    }
 
     // --- FLUJO DE UI Y SALA ---
 
