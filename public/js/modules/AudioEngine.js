@@ -180,6 +180,23 @@ export class AudioEngine {
         // Pasar al Scheduler para el Jitter Buffer
         this.scheduler.play(data);
     }
+    
+    /**
+     * Procesa un mensaje MIDI local (del propio usuario)
+     * Solo para Control Change - las notas se escuchan directamente del piano
+     */
+    playLocal(data) {
+        const { status, data1, data2 } = data;
+        
+        // Solo procesar Control Change (pedal, volumen, etc.)
+        const isCC = (status >= 176 && status <= 191);
+        if (!isCC) return;
+        
+        // Enviar directamente al hardware con source='LOCAL'
+        if (this.outputManager) {
+            this.outputManager.send(status, data1, data2, 'LOCAL');
+        }
+    }
 
     resume() {
         if (this.scheduler.ctx && this.scheduler.ctx.state === 'suspended') {

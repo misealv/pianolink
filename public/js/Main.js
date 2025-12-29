@@ -459,7 +459,15 @@ function setupEventHandlers() {
 
     bus.on("local-note", function(data) {
         socketManager.sendMidi(data.status, data.data1, data.data2);
-        processMidiMessage(data, true); 
+        processMidiMessage(data, true);
+        
+        // === LOCAL ECHO: Enviar CC al hardware local ===
+        // Las notas NO se envían (el usuario ya las escucha directamente del piano)
+        // pero CC (pedal, volumen, etc.) SÍ deben reenviarse para que funcionen
+        const isCC = (data.status >= 176 && data.status <= 191);
+        if (isCC) {
+            audio.playLocal(data); // Enviar CC al hardware local
+        }
     });
 
     bus.on("remote-note", function(data) {

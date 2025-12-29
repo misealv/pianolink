@@ -123,12 +123,20 @@ export class MidiOutputManager {
             return;
         }
         
-        // --- FIREWALL: Solo enviar mensajes REMOTE al hardware ---
-        if (source !== 'REMOTE') {
-            // Esto es un mensaje local (del alumno tocando), no debe ir al output
-            // porque el hardware físico ya lo genera naturalmente
-            return;
+        // --- FIREWALL: Prevenir loops de notas ---
+        // Notas locales NO se envían (el usuario ya las escucha en su piano)
+        // Control Change locales SÍ se envían (pedal, etc. necesitan ir al hardware)
+        const isCC = (status >= 176 && status <= 191);
+        const isNote = (status >= 128 && status <= 159);
+        
+        if (source === 'LOCAL') {
+            if (isNote) {
+                // Notas locales: NO enviar (evita echo loop)
+                return;
+            }
+            // CC locales: continuar (pedal necesita ir al hardware)
         }
+        // Mensajes REMOTE: siempre enviar
         
         // --- FILTRADO DE MENSAJES NO ESENCIALES ---
         if (this._shouldFilterMessage(status)) {
