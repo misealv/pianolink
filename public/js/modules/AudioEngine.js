@@ -138,20 +138,8 @@ export class AudioEngine {
     }
 
     playRemote(data) {
-        console.log('[AudioEngine] playRemote() llamado:', {
-            hasOutputManager: !!this.outputManager,
-            currentOutput: this.outputManager?.currentOutput?.name || 'NINGUNO',
-            soloUserId: this.soloUserId,
-            dataUserId: data.userId,
-            status: data.status,
-            nota: data.data1
-        });
-        
         // Si hay modo "Solo" y no es el usuario elegido, silenciar
-        if (this.soloUserId && data.userId !== this.soloUserId) {
-            console.log('[AudioEngine] Bloqueado por Solo mode');
-            return;
-        }
+        if (this.soloUserId && data.userId !== this.soloUserId) return;
         
         // Pasar al Scheduler para el Jitter Buffer
         this.scheduler.play(data);

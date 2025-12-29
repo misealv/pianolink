@@ -113,19 +113,8 @@ export class MidiOutputManager {
      * @param {string} source - 'REMOTE' o 'LOCAL'
      */
     send(status, data1, data2, source = 'REMOTE') {
-        console.log('[MidiOutputManager] send() llamado:', {
-            hasOutput: !!this.currentOutput,
-            outputName: this.currentOutput?.name || 'NINGUNO',
-            source,
-            status,
-            data1,
-            data2,
-            isDisposed: this._isDisposed
-        });
-        
         if (!this.currentOutput) {
             // No hay dispositivo seleccionado, silenciosamente ignorar
-            console.warn('[MidiOutputManager] NO HAY OUTPUT - mensaje ignorado');
             return;
         }
         
