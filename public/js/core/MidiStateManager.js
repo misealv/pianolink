@@ -24,12 +24,18 @@ export class MidiStateManager {
         this._hangThreshold = 10000; // 10 segundos sin NoteOff = nota pegada
         this._watchdogInterval = null;
         
+        // --- GRACE PERIOD PARA RECONCILIACIÓN ---
+        this.GRACE_PERIOD_MS = 500; // 500ms ventana de gracia para snapshots desincronizados
+        
         // --- MÉTRICAS DE DIAGNÓSTICO ---
         this.stats = {
             duplicateNoteOns: 0,
             orphanedNoteOffs: 0,
             autoReleases: 0,
-            reconciliations: 0
+            reconciliations: 0,
+            notesRescuedBySnapshot: 0,
+            gracePeriodSaves: 0,
+            snapshotsReceived: 0
         };
     }
 
