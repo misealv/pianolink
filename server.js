@@ -14,13 +14,25 @@ const app = express();
 const server = http.createServer(app);
 
 // Configuración Socket.io para Binarios con Keepalive Anti-Zombie
+// HIGH-PRIORITY MIDI STREAM (Fase 5)
 const io = new Server(server, {
     cors: { origin: "*" },
     maxHttpBufferSize: 1e7, // 10 MB (Suficiente para PDFs y MIDI)
     pingTimeout: 60000,     // 60s antes de considerar desconexión
     pingInterval: 25000,    // Enviar ping cada 25s
     connectTimeout: 45000,  // Timeout para establecer conexión inicial
-    transports: ['websocket', 'polling'] // Fallback a polling si websocket falla
+    transports: ['websocket', 'polling'], // Fallback a polling si websocket falla
+    
+    // === OPTIMIZACIÓN DE LATENCIA PARA MIDI ===
+    perMessageDeflate: false,  // Desactivar compresión (latencia > compresión para MIDI)
+    httpCompression: false,    // Sin compresión HTTP (MIDI binario no comprime bien)
+    allowUpgrades: true,       // Permitir upgrade de polling → websocket
+    upgradeTimeout: 10000,     // 10s para upgrade
+    
+    // === PRIORIZACIÓN DE MENSAJES ===
+    // Socket.io v4 no soporta priorización nativa, pero podemos usar:
+    // - Eventos separados para MIDI vs otros (implementado)
+    // - Compression solo para datos grandes (PDF), no para MIDI
 });
 
 // 2. Middlewares y Rutas
@@ -108,6 +120,68 @@ function validateUserInRoom(socket, roomCode, requiredRole = null) {
     return true;
 }
 
+// === MIDI BUNDLE DECODER (SERVER-SIDE) ===
+/**
+ * Decodifica mensajes MIDI (individual O bundle)
+ * Soporta formato V1 (13 bytes) y V2 (bundles)
+ * @param {ArrayBuffer} buffer - Buffer recibido del cliente
+ * @returns {Array<Object>} - Array de mensajes {status, data1, data2, timestamp}
+ */
+function decodeMidiBundle(buffer) {
+    if (!buffer || buffer.byteLength < 13) {
+        console.warn('[MIDI Decoder] Buffer inválido o corrupto');
+        return [];
+    }
+    
+    const view = new DataView(buffer);
+    
+    // === DETECTAR FORMATO ===
+    // Si byte 2 es 0xFF, es un bundle V2
+    const bundleFlag = view.getUint8(2);
+    
+    if (bundleFlag === 0xFF) {
+        // === FORMATO BUNDLE V2 ===
+        const messageCount = view.getUint8(3);
+        const messages = [];
+        
+        const headerSize = 4;
+        const messageSize = 11;
+        const expectedSize = headerSize + (messageCount * messageSize);
+        
+        if (buffer.byteLength !== expectedSize) {
+            console.error(`[MIDI Decoder] Bundle corrupto: esperado ${expectedSize} bytes, recibido ${buffer.byteLength}`);
+            return [];
+        }
+        
+        let offset = headerSize;
+        for (let i = 0; i < messageCount; i++) {
+            messages.push({
+                timestamp: view.getFloat64(offset, true),
+                status: view.getUint8(offset + 8),
+                data1: view.getUint8(offset + 9),
+                data2: view.getUint8(offset + 10)
+            });
+            offset += messageSize;
+        }
+        
+        return messages;
+        
+    } else {
+        // === FORMATO INDIVIDUAL V1 (13 bytes) ===
+        if (buffer.byteLength !== 13) {
+            console.warn('[MIDI Decoder] Tamaño incorrecto para mensaje individual');
+            return [];
+        }
+        
+        return [{
+            timestamp: view.getFloat64(2, true),
+            status: view.getUint8(10),
+            data1: view.getUint8(11),
+            data2: view.getUint8(12)
+        }];
+    }
+}
+
 io.on("connection", (socket) => {
     // console.log(`🔌 Cliente conectado: ${socket.id}`);
 
@@ -152,10 +226,10 @@ io.on("connection", (socket) => {
         }, 100); // Pequeño delay para asegurar que el cliente esté listo
     });
 
-    // --- RELAY DE AUDIO/MIDI (V4 CON SNAPSHOT REACTIVO) ---
+    // --- RELAY DE AUDIO/MIDI (V5 CON BUNDLE SUPPORT) ---
     
-    // Recibimos un ArrayBuffer (Binario puro)
-    socket.on("midi-binary", (buffer) => {
+    // Recibimos un ArrayBuffer (Binario puro - individual O bundle)
+    socket.on("midi-binary", (buffer, options) => {
         const roomCode = socket.roomCode;
         if (!roomCode || !rooms[roomCode]) return;
         
@@ -171,19 +245,18 @@ io.on("connection", (socket) => {
             return;
         }
 
-        // --- STATE TRACKING MIDI (SERVER-SIDE) ---
-        try {
-            const view = new DataView(buffer);
-            if (buffer.byteLength === 13) {
-                const status = view.getUint8(10);
-                const noteId = view.getUint8(11);
-                const velocity = view.getUint8(12);
-
+        // === DECODIFICAR BUNDLE (puede ser 1 o múltiples mensajes) ===
+        const messages = decodeMidiBundle(buffer);
+        
+        // === STATE TRACKING MIDI (SERVER-SIDE) - Procesar cada mensaje ===
+        messages.forEach(msg => {
+            try {
+                const { status, data1: noteId, data2: velocity } = msg;
+                
                 const isNoteOn = (status >= 144 && status <= 159) && velocity > 0;
                 const isNoteOff = (status >= 128 && status <= 143) || (status >= 144 && velocity === 0);
 
-                const user = rooms[roomCode].users[socket.id];
-                const room = rooms[roomCode];
+                const user = room.users[socket.id];
                 
                 if (user) {
                     let stateChanged = false;
@@ -229,12 +302,13 @@ io.on("connection", (socket) => {
                         }
                     }
                 }
+            } catch (e) {
+                console.warn('[MIDI State] Error procesando mensaje del bundle:', e.message);
             }
-        } catch (e) {
-            console.warn('[MIDI State] Error decodificando:', e.message);
-        }
+        });
        
-        // Broadcast con identificación verificada del servidor
+        // === BROADCAST CON PRIORIDAD ALTA ===
+        // Broadcast el bundle completo (más eficiente que enviar mensaje por mensaje)
         const user = room.users[socket.id];
         socket.broadcast.to(roomCode).emit("midi-binary", {
             src: socket.id,

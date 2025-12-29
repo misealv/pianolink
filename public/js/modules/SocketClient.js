@@ -1,8 +1,11 @@
 /**
  * /public/js/modules/SocketClient.js
  * Adaptador de Red con Middleware de Estado y Hibernación Limpia (Fase 3)
+ * HIGH-PRIORITY MIDI STREAM (Fase 5)
  */
 import { MidiProtocol } from '../core/MidiProtocol.js';
+import { MidiProtocolV2 } from '../core/MidiProtocolV2.js';
+import { MidiBundler } from '../core/MidiBundler.js';
 
 export class SocketClient {
     constructor(eventBus) {
@@ -17,6 +20,7 @@ export class SocketClient {
             timeout: 20000
         });
         this.protocol = new MidiProtocol();
+        this.protocolV2 = new MidiProtocolV2(); // NUEVO: Protocolo de bundles
         this.roomCode = null;
         this._heartbeatInterval = null; // Heartbeat manual adicional
         
@@ -26,6 +30,11 @@ export class SocketClient {
         this._isDisposed = false;
         this._reconnectHandler = null;
         this._connectErrorHandler = null;
+        
+        // === HIGH-PRIORITY MIDI STREAM (FASE 5) ===
+        this.midiBundler = new MidiBundler((bundle) => {
+            this._sendMidiBundle(bundle);
+        });
         
         this.initListeners();
     }
@@ -74,12 +83,23 @@ export class SocketClient {
         };
         this.socket.io.on("connect_error", this._connectErrorHandler);
 
-        // --- DATA: MIDI BINARY ---
+        // --- DATA: MIDI BINARY (Soporta individual Y bundles) ---
         this.socket.on("midi-binary", (packet) => {
             // Solo procesar si no estamos en hibernación
             if (this._connectionState !== 'hibernating') {
-                const decoded = MidiProtocol.decode(packet.dat);
-                if (decoded) this.bus.emit("remote-note", { ...decoded, fromId: packet.src });
+                // Decodificar con MidiProtocolV2 (soporta bundles)
+                const messages = MidiProtocolV2.decode(packet.dat);
+                
+                // Procesar cada mensaje del bundle
+                messages.forEach(decoded => {
+                    if (decoded) {
+                        this.bus.emit("remote-note", { 
+                            ...decoded, 
+                            fromId: packet.src,
+                            userId: packet.userId
+                        });
+                    }
+                });
             }
         });
 
@@ -175,8 +195,29 @@ export class SocketClient {
 
     sendMidi(status, data1, data2) {
         if (!this.roomCode) return;
-        const buffer = this.protocol.encode(status, data1, data2);
-        this.socket.emit("midi-binary", buffer);
+        
+        // === HIGH-PRIORITY MIDI STREAM ===
+        // Agregar al bundler en lugar de enviar inmediatamente
+        // El bundler decide cuándo enviar (inmediato para notas, agrupado para CC)
+        this.midiBundler.addMessage(status, data1, data2);
+    }
+    
+    /**
+     * Envía un bundle de mensajes MIDI (llamado por MidiBundler)
+     * @private
+     */
+    _sendMidiBundle(messages) {
+        if (!this.roomCode || messages.length === 0) return;
+        
+        // Empaquetar bundle con protocolo V2
+        const buffer = this.protocolV2.encodeBundle(messages);
+        
+        if (buffer) {
+            // Emitir con flag de prioridad alta
+            this.socket.emit("midi-binary", buffer, { 
+                priority: 'high' // Hint para Socket.io (si se configura en servidor)
+            });
+        }
     }
     
     updatePdfState(url, page) {
@@ -262,8 +303,13 @@ export class SocketClient {
         
         console.log('[SocketClient] Iniciando limpieza de recursos...');
         
-        // 0. Detener heartbeat
+        // 0. Detener heartbeat y bundler
         this.stopHeartbeat();
+        
+        if (this.midiBundler) {
+            this.midiBundler.dispose();
+            this.midiBundler = null;
+        }
         
         // 1. Remover listeners de Socket.IO
         if (this.socket) {
