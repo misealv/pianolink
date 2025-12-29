@@ -98,9 +98,12 @@ export class MidiBundler {
         // === EXCEPCIÓN PRIORITARIA: PEDAL DE SUSTAIN (CC 64) ===
         // SIEMPRE enviar cambios de estado del pedal (On/Off) sin throttling
         if (cc === 64) {
+            console.log(`[MidiBundler] 🎹 Pedal CC recibido: value=${value}, lastValue=${lastCC?.value || 'ninguno'}`);
+            
             // Si no hay valor previo, enviar
             if (!lastCC) {
                 this.lastCCValues.set(key, { value, timestamp: now });
+                console.log(`[MidiBundler] ✅ Primera vez - ENVIANDO`);
                 return false; // NO filtrar
             }
             
@@ -108,17 +111,26 @@ export class MidiBundler {
             const wasPedalDown = lastCC.value >= 64;
             const isPedalDown = value >= 64;
             
+            console.log(`[MidiBundler] Estado: antes=${wasPedalDown ? 'DOWN' : 'UP'} → ahora=${isPedalDown ? 'DOWN' : 'UP'}`);
+            
             if (wasPedalDown !== isPedalDown) {
                 // CAMBIO DE ESTADO: Enviar inmediatamente
                 this.lastCCValues.set(key, { value, timestamp: now });
-                console.log(`[MidiBundler] Pedal Sustain: ${isPedalDown ? 'ON' : 'OFF'} (value=${value})`);
+                console.log(`[MidiBundler] ✅ CAMBIO DE ESTADO - ENVIANDO: ${isPedalDown ? 'ON' : 'OFF'}`);
                 return false; // NO filtrar
             }
             
             // Si no cambió de estado pero el valor cambió ligeramente, ignorar
-            if (Math.abs(value - lastCC.value) < this.CC_VALUE_THRESHOLD) {
+            const delta = Math.abs(value - lastCC.value);
+            if (delta < this.CC_VALUE_THRESHOLD) {
+                console.log(`[MidiBundler] ❌ FILTRANDO - Cambio insignificante (delta=${delta})`);
                 return true; // FILTRAR (misma posición del pedal)
             }
+            
+            // Cambio significativo sin cambio de estado (ej: 127→100)
+            this.lastCCValues.set(key, { value, timestamp: now });
+            console.log(`[MidiBundler] ✅ Cambio significativo sin cambio de estado - ENVIANDO (delta=${delta})`);
+            return false;
         }
         
         if (!lastCC) {
