@@ -548,6 +548,37 @@ function setupEventHandlers() {
         audio.stopAll();
     });
 
+    // NUEVO: Recuperación total MIDI después de reconexión
+    bus.on("net-midi-recovery", function() {
+        console.log("[Main] 🔄 Reconexión detectada. Reinicializando MIDI...");
+        
+        // 1. Detener todo audio y limpiar estado
+        audio.stopAll();
+        
+        // 2. Re-escanear dispositivos MIDI (hot-plug recovery)
+        audio.scanDevices();
+        
+        // 3. Re-unirse a la sala si estamos en una
+        const pianoUser = JSON.parse(localStorage.getItem('pianoUser') || '{}');
+        const roomCode = pianoUser.roomCode;
+        
+        if (roomCode && socketManager.socket.connected) {
+            console.log(`[Main] Re-uniéndose a sala: ${roomCode}`);
+            socketManager.joinRoom({
+                roomCode: roomCode,
+                username: pianoUser.username || 'Usuario',
+                userRole: pianoUser.role || 'student'
+            });
+        }
+        
+        // 4. Solicitar snapshot del estado actual
+        setTimeout(() => {
+            if (socketManager.socket.connected) {
+                socketManager.socket.emit('request-snapshot', { roomCode: roomCode });
+            }
+        }, 500);
+    });
+
     // Reconciliación con snapshots (Fase 2 - Reemplaza heartbeat)
     bus.on("midi-snapshot", function(snapshot) {
         audio.reconcile(snapshot);

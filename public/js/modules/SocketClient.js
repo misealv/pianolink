@@ -57,6 +57,16 @@ export class SocketClient {
             this._enterHibernation();
             this.bus.emit("net-status", "OFFLINE");
             this.bus.emit("net-disconnect-cleanup");
+            
+            // NUEVO: Si la desconexión es por el servidor, forzar reconexión más agresiva
+            if (reason === 'io server disconnect' || reason === 'transport close') {
+                console.warn('[SocketClient] Desconexión forzada del servidor, reconectando inmediatamente...');
+                setTimeout(() => {
+                    if (!this.socket.connected) {
+                        this.socket.connect();
+                    }
+                }, 100);
+            }
         });
         
         // --- LIFECYCLE: RECONNECTING ---
@@ -72,7 +82,8 @@ export class SocketClient {
             console.log(`[SocketClient] ✅ Reconectado después de ${attemptNumber} intentos.`);
             this._connectionState = 'connected';
             this.bus.emit("net-status", "ONLINE");
-            this.bus.emit("net-reconnected");
+            this.bus.emit("net-reconnected"); // Trigger MIDI re-initialization
+            this.bus.emit("net-midi-recovery"); // NUEVO: Trigger full MIDI recovery
             if (this.roomCode) this.startHeartbeat(); // Reactivar keepalive
         });
         
@@ -146,14 +157,30 @@ export class SocketClient {
     startHeartbeat() {
         if (this._heartbeatInterval) return; // Ya está iniciado
         
+        this._lastHeartbeatResponse = Date.now();
+        
         this._heartbeatInterval = setInterval(() => {
             if (this.socket.connected && this.roomCode) {
+                // Verificar si el servidor respondió al último heartbeat
+                const timeSinceLastResponse = Date.now() - this._lastHeartbeatResponse;
+                if (timeSinceLastResponse > 45000) { // 3 heartbeats sin respuesta
+                    console.error('[SocketClient] ⚠️ Conexión zombie detectada (45s sin respuesta), reconectando...');
+                    this.socket.disconnect();
+                    setTimeout(() => this.socket.connect(), 500);
+                    return;
+                }
+                
                 this.socket.emit('client-heartbeat', { 
                     roomCode: this.roomCode, 
                     timestamp: Date.now() 
                 });
             }
         }, 15000); // Cada 15s
+        
+        // Escuchar respuesta del servidor
+        this.socket.on('heartbeat-ack', () => {
+            this._lastHeartbeatResponse = Date.now();
+        });
         
         console.log('[SocketClient] ❤️ Heartbeat iniciado');
     }
