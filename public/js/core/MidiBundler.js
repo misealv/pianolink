@@ -14,13 +14,13 @@ export class MidiBundler {
         this.sendCallback = sendCallback; // Función para enviar al servidor
         
         // === MICRO-BUFFER CONFIG ===
-        this.BUNDLE_INTERVAL_MS = 15; // 15ms = ~66fps (imperceptible pero eficiente)
+        this.BUNDLE_INTERVAL_MS = 10; // 10ms = 100fps (precisión profesional)
         this.bundleTimer = null;
         this.messageQueue = [];
         
         // === FILTRADO DE CC REDUNDANTES ===
         this.lastCCValues = new Map(); // key: "channel-cc", value: {value, timestamp}
-        this.CC_THROTTLE_MS = 50;      // No enviar mismo CC más de 1 vez cada 50ms
+        this.CC_THROTTLE_MS = 20;      // No enviar mismo CC más de 1 vez cada 20ms
         this.CC_VALUE_THRESHOLD = 2;   // Ignorar cambios menores a 2 unidades
         
         // === ESTADÍSTICAS (para debugging) ===
@@ -31,7 +31,7 @@ export class MidiBundler {
             avgBundleSize: 0
         };
         
-        console.log('[MidiBundler] ⚡ High-Priority MIDI Stream activado');
+        console.log('[MidiBundler] ⚡ High-Priority MIDI Stream (Professional Mode)');
         console.log(`  - Bundle interval: ${this.BUNDLE_INTERVAL_MS}ms`);
         console.log(`  - CC throttle: ${this.CC_THROTTLE_MS}ms`);
     }

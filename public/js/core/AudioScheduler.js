@@ -19,10 +19,11 @@ export class AudioScheduler {
         this.outputManager = null; // Inyectado desde AudioEngine
         
         // --- JITTER BUFFER CONFIG ---
-        // Reducido de 300ms a 150ms después de implementar state management
-        this.BUFFER_MS = 150; 
+        // 80ms balanceo entre latencia y precisión rítmica
+        this.BUFFER_MS = 80; 
         this.syncOffset = 0;   // Diferencia entre reloj remoto y local
         this.isSynced = false; // ¿Ya sincronizamos la primera nota?
+        this.lastSyncTime = 0; // Para re-sincronización periódica
         
         // --- LIFECYCLE ---
         this._isDestroyed = false;
@@ -107,20 +108,27 @@ export class AudioScheduler {
         let scheduledTime = this.ctx.currentTime;
 
         if (timestamp) {
-            if (!this.isSynced) {
+            const now = this.ctx.currentTime * 1000;
+            
+            // Re-sincronizar cada 5 segundos para compensar deriva de reloj
+            if (!this.isSynced || (now - this.lastSyncTime) > 5000) {
                 this.syncOffset = (this.ctx.currentTime * 1000) - timestamp;
                 this.isSynced = true;
+                this.lastSyncTime = now;
             }
 
+            // Calcular tiempo objetivo respetando el timestamp original
             const targetTimeMs = timestamp + this.syncOffset + this.BUFFER_MS;
             scheduledTime = targetTimeMs / 1000;
 
-            // --- CORRECCIÓN DE DERIVA ---
-            if (Math.abs(scheduledTime - this.ctx.currentTime) > 1.5) {
-                this.isSynced = false; 
-            }
-
-            if (scheduledTime < this.ctx.currentTime) {
+            // --- CORRECCIÓN DE DERIVA (más tolerante) ---
+            const drift = scheduledTime - this.ctx.currentTime;
+            if (Math.abs(drift) > 2.0) {
+                // Deriva grande: re-sincronizar
+                this.isSynced = false;
+                scheduledTime = this.ctx.currentTime + (this.BUFFER_MS / 1000);
+            } else if (scheduledTime < this.ctx.currentTime) {
+                // Tiempo pasado: tocar inmediatamente
                 scheduledTime = this.ctx.currentTime;
             }
         }
