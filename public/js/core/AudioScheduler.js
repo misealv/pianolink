@@ -150,6 +150,11 @@ export class AudioScheduler {
         } else if (isCC) {
             // CONTROL CHANGE: Enviar directamente al hardware (pedal, volumen, etc.)
             
+            // Debug CC64
+            if (data1 === 64) {
+                console.log(`[AudioScheduler] 🎹 CC64 procesando: status=${status}, value=${data2}, hasOutput=${!!this.outputManager}`);
+            }
+            
             if (this.outputManager) {
                 this.outputManager.send(status, data1, data2, 'REMOTE');
             } else if (this.midiOutput) {
