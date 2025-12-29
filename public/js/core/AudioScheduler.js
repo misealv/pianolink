@@ -138,7 +138,7 @@ export class AudioScheduler {
 
         // 2. PROCESAR SEGÚN TIPO DE MENSAJE
         const isNoteOn = (status >= 144 && status <= 159) && data2 > 0;
-        const isNoteOff = (status >= 128 && status <= 143) || (status >= 144 && data2 === 0);
+        const isNoteOff = (status >= 128 && status <= 143) || (status >= 144 && status <= 159 && data2 === 0);
         const isCC = (status >= 176 && status <= 191); // Control Change
 
         if (isNoteOn) {
