@@ -57,8 +57,10 @@ export class MidiBundler {
             }
         }
         
-        // === PRIORIZACIÓN: Note On/Off ===
-        const priority = (messageType === 'NoteOn' || messageType === 'NoteOff') ? 'high' : 'low';
+        // === PRIORIZACIÓN: Note On/Off Y SUSTAIN PEDAL ===
+        // Pedal sustain (CC 64) tiene prioridad alta para evitar delays
+        const isSustainPedal = (messageType === 'CC' && data1 === 64);
+        const priority = (messageType === 'NoteOn' || messageType === 'NoteOff' || isSustainPedal) ? 'high' : 'low';
         
         // === AGREGAR A COLA CON TIMESTAMP ===
         this.messageQueue.push({
@@ -70,7 +72,7 @@ export class MidiBundler {
             type: messageType
         });
         
-        // === ENVÍO INMEDIATO PARA NOTAS (CRÍTICO) ===
+        // === ENVÍO INMEDIATO PARA NOTAS Y PEDAL (CRÍTICO) ===
         if (priority === 'high') {
             this._flushBundle(); // Enviar inmediatamente sin esperar timer
         } else {
