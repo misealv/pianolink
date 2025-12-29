@@ -93,6 +93,32 @@ export class MidiBundler {
         
         const lastCC = this.lastCCValues.get(key);
         
+        // === EXCEPCIÓN PRIORITARIA: PEDAL DE SUSTAIN (CC 64) ===
+        // SIEMPRE enviar cambios de estado del pedal (On/Off) sin throttling
+        if (cc === 64) {
+            // Si no hay valor previo, enviar
+            if (!lastCC) {
+                this.lastCCValues.set(key, { value, timestamp: now });
+                return false; // NO filtrar
+            }
+            
+            // Detectar cambio de estado: Off→On o On→Off
+            const wasPedalDown = lastCC.value >= 64;
+            const isPedalDown = value >= 64;
+            
+            if (wasPedalDown !== isPedalDown) {
+                // CAMBIO DE ESTADO: Enviar inmediatamente
+                this.lastCCValues.set(key, { value, timestamp: now });
+                console.log(`[MidiBundler] Pedal Sustain: ${isPedalDown ? 'ON' : 'OFF'} (value=${value})`);
+                return false; // NO filtrar
+            }
+            
+            // Si no cambió de estado pero el valor cambió ligeramente, ignorar
+            if (Math.abs(value - lastCC.value) < this.CC_VALUE_THRESHOLD) {
+                return true; // FILTRAR (misma posición del pedal)
+            }
+        }
+        
         if (!lastCC) {
             // Primera vez que vemos este CC
             this.lastCCValues.set(key, { value, timestamp: now });
@@ -107,17 +133,6 @@ export class MidiBundler {
             
             if (valueDelta < this.CC_VALUE_THRESHOLD) {
                 return true; // FILTRAR (cambio insignificante)
-            }
-        }
-        
-        // === EXCEPCIÓN: PEDAL DE SUSTAIN (CC 64) ===
-        // Siempre enviar cambios de pedal On/Off (0 vs 127)
-        if (cc === 64) {
-            const isPedalChange = (lastCC.value < 64 && value >= 64) || 
-                                  (lastCC.value >= 64 && value < 64);
-            if (isPedalChange) {
-                this.lastCCValues.set(key, { value, timestamp: now });
-                return false; // NO filtrar
             }
         }
         
