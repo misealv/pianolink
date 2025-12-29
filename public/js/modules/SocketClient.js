@@ -87,12 +87,21 @@ export class SocketClient {
         this.socket.on("midi-binary", (packet) => {
             // Solo procesar si no estamos en hibernación
             if (this._connectionState !== 'hibernating') {
+                console.log('[SocketClient] MIDI recibido:', { 
+                    src: packet.src, 
+                    userId: packet.userId,
+                    bufferSize: packet.dat?.byteLength 
+                });
+                
                 // Decodificar con MidiProtocolV2 (soporta bundles)
                 const messages = MidiProtocolV2.decode(packet.dat);
+                
+                console.log('[SocketClient] Mensajes decodificados:', messages.length, messages);
                 
                 // Procesar cada mensaje del bundle
                 messages.forEach(decoded => {
                     if (decoded) {
+                        console.log('[SocketClient] Emitiendo remote-note:', decoded);
                         this.bus.emit("remote-note", { 
                             ...decoded, 
                             fromId: packet.src,
