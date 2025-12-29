@@ -150,11 +150,6 @@ export class AudioScheduler {
         } else if (isCC) {
             // CONTROL CHANGE: Enviar directamente al hardware (pedal, volumen, etc.)
             
-            // Debug pedal sustain
-            if (data1 === 64) {
-                console.log(`[AudioScheduler] 🎹 Pedal CC64 recibido: value=${data2} (${data2 >= 64 ? 'DOWN' : 'UP'})`);
-            }
-            
             if (this.outputManager) {
                 this.outputManager.send(status, data1, data2, 'REMOTE');
             } else if (this.midiOutput) {

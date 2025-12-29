@@ -267,6 +267,7 @@ io.on("connection", (socket) => {
                 
                 const isNoteOn = (status >= 144 && status <= 159) && velocity > 0;
                 const isNoteOff = (status >= 128 && status <= 143) || (status >= 144 && velocity === 0);
+                const isCC = (status >= 176 && status <= 191); // Control Change
 
                 const user = room.users[socket.id];
                 
@@ -286,6 +287,7 @@ io.on("connection", (socket) => {
                             stateChanged = true;
                         }
                     }
+                    // Control Change (pedal, etc.) no afecta state tracking pero debe retransmitirse
 
                     // --- SNAPSHOT REACTIVO ---
                     if (stateChanged && socket.userRole === 'teacher') {
