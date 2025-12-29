@@ -113,16 +113,8 @@ export class MidiOutputManager {
      * @param {string} source - 'REMOTE' o 'LOCAL'
      */
     send(status, data1, data2, source = 'REMOTE') {
-        // Debug CC64
-        if (data1 === 64 && status >= 176 && status <= 191) {
-            console.log(`[MidiOutputManager] 🎹 send() CC64: value=${data2}, source=${source}, hasOutput=${!!this.currentOutput}`);
-        }
-        
         if (!this.currentOutput) {
             // No hay dispositivo seleccionado, silenciosamente ignorar
-            if (data1 === 64 && status >= 176 && status <= 191) {
-                console.warn('[MidiOutputManager] ⚠️ CC64 bloqueado: NO HAY OUTPUT');
-            }
             return;
         }
         

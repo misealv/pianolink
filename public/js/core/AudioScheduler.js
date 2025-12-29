@@ -19,11 +19,16 @@ export class AudioScheduler {
         this.outputManager = null; // Inyectado desde AudioEngine
         
         // --- JITTER BUFFER CONFIG ---
-        // 80ms balanceo entre latencia y precisión rítmica
-        this.BUFFER_MS = 80; 
+        // 120ms: más tolerante a jitter de red, sacrifica ~40ms latencia
+        this.BUFFER_MS = 120; 
         this.syncOffset = 0;   // Diferencia entre reloj remoto y local
         this.isSynced = false; // ¿Ya sincronizamos la primera nota?
         this.lastSyncTime = 0; // Para re-sincronización periódica
+        
+        // --- DIAGNOSTICS (temporal) ---
+        this.notesReceived = 0;
+        this.notesLate = 0;
+        this.lastStatsLog = 0;
         
         // --- LIFECYCLE ---
         this._isDestroyed = false;
@@ -110,8 +115,18 @@ export class AudioScheduler {
         if (timestamp) {
             const now = this.ctx.currentTime * 1000;
             
-            // Re-sincronizar cada 5 segundos para compensar deriva de reloj
-            if (!this.isSynced || (now - this.lastSyncTime) > 5000) {
+            // Estadísticas (log cada 10 segundos)
+            this.notesReceived++;
+            if (now - this.lastStatsLog > 10000) {
+                const lossRate = ((this.notesLate / this.notesReceived) * 100).toFixed(1);
+                console.log(`[AudioScheduler] 📊 Notas recibidas: ${this.notesReceived}, Atrasadas: ${this.notesLate} (${lossRate}%)`);
+                this.lastStatsLog = now;
+                this.notesReceived = 0;
+                this.notesLate = 0;
+            }
+            
+            // Re-sincronizar cada 3 segundos para compensar deriva de reloj
+            if (!this.isSynced || (now - this.lastSyncTime) > 3000) {
                 this.syncOffset = (this.ctx.currentTime * 1000) - timestamp;
                 this.isSynced = true;
                 this.lastSyncTime = now;
@@ -121,14 +136,15 @@ export class AudioScheduler {
             const targetTimeMs = timestamp + this.syncOffset + this.BUFFER_MS;
             scheduledTime = targetTimeMs / 1000;
 
-            // --- CORRECCIÓN DE DERIVA (más tolerante) ---
+            // --- CORRECCIÓN DE DERIVA (MUY tolerante para conexiones inestables) ---
             const drift = scheduledTime - this.ctx.currentTime;
-            if (Math.abs(drift) > 2.0) {
-                // Deriva grande: re-sincronizar
+            if (Math.abs(drift) > 3.0) {
+                // Deriva mayor a 3s: re-sincronizar
                 this.isSynced = false;
                 scheduledTime = this.ctx.currentTime + (this.BUFFER_MS / 1000);
-            } else if (scheduledTime < this.ctx.currentTime) {
-                // Tiempo pasado: tocar inmediatamente
+            } else if (scheduledTime < this.ctx.currentTime - 0.05) {
+                // Más de 50ms atrasado: tocar inmediatamente (no descartar)
+                this.notesLate++;
                 scheduledTime = this.ctx.currentTime;
             }
         }
@@ -149,12 +165,6 @@ export class AudioScheduler {
             this.stateManager.handleNoteOff(data1, 'REMOTE');
         } else if (isCC) {
             // CONTROL CHANGE: Enviar directamente al hardware (pedal, volumen, etc.)
-            
-            // Debug CC64
-            if (data1 === 64) {
-                console.log(`[AudioScheduler] 🎹 CC64 procesando: status=${status}, value=${data2}, hasOutput=${!!this.outputManager}`);
-            }
-            
             if (this.outputManager) {
                 this.outputManager.send(status, data1, data2, 'REMOTE');
             } else if (this.midiOutput) {

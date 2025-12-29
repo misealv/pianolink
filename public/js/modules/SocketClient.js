@@ -93,11 +93,6 @@ export class SocketClient {
                 // Procesar cada mensaje del bundle
                 messages.forEach(decoded => {
                     if (decoded) {
-                        // Debug CC64
-                        if (decoded.data1 === 64 && decoded.status >= 176 && decoded.status <= 191) {
-                            console.log('[SocketClient] 🎹 CC64 recibido:', decoded);
-                        }
-                        
                         this.bus.emit("remote-note", { 
                             ...decoded, 
                             fromId: packet.src,
