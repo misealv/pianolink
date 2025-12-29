@@ -182,6 +182,50 @@ function decodeMidiBundle(buffer) {
     }
 }
 
+// === FUNCIÓN PARA RECODIFICAR BUNDLE SIN PROGRAM CHANGE ===
+function encodeMidiBundle(messages) {
+    if (messages.length === 0) return null;
+    
+    if (messages.length === 1) {
+        // === FORMATO INDIVIDUAL V1 (13 bytes) ===
+        const buffer = new ArrayBuffer(13);
+        const view = new DataView(buffer);
+        const msg = messages[0];
+        
+        view.setUint16(0, 0xFFFF, true); // Magic header
+        view.setFloat64(2, msg.timestamp, true);
+        view.setUint8(10, msg.status);
+        view.setUint8(11, msg.data1);
+        view.setUint8(12, msg.data2);
+        
+        return buffer;
+    } else {
+        // === FORMATO BUNDLE V2 ===
+        const headerSize = 4;
+        const messageSize = 11;
+        const bufferSize = headerSize + (messages.length * messageSize);
+        const buffer = new ArrayBuffer(bufferSize);
+        const view = new DataView(buffer);
+        
+        // Header
+        view.setUint16(0, 0xFFFF, true); // Magic
+        view.setUint8(2, 0xFF); // Bundle flag
+        view.setUint8(3, messages.length); // Message count
+        
+        // Messages
+        let offset = headerSize;
+        for (const msg of messages) {
+            view.setFloat64(offset, msg.timestamp, true);
+            view.setUint8(offset + 8, msg.status);
+            view.setUint8(offset + 9, msg.data1);
+            view.setUint8(offset + 10, msg.data2);
+            offset += messageSize;
+        }
+        
+        return buffer;
+    }
+}
+
 io.on("connection", (socket) => {
     // console.log(`🔌 Cliente conectado: ${socket.id}`);
 
@@ -321,12 +365,24 @@ io.on("connection", (socket) => {
             }
         });
        
+        // === FILTRAR PROGRAM CHANGE (192-207) ===
+        // Cada usuario debe mantener su propio instrumento configurado
+        const filteredMessages = messages.filter(msg => {
+            const isProgramChange = (msg.status >= 192 && msg.status <= 207);
+            return !isProgramChange;
+        });
+        
         // === BROADCAST CON PRIORIDAD ALTA ===
-        // Broadcast el bundle completo (más eficiente que enviar mensaje por mensaje)
+        // Si no hay mensajes después del filtro, no enviar nada
+        if (filteredMessages.length === 0) return;
+        
+        // Recodificar bundle sin Program Change
+        const filteredBuffer = encodeMidiBundle(filteredMessages);
+        
         const user = room.users[socket.id];
         socket.broadcast.to(roomCode).emit("midi-binary", {
             src: socket.id,
-            dat: arrayBuffer,
+            dat: filteredBuffer,
             userId: user.name // Identificación verificada
         });
     });
