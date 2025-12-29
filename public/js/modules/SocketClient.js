@@ -213,10 +213,8 @@ export class SocketClient {
         const buffer = this.protocolV2.encodeBundle(messages);
         
         if (buffer) {
-            // Emitir con flag de prioridad alta
-            this.socket.emit("midi-binary", buffer, { 
-                priority: 'high' // Hint para Socket.io (si se configura en servidor)
-            });
+            // Emitir bundle (sin opciones adicionales)
+            this.socket.emit("midi-binary", buffer);
         }
     }
     

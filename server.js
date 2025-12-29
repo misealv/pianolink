@@ -229,7 +229,7 @@ io.on("connection", (socket) => {
     // --- RELAY DE AUDIO/MIDI (V5 CON BUNDLE SUPPORT) ---
     
     // Recibimos un ArrayBuffer (Binario puro - individual O bundle)
-    socket.on("midi-binary", (buffer, options) => {
+    socket.on("midi-binary", (buffer) => {
         const roomCode = socket.roomCode;
         if (!roomCode || !rooms[roomCode]) return;
         
@@ -245,8 +245,20 @@ io.on("connection", (socket) => {
             return;
         }
 
+        // === NORMALIZAR BUFFER (Socket.io puede enviar Buffer de Node.js) ===
+        let arrayBuffer;
+        if (Buffer.isBuffer(buffer)) {
+            // Convertir Buffer de Node.js a ArrayBuffer
+            arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        } else if (buffer instanceof ArrayBuffer) {
+            arrayBuffer = buffer;
+        } else {
+            console.error('[MIDI] Tipo de buffer inválido:', typeof buffer);
+            return;
+        }
+
         // === DECODIFICAR BUNDLE (puede ser 1 o múltiples mensajes) ===
-        const messages = decodeMidiBundle(buffer);
+        const messages = decodeMidiBundle(arrayBuffer);
         
         // === STATE TRACKING MIDI (SERVER-SIDE) - Procesar cada mensaje ===
         messages.forEach(msg => {
@@ -312,7 +324,7 @@ io.on("connection", (socket) => {
         const user = room.users[socket.id];
         socket.broadcast.to(roomCode).emit("midi-binary", {
             src: socket.id,
-            dat: buffer,
+            dat: arrayBuffer,
             userId: user.name // Identificación verificada
         });
     });
