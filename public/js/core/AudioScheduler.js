@@ -191,6 +191,9 @@ export class AudioScheduler {
         // Cada usuario escucha su piano físico directamente (latencia 0ms).
         // NO se generan tonos web sintéticos.
         
+        // DEBUG: Verificar velocity
+        console.log(`[AudioScheduler] NoteOn: nota=${noteId} velocity=${velocity} source=${source}`);
+        
         // --- FASE 4: ENVIAR A HARDWARE CON SOURCE TAGGING ---
         if (this.outputManager) {
             const status = 144; // NoteOn en canal 1
