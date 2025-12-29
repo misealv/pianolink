@@ -136,15 +136,29 @@ export class AudioScheduler {
         // Guardar el tiempo programado para uso en callbacks
         this._scheduledTime = scheduledTime;
 
-        // 2. PASAR AL STATE MANAGER (NUEVA ARQUITECTURA)
-        // El state manager decide si esta nota debe procesarse o ignorarse
+        // 2. PROCESAR SEGÚN TIPO DE MENSAJE
         const isNoteOn = (status >= 144 && status <= 159) && data2 > 0;
         const isNoteOff = (status >= 128 && status <= 143) || (status >= 144 && data2 === 0);
+        const isCC = (status >= 176 && status <= 191); // Control Change
 
         if (isNoteOn) {
+            // NOTAS: Pasar al state manager
             this.stateManager.handleNoteOn(data1, data2, 'REMOTE');
         } else if (isNoteOff) {
+            // NOTAS OFF: Pasar al state manager
             this.stateManager.handleNoteOff(data1, 'REMOTE');
+        } else if (isCC) {
+            // CONTROL CHANGE: Enviar directamente al hardware (pedal, volumen, etc.)
+            if (this.outputManager) {
+                this.outputManager.send(status, data1, data2, 'REMOTE');
+            } else if (this.midiOutput) {
+                try {
+                    const delay = Math.max(0, (scheduledTime - this.ctx.currentTime) * 1000);
+                    this.midiOutput.send([status, data1, data2], window.performance.now() + delay);
+                } catch (e) {
+                    console.warn('[AudioScheduler] Error enviando CC a hardware:', e);
+                }
+            }
         }
     }
 
