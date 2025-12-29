@@ -19,6 +19,10 @@ export class AudioEngine {
         this._keepAliveInterval = null;
         this._reconnectAttempts = 0;
         this.MAX_RECONNECT_ATTEMPTS = 3;
+        
+        // --- WATCHDOG MIDI ---
+        this._lastMidiActivity = 0; // Timestamp de última actividad MIDI
+        this._midiWatchdogInterval = null; // Interval para verificar listeners
     }
 
     async init() {
@@ -89,6 +93,9 @@ export class AudioEngine {
                     return;
                 }
                 
+                // Actualizar timestamp de última actividad MIDI
+                this._lastMidiActivity = performance.now();
+                
                 // Mensaje legítimo del usuario local
                 this.bus.emit('local-note', { status: s, data1: d1, data2: d2 });
             };
@@ -97,6 +104,35 @@ export class AudioEngine {
             this._midiInputs.set(i.id, handler);
             console.log(`[MIDI] Listener conectado a: ${i.name}`);
         });
+        
+        // === WATCHDOG: Detectar desconexión silenciosa del listener ===
+        if (!this._midiWatchdogInterval) {
+            this._midiWatchdogInterval = setInterval(() => {
+                // Si no hay actividad MIDI por 60 segundos, verificar listeners
+                const timeSinceActivity = performance.now() - (this._lastMidiActivity || 0);
+                if (timeSinceActivity > 60000) {
+                    console.warn('[MIDI Watchdog] Sin actividad por 60s, verificando listeners...');
+                    
+                    // Verificar que los listeners aún existen
+                    let listenersOk = true;
+                    this._midiInputs.forEach((handler, inputId) => {
+                        const input = this.midiAccess.inputs.get(inputId);
+                        if (!input || !input.onmidimessage) {
+                            console.error(`[MIDI Watchdog] ❌ Listener perdido en: ${inputId}`);
+                            listenersOk = false;
+                        }
+                    });
+                    
+                    if (!listenersOk) {
+                        console.warn('[MIDI Watchdog] 🔄 Reconectando listeners...');
+                        this.scanDevices(); // Re-escanear y reconectar
+                    }
+                    
+                    // Resetear timestamp para no spamear logs
+                    this._lastMidiActivity = performance.now();
+                }
+            }, 30000); // Verificar cada 30 segundos
+        }
     }
     // Apagado de emergencia
     stopAll() {
@@ -301,6 +337,12 @@ export class AudioEngine {
         if (this._keepAliveInterval) {
             clearInterval(this._keepAliveInterval);
             this._keepAliveInterval = null;
+        }
+        
+        // 3.5. Detener MIDI watchdog
+        if (this._midiWatchdogInterval) {
+            clearInterval(this._midiWatchdogInterval);
+            this._midiWatchdogInterval = null;
         }
         
         // 4. Limpiar listeners MIDI
