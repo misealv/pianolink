@@ -471,6 +471,11 @@ function setupEventHandlers() {
     });
 
     bus.on("remote-note", function(data) {
+        // Debug CC64
+        if (data.data1 === 64 && data.status >= 176 && data.status <= 191) {
+            console.log('[Main] 🎹 remote-note CC64:', data);
+        }
+        
         const senderId = data.fromId;
         const myRole = JSON.parse(localStorage.getItem('pianoUser') || '{}').role;
         const iAmTeacher = (myRole === 'teacher' || myRole === 'admin');
@@ -484,6 +489,9 @@ function setupEventHandlers() {
         }
 
         if (shouldPlay) {
+            if (data.data1 === 64 && data.status >= 176 && data.status <= 191) {
+                console.log('[Main] 🎹 Llamando audio.playRemote() con CC64:', data.data2);
+            }
             audio.playRemote(data);
             processMidiMessage(data, false);
         }
