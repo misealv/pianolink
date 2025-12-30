@@ -141,6 +141,12 @@ body {
   grid-template-rows: 50px 1fr;
   height: 100%;
   width: 100%;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Cuando el sidebar está colapsado, eliminar su columna del grid */
+.app-container:has(.sidebar.collapsed) {
+  grid-template-columns: 0px 1fr;
 }
 
 /* Header */
@@ -251,12 +257,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Expandir contenido cuando sidebar está colapsado */
-.main-stage.expanded {
-  grid-column: 1 / -1;
 }
 
 /* UI Components */

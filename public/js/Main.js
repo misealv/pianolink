@@ -740,7 +740,6 @@ function initSidebarToggle() {
     function collapse() {
         sidebar.classList.add('collapsed');
         sidebar.classList.remove('open');
-        mainStage.classList.add('expanded');
         overlay.classList.remove('active');
         toggleBtn.classList.remove('open');
         toggleBtn.querySelector('.hamburger-icon').textContent = '☰';
@@ -753,7 +752,6 @@ function initSidebarToggle() {
     function expand() {
         sidebar.classList.remove('collapsed');
         sidebar.classList.add('open');
-        mainStage.classList.remove('expanded');
         
         // En desktop, no mostrar overlay; en mobile sí
         if (window.innerWidth <= 900) {
