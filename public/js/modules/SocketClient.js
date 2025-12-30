@@ -23,6 +23,8 @@ export class SocketClient {
         this.protocolV2 = new MidiProtocolV2(); // NUEVO: Protocolo de bundles
         this.roomCode = null;
         this._heartbeatInterval = null; // Heartbeat manual adicional
+        this._lastHeartbeatResponse = Date.now();
+        this._heartbeatMissedCount = 0; // Contador de heartbeats perdidos
         
         // --- FASE 3: MIDDLEWARE DE ESTADO ---
         this._connectionState = 'disconnected'; // 'disconnected', 'connecting', 'connected', 'hibernating'
@@ -81,10 +83,26 @@ export class SocketClient {
         this.socket.io.on("reconnect", (attemptNumber) => {
             console.log(`[SocketClient] ✅ Reconectado después de ${attemptNumber} intentos.`);
             this._connectionState = 'connected';
+            
+            // Intentar recuperar sala desde localStorage si se perdió
+            if (!this.roomCode) {
+                const savedRoom = localStorage.getItem('pianolink-last-room');
+                if (savedRoom) {
+                    console.log(`[SocketClient] 🔄 Recuperando sala: ${savedRoom}`);
+                    this.roomCode = savedRoom;
+                    
+                    // Notificar a Main.js para que re-una al usuario
+                    this.bus.emit("net-room-recovery", savedRoom);
+                }
+            }
+            
             this.bus.emit("net-status", "ONLINE");
             this.bus.emit("net-reconnected"); // Trigger MIDI re-initialization
             this.bus.emit("net-midi-recovery"); // NUEVO: Trigger full MIDI recovery
-            if (this.roomCode) this.startHeartbeat(); // Reactivar keepalive
+            
+            if (this.roomCode) {
+                this.startHeartbeat(); // Reactivar keepalive
+            }
         });
         
         // --- LIFECYCLE: CONNECT ERROR ---
@@ -158,31 +176,55 @@ export class SocketClient {
         if (this._heartbeatInterval) return; // Ya está iniciado
         
         this._lastHeartbeatResponse = Date.now();
+        this._heartbeatMissedCount = 0;
         
         this._heartbeatInterval = setInterval(() => {
             if (this.socket.connected && this.roomCode) {
                 // Verificar si el servidor respondió al último heartbeat
                 const timeSinceLastResponse = Date.now() - this._lastHeartbeatResponse;
-                if (timeSinceLastResponse > 45000) { // 3 heartbeats sin respuesta
-                    console.error('[SocketClient] ⚠️ Conexión zombie detectada (45s sin respuesta), reconectando...');
-                    this.socket.disconnect();
-                    setTimeout(() => this.socket.connect(), 500);
-                    return;
+                
+                // Después de 35 segundos sin respuesta (3.5 heartbeats), advertir
+                if (timeSinceLastResponse > 35000) {
+                    this._heartbeatMissedCount++;
+                    console.warn(`[SocketClient] ⚠️ Heartbeat #${this._heartbeatMissedCount} perdido (${(timeSinceLastResponse/1000).toFixed(1)}s sin respuesta)`);
+                    this.bus.emit("net-status", "WARNING");
+                    
+                    // Después de 50 segundos, forzar reconexión
+                    if (timeSinceLastResponse > 50000) {
+                        console.error('[SocketClient] ❌ Conexión zombie detectada, forzando reconexión...');
+                        this.bus.emit("net-status", "RECONNECTING");
+                        this.socket.disconnect();
+                        setTimeout(() => this.socket.connect(), 500);
+                        return;
+                    }
                 }
                 
+                // Enviar heartbeat
                 this.socket.emit('client-heartbeat', { 
                     roomCode: this.roomCode, 
                     timestamp: Date.now() 
                 });
+                
+                console.debug(`[SocketClient] 💓 Heartbeat enviado (${this._heartbeatMissedCount} perdidos)`);
             }
-        }, 15000); // Cada 15s
+        }, 10000); // Cada 10s (más frecuente para detectar problemas antes)
         
         // Escuchar respuesta del servidor
         this.socket.on('heartbeat-ack', () => {
+            const responseTime = Date.now() - this._lastHeartbeatResponse;
             this._lastHeartbeatResponse = Date.now();
+            
+            // Si teníamos heartbeats perdidos, notificar recuperación
+            if (this._heartbeatMissedCount > 0) {
+                console.log(`[SocketClient] ✅ Heartbeat recuperado después de ${this._heartbeatMissedCount} fallos`);
+                this.bus.emit("net-status", "ONLINE");
+            }
+            
+            this._heartbeatMissedCount = 0;
+            console.debug(`[SocketClient] 💚 Heartbeat ACK recibido (${responseTime}ms)`);
         });
         
-        console.log('[SocketClient] ❤️ Heartbeat iniciado');
+        console.log('[SocketClient] ❤️ Heartbeat iniciado (intervalo: 10s)');
     }
     
     stopHeartbeat() {
@@ -194,22 +236,45 @@ export class SocketClient {
     }
     joinRoom(code, name, role) {
         this.roomCode = code;
+        
+        // Guardar en localStorage para recuperación
+        if (this.roomCode) {
+            localStorage.setItem('pianolink-last-room', this.roomCode);
+        }
+        
         this.socket.emit("join-room", { roomCode: code, username: name, userRole: role });
         this.startHeartbeat(); // Iniciar keepalive
+        console.log('[SocketClient] 🚪 Unido a sala, heartbeat iniciado');
     }
 
     createRoom(payload) {
+        this.roomCode = payload.code || null;
+        
+        // Guardar en localStorage para recuperación
+        if (this.roomCode) {
+            localStorage.setItem('pianolink-last-room', this.roomCode);
+        }
+        
         this.socket.emit("create-room", { 
             username: payload.name, 
             userRole: "teacher",
             roomCode: payload.code 
         });
+        
+        // Iniciar heartbeat después de crear sala
+        this.startHeartbeat();
+        console.log('[SocketClient] 🏠 Sala creada, heartbeat iniciado');
     }
 
     // 👇 NUEVO: Método para que el profe cierre la clase
     endClass() {
         if (this.roomCode) {
             this.socket.emit("end-class", this.roomCode);
+            
+            // Limpiar sala guardada
+            localStorage.removeItem('pianolink-last-room');
+            this.roomCode = null;
+            this.stopHeartbeat();
         }
     }
 

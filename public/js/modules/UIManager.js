@@ -583,11 +583,78 @@ export class UIManager {
     }
     initLogger() {
         if (!this.logTerminal) return;
-        this.bus.on("net-status", (status) => this.log(`Red: ${status}`, status === 'ONLINE' ? 'success' : 'error'));
+        
+        // Estado de red mejorado con indicador visual
+        this.bus.on("net-status", (status) => {
+            let logType, icon;
+            if (status === 'ONLINE') {
+                logType = 'success';
+                icon = '🟢';
+                this.updateConnectionIndicator('online');
+            } else if (status === 'WARNING') {
+                logType = 'warn';
+                icon = '⚠️';
+                this.updateConnectionIndicator('warning');
+            } else if (status === 'RECONNECTING') {
+                logType = 'error';
+                icon = '🔄';
+                this.updateConnectionIndicator('reconnecting');
+            } else {
+                logType = 'error';
+                icon = '🔴';
+                this.updateConnectionIndicator('offline');
+            }
+            this.log(`${icon} Red: ${status}`, logType);
+        });
+        
         this.bus.on("room-created", (code) => this.log(`Sala Creada: ${code}`, 'success'));
         this.bus.on("room-joined", (code) => this.log(`Unido a Sala: ${code}`, 'success'));
         this.bus.on("ui-panic", () => this.log("⚠️ Reset", 'warn'));
         this.log("Sistema V3 Listo.", "info");
+    }
+    
+    // Indicador visual de estado de conexión en UI
+    updateConnectionIndicator(status) {
+        // Buscar o crear indicador de conexión
+        let indicator = document.getElementById('connectionIndicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'connectionIndicator';
+            indicator.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 12px;
+                z-index: 10000;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            `;
+            document.body.appendChild(indicator);
+        }
+        
+        // Actualizar estilo según estado
+        if (status === 'online') {
+            indicator.textContent = '🟢 CONECTADO';
+            indicator.style.backgroundColor = '#27ae60';
+            indicator.style.color = 'white';
+        } else if (status === 'warning') {
+            indicator.textContent = '⚠️ CONEXIÓN DÉBIL';
+            indicator.style.backgroundColor = '#f39c12';
+            indicator.style.color = 'white';
+            indicator.style.animation = 'pulse 2s infinite';
+        } else if (status === 'reconnecting') {
+            indicator.textContent = '🔄 RECONECTANDO...';
+            indicator.style.backgroundColor = '#e74c3c';
+            indicator.style.color = 'white';
+            indicator.style.animation = 'pulse 1s infinite';
+        } else {
+            indicator.textContent = '🔴 DESCONECTADO';
+            indicator.style.backgroundColor = '#c0392b';
+            indicator.style.color = 'white';
+        }
     }
 
     log(msg, type = 'info') {
