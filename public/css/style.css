@@ -177,6 +177,72 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--spacing);
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+}
+
+/* Estado colapsado del sidebar */
+.sidebar.collapsed {
+  transform: translateX(-100%);
+}
+
+/* Overlay para cerrar el sidebar en mobile */
+.sidebar-overlay {
+  position: fixed;
+  top: 50px;
+  left: 0;
+  width: 100vw;
+  height: calc(100vh - 50px);
+  background: rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 99;
+}
+
+.sidebar-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Botón toggle hamburguesa */
+.sidebar-toggle {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: var(--text-main);
+  cursor: pointer;
+  padding: 8px 12px;
+  z-index: 10;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-toggle:hover {
+  background: rgba(255, 118, 77, 0.1);
+  color: var(--accent);
+}
+
+.sidebar-toggle:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.hamburger-icon {
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+/* Animación del icono cuando sidebar está abierto */
+.sidebar-toggle.open .hamburger-icon {
+  transform: rotate(90deg);
 }
 
 /* Main Content */
@@ -187,6 +253,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Expandir contenido cuando sidebar está colapsado */
+.main-stage.expanded {
+  grid-column: 1 / -1;
 }
 
 /* UI Components */
@@ -467,7 +539,29 @@ iframe#pdfFrame.visible { display: block; }
   .board-container { flex-direction: column; }
   #staffContainer { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
   #chordDisplay { width: 100%; height: 100px; }
-  .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 250px; }
+  
+  /* En mobile, sidebar siempre es overlay */
+  .sidebar { 
+    position: fixed;
+    top: 50px;
+    left: 0;
+    height: calc(100vh - 50px);
+    width: 280px;
+    transform: translateX(-100%);
+    z-index: 1000;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+    max-height: none;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .main-stage {
+    grid-column: 1;
+  }
 }
 .resize-handle {
   height: 14px;

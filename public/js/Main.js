@@ -705,6 +705,108 @@ function setupEventHandlers() {
             }
         }
     });
+    
+    // ==================================================
+    // SIDEBAR MANAGER: Toggle colapsable
+    // ==================================================
+    initSidebarToggle();
+}
+
+/**
+ * Inicializa el sistema de sidebar colapsable
+ */
+function initSidebarToggle() {
+    const sidebar = document.querySelector('.sidebar');
+    const toggleBtn = document.getElementById('sidebar-toggle');
+    const mainStage = document.querySelector('.main-stage');
+    
+    if (!sidebar || !toggleBtn || !mainStage) {
+        console.warn('[SidebarManager] Elementos no encontrados');
+        return;
+    }
+    
+    // Crear overlay para cerrar en mobile/click fuera
+    let overlay = document.querySelector('.sidebar-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        document.body.appendChild(overlay);
+    }
+    
+    // Estado persistente (localStorage)
+    let isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+    
+    // Función para colapsar
+    function collapse() {
+        sidebar.classList.add('collapsed');
+        sidebar.classList.remove('open');
+        mainStage.classList.add('expanded');
+        overlay.classList.remove('active');
+        toggleBtn.classList.remove('open');
+        toggleBtn.querySelector('.hamburger-icon').textContent = '☰';
+        isCollapsed = true;
+        localStorage.setItem('sidebar-collapsed', 'true');
+        console.log('[SidebarManager] Sidebar colapsado');
+    }
+    
+    // Función para expandir
+    function expand() {
+        sidebar.classList.remove('collapsed');
+        sidebar.classList.add('open');
+        mainStage.classList.remove('expanded');
+        
+        // En desktop, no mostrar overlay; en mobile sí
+        if (window.innerWidth <= 900) {
+            overlay.classList.add('active');
+        }
+        
+        toggleBtn.classList.add('open');
+        toggleBtn.querySelector('.hamburger-icon').textContent = '✕';
+        isCollapsed = false;
+        localStorage.setItem('sidebar-collapsed', 'false');
+        console.log('[SidebarManager] Sidebar expandido');
+    }
+    
+    // Función toggle
+    function toggle() {
+        if (isCollapsed) {
+            expand();
+        } else {
+            collapse();
+        }
+    }
+    
+    // Aplicar estado inicial
+    if (isCollapsed) {
+        collapse();
+    }
+    
+    // Event listeners
+    toggleBtn.addEventListener('click', toggle);
+    overlay.addEventListener('click', collapse);
+    
+    // Cerrar con tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !isCollapsed) {
+            collapse();
+        }
+    });
+    
+    // Responsive: en mobile, empezar colapsado
+    function handleResize() {
+        if (window.innerWidth <= 900 && !isCollapsed) {
+            // En mobile, si está abierto, mostrar overlay
+            overlay.classList.add('active');
+        } else {
+            // En desktop, quitar overlay
+            overlay.classList.remove('active');
+        }
+    }
+    
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Ejecutar al inicio
+    
+    console.log('[SidebarManager] ✅ Inicializado');
 }
 
 function processMidiMessage(data, isLocal) {
