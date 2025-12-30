@@ -203,11 +203,11 @@ export class UIManager {
             key.style.boxShadow = `0 0 10px ${color}`;
             key.classList.add("note-active");
     
-            // PROGRAMAR AUTO-RELEASE: Si no llega el NoteOff en 10s, se limpia sola
+            // OPTIMIZACIÓN: Timeout más agresivo para eventos remotos (3s en lugar de 10s)
             const timeout = setTimeout(() => {
-                console.warn(`⏱️ Watchdog: Nota ${note} liberada por timeout.`);
+                console.warn(`⏱️ UI Watchdog: Nota ${note} liberada por timeout (evento remoto perdido)`);
                 this.highlightKey(note, 0); 
-            }, 10000); 
+            }, 3000); // ⬅️ REDUCIDO DE 10000ms para redes inestables
     
             this.noteTimeouts.set(note, timeout);
     
@@ -215,6 +215,26 @@ export class UIManager {
             // 4. NOTA LIBERADA (Velocity 0)
             key.classList.remove("note-active");
             this.restoreKeyColor(key, note); // Restaura el color base
+            
+            // Asegurar limpieza del timeout
+            if (this.noteTimeouts.has(note)) {
+                clearTimeout(this.noteTimeouts.get(note));
+                this.noteTimeouts.delete(note);
+            }
+        }
+    }
+    
+    // NUEVO: Método de limpieza manual (llamado desde reconciliación)
+    forceReleaseKey(note) {
+        const key = this.piano.querySelector(`.key[data-note-midi="${note}"]`);
+        if (key) {
+            key.classList.remove("note-active");
+            this.restoreKeyColor(key, note);
+        }
+        
+        if (this.noteTimeouts.has(note)) {
+            clearTimeout(this.noteTimeouts.get(note));
+            this.noteTimeouts.delete(note);
         }
     }
     clearPiano() {

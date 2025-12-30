@@ -16,6 +16,10 @@ export class Whiteboard {
         this.ctx = null;
         this.lastRenderedNotes = "";
         
+        // NUEVO: Contador de frames para debugging
+        this.renderCount = 0;
+        this.lastRenderTime = 0;
+        
         // Inicializar (Dibujamos el Grand Staff vacío al arrancar)
         this.drawEmpty();
     }
@@ -34,7 +38,9 @@ export class Whiteboard {
 
     scheduleRender() {
         if (this.renderTimeout) clearTimeout(this.renderTimeout);
-        this.renderTimeout = setTimeout(() => this.render(), 50);
+        // OPTIMIZACIÓN: Aumentar debounce de 50ms a 150ms para redes lentas
+        // Esto permite acumular eventos antes de renderizar
+        this.renderTimeout = setTimeout(() => this.render(), 150); // ⬅️ AUMENTADO
     }
 
     render() {
@@ -46,6 +52,15 @@ export class Whiteboard {
         // OPTIMIZACIÓN: Evitar re-render si las notas no cambiaron
         const notesKey = notes.join(',');
         if (notesKey === this.lastRenderedNotes) return;
+        
+        // NUEVO: Logging de performance para debugging
+        const now = performance.now();
+        if (now - this.lastRenderTime < 100) {
+            console.warn(`[Whiteboard] Render rápido detectado (${(now - this.lastRenderTime).toFixed(0)}ms). Posible lag de red.`);
+        }
+        this.lastRenderTime = now;
+        this.renderCount++;
+        
         this.lastRenderedNotes = notesKey;
 
         // 1. Detección de Acordes
@@ -65,8 +80,16 @@ export class Whiteboard {
         try {
             this.drawGrandStaff(notes);
         } catch (e) {
-            console.warn("VexFlow render error:", e);
+            console.warn("[Whiteboard] VexFlow render error:", e);
+            // FAILSAFE: Si el render falla, limpiar y reintentar en el próximo evento
+            this.lastRenderedNotes = "";
         }
+    }
+    
+    // NUEVO: Método de limpieza manual (para reconciliación)
+    forceReleaseNote(note) {
+        this.teacherActiveNotes.delete(note);
+        this.scheduleRender();
     }
 
     getNoteName(midi) {

@@ -580,8 +580,26 @@ function setupEventHandlers() {
     });
 
     // Reconciliación con snapshots (Fase 2 - Reemplaza heartbeat)
+    // MEJORADO: Limpia UI también
     bus.on("midi-snapshot", function(snapshot) {
         audio.reconcile(snapshot);
+        
+        // NUEVO: Sincronizar UI con el snapshot autoritativo
+        if (snapshot.notes && snapshot.type === 'periodic') {
+            // Obtener notas que el servidor reporta como activas
+            const serverNotes = new Set(snapshot.notes);
+            
+            // Limpiar notas huérfanas en el piano visual
+            const allKeys = document.querySelectorAll('.key.note-active');
+            allKeys.forEach(function(key) {
+                const noteId = parseInt(key.getAttribute('data-note-midi'));
+                if (!serverNotes.has(noteId)) {
+                    console.log('[Main] 🧹 Limpiando nota huérfana del UI: ' + noteId);
+                    ui.forceReleaseKey(noteId);
+                    whiteboard.forceReleaseNote(noteId);
+                }
+            });
+        }
     });
 
     // Sincronización de reloj (NTP básico)

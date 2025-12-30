@@ -116,19 +116,31 @@ export class SocketClient {
         this.socket.on("midi-binary", (packet) => {
             // Solo procesar si no estamos en hibernación
             if (this._connectionState !== 'hibernating') {
-                // Decodificar con MidiProtocolV2 (soporta bundles)
-                const messages = MidiProtocolV2.decode(packet.dat);
-                
-                // Procesar cada mensaje del bundle
-                messages.forEach(decoded => {
-                    if (decoded) {
-                        this.bus.emit("remote-note", { 
-                            ...decoded, 
-                            fromId: packet.src,
-                            userId: packet.userId
-                        });
+                try {
+                    // Decodificar con MidiProtocolV2 (soporta bundles)
+                    const messages = MidiProtocolV2.decode(packet.dat);
+                    
+                    // NUEVO: Validar que el decode fue exitoso
+                    if (!messages || messages.length === 0) {
+                        console.warn('[SocketClient] ⚠️ Paquete MIDI vacío o corrupto recibido');
+                        return;
                     }
-                });
+                    
+                    // Procesar cada mensaje del bundle
+                    messages.forEach(decoded => {
+                        if (decoded) {
+                            this.bus.emit("remote-note", { 
+                                ...decoded, 
+                                fromId: packet.src,
+                                userId: packet.userId
+                            });
+                        } else {
+                            console.warn('[SocketClient] ⚠️ Mensaje MIDI inválido en bundle');
+                        }
+                    });
+                } catch (e) {
+                    console.error('[SocketClient] ❌ Error decodificando MIDI bundle:', e);
+                }
             }
         });
 

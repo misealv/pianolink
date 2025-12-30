@@ -21,11 +21,13 @@ export class MidiStateManager {
         this.onStateChange = null; // (activeCount) => void
         
         // --- WATCHDOG TIMER (ANTI-HANG) ---
-        this._hangThreshold = 10000; // 10 segundos sin NoteOff = nota pegada
+        // AJUSTE: Reducir threshold de 10s a 5s para redes inestables
+        this._hangThreshold = 5000; // ⬅️ REDUCIDO DE 10000ms
         this._watchdogInterval = null;
         
         // --- GRACE PERIOD PARA RECONCILIACIÓN ---
-        this.GRACE_PERIOD_MS = 500; // 500ms ventana de gracia para snapshots desincronizados
+        // AJUSTE: Reducir grace period de 500ms a 300ms
+        this.GRACE_PERIOD_MS = 300; // ⬅️ REDUCIDO DE 500ms
         
         // --- MÉTRICAS DE DIAGNÓSTICO ---
         this.stats = {
