@@ -208,10 +208,7 @@ body {
 
 /* Botón toggle hamburguesa */
 .sidebar-toggle {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: relative;
   background: transparent;
   border: none;
   font-size: 24px;
@@ -224,15 +221,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .sidebar-toggle:hover {
-  background: rgba(255, 118, 77, 0.1);
+  background: rgba(255, 118, 77, 0.2);
   color: var(--accent);
 }
 
 .sidebar-toggle:active {
-  transform: translateY(-50%) scale(0.95);
+  transform: scale(0.95);
 }
 
 .hamburger-icon {
