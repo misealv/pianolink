@@ -648,7 +648,7 @@ export class UIManager {
                 border-radius: 6px;
                 font-weight: bold;
                 font-size: 12px;
-                z-index: 10000;
+                z-index: 9500;
                 transition: all 0.3s ease;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             `;
