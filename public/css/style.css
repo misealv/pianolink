@@ -641,8 +641,8 @@ iframe#pdfFrame.visible { display: block; }
 }
 /* --- BARRA DE HERRAMIENTAS DE DIBUJO --- */
 .drawing-toolbar {
-  position: absolute;
-  top: 20px;
+  position: fixed; /* ⚡ FIX: Cambiado de absolute a fixed para que no dependa del contenedor padre */
+  top: 80px; /* Ajustado para que no tape el header */
   right: 30px;
   display: flex;
   flex-direction: column;
