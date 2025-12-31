@@ -346,6 +346,61 @@
     </div>
   </div>
   
+  <!-- ⚡ SPRINT FINAL P3: PRE-FLIGHT CHECK (Verificación de Dispositivos) -->
+  <div id="preFlightModal" class="preflight-modal hidden">
+    <div class="preflight-content">
+      <h2>🚀 Verificación de Dispositivos</h2>
+      <p class="preflight-subtitle">Antes de entrar, verifica que todo funcione correctamente</p>
+      
+      <div class="preflight-checks">
+        <!-- MIDI Check -->
+        <div class="preflight-item">
+          <div class="preflight-icon" id="midiIcon">🎹</div>
+          <div class="preflight-info">
+            <h3>Piano MIDI</h3>
+            <p id="midiStatus" class="preflight-status">Buscando dispositivo...</p>
+          </div>
+          <div class="preflight-indicator" id="midiIndicator">⏳</div>
+        </div>
+        
+        <!-- Audio Check -->
+        <div class="preflight-item">
+          <div class="preflight-icon" id="audioIcon">🎤</div>
+          <div class="preflight-info">
+            <h3>Micrófono</h3>
+            <p id="audioStatus" class="preflight-status">Verificando permisos...</p>
+            <div class="audio-level-bar">
+              <div id="audioLevelFill" class="audio-level-fill"></div>
+            </div>
+          </div>
+          <div class="preflight-indicator" id="audioIndicator">⏳</div>
+        </div>
+        
+        <!-- Video Check -->
+        <div class="preflight-item">
+          <div class="preflight-icon" id="videoIcon">📷</div>
+          <div class="preflight-info">
+            <h3>Cámara</h3>
+            <p id="videoStatus" class="preflight-status">Verificando permisos...</p>
+            <div id="videoPreview" class="video-preview">
+              <video id="previewVideo" autoplay muted></video>
+            </div>
+          </div>
+          <div class="preflight-indicator" id="videoIndicator">⏳</div>
+        </div>
+      </div>
+      
+      <div class="preflight-actions">
+        <button id="btnSkipPreflight" class="btn-secondary">Entrar Sin Verificar</button>
+        <button id="btnEnterRoom" class="btn-primary" disabled>⏳ Verificando...</button>
+      </div>
+      
+      <div class="preflight-footer">
+        <small>💡 Si algún dispositivo falla, puedes entrar de todos modos. Podrás activarlo después.</small>
+      </div>
+    </div>
+  </div>
+  
   <audio id="joinSound" src="https://cdn.freesound.org/previews/352/352651_4019029-lq.mp3"></audio>
   
   <div class="app-container">
@@ -364,7 +419,20 @@
         </div>
       </div>
 
-      <div id="systemBrand" style="display: flex; align-items: center; gap: 8px; opacity: 0.6; transform: scale(0.9);"></div>
+      <!-- ⚡ SPRINT FINAL P3: INDICADORES DE SALUD -->
+      <div class="health-indicators" style="display: flex; align-items: center; gap: 12px;">
+        <!-- Latencia -->
+        <div class="health-item" title="Latencia de red">
+          <span class="health-icon" id="latencyIcon">📡</span>
+          <span class="health-value" id="latencyValue">--ms</span>
+        </div>
+        
+        <!-- MIDI Activo -->
+        <div class="health-item" title="Piano MIDI conectado">
+          <span class="health-icon" id="midiHealthIcon">🎹</span>
+          <span class="health-status" id="midiHealthStatus">●</span>
+        </div>
+      </div>
 
       <div id="status" class="status-indicator">🔴 Conectando...</div>
     </header>
@@ -518,23 +586,23 @@
       
       <div class="piano-container">
         <div class="piano-toolbar">
-            <div class="toolbar-group">
+            <div class="toolbar-group" title="Color de iluminación de teclas">
                 <label for="baseColorPicker" style="font-size:10px; margin-right:5px;">Base:</label>
-                <input type="color" id="baseColorPicker" value="#ff764d" style="border:none; width:20px; height:20px; padding:0;"> 
+                <input type="color" id="baseColorPicker" value="#ff764d" style="border:none; width:20px; height:20px; padding:0;" title="Cambiar color de teclas iluminadas"> 
             </div>
-            <div class="toolbar-group">
+            <div class="toolbar-group" title="Dividir piano en dos zonas con colores diferentes">
                 <label style="cursor:pointer; display:flex; align-items:center; gap:5px; font-size:11px;">
                     <input type="checkbox" id="chkSplit"> <strong>Split</strong>
                 </label>
             </div>
-            <div id="splitControls" class="toolbar-group hidden" style="display:flex; align-items:center; gap:10px;">
-                <div style="display:flex; align-items:center; gap:3px;"><label style="font-size:9px; color:#aaa;">NOTA:</label><input type="number" id="splitPointInput" value="60" min="21" max="108" style="width:40px; text-align:center; font-size:10px;"></div>
-                <div style="display:flex; align-items:center; gap:3px;"><label style="font-size:9px; color:#aaa;">IZQ:</label><input type="color" id="leftColorPicker" value="#5dade2" style="border:none; width:20px; height:20px; padding:0;"></div>
-                <div style="display:flex; align-items:center; gap:3px;"><label style="font-size:9px; color:#aaa;">DER:</label><input type="color" id="rightColorPicker" value="#f1c40f" style="border:none; width:20px; height:20px; padding:0;"></div>
+            <div id="splitControls" class="toolbar-group hidden" style="display:flex; align-items:center; gap:10px;" title="Configurar punto de división y colores">
+                <div style="display:flex; align-items:center; gap:3px;" title="Nota MIDI donde se divide (C4 = 60)"><label style="font-size:9px; color:#aaa;">NOTA:</label><input type="number" id="splitPointInput" value="60" min="21" max="108" style="width:40px; text-align:center; font-size:10px;"></div>
+                <div style="display:flex; align-items:center; gap:3px;" title="Color para teclas a la izquierda"><label style="font-size:9px; color:#aaa;">IZQ:</label><input type="color" id="leftColorPicker" value="#5dade2" style="border:none; width:20px; height:20px; padding:0;"></div>
+                <div style="display:flex; align-items:center; gap:3px;" title="Color para teclas a la derecha"><label style="font-size:9px; color:#aaa;">DER:</label><input type="color" id="rightColorPicker" value="#f1c40f" style="border:none; width:20px; height:20px; padding:0;"></div>
             </div>
             <div style="flex:1"></div>
-            <button id="videoToggleBtn" class="btn" style="background:#00aaff; display:none;">📹 Video</button>
-            <button id="panicBtn" class="danger">PANIC</button>
+            <button id="videoToggleBtn" class="btn" style="background:#00aaff; display:none;" title="📹 Activar video y audio para la clase">📹 Video</button>
+            <button id="panicBtn" class="danger" title="🚨 Pánico: Detener todas las notas MIDI y reiniciar sistema">PANIC</button>
         </div>
         <div class="piano-wrapper"><div id="piano" class="piano"></div></div>
         <div id="pedalIndicator" class="pedal-bar"><div class="pedal-active"></div></div>

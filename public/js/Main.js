@@ -314,6 +314,12 @@ async function bootstrap() {
         // ========================================
         initConnectionManager();
         
+        // ========================================
+        // ⚡ SPRINT FINAL P3: UX DEFENSIVA
+        // ========================================
+        initHealthIndicators();
+        initPreFlightCheck(); // Se muestra automáticamente después de 1s
+        
         console.log('✅ [Main] Sistema CRÍTICO inicializado (MIDI/Logs operativos).');
         
         // ========================================
@@ -880,6 +886,380 @@ function setupEventHandlers() {
  * Inicializa el sistema de sidebar colapsable
  */
 function initSidebarToggle() {
+    const sidebar = document.querySelector('.sidebar');
+    const toggleBtn = document.getElementById('sidebar-toggle');
+    const mainStage = document.querySelector('.main-stage');
+    
+    if (!sidebar || !toggleBtn || !mainStage) {
+        console.warn('[SidebarManager] Elementos no encontrados');
+        return;
+    }
+    
+    // Crear overlay para cerrar en mobile/click fuera
+    let overlay = document.querySelector('.sidebar-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        document.body.appendChild(overlay);
+    }
+    
+    // Estado persistente (localStorage)
+    let isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+    
+    // Función para colapsar
+    function collapse() {
+        sidebar.classList.add('collapsed');
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        toggleBtn.classList.remove('open');
+        toggleBtn.querySelector('.hamburger-icon').textContent = '☰';
+        isCollapsed = true;
+        localStorage.setItem('sidebar-collapsed', 'true');
+        console.log('[SidebarManager] Sidebar colapsado');
+    }
+    
+    // Función para expandir
+    function expand() {
+        sidebar.classList.remove('collapsed');
+        sidebar.classList.add('open');
+        
+        // En desktop, no mostrar overlay; en mobile sí
+        if (window.innerWidth <= 900) {
+            overlay.classList.add('active');
+        }
+        
+        toggleBtn.classList.add('open');
+        toggleBtn.querySelector('.hamburger-icon').textContent = '✕';
+        isCollapsed = false;
+        localStorage.setItem('sidebar-collapsed', 'false');
+        console.log('[SidebarManager] Sidebar expandido');
+    }
+    
+    // Función toggle
+    function toggle() {
+        if (isCollapsed) {
+            expand();
+        } else {
+            collapse();
+        }
+    }
+    
+    // Aplicar estado inicial
+    if (isCollapsed) {
+        collapse();
+    }
+    
+    // Event listeners
+    toggleBtn.addEventListener('click', toggle);
+    overlay.addEventListener('click', collapse);
+    
+    // Cerrar con tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !isCollapsed) {
+            collapse();
+        }
+    });
+    
+    // Responsive: en mobile, empezar colapsado
+    function handleResize() {
+        if (window.innerWidth <= 900 && !isCollapsed) {
+            overlay.classList.add('active');
+        } else {
+            overlay.classList.remove('active');
+        }
+    }
+    
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Ejecutar al inicio
+    
+    console.log('[SidebarManager] ✅ Inicializado');
+}
+
+// ============================================
+// ⚡ SPRINT FINAL P3: PRE-FLIGHT CHECK SYSTEM
+// ============================================
+
+/**
+ * Sistema de Verificación de Dispositivos Pre-Vuelo
+ * Verifica MIDI, Audio y Video antes de entrar a la sala
+ */
+function initPreFlightCheck() {
+    const modal = document.getElementById('preFlightModal');
+    const btnEnter = document.getElementById('btnEnterRoom');
+    const btnSkip = document.getElementById('btnSkipPreflight');
+    
+    // Estados de verificación
+    const checks = {
+        midi: { passed: false, optional: true },
+        audio: { passed: false, optional: true },
+        video: { passed: false, optional: true }
+    };
+    
+    let audioStream = null;
+    let videoStream = null;
+    
+    /**
+     * Actualiza el indicador visual de un check
+     */
+    function updateCheckStatus(type, status, message) {
+        const item = document.querySelector(`.preflight-item:has(#${type}Indicator)`);
+        const indicator = document.getElementById(`${type}Indicator`);
+        const statusText = document.getElementById(`${type}Status`);
+        
+        if (!item || !indicator || !statusText) return;
+        
+        // Remover clases anteriores
+        item.classList.remove('success', 'warning', 'error');
+        
+        // Aplicar nuevo estado
+        if (status === 'success') {
+            item.classList.add('success');
+            indicator.textContent = '✅';
+            checks[type].passed = true;
+        } else if (status === 'warning') {
+            item.classList.add('warning');
+            indicator.textContent = '⚠️';
+        } else if (status === 'error') {
+            item.classList.add('error');
+            indicator.textContent = '❌';
+        } else {
+            indicator.textContent = '⏳';
+        }
+        
+        statusText.textContent = message;
+        
+        // Actualizar botón de entrada
+        updateEnterButton();
+    }
+    
+    /**
+     * Actualiza estado del botón de entrada
+     */
+    function updateEnterButton() {
+        const anyPassed = checks.midi.passed || checks.audio.passed || checks.video.passed;
+        
+        if (anyPassed) {
+            btnEnter.disabled = false;
+            btnEnter.textContent = '🚀 Entrar a la Sala';
+        } else {
+            btnEnter.disabled = false; // Permitir entrar de todos modos
+            btnEnter.textContent = '⚠️ Entrar Sin Dispositivos';
+        }
+    }
+    
+    /**
+     * Verifica dispositivos MIDI
+     */
+    async function checkMIDI() {
+        updateCheckStatus('midi', 'loading', 'Buscando pianos...');
+        
+        if (!navigator.requestMIDIAccess) {
+            updateCheckStatus('midi', 'error', 'WebMIDI no soportado en este navegador');
+            return;
+        }
+        
+        try {
+            const access = await navigator.requestMIDIAccess();
+            const inputs = Array.from(access.inputs.values());
+            
+            if (inputs.length > 0) {
+                const deviceName = inputs[0].name || 'Dispositivo MIDI';
+                updateCheckStatus('midi', 'success', `Conectado: ${deviceName}`);
+            } else {
+                updateCheckStatus('midi', 'warning', 'No se detectó ningún piano MIDI');
+            }
+        } catch (error) {
+            console.error('[PreFlight] Error MIDI:', error);
+            updateCheckStatus('midi', 'error', 'Error al acceder a MIDI');
+        }
+    }
+    
+    /**
+     * Verifica micrófono con nivel de audio visual
+     */
+    async function checkAudio() {
+        updateCheckStatus('audio', 'loading', 'Solicitando permisos...');
+        
+        try {
+            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // Crear analizador de audio para mostrar nivel
+            const audioContext = new AudioContext();
+            const source = audioContext.createMediaStreamSource(audioStream);
+            const analyzer = audioContext.createAnalyser();
+            analyzer.fftSize = 256;
+            source.connect(analyzer);
+            
+            const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+            const levelFill = document.getElementById('audioLevelFill');
+            
+            // Función para animar nivel de audio
+            function updateLevel() {
+                if (!modal.classList.contains('visible')) {
+                    return; // Detener si el modal se cerró
+                }
+                
+                analyzer.getByteFrequencyData(dataArray);
+                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                const percentage = Math.min((average / 128) * 100, 100);
+                
+                if (levelFill) {
+                    levelFill.style.width = `${percentage}%`;
+                }
+                
+                requestAnimationFrame(updateLevel);
+            }
+            
+            updateLevel();
+            updateCheckStatus('audio', 'success', 'Micrófono funcionando correctamente');
+        } catch (error) {
+            console.error('[PreFlight] Error Audio:', error);
+            if (error.name === 'NotAllowedError') {
+                updateCheckStatus('audio', 'error', 'Permisos de micrófono denegados');
+            } else {
+                updateCheckStatus('audio', 'error', 'No se detectó micrófono');
+            }
+        }
+    }
+    
+    /**
+     * Verifica cámara con preview
+     */
+    async function checkVideo() {
+        updateCheckStatus('video', 'loading', 'Solicitando permisos...');
+        
+        try {
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            
+            const videoPreview = document.getElementById('videoPreview');
+            const previewVideo = document.getElementById('previewVideo');
+            
+            if (previewVideo && videoPreview) {
+                previewVideo.srcObject = videoStream;
+                videoPreview.classList.add('active');
+            }
+            
+            updateCheckStatus('video', 'success', 'Cámara funcionando correctamente');
+        } catch (error) {
+            console.error('[PreFlight] Error Video:', error);
+            if (error.name === 'NotAllowedError') {
+                updateCheckStatus('video', 'error', 'Permisos de cámara denegados');
+            } else {
+                updateCheckStatus('video', 'error', 'No se detectó cámara');
+            }
+        }
+    }
+    
+    /**
+     * Ejecuta todas las verificaciones
+     */
+    async function runAllChecks() {
+        await Promise.all([
+            checkMIDI(),
+            checkAudio(),
+            checkVideo()
+        ]);
+    }
+    
+    /**
+     * Limpia recursos al cerrar
+     */
+    function cleanup() {
+        if (audioStream) {
+            audioStream.getTracks().forEach(track => track.stop());
+            audioStream = null;
+        }
+        if (videoStream) {
+            videoStream.getTracks().forEach(track => track.stop());
+            videoStream = null;
+        }
+    }
+    
+    /**
+     * Cierra el modal y entra a la sala
+     */
+    function enterRoom() {
+        cleanup();
+        modal.classList.remove('visible');
+        modal.classList.add('hidden');
+        console.log('✅ [PreFlight] Entrada confirmada');
+    }
+    
+    // Event listeners
+    btnEnter.addEventListener('click', enterRoom);
+    btnSkip.addEventListener('click', enterRoom);
+    
+    // Mostrar modal automáticamente después de 1s
+    setTimeout(() => {
+        modal.classList.remove('hidden');
+        modal.classList.add('visible');
+        runAllChecks();
+    }, 1000);
+    
+    console.log('✅ [Main] PreFlightCheck inicializado');
+}
+
+// ============================================
+// ⚡ SPRINT FINAL P3: HEALTH INDICATORS
+// ============================================
+
+/**
+ * Inicializa indicadores de salud en el header
+ */
+function initHealthIndicators() {
+    const latencyValue = document.getElementById('latencyValue');
+    const latencyIcon = document.getElementById('latencyIcon');
+    const midiHealthStatus = document.getElementById('midiHealthStatus');
+    const midiHealthIcon = document.getElementById('midiHealthIcon');
+    
+    // Listener para actualizar latencia
+    bus.on('net-latency', (rtt) => {
+        if (!latencyValue) return;
+        
+        latencyValue.textContent = `${rtt}ms`;
+        
+        // Cambiar color según latencia
+        latencyValue.classList.remove('good', 'fair', 'poor');
+        if (rtt < 100) {
+            latencyValue.classList.add('good');
+            latencyIcon.textContent = '📶';
+        } else if (rtt < 300) {
+            latencyValue.classList.add('fair');
+            latencyIcon.textContent = '📡';
+        } else {
+            latencyValue.classList.add('poor');
+            latencyIcon.textContent = '⚠️';
+        }
+    });
+    
+    // Listener para actividad MIDI
+    bus.on('local-note', (data) => {
+        if (!midiHealthStatus) return;
+        
+        // Activar indicador temporalmente
+        midiHealthStatus.classList.add('active');
+        midiHealthStatus.classList.remove('inactive');
+        
+        // Desactivar después de 2s de inactividad
+        clearTimeout(window._midiHealthTimeout);
+        window._midiHealthTimeout = setTimeout(() => {
+            midiHealthStatus.classList.remove('active');
+            midiHealthStatus.classList.add('inactive');
+        }, 2000);
+    });
+    
+    // Estado inicial
+    if (midiHealthStatus) {
+        midiHealthStatus.classList.add('inactive');
+    }
+    
+    console.log('✅ [Main] Health Indicators inicializados');
+}
+
+/**
+ * Inicializa el sistema de sidebar colapsable
+ */
+function initSidebarToggle_OLD() {
     const sidebar = document.querySelector('.sidebar');
     const toggleBtn = document.getElementById('sidebar-toggle');
     const mainStage = document.querySelector('.main-stage');
