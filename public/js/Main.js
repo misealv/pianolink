@@ -265,22 +265,24 @@ const _connectVideoControls = function() {
 
 // 4. FUNCIÓN DE ARRANQUE PRINCIPAL
 async function bootstrap() {
+    console.log("🚀 Iniciando PianoLink V4 Modular + State Management + Agora AV (Fase 0)...");
+    
+    // ========================================
+    // PRIORIDAD ALTA: MIDI y Logs (CRÍTICO)
+    // ========================================
+    
+    // Inicializar AudioEngine (lazy - el AudioContext se reanudará con primer click)
     try {
-        console.log("🚀 Iniciando PianoLink V4 Modular + State Management + Agora AV (Fase 0)...");
-        
-        // ========================================
-        // PRIORIDAD ALTA: MIDI y Logs (CRÍTICO)
-        // ========================================
-        
-        // Inicializar AudioEngine (el AudioContext se reanudará con primer click/teclado)
         await audio.init();
         console.log('✅ [Main] AudioEngine inicializado.');
         
         // Reanudar AudioContext con primer click del usuario (browser autoplay policy)
         const resumeAudioContext = function() {
-            if (audio.scheduler.ctx.state === 'suspended') {
+            if (audio.scheduler && audio.scheduler.ctx && audio.scheduler.ctx.state === 'suspended') {
                 audio.scheduler.ctx.resume().then(function() {
                     console.log('✅ [Main] AudioContext reanudado después de user gesture');
+                }).catch(function(err) {
+                    console.warn('[Main] Error reanudando AudioContext:', err);
                 });
             }
             // Remover listener después del primer click
@@ -289,53 +291,86 @@ async function bootstrap() {
         };
         document.addEventListener('click', resumeAudioContext, { once: true });
         document.addEventListener('keydown', resumeAudioContext, { once: true });
-        
-        // Init no-crítico del sidebar (no debe bloquear)
+    } catch (error) {
+        console.warn('[Main] ⚠️ AudioEngine no pudo inicializarse:', error);
+        console.warn('[Main] La app continuará sin soporte de audio MIDI.');
+    }
+    
+    // Init no-crítico del sidebar (error silencioso)
+    try {
         initDiagnosticSidebar();
-        
-        // Init de UI
+    } catch (error) {
+        console.warn('[Main] ⚠️ DiagnosticSidebar no disponible:', error);
+    }
+    
+    // Init de UI (resiliente a fallos)
+    try {
         initResizer();
         bindToolbarExtra();
-        
-        // ========================================
-        // NUEVO: TOOLBAR DRAGGABLE
-        // ========================================
+    } catch (error) {
+        console.warn('[Main] ⚠️ Error en UI auxiliar:', error);
+    }
+    
+    // ========================================
+    // NUEVO: TOOLBAR DRAGGABLE
+    // ========================================
+    try {
         const draggableToolbar = new DraggableToolbar('drawing-toolbar');
         console.log('✅ [Main] Toolbar draggable inicializado.');
-        
-        // NOTA: Los osciladores web están permanentemente deshabilitados
-        // No se necesita listener para silenciar AudioScheduler
-        
-        // Configurar event listeners DESPUÉS de que todo esté inicializado
-        setupEventHandlers();
-        
-        // ========================================
-        // ⚡ SPRINT FINAL P2: CONNECTION MANAGER
-        // ========================================
-        initConnectionManager();
-        
-        // ========================================
-        // ⚡ SPRINT FINAL P3: UX DEFENSIVA
-        // ========================================
-        initHealthIndicators();
-        initPreFlightCheck(); // Se muestra automáticamente después de 1s
-        
-        console.log('✅ [Main] Sistema CRÍTICO inicializado (MIDI/Logs operativos).');
-        
-        // ========================================
-        // PRIORIDAD BAJA: Video (NO CRÍTICO - DELAYED 3s)
-        // ========================================
-        // Video se inicializa SIN await y con delay de 3 segundos
-        // Esto asegura que el hilo principal esté libre para MIDI/Logs
-        setTimeout(function() {
-            initVideoManager(); // Sin await - ejecuta en background
-        }, 3000);
-        
-        console.log('✅ [Main] Sistema completamente inicializado (Video se cargará en 3s).');
     } catch (error) {
-        console.error('❌ [Main] ERROR CRÍTICO en inicialización:', error);
-        alert('Error al inicializar PianoLink. Por favor, recarga la página.');
+        console.warn('[Main] ⚠️ Toolbar no disponible:', error);
     }
+    
+    // NOTA: Los osciladores web están permanentemente deshabilitados
+    // No se necesita listener para silenciar AudioScheduler
+    
+    // Configurar event listeners (resiliente)
+    try {
+        setupEventHandlers();
+    } catch (error) {
+        console.warn('[Main] ⚠️ Error configurando event handlers:', error);
+    }
+    
+    // ========================================
+    // ⚡ SPRINT FINAL P2: CONNECTION MANAGER
+    // ========================================
+    try {
+        initConnectionManager();
+    } catch (error) {
+        console.warn('[Main] ⚠️ ConnectionManager no disponible:', error);
+    }
+    
+    // ========================================
+    // ⚡ SPRINT FINAL P3: UX DEFENSIVA
+    // ========================================
+    try {
+        initHealthIndicators();
+    } catch (error) {
+        console.warn('[Main] ⚠️ Health indicators no disponibles:', error);
+    }
+    
+    try {
+        initPreFlightCheck(); // Se muestra automáticamente después de 1s
+    } catch (error) {
+        console.warn('[Main] ⚠️ PreFlightCheck no disponible:', error);
+    }
+    
+    console.log('✅ [Main] Sistema CRÍTICO inicializado (MIDI/Logs operativos).');
+    
+    // ========================================
+    // PRIORIDAD BAJA: Video (NO CRÍTICO - DELAYED 3s)
+    // ========================================
+    // Video se inicializa SIN await y con delay de 3 segundos
+    // Esto asegura que el hilo principal esté libre para MIDI/Logs
+    setTimeout(function() {
+        try {
+            initVideoManager(); // Sin await - ejecuta en background
+        } catch (error) {
+            console.warn('[Main] ⚠️ VideoManager no pudo inicializarse:', error);
+        }
+    }, 3000);
+    
+    console.log('✅ [Main] Sistema completamente inicializado (Video se cargará en 3s).');
 }
 
 // Ejecutar bootstrap cuando el DOM esté listo
@@ -457,11 +492,17 @@ function initConnectionManager() {
     const banner = document.getElementById('connectionBanner');
     const bannerTitle = document.getElementById('bannerTitle');
     const bannerSubtitle = document.getElementById('bannerSubtitle');
-    const bannerIcon = banner.querySelector('.banner-icon');
+    const bannerIcon = banner ? banner.querySelector('.banner-icon') : null;
     
     const overlay = document.getElementById('connectionOverlay');
     const overlayMessage = document.getElementById('overlayMessage');
     const overlayProgressBar = document.getElementById('overlayProgressBar');
+    
+    // Null-check: Si elementos críticos no existen, abortar silenciosamente
+    if (!banner || !bannerTitle || !bannerSubtitle || !bannerIcon || !overlay) {
+        console.warn('[ConnectionManager] Elementos DOM no encontrados. Funcionalidad deshabilitada.');
+        return;
+    }
     
     let disconnectTimer = null; // Timer para mostrar overlay después de 5s
     let reconnectAttempt = 0;
@@ -988,6 +1029,12 @@ function initPreFlightCheck() {
     const btnEnter = document.getElementById('btnEnterRoom');
     const btnSkip = document.getElementById('btnSkipPreflight');
     
+    // Null-check: Si elementos críticos no existen, abortar silenciosamente
+    if (!modal || !btnEnter || !btnSkip) {
+        console.warn('[PreFlightCheck] Elementos DOM no encontrados. Funcionalidad deshabilitada.');
+        return;
+    }
+    
     // Estados de verificación
     const checks = {
         midi: { passed: false, optional: true },
@@ -1080,6 +1127,13 @@ function initPreFlightCheck() {
     async function checkAudio() {
         updateCheckStatus('audio', 'loading', 'Solicitando permisos...');
         
+        // Null-check: navigator.mediaDevices puede no estar disponible (HTTP no seguro)
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.warn('[PreFlight] getUserMedia no disponible (requiere HTTPS)');
+            updateCheckStatus('audio', 'warning', 'Requiere conexión segura (HTTPS)');
+            return;
+        }
+        
         try {
             audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             
@@ -1128,6 +1182,13 @@ function initPreFlightCheck() {
     async function checkVideo() {
         updateCheckStatus('video', 'loading', 'Solicitando permisos...');
         
+        // Null-check: navigator.mediaDevices puede no estar disponible (HTTP no seguro)
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.warn('[PreFlight] getUserMedia no disponible (requiere HTTPS)');
+            updateCheckStatus('video', 'warning', 'Requiere conexión segura (HTTPS)');
+            return;
+        }
+        
         try {
             videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
             
@@ -1154,11 +1215,15 @@ function initPreFlightCheck() {
      * Ejecuta todas las verificaciones
      */
     async function runAllChecks() {
-        await Promise.all([
-            checkMIDI(),
-            checkAudio(),
-            checkVideo()
-        ]);
+        try {
+            await Promise.all([
+                checkMIDI().catch(err => console.warn('[PreFlight] Error en checkMIDI:', err)),
+                checkAudio().catch(err => console.warn('[PreFlight] Error en checkAudio:', err)),
+                checkVideo().catch(err => console.warn('[PreFlight] Error en checkVideo:', err))
+            ]);
+        } catch (error) {
+            console.warn('[PreFlight] Error ejecutando checks:', error);
+        }
     }
     
     /**
@@ -1211,6 +1276,12 @@ function initHealthIndicators() {
     const latencyIcon = document.getElementById('latencyIcon');
     const midiHealthStatus = document.getElementById('midiHealthStatus');
     const midiHealthIcon = document.getElementById('midiHealthIcon');
+    
+    // Null-check: Si elementos críticos no existen, abortar silenciosamente
+    if (!latencyValue || !midiHealthIcon || !midiHealthStatus) {
+        console.warn('[HealthIndicators] Elementos DOM no encontrados. Funcionalidad deshabilitada.');
+        return;
+    }
     
     // Listener para actualizar latencia
     bus.on('net-latency', (rtt) => {
