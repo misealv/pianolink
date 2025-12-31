@@ -77,10 +77,10 @@ export class DiagnosticSidebar {
                 <div class="diagnostic-section">
                     <div class="diagnostic-label">Latencia (RTT)</div>
                     <div class="diagnostic-metric">
-                        <div class="latency-indicator" id="latencyIndicator">
+                        <div class="latency-indicator" id="diagnosticLatencyIndicator">
                             <div class="latency-light"></div>
                         </div>
-                        <span class="latency-value" id="latencyValue">-- ms</span>
+                        <span class="latency-value" id="diagnosticLatencyValue">-- ms</span>
                     </div>
                 </div>
                 
@@ -301,20 +301,23 @@ export class DiagnosticSidebar {
      */
     updateVisualIndicators() {
         // --- LATENCY INDICATOR ---
-        const latencyIndicator = document.getElementById('latencyIndicator');
-        const latencyValue = document.getElementById('latencyValue');
+        const latencyIndicator = document.getElementById('diagnosticLatencyIndicator');
+        const latencyValue = document.getElementById('diagnosticLatencyValue');
         
         // NULL-CHECK: Solo actualizar si los elementos existen
-        if (latencyIndicator && latencyValue && this.latency > 0) {
-            latencyValue.textContent = this.latency + ' ms';
+        if (latencyIndicator && latencyValue) {
+            // Siempre mostrar, incluso si es 0
+            latencyValue.textContent = this.latency > 0 ? this.latency + ' ms' : '-- ms';
             
             // Color según latencia
-            if (this.latency < 50) {
+            if (this.latency < 50 && this.latency > 0) {
                 latencyIndicator.className = 'latency-indicator latency-good';
-            } else if (this.latency < 150) {
+            } else if (this.latency < 150 && this.latency > 0) {
                 latencyIndicator.className = 'latency-indicator latency-fair';
-            } else {
+            } else if (this.latency > 0) {
                 latencyIndicator.className = 'latency-indicator latency-poor';
+            } else {
+                latencyIndicator.className = 'latency-indicator';
             }
         }
         
