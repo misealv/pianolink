@@ -158,6 +158,9 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
+  overflow: visible; /* ⚡ HOTFIX: Era sin especificar, asegurar que no corte contenido */
+  position: relative;
+  z-index: 50; /* ⚡ HOTFIX: Por encima del contenido pero debajo de modales */
 }
 
 .brand {
@@ -644,12 +647,19 @@ iframe#pdfFrame.visible { display: block; }
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: #2a2a2a;
+  background: rgba(30, 30, 30, 0.95); /* ⚡ HOTFIX: Mejorado de #2a2a2a a rgba con transparencia */
   border: 1px solid #444;
   padding: 8px;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-  z-index: 100; /* Por encima de todo */
+  backdrop-filter: blur(5px); /* ⚡ HOTFIX: Agregado para mejor separación visual */
+  z-index: 9990; /* ⚡ HOTFIX: Por encima de canvas (100) pero debajo de banner (9999) */
+  transition: box-shadow 0.2s ease; /* ⚡ HOTFIX: Agregado para hover */
+  align-items: center; /* ⚡ HOTFIX: Centrar botones */
+}
+
+.drawing-toolbar:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.7); /* ⚡ HOTFIX: Mejor hover effect */
 }
 
 .tool-btn {
@@ -1829,6 +1839,7 @@ input[type="color"]#tool-color {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0; /* ⚡ HOTFIX: Evitar que se comprima */
 }
 
 .health-item {
@@ -1840,6 +1851,7 @@ input[type="color"]#tool-color {
   border-radius: 4px;
   font-size: 11px;
   transition: all 0.2s ease;
+  cursor: help; /* ⚡ HOTFIX: Indicar que tiene tooltip */
 }
 
 .health-item:hover {
@@ -1848,13 +1860,15 @@ input[type="color"]#tool-color {
 
 .health-icon {
   font-size: 14px;
+  line-height: 1; /* ⚡ HOTFIX: Evitar desalineación */
 }
 
 .health-value {
-  color: var(--text-muted);
+  color: var(--text-main); /* ⚡ HOTFIX: Era var(--text-muted), demasiado gris */
   font-weight: 600;
   font-family: 'Consolas', monospace;
   min-width: 40px;
+  text-align: right; /* ⚡ HOTFIX: Alinear números */
 }
 
 .health-value.good {
@@ -1871,8 +1885,9 @@ input[type="color"]#tool-color {
 
 .health-status {
   font-size: 10px;
-  color: var(--text-muted);
+  color: #666; /* ⚡ HOTFIX: Era var(--text-muted), ahora gris visible */
   transition: color 0.3s ease;
+  line-height: 1;
 }
 
 .health-status.active {
