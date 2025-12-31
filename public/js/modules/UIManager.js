@@ -663,7 +663,6 @@ export class UIManager {
                 console.log('[UIManager] ✅ 🎨 TOOLBAR VISIBLE (Pizarra)');
             }
         }
-        }
         
         // 3. FIX: Delay para que el navegador recalcule dimensiones (Evita pantalla gris)
         // Usamos un pequeño delay para asegurar que el display:flex ya sea efectivo
