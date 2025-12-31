@@ -598,6 +598,7 @@ export class UIManager {
         const music = document.getElementById("modeMusic");
         const pdf = document.getElementById("modePdf");
         const board = document.getElementById("modeWhiteboard");
+        const toolbar = document.getElementById("drawing-toolbar");
         
         const btnM = document.getElementById("tabMusicBtn");
         const btnP = document.getElementById("tabPdfBtn");
@@ -616,12 +617,18 @@ export class UIManager {
         if (mode === 'music') {
             if (music) { music.classList.remove("hidden"); music.style.display = "flex"; }
             btnM?.classList.add("active");
+            // Ocultar toolbar (solo en Pizarra)
+            if (toolbar) toolbar.style.display = "none";
         } else if (mode === 'pdf') {
             if (pdf) { pdf.classList.remove("hidden"); pdf.style.display = "flex"; }
             btnP?.classList.add("active");
+            // Ocultar toolbar (solo en Pizarra)
+            if (toolbar) toolbar.style.display = "none";
         } else if (mode === 'whiteboard') {
             if (board) { board.classList.remove("hidden"); board.style.display = "flex"; }
             btnB?.classList.add("active");
+            // ⚡ MOSTRAR TOOLBAR EN PIZARRA
+            if (toolbar) toolbar.style.display = "flex";
         }
         
         // 3. FIX: Delay para que el navegador recalcule dimensiones (Evita pantalla gris)
