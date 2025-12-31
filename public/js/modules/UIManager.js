@@ -52,9 +52,33 @@ export class UIManager {
         
         // Para el auto-release automático
         this.noteTimeouts = new Map();
-
+        
+        // ⚡ INICIALIZAR ESTADO DE TOOLBAR
+        this.initToolbarVisibility();
 
         console.log("✅ UIManager Listo. Overlay detectado:", !!this.waitingOverlay);
+    }
+    
+    /**
+     * Inicializa visibilidad de toolbar según pestaña activa
+     */
+    initToolbarVisibility() {
+        const toolbar = document.getElementById('drawing-toolbar');
+        if (!toolbar) {
+            console.warn('[UIManager] Toolbar no encontrado en DOM');
+            return;
+        }
+        
+        // Por defecto ocultamos (currentTab = 'music')
+        if (this.currentTab === 'whiteboard') {
+            toolbar.classList.remove('toolbar-hidden');
+            toolbar.classList.add('toolbar-visible');
+        } else {
+            toolbar.classList.remove('toolbar-visible');
+            toolbar.classList.add('toolbar-hidden');
+        }
+        
+        console.log(`[UIManager] Toolbar inicializado: ${this.currentTab === 'whiteboard' ? 'VISIBLE' : 'OCULTO'}`);
     }
 
     initListeners() {
@@ -617,18 +641,28 @@ export class UIManager {
         if (mode === 'music') {
             if (music) { music.classList.remove("hidden"); music.style.display = "flex"; }
             btnM?.classList.add("active");
-            // Ocultar toolbar (solo en Pizarra)
-            if (toolbar) toolbar.style.display = "none";
+            // ⚡ OCULTAR TOOLBAR (solo visible en Pizarra)
+            if (toolbar) {
+                toolbar.classList.remove('toolbar-visible');
+                toolbar.classList.add('toolbar-hidden');
+            }
         } else if (mode === 'pdf') {
             if (pdf) { pdf.classList.remove("hidden"); pdf.style.display = "flex"; }
             btnP?.classList.add("active");
-            // Ocultar toolbar (solo en Pizarra)
-            if (toolbar) toolbar.style.display = "none";
+            // ⚡ OCULTAR TOOLBAR (solo visible en Pizarra)
+            if (toolbar) {
+                toolbar.classList.remove('toolbar-visible');
+                toolbar.classList.add('toolbar-hidden');
+            }
         } else if (mode === 'whiteboard') {
             if (board) { board.classList.remove("hidden"); board.style.display = "flex"; }
             btnB?.classList.add("active");
             // ⚡ MOSTRAR TOOLBAR EN PIZARRA
-            if (toolbar) toolbar.style.display = "flex";
+            if (toolbar) {
+                toolbar.classList.remove('toolbar-hidden');
+                toolbar.classList.add('toolbar-visible');
+                console.log('[UIManager] 🎨 Toolbar activada en modo Pizarra');
+            }
         }
         
         // 3. FIX: Delay para que el navegador recalcule dimensiones (Evita pantalla gris)
