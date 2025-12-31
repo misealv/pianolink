@@ -11,6 +11,10 @@ export class Whiteboard {
         this.teacherActiveNotes = new Set();
         this.renderTimeout = null;
         
+        // ⚡ FAIL-SAFE: TTL para notas en la partitura (mismo que teclas visuales)
+        this.noteTimestamps = new Map(); // { note: timestamp }
+        this.noteTimeouts = new Map(); // { note: timeoutId }
+        
         // OPTIMIZACIÓN: Mantener renderer y contexto vivos para evitar recrear SVG
         this.renderer = null;
         this.ctx = null;
@@ -30,8 +34,32 @@ export class Whiteboard {
     handleNote(note, velocity) {
         if (velocity > 0) {
             this.teacherActiveNotes.add(note);
+            this.noteTimestamps.set(note, Date.now());
+            
+            // ⚡ TTL: Auto-limpiar después de 8 segundos si no llega noteOff
+            if (this.noteTimeouts.has(note)) {
+                clearTimeout(this.noteTimeouts.get(note));
+            }
+            
+            const timeout = setTimeout(() => {
+                console.warn(`⏱️ [Whiteboard TTL] Nota ${note} liberada de partitura (8s)`);
+                this.teacherActiveNotes.delete(note);
+                this.noteTimestamps.delete(note);
+                this.noteTimeouts.delete(note);
+                this.scheduleRender();
+            }, 8000); // 8 segundos igual que las teclas visuales
+            
+            this.noteTimeouts.set(note, timeout);
+            
         } else {
             this.teacherActiveNotes.delete(note);
+            this.noteTimestamps.delete(note);
+            
+            // Limpiar timeout si existe
+            if (this.noteTimeouts.has(note)) {
+                clearTimeout(this.noteTimeouts.get(note));
+                this.noteTimeouts.delete(note);
+            }
         }
         this.scheduleRender();
     }
@@ -59,6 +87,9 @@ export class Whiteboard {
                 if (window.uiManager && typeof window.uiManager.clearStaleKeys === 'function') {
                     window.uiManager.clearStaleKeys();
                 }
+                
+                // ⚡ NUEVO: También limpiar notas obsoletas de la partitura
+                this.clearStaleNotes();
             }
         }
         
@@ -108,9 +139,48 @@ export class Whiteboard {
         }
     }
     
-    // NUEVO: Método de limpieza manual (para reconciliación)
+    // ⚡ NUEVO: Limpieza de notas obsoletas en la partitura
+    // Similar a clearStaleKeys() de UIManager pero para el Set de VexFlow
+    clearStaleNotes() {
+        const now = Date.now();
+        let clearedCount = 0;
+        
+        this.teacherActiveNotes.forEach(note => {
+            const timestamp = this.noteTimestamps.get(note) || 0;
+            const age = now - timestamp;
+            
+            // Si la nota lleva más de 2s activa, es sospechosa
+            if (age > 2000) {
+                console.warn(`🧹 [Whiteboard] Auto-limpieza: Nota ${note} (${age}ms en partitura)`);
+                this.teacherActiveNotes.delete(note);
+                this.noteTimestamps.delete(note);
+                
+                // Limpiar timeout asociado
+                if (this.noteTimeouts.has(note)) {
+                    clearTimeout(this.noteTimeouts.get(note));
+                    this.noteTimeouts.delete(note);
+                }
+                
+                clearedCount++;
+            }
+        });
+        
+        if (clearedCount > 0) {
+            console.log(`✅ [Whiteboard] Limpieza preventiva: ${clearedCount} notas liberadas de partitura`);
+            this.scheduleRender(); // Re-dibujar partitura sin las notas obsoletas
+        }
+    }
+    
+    // NUEVO: Método de limpieza manual (llamado desde reconciliación)
     forceReleaseNote(note) {
         this.teacherActiveNotes.delete(note);
+        this.noteTimestamps.delete(note);
+        
+        if (this.noteTimeouts.has(note)) {
+            clearTimeout(this.noteTimeouts.get(note));
+            this.noteTimeouts.delete(note);
+        }
+        
         this.scheduleRender();
     }
 
