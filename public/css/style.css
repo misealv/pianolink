@@ -493,6 +493,7 @@ input[type=color]::-webkit-color-swatch { border: 1px solid var(--border); borde
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: opacity 0.15s ease-in-out; /* ⚡ Transición para evitar solapamiento */
 }
 .chord-placeholder { font-size: 12px; color: var(--text-muted); font-weight: 400; }
 

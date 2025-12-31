@@ -177,7 +177,7 @@ export class UIManager {
         });
     }
 
-    // --- ILUMINACIÓN DE TECLAS (CON SPLIT) ---
+    // --- ILUMINACIÓN DE TECLAS (CON SPLIT + FAIL-SAFE) ---
     highlightKey(note, velocity) {
         // 1. Buscar la tecla física en el piano visual
         const key = this.piano.querySelector(`.key[data-note-midi="${note}"]`);
@@ -202,18 +202,22 @@ export class UIManager {
             key.style.backgroundColor = this.hexToRgba(color, opacity);
             key.style.boxShadow = `0 0 10px ${color}`;
             key.classList.add("note-active");
+            
+            // Guardar timestamp para detección de acordes
+            key.dataset.activatedAt = Date.now();
     
-            // OPTIMIZACIÓN: Timeout más agresivo para eventos remotos (3s en lugar de 10s)
+            // ⚡ FAIL-SAFE: TTL Visual aumentado a 8s para latencias extremas
             const timeout = setTimeout(() => {
-                console.warn(`⏱️ UI Watchdog: Nota ${note} liberada por timeout (evento remoto perdido)`);
+                console.warn(`⏱️ UI Watchdog: Nota ${note} liberada por TTL (8s) - Paquete NoteOff perdido`);
                 this.highlightKey(note, 0); 
-            }, 3000); // ⬅️ REDUCIDO DE 10000ms para redes inestables
+            }, 8000); // ⬅️ AUMENTADO de 3s a 8s para Australia
     
             this.noteTimeouts.set(note, timeout);
     
         } else {
             // 4. NOTA LIBERADA (Velocity 0)
             key.classList.remove("note-active");
+            delete key.dataset.activatedAt;
             this.restoreKeyColor(key, note); // Restaura el color base
             
             // Asegurar limpieza del timeout
@@ -221,6 +225,31 @@ export class UIManager {
                 clearTimeout(this.noteTimeouts.get(note));
                 this.noteTimeouts.delete(note);
             }
+        }
+    }
+    
+    // ⚡ NUEVO: Limpieza forzada de todas las teclas activas
+    // Llamado cuando se detecta un cambio drástico de armonía
+    clearStaleKeys() {
+        const activeKeys = this.piano.querySelectorAll('.key.note-active');
+        const now = Date.now();
+        let clearedCount = 0;
+        
+        activeKeys.forEach(key => {
+            const note = parseInt(key.dataset.noteMidi);
+            const activatedAt = parseInt(key.dataset.activatedAt || 0);
+            const age = now - activatedAt;
+            
+            // Si la tecla lleva más de 2s activa, es sospechosa
+            if (age > 2000) {
+                console.warn(`🧹 Auto-limpieza: Tecla ${note} (${age}ms activa) - Asumiendo noteOff perdido`);
+                this.highlightKey(note, 0);
+                clearedCount++;
+            }
+        });
+        
+        if (clearedCount > 0) {
+            console.log(`✅ Limpieza preventiva: ${clearedCount} teclas liberadas`);
         }
     }
     

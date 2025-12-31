@@ -32,6 +32,9 @@ const whiteboard = new Whiteboard();
 const scoreLogic = new ScoreLogic(socketManager.socket); 
 const freeBoard = new FreeBoard(scoreLogic); 
 
+// ⚡ Exponer uiManager globalmente para acceso desde Whiteboard
+window.uiManager = ui; 
+
 // ==================================================
 // AGORA AV - FASE 0: VARIABLES GLOBALES
 // ==================================================

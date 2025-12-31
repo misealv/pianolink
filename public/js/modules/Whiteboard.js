@@ -49,8 +49,20 @@ export class Whiteboard {
         // Ordenamos las notas de grave a agudo
         const notes = Array.from(this.teacherActiveNotes).sort((a,b) => a-b);
         
-        // OPTIMIZACIÓN: Evitar re-render si las notas no cambiaron
+        // ⚡ FAIL-SAFE: Detectar cambio drástico de armonía
         const notesKey = notes.join(',');
+        if (notesKey !== this.lastRenderedNotes) {
+            // Si cambió la armonía, limpiar teclas "pegadas" sospechosas
+            if (this.lastRenderedNotes && notes.length > 0) {
+                console.log('[Whiteboard] 🔄 Cambio de armonía detectado - Limpiando teclas obsoletas');
+                // Llamar al UIManager para limpiar teclas viejas
+                if (window.uiManager && typeof window.uiManager.clearStaleKeys === 'function') {
+                    window.uiManager.clearStaleKeys();
+                }
+            }
+        }
+        
+        // OPTIMIZACIÓN: Evitar re-render si las notas no cambiaron
         if (notesKey === this.lastRenderedNotes) return;
         
         // NUEVO: Logging de performance para debugging
@@ -63,15 +75,25 @@ export class Whiteboard {
         
         this.lastRenderedNotes = notesKey;
 
-        // 1. Detección de Acordes
+        // 1. Detección de Acordes con limpieza de texto anterior
+        const chordDisplayEl = this.chordDisplay;
         if (notes.length > 0) {
             const names = notes.map(n => this.getNoteName(n));
             let chord = Tonal.Chord.detect(names)[0];
             if (!chord && names.length > 2) chord = Tonal.Chord.detect(names.slice(0,3))[0];
             
-            this.chordDisplay.innerText = chord ? chord : names.join(" ");
+            // ⚡ FAIL-SAFE: Limpiar texto anterior antes de actualizar
+            chordDisplayEl.style.opacity = '0';
+            setTimeout(() => {
+                chordDisplayEl.innerText = chord ? chord : names.join(" ");
+                chordDisplayEl.style.opacity = '1';
+            }, 50); // Micro-fade para evitar solapamiento visual
         } else {
-            this.chordDisplay.innerText = "--";
+            chordDisplayEl.style.opacity = '0';
+            setTimeout(() => {
+                chordDisplayEl.innerText = "--";
+                chordDisplayEl.style.opacity = '1';
+            }, 50);
             this.drawEmpty(); // Si no hay notas, dibujamos el pentagrama vacío con llave
             return;
         }
