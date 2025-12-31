@@ -309,6 +309,11 @@ async function bootstrap() {
         // Configurar event listeners DESPUÉS de que todo esté inicializado
         setupEventHandlers();
         
+        // ========================================
+        // ⚡ SPRINT FINAL P2: CONNECTION MANAGER
+        // ========================================
+        initConnectionManager();
+        
         console.log('✅ [Main] Sistema CRÍTICO inicializado (MIDI/Logs operativos).');
         
         // ========================================
@@ -433,6 +438,124 @@ function bindToolbarExtra() {
     console.log('[Main] ✅ Toolbar extra vinculado.');
 }
 
+
+// ============================================
+// ⚡ SPRINT FINAL P2: CONNECTION MANAGER
+// ============================================
+
+/**
+ * Gestión Global de Estado de Conexión (UX Defensiva)
+ * Controla banners, overlays y bloqueo de MIDI durante desconexiones
+ */
+function initConnectionManager() {
+    const banner = document.getElementById('connectionBanner');
+    const bannerTitle = document.getElementById('bannerTitle');
+    const bannerSubtitle = document.getElementById('bannerSubtitle');
+    const bannerIcon = banner.querySelector('.banner-icon');
+    
+    const overlay = document.getElementById('connectionOverlay');
+    const overlayMessage = document.getElementById('overlayMessage');
+    const overlayProgressBar = document.getElementById('overlayProgressBar');
+    
+    let disconnectTimer = null; // Timer para mostrar overlay después de 5s
+    let reconnectAttempt = 0;
+    
+    // --- EVENTO: CONEXIÓN PERDIDA ---
+    bus.on('connection-lost', (data) => {
+        console.warn('[ConnectionManager] 🔴 Conexión perdida:', data.reason);
+        reconnectAttempt = 0;
+        
+        // 1. Bloquear emisión MIDI inmediatamente
+        audio.setMidiBlocked(true);
+        
+        // 2. Mostrar banner de advertencia
+        bannerTitle.textContent = 'Conexión perdida';
+        bannerSubtitle.textContent = 'Reconectando automáticamente...';
+        bannerIcon.textContent = '⚠️';
+        banner.classList.remove('success', 'hidden');
+        banner.classList.add('visible');
+        
+        // 3. Si no se reconecta en 5s, mostrar overlay bloqueante
+        disconnectTimer = setTimeout(() => {
+            console.warn('[ConnectionManager] Desconexión prolongada (>5s). Bloqueando UI.');
+            overlay.classList.remove('hidden');
+            overlay.classList.add('visible');
+            overlayMessage.textContent = 'Conexión interrumpida. Esperando reconexión...';
+            overlayProgressBar.style.width = '0%';
+        }, 5000);
+    });
+    
+    // --- EVENTO: PROGRESO DE RECONEXIÓN ---
+    bus.on('reconnect-progress', (data) => {
+        reconnectAttempt = data.attempt;
+        console.log(`[ConnectionManager] 🔄 Intento de reconexión: ${reconnectAttempt}`);
+        
+        // Actualizar UI con progreso
+        if (overlay.classList.contains('visible')) {
+            overlayMessage.textContent = `Intento ${reconnectAttempt} de reconexión...`;
+            const progress = Math.min(reconnectAttempt * 20, 90); // Max 90% hasta que conecte
+            overlayProgressBar.style.width = `${progress}%`;
+        }
+        
+        bannerSubtitle.textContent = `Intento ${reconnectAttempt}...`;
+    });
+    
+    // --- EVENTO: CONEXIÓN RESTAURADA ---
+    bus.on('connection-restored', () => {
+        console.log('[ConnectionManager] ✅ Conexión restaurada');
+        
+        // 1. Cancelar timer de overlay si está pendiente
+        if (disconnectTimer) {
+            clearTimeout(disconnectTimer);
+            disconnectTimer = null;
+        }
+        
+        // 2. Desbloquear MIDI
+        audio.setMidiBlocked(false);
+        
+        // 3. Ocultar overlay inmediatamente
+        overlay.classList.remove('visible');
+        overlay.classList.add('hidden');
+        overlayProgressBar.style.width = '100%';
+        
+        // 4. Mostrar banner de éxito por 3 segundos
+        bannerTitle.textContent = 'Conexión restablecida';
+        bannerSubtitle.textContent = 'Puedes continuar con normalidad';
+        bannerIcon.textContent = '✅';
+        banner.classList.remove('visible');
+        banner.classList.add('success', 'visible');
+        
+        setTimeout(() => {
+            banner.classList.remove('visible');
+            banner.classList.add('hidden');
+            
+            // Después de ocultar, remover clase success
+            setTimeout(() => {
+                banner.classList.remove('success');
+            }, 300);
+        }, 3000);
+        
+        // 5. Solicitar sincronización de estado
+        if (socketManager.roomCode) {
+            console.log('[ConnectionManager] Solicitando sincronización de estado...');
+            socketManager.socket.emit('request-full-sync', { 
+                roomCode: socketManager.roomCode 
+            });
+        }
+    });
+    
+    // --- EVENTO: ERROR DE CONEXIÓN ---
+    this.socket?.on('connect_error', (error) => {
+        console.error('[ConnectionManager] ❌ Error de conexión:', error.message);
+        
+        // Mostrar mensaje de error en overlay si está visible
+        if (overlay.classList.contains('visible')) {
+            overlayMessage.textContent = 'Error al conectar. Verifica tu internet.';
+        }
+    });
+    
+    console.log('✅ [Main] ConnectionManager inicializado');
+}
 
 // ============================================
 // 5. ORQUESTACIÓN DE EVENTOS (CABLEADO)

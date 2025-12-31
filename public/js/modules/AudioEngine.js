@@ -28,6 +28,9 @@ export class AudioEngine {
         this._pedalTimeout = null; // Timeout para pedal sustain
         this._silentPanicInterval = null; // Pánico en segundo plano
         this._lastChordNotes = []; // Tracking para detección de cambio de acorde
+        
+        // ⚡ SPRINT FINAL P2: BLOQUEO MIDI DURANTE DESCONEXIÓN
+        this._midiBlocked = false; // Flag para bloquear emisión MIDI
     }
 
     async init() {
@@ -352,6 +355,28 @@ export class AudioEngine {
                 this.bus.emit('pedal-watchdog-triggered');
             }, 15000); // 15 segundos máximo
         }
+    }
+    
+    /**
+     * Bloquea o desbloquea la emisión de MIDI
+     * @param {boolean} blocked - true para bloquear, false para permitir
+     */
+    setMidiBlocked(blocked) {
+        this._midiBlocked = blocked;
+        
+        if (blocked) {
+            console.warn('🚫 [AudioEngine] Emisión MIDI bloqueada (desconectado)');
+        } else {
+            console.log('✅ [AudioEngine] Emisión MIDI desbloqueada (conectado)');
+        }
+    }
+    
+    /**
+     * Verifica si MIDI está bloqueado
+     * @returns {boolean}
+     */
+    isMidiBlocked() {
+        return this._midiBlocked;
     }
     
     /**

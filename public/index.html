@@ -322,6 +322,30 @@
 </head>
 
 <body>
+  <!-- ⚡ BANNER DE RECONEXIÓN (UX Defensiva) -->
+  <div id="connectionBanner" class="connection-banner hidden">
+    <div class="banner-content">
+      <div class="banner-icon">⚠️</div>
+      <div class="banner-message">
+        <strong id="bannerTitle">Conexión inestable</strong>
+        <span id="bannerSubtitle">Reconectando...</span>
+      </div>
+      <div class="banner-spinner"></div>
+    </div>
+  </div>
+  
+  <!-- ⚡ OVERLAY DE BLOQUEO (Si desconexión >5s) -->
+  <div id="connectionOverlay" class="connection-overlay hidden">
+    <div class="overlay-content">
+      <div class="overlay-spinner-large"></div>
+      <h2>Reconectando al servidor...</h2>
+      <p id="overlayMessage">Por favor, espera un momento</p>
+      <div class="overlay-progress">
+        <div id="overlayProgressBar" class="overlay-progress-bar"></div>
+      </div>
+    </div>
+  </div>
+  
   <audio id="joinSound" src="https://cdn.freesound.org/previews/352/352651_4019029-lq.mp3"></audio>
   
   <div class="app-container">

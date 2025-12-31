@@ -45,7 +45,12 @@ export class SocketClient {
         // --- LIFECYCLE: CONNECT ---
         this.socket.on("connect", () => {
             this._connectionState = 'connected';
+            this._heartbeatMissedCount = 0; // Reset contador de heartbeats perdidos
+            
+            // ⚡ NUEVO: Emitir evento detallado para ConnectionManager
             this.bus.emit("net-status", "ONLINE");
+            this.bus.emit("connection-restored");
+            
             console.log('[SocketClient] ✅ Conectado. Estado:', this._connectionState);
             
             // Procesar mensajes pendientes (si los hay)
@@ -57,7 +62,10 @@ export class SocketClient {
             console.warn(`[SocketClient] 🔴 Desconectado. Razón: ${reason}`);
             this.stopHeartbeat(); // Detener keepalive
             this._enterHibernation();
+            
+            // ⚡ NUEVO: Emitir eventos detallados para UI
             this.bus.emit("net-status", "OFFLINE");
+            this.bus.emit("connection-lost", { reason });
             this.bus.emit("net-disconnect-cleanup");
             
             // NUEVO: Si la desconexión es por el servidor, forzar reconexión más agresiva
@@ -75,7 +83,10 @@ export class SocketClient {
         this._reconnectHandler = (attemptNumber) => {
             console.log(`[SocketClient] 🔄 Reintentando conexión... Intento ${attemptNumber}`);
             this._connectionState = 'connecting';
+            
+            // ⚡ NUEVO: Emitir progreso de reconexión
             this.bus.emit("net-status", "RECONNECTING");
+            this.bus.emit("reconnect-progress", { attempt: attemptNumber });
         };
         this.socket.io.on("reconnect_attempt", this._reconnectHandler);
         
@@ -300,6 +311,13 @@ export class SocketClient {
     sendMidi(status, data1, data2) {
         if (!this.roomCode) return;
         
+        // ⚡ SPRINT FINAL P2: Verificar si MIDI está bloqueado (desconectado)
+        // Emitir evento para que AudioEngine verifique
+        if (this._connectionState !== 'connected') {
+            console.warn('🚫 [SocketClient] MIDI bloqueado: Socket desconectado');
+            return;
+        }
+        
         // === HIGH-PRIORITY MIDI STREAM ===
         // Agregar al bundler en lugar de enviar inmediatamente
         // El bundler decide cuándo enviar (inmediato para notas, agrupado para CC)
@@ -392,6 +410,28 @@ export class SocketClient {
      */
     getConnectionState() {
         return this._connectionState;
+    }
+    
+    /**
+     * Verifica si la conexión está realmente activa
+     * @returns {boolean}
+     */
+    isConnected() {
+        return this.socket.connected && this._connectionState === 'connected';
+    }
+    
+    /**
+     * Obtiene información detallada de conexión para debugging
+     * @returns {Object}
+     */
+    getConnectionInfo() {
+        return {
+            state: this._connectionState,
+            connected: this.socket.connected,
+            roomCode: this.roomCode,
+            heartbeatMissed: this._heartbeatMissedCount,
+            pendingMessages: this._pendingMessages.length
+        };
     }
     
     /**
