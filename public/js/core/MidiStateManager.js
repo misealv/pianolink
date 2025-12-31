@@ -21,13 +21,13 @@ export class MidiStateManager {
         this.onStateChange = null; // (activeCount) => void
         
         // --- WATCHDOG TIMER (ANTI-HANG) ---
-        // AJUSTE: Reducir threshold de 10s a 5s para redes inestables
-        this._hangThreshold = 5000; // ⬅️ REDUCIDO DE 10000ms
+        // ⚡ SPRINT FINAL: Reducir a 3s para detección ultra-agresiva
+        this._hangThreshold = 3000; // ⬅️ REDUCIDO DE 5000ms a 3000ms
         this._watchdogInterval = null;
         
         // --- GRACE PERIOD PARA RECONCILIACIÓN ---
-        // AJUSTE: Reducir grace period de 500ms a 300ms
-        this.GRACE_PERIOD_MS = 300; // ⬅️ REDUCIDO DE 500ms
+        // ⚡ SPRINT FINAL: Aumentar a 500ms para evitar false positives
+        this.GRACE_PERIOD_MS = 500; // ⬅️ AUMENTADO de 300ms a 500ms
         
         // --- MÉTRICAS DE DIAGNÓSTICO ---
         this.stats = {

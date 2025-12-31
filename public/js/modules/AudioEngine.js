@@ -23,6 +23,11 @@ export class AudioEngine {
         // --- WATCHDOG MIDI ---
         this._lastMidiActivity = 0; // Timestamp de última actividad MIDI
         this._midiWatchdogInterval = null; // Interval para verificar listeners
+        
+        // ⚡ NUEVO: FAIL-SAFE ANTI-STICKY (Sprint Final)
+        this._pedalTimeout = null; // Timeout para pedal sustain
+        this._silentPanicInterval = null; // Pánico en segundo plano
+        this._lastChordNotes = []; // Tracking para detección de cambio de acorde
     }
 
     async init() {
@@ -57,6 +62,9 @@ export class AudioEngine {
                 console.warn("WebMIDI no soportado o denegado:", e);
             }
         }
+        
+        // ⚡ NUEVO: Iniciar pánico silencioso (cada 10s)
+        this._startSilentPanic();
     }
 
     scanDevices() {
@@ -276,6 +284,109 @@ export class AudioEngine {
     }
     
     // ==================================================
+    // ⚡ SPRINT FINAL: FAIL-SAFE ANTI-STICKY
+    // ==================================================
+    
+    /**
+     * Pánico Silencioso: Verificar y limpiar notas zombies cada 10s
+     * Se ejecuta en segundo plano sin notificar al usuario
+     * @private
+     */
+    _startSilentPanic() {
+        this._silentPanicInterval = setInterval(() => {
+            const stats = this.scheduler.getStats();
+            const activeCount = stats.activeNotes;
+            
+            // Si hay notas activas, verificar si son legítimas
+            if (activeCount > 0) {
+                const activeNotes = Array.from(this.scheduler.stateManager._activeNotes.entries());
+                const now = performance.now();
+                let zombiesFound = 0;
+                
+                activeNotes.forEach(([noteId, noteState]) => {
+                    const age = now - noteState.timestamp;
+                    
+                    // Si una nota lleva más de 12s sonando, es zombie
+                    if (age > 12000) {
+                        console.warn(`🧹 [SilentPanic] Nota zombie detectada: ${noteId} (${(age/1000).toFixed(1)}s). Auto-release.`);
+                        this.scheduler.stateManager.handleNoteOff(noteId, 'SILENT_PANIC');
+                        zombiesFound++;
+                    }
+                });
+                
+                if (zombiesFound > 0) {
+                    console.log(`✅ [SilentPanic] ${zombiesFound} zombies eliminados`);
+                    // Notificar a UI para que limpie también
+                    this.bus.emit('zombie-cleanup', { count: zombiesFound });
+                }
+            }
+        }, 10000); // Cada 10 segundos
+        
+        console.log('🛡️ [AudioEngine] Pánico silencioso activado (cada 10s)');
+    }
+    
+    /**
+     * Watchdog para pedal sustain (CC64)
+     * Fuerza release si el pedal lleva más de 15s presionado
+     * @param {number} channel - Canal MIDI (0-15)
+     * @param {number} value - Valor del pedal (0-127)
+     */
+    handlePedalSustain(channel, value) {
+        // Limpiar timeout anterior
+        if (this._pedalTimeout) {
+            clearTimeout(this._pedalTimeout);
+            this._pedalTimeout = null;
+        }
+        
+        // Si el pedal está presionado (>64), iniciar watchdog
+        if (value > 64) {
+            this._pedalTimeout = setTimeout(() => {
+                console.warn('⚠️ [PedalWatchdog] Pedal sustain trabado detectado. Forzando release.');
+                
+                // Forzar CC64 = 0 (release)
+                if (this.outputManager) {
+                    this.outputManager.send(176 + channel, 64, 0, 'WATCHDOG');
+                }
+                
+                // Notificar UI
+                this.bus.emit('pedal-watchdog-triggered');
+            }, 15000); // 15 segundos máximo
+        }
+    }
+    
+    /**
+     * Detecta cambio drástico de armonía y limpia notas antiguas
+     * @param {Array<number>} newNotes - Notas del nuevo acorde
+     */
+    detectChordChange(newNotes) {
+        // Si hay más de 3 notas nuevas simultáneas, es posible cambio de acorde
+        if (newNotes.length >= 3) {
+            const activeNotes = Array.from(this.scheduler.stateManager._activeNotes.keys());
+            const notInNewChord = activeNotes.filter(n => !newNotes.includes(n));
+            
+            // Si hay notas activas que NO están en el nuevo acorde, limpiarlas
+            if (notInNewChord.length > 0) {
+                const now = performance.now();
+                
+                notInNewChord.forEach(noteId => {
+                    const noteState = this.scheduler.stateManager._activeNotes.get(noteId);
+                    if (noteState) {
+                        const age = now - noteState.timestamp;
+                        
+                        // Solo limpiar notas antiguas (>2s)
+                        if (age > 2000) {
+                            console.log(`🎵 [ChordChange] Limpiando nota obsoleta: ${noteId} (${(age/1000).toFixed(1)}s)`);
+                            this.scheduler.stateManager.handleNoteOff(noteId, 'CHORD_CHANGE');
+                        }
+                    }
+                });
+            }
+        }
+        
+        this._lastChordNotes = newNotes;
+    }
+    
+    // ==================================================
     // FASE 3: GESTIÓN DE CICLO DE VIDA Y RECURSOS
     // ==================================================
     
@@ -373,6 +484,16 @@ export class AudioEngine {
         if (this._midiWatchdogInterval) {
             clearInterval(this._midiWatchdogInterval);
             this._midiWatchdogInterval = null;
+        }
+        
+        // ⚡ NUEVO: Detener pánico silencioso y watchdog de pedal
+        if (this._silentPanicInterval) {
+            clearInterval(this._silentPanicInterval);
+            this._silentPanicInterval = null;
+        }
+        if (this._pedalTimeout) {
+            clearTimeout(this._pedalTimeout);
+            this._pedalTimeout = null;
         }
         
         // 4. Limpiar listeners MIDI

@@ -459,6 +459,24 @@ function setupEventHandlers() {
     });
     
     // --- FLUJO DE AUDIO Y NOTAS ---
+    
+    // ⚡ NUEVO: Sincronizar limpieza de zombies con UI
+    bus.on("zombie-cleanup", function(data) {
+        console.log(`[Main] 🧹 Sincronizando limpieza de ${data.count} zombies con UI`);
+        
+        // Obtener notas que aún están activas en el scheduler
+        const activeNotes = Array.from(audio.scheduler.stateManager._activeNotes.keys());
+        
+        // Sincronizar con UI: Si una tecla está iluminada pero no está en activeNotes, apagarla
+        const allKeys = document.querySelectorAll('.key.note-active');
+        allKeys.forEach(key => {
+            const note = parseInt(key.dataset.noteMidi);
+            if (!activeNotes.includes(note)) {
+                console.log(`[Main] Limpiando tecla visual zombie: ${note}`);
+                ui.highlightKey(note, 0); // Apagar visualmente
+            }
+        });
+    });
 
     bus.on("local-note", function(data) {
         socketManager.sendMidi(data.status, data.data1, data.data2);
@@ -486,8 +504,28 @@ function setupEventHandlers() {
             }
         }
 
-        if (shouldPlay) {
-            audio.playRemote(data);
+        if (shouldPlay) {            // ⚡ NUEVO: Detectar si es Control Change (pedal sustain)
+            const isCC = (data.status >= 176 && data.status <= 191);
+            const isSustainPedal = isCC && data.data1 === 64;
+            
+            if (isSustainPedal) {
+                // Activar watchdog de pedal
+                const channel = data.status - 176;
+                audio.handlePedalSustain(channel, data.data2);
+            }
+            
+            // ⚡ NUEVO: Detectar cambio de acorde (NoteOn múltiple)
+            const isNoteOn = (data.status >= 144 && data.status <= 159) && data.data2 > 0;
+            if (isNoteOn) {
+                // Obtener notas actualmente sonando
+                const stats = audio.getStats();
+                if (stats.activeNotes >= 3) {
+                    // Posible acorde, notificar al engine
+                    const activeNotes = Array.from(audio.scheduler.stateManager._activeNotes.keys());
+                    audio.detectChordChange(activeNotes);
+                }
+            }
+                        audio.playRemote(data);
             processMidiMessage(data, false);
         }
     });
