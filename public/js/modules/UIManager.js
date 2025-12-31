@@ -65,20 +65,20 @@ export class UIManager {
     initToolbarVisibility() {
         const toolbar = document.getElementById('drawing-toolbar');
         if (!toolbar) {
-            console.warn('[UIManager] Toolbar no encontrado en DOM');
+            console.warn('[UIManager] ⚠️ Toolbar NO encontrado en DOM');
             return;
         }
         
-        // Por defecto ocultamos (currentTab = 'music')
-        if (this.currentTab === 'whiteboard') {
-            toolbar.classList.remove('toolbar-hidden');
-            toolbar.classList.add('toolbar-visible');
-        } else {
-            toolbar.classList.remove('toolbar-visible');
-            toolbar.classList.add('toolbar-hidden');
-        }
+        console.log('[UIManager] 🔧 Inicializando toolbar, currentTab:', this.currentTab);
         
-        console.log(`[UIManager] Toolbar inicializado: ${this.currentTab === 'whiteboard' ? 'VISIBLE' : 'OCULTO'}`);
+        // Aplicar visibilidad según pestaña actual
+        if (this.currentTab === 'whiteboard') {
+            toolbar.style.display = 'flex';
+            console.log('[UIManager] ✅ Toolbar VISIBLE (whiteboard)');
+        } else {
+            toolbar.style.display = 'none';
+            console.log('[UIManager] 🚫 Toolbar OCULTA (' + this.currentTab + ')');
+        }
     }
 
     initListeners() {
@@ -641,28 +641,28 @@ export class UIManager {
         if (mode === 'music') {
             if (music) { music.classList.remove("hidden"); music.style.display = "flex"; }
             btnM?.classList.add("active");
-            // ⚡ OCULTAR TOOLBAR (solo visible en Pizarra)
+            // Ocultar toolbar
             if (toolbar) {
-                toolbar.classList.remove('toolbar-visible');
-                toolbar.classList.add('toolbar-hidden');
+                toolbar.style.display = 'none';
+                console.log('[UIManager] 🚫 Toolbar oculta (música)');
             }
         } else if (mode === 'pdf') {
             if (pdf) { pdf.classList.remove("hidden"); pdf.style.display = "flex"; }
             btnP?.classList.add("active");
-            // ⚡ OCULTAR TOOLBAR (solo visible en Pizarra)
+            // Ocultar toolbar
             if (toolbar) {
-                toolbar.classList.remove('toolbar-visible');
-                toolbar.classList.add('toolbar-hidden');
+                toolbar.style.display = 'none';
+                console.log('[UIManager] 🚫 Toolbar oculta (PDF)');
             }
         } else if (mode === 'whiteboard') {
             if (board) { board.classList.remove("hidden"); board.style.display = "flex"; }
             btnB?.classList.add("active");
-            // ⚡ MOSTRAR TOOLBAR EN PIZARRA
+            // MOSTRAR TOOLBAR
             if (toolbar) {
-                toolbar.classList.remove('toolbar-hidden');
-                toolbar.classList.add('toolbar-visible');
-                console.log('[UIManager] 🎨 Toolbar activada en modo Pizarra');
+                toolbar.style.display = 'flex';
+                console.log('[UIManager] ✅ 🎨 TOOLBAR VISIBLE (Pizarra)');
             }
+        }
         }
         
         // 3. FIX: Delay para que el navegador recalcule dimensiones (Evita pantalla gris)

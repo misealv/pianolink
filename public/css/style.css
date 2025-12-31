@@ -647,32 +647,28 @@ iframe#pdfFrame.visible { display: block; }
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: rgba(30, 30, 30, 0.95); /* ⚡ HOTFIX: Mejorado de #2a2a2a a rgba con transparencia */
+  background: rgba(30, 30, 30, 0.95);
   border: 1px solid #444;
   padding: 8px;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-  backdrop-filter: blur(5px); /* ⚡ HOTFIX: Agregado para mejor separación visual */
-  z-index: 9990; /* ⚡ HOTFIX: Por encima de canvas (100) pero debajo de banner (9999) */
-  transition: all 0.3s ease; /* ⚡ Transición suave para visibilidad */
-  align-items: center; /* ⚡ HOTFIX: Centrar botones */
+  backdrop-filter: blur(5px);
+  z-index: 9990;
+  transition: opacity 0.3s ease;
+  align-items: center;
 }
 
-/* ⚡ CLASES DE VISIBILIDAD PARA TOOLBAR */
+/* ⚡ CLASES DE VISIBILIDAD SIMPLIFICADAS */
 .drawing-toolbar.toolbar-hidden {
-  display: none !important;
-  opacity: 0;
-  pointer-events: none;
+  display: none;
 }
 
 .drawing-toolbar.toolbar-visible {
-  display: flex !important;
-  opacity: 1;
-  pointer-events: auto;
+  display: flex;
 }
 
 .drawing-toolbar:hover {
-  box-shadow: 0 6px 20px rgba(0,0,0,0.7); /* ⚡ HOTFIX: Mejor hover effect */
+  box-shadow: 0 6px 20px rgba(0,0,0,0.7);
 }
 
 .tool-btn {
