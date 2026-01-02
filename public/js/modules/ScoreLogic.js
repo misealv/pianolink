@@ -127,7 +127,7 @@ export class ScoreLogic {
         this.socket.on('wb-pointer', (data) => {
             // Solo mostrar si estamos en la misma página
             if (data.page == this.pageNum) {
-                this.showRemoteLaser(data.x, data.y);
+                this.showRemoteLaser(data.xPercent, data.yPercent);
             }
         });
         
@@ -190,26 +190,41 @@ export class ScoreLogic {
         engine.onLaserMove((pos) => {
             this.socket.volatile.emit('wb-pointer', { 
                 room: this.getRoomCode(), 
-                x: pos.x, 
-                y: pos.y, 
+                xPercent: pos.xPercent,  // Coordenadas normalizadas (0-1)
+                yPercent: pos.yPercent, 
                 page: this.pageNum 
             });
             // También mostrar láser local (para feedback visual)
-            this.showLaser(pos.x, pos.y);
+            this.showLaserNormalized(pos.xPercent, pos.yPercent);
         });
     }
     
     // ⚡ LÁSER: Mostrar punto rojo remoto (para alumnos que lo ven)
-    showRemoteLaser(x, y) {
-        this.showLaser(x, y);
+    showRemoteLaser(xPercent, yPercent) {
+        this.showLaserNormalized(xPercent, yPercent);
     }
     
-    // ⚡ LÁSER: Mostrar el punto rojo según el modo actual
-    showLaser(x, y) {
-        // Seleccionar el elemento láser correcto según el tab
-        const laserId = this.currentTab === 'whiteboard' ? 'wb-laser' : 'remote-laser';
-        const laserDot = this.el(laserId);
-        if (!laserDot) return;
+    // ⚡ LÁSER: Mostrar el punto rojo con coordenadas normalizadas
+    showLaserNormalized(xPercent, yPercent) {
+        // Obtener el contenedor correcto según el tab
+        let container, laserDot;
+        
+        if (this.currentTab === 'whiteboard') {
+            container = this.el('whiteboard-wrapper');
+            laserDot = this.el('wb-laser');
+        } else {
+            container = this.el('score-wrapper');
+            laserDot = this.el('remote-laser');
+        }
+        
+        if (!laserDot || !container) return;
+        
+        // Desnormalizar: convertir porcentajes a píxeles según tamaño local
+        const containerWidth = container.offsetWidth;
+        const containerHeight = container.offsetHeight;
+        
+        const x = xPercent * containerWidth;
+        const y = yPercent * containerHeight;
         
         laserDot.style.left = x + 'px';
         laserDot.style.top = y + 'px';

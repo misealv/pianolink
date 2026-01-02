@@ -32,7 +32,14 @@ export class AnnotationLayer {
         this.canvas.on('mouse:move', (opt) => {
             if (this.currentMode === 'laser' && this.onLaserMoveCallback) {
                 const pointer = this.canvas.getPointer(opt.e);
-                this.onLaserMoveCallback({ x: pointer.x, y: pointer.y });
+                const canvasWidth = this.canvas.getWidth();
+                const canvasHeight = this.canvas.getHeight();
+                
+                // Normalizar a porcentajes (0-1) para sincronizar entre diferentes tamaños de pantalla
+                this.onLaserMoveCallback({ 
+                    xPercent: pointer.x / canvasWidth, 
+                    yPercent: pointer.y / canvasHeight 
+                });
             }
         });
         
