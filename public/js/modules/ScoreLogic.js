@@ -29,6 +29,30 @@ export class ScoreLogic {
         this.handleRemoteUpdate = this.handleRemoteUpdate.bind(this);
         this.init();
     }
+
+    // ⚡ HELPER: Obtener headers de autorización para APIs protegidas
+    getAuthHeaders() {
+        try {
+            const user = JSON.parse(localStorage.getItem('pianoUser') || '{}');
+            if (user.token) {
+                return {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
+                };
+            }
+        } catch (e) {}
+        return { 'Content-Type': 'application/json' };
+    }
+
+    // ⚡ HELPER: Verificar si el usuario es profesor
+    isTeacher() {
+        try {
+            const user = JSON.parse(localStorage.getItem('pianoUser') || '{}');
+            return user.role === 'teacher' || user.role === 'admin';
+        } catch (e) {
+            return false;
+        }
+    }
     
     switchTab(tab) {
         this.currentTab = tab;
@@ -592,26 +616,112 @@ export class ScoreLogic {
         }
     }
 
-    async createNewFolder(name) { this.localFolders.add(name); this.loadShelf(); }
+    // ⚡ CRUD DE ARCHIVOS Y CARPETAS (SOLO PROFESORES)
+    async createNewFolder(name) { 
+        this.localFolders.add(name); 
+        this.loadShelf(); 
+    }
+    
     async moveScoreToFolder(scoreId, folderName) {
-        await fetch(`/api/scores/${scoreId}/move`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folderName }) });
+        if (!this.isTeacher()) {
+            alert('⚠️ Solo el profesor puede mover archivos');
+            return;
+        }
+        const res = await fetch(`/api/scores/${scoreId}/move`, { 
+            method: 'PATCH', 
+            headers: this.getAuthHeaders(), 
+            body: JSON.stringify({ folderName }) 
+        });
+        if (!res.ok) {
+            alert('❌ Error al mover archivo. Solo profesores autorizados.');
+        }
         this.loadShelf();
     }
+    
     async deleteFolder(folderName) { 
-        if(confirm("¿Borrar?")) { await fetch(`/api/scores/folder/${folderName}?room=${this.getRoomCode()}`, { method: 'DELETE' }); this.localFolders.delete(folderName); this.loadShelf(); }
+        if (!this.isTeacher()) {
+            alert('⚠️ Solo el profesor puede borrar carpetas');
+            return;
+        }
+        if (confirm("¿Borrar carpeta y todos sus archivos?")) { 
+            const res = await fetch(`/api/scores/folder/${folderName}?room=${this.getRoomCode()}`, { 
+                method: 'DELETE',
+                headers: this.getAuthHeaders()
+            }); 
+            if (!res.ok) {
+                alert('❌ Error al borrar. Solo profesores autorizados.');
+                return;
+            }
+            this.localFolders.delete(folderName); 
+            this.loadShelf(); 
+        }
     }
-    async deleteScore(id) { if(confirm("¿Borrar?")) { await fetch(`/api/scores/${id}`, { method: 'DELETE' }); this.loadShelf(); } }
+    
+    async deleteScore(id) { 
+        if (!this.isTeacher()) {
+            alert('⚠️ Solo el profesor puede borrar archivos');
+            return;
+        }
+        if (confirm("¿Borrar este archivo?")) { 
+            const res = await fetch(`/api/scores/${id}`, { 
+                method: 'DELETE',
+                headers: this.getAuthHeaders()
+            }); 
+            if (!res.ok) {
+                alert('❌ Error al borrar. Solo profesores autorizados.');
+            }
+            this.loadShelf(); 
+        } 
+    }
+    
     async renameFolder(oldName) {
+        if (!this.isTeacher()) {
+            alert('⚠️ Solo el profesor puede renombrar carpetas');
+            return;
+        }
         const newName = prompt("Nuevo nombre:", oldName);
-        if(newName) { await fetch('/api/scores/folder/rename', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oldName, newName, room: this.getRoomCode() }) }); this.localFolders.delete(oldName); this.localFolders.add(newName); this.loadShelf(); }
+        if (newName) { 
+            const res = await fetch('/api/scores/folder/rename', { 
+                method: 'PATCH', 
+                headers: this.getAuthHeaders(), 
+                body: JSON.stringify({ oldName, newName, room: this.getRoomCode() }) 
+            }); 
+            if (!res.ok) {
+                alert('❌ Error al renombrar. Solo profesores autorizados.');
+                return;
+            }
+            this.localFolders.delete(oldName); 
+            this.localFolders.add(newName); 
+            this.loadShelf(); 
+        }
     }
+    
     async renameScore(id, oldTitle) {
+        if (!this.isTeacher()) {
+            alert('⚠️ Solo el profesor puede renombrar archivos');
+            return;
+        }
         const newTitle = prompt("Nuevo nombre:", oldTitle);
-        if(newTitle) { await fetch(`/api/scores/${id}/rename`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newTitle }) }); this.loadShelf(); }
+        if (newTitle) { 
+            const res = await fetch(`/api/scores/${id}/rename`, { 
+                method: 'PATCH', 
+                headers: this.getAuthHeaders(), 
+                body: JSON.stringify({ newTitle }) 
+            }); 
+            if (!res.ok) {
+                alert('❌ Error al renombrar. Solo profesores autorizados.');
+            }
+            this.loadShelf(); 
+        }
     }
+    
     async promptMoveScore(scoreId) {
+        if (!this.isTeacher()) {
+            alert('⚠️ Solo el profesor puede mover archivos');
+            return;
+        }
         const folder = prompt("¿Carpeta?");
-        if(folder !== null) this.moveScoreToFolder(scoreId, folder || null);
+        if (folder !== null) this.moveScoreToFolder(scoreId, folder || null);
     }
 
     // ⚡ FIX: Método faltante para subir PDFs desde el modal de biblioteca

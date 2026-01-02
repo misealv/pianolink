@@ -1,13 +1,37 @@
 /* routes/scoreRoutes.js */
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const Score = require('../models/Score'); 
 const Annotation = require('../models/Annotation'); 
 const { upload, cloudinary } = require('../config/cloudinary'); 
 
+// === MIDDLEWARE: Solo profesores pueden modificar/borrar ===
+const requireTeacher = (req, res, next) => {
+    try {
+        // Obtener token del header Authorization: Bearer <token>
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.log('[Auth] ❌ Sin token de autorización');
+            return res.status(401).json({ error: 'No autorizado - Token requerido' });
+        }
+        
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        // El token es válido, el usuario es profesor (solo profesores tienen tokens)
+        req.userId = decoded.id;
+        console.log('[Auth] ✅ Profesor autorizado:', decoded.id);
+        next();
+    } catch (err) {
+        console.log('[Auth] ❌ Token inválido:', err.message);
+        return res.status(401).json({ error: 'No autorizado - Token inválido' });
+    }
+};
+
 // --- 1. RUTAS ESPECÍFICAS (DEBEN IR ARRIBA) ---
 
-// SUBIR ARCHIVO
+// SUBIR ARCHIVO (Profesores pueden subir, alumnos también con restricciones)
 router.post('/upload', upload.single('file'), async (req, res) => {
   console.log('[Upload] Solicitud de subida recibida');
   console.log('[Upload] Body:', { title: req.body.title, roomCode: req.body.roomCode });
@@ -42,8 +66,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// RENOMBRAR CARPETA (Mueve archivos en Cloudinary + BD)
-router.patch('/folder/rename', async (req, res) => {
+// RENOMBRAR CARPETA (Mueve archivos en Cloudinary + BD) - SOLO PROFESORES
+router.patch('/folder/rename', requireTeacher, async (req, res) => {
     try {
         const { oldName, newName, room } = req.body;
         const scores = await Score.find({ roomCode: room.toUpperCase(), folder: oldName });
@@ -62,8 +86,8 @@ router.patch('/folder/rename', async (req, res) => {
     } catch (e) { res.status(500).send(e.message); }
 });
 
-// BORRAR CARPETA
-router.delete('/folder/:folderName', async (req, res) => {
+// BORRAR CARPETA - SOLO PROFESORES
+router.delete('/folder/:folderName', requireTeacher, async (req, res) => {
   try {
       const { folderName } = req.params;
       const room = req.query.room;
@@ -95,8 +119,8 @@ router.get('/:roomCode', async (req, res) => {
   } catch (err) { res.status(500).send('Error lista'); }
 });
 
-// MOVER ARCHIVO INDIVIDUAL
-router.patch('/:id/move', async (req, res) => {
+// MOVER ARCHIVO INDIVIDUAL - SOLO PROFESORES
+router.patch('/:id/move', requireTeacher, async (req, res) => {
   try {
       const { folderName } = req.body; 
       const score = await Score.findById(req.params.id);
@@ -113,16 +137,16 @@ router.patch('/:id/move', async (req, res) => {
   } catch (e) { res.status(500).send(e.message); }
 });
 
-// RENOMBRAR TÍTULO
-router.patch('/:id/rename', async (req, res) => {
+// RENOMBRAR TÍTULO - SOLO PROFESORES
+router.patch('/:id/rename', requireTeacher, async (req, res) => {
     try {
         await Score.findByIdAndUpdate(req.params.id, { title: req.body.newTitle });
         res.json({ ok: true });
     } catch (e) { res.status(500).send(e.message); }
 });
 
-// ELIMINAR ARCHIVO
-router.delete('/:id', async (req, res) => {
+// ELIMINAR ARCHIVO - SOLO PROFESORES
+router.delete('/:id', requireTeacher, async (req, res) => {
   try {
     const score = await Score.findById(req.params.id);
     if (score && score.publicId) {
