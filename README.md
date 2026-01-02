@@ -12,12 +12,22 @@
 [Características](#-características-principales) •
 [Arquitectura](#-arquitectura) •
 [Instalación](#-instalación) •
-[Configuración](#-configuración) •
-[Despliegue](#-despliegue)
-
-</div>
+[Documentación](#-documentación)
 
 ---
+
+### 👨‍🎨 Creado por
+
+<img src="https://img.shields.io/badge/Autor-Miguel%20Antonio%20Sep%C3%BAlveda%20Alvarez-ff764d?style=for-the-badge&logo=piano&logoColor=white" alt="Autor"/>
+
+## **Miguel Antonio Sepúlveda Alvarez**  
+### 🎹 *Pianista* • 🎼 *Compositor* • 👨‍🏫 *Docente*
+
+*"Conectando el talento musical a través de la tecnología"*
+
+---
+
+</div>
 
 ## 📖 ¿Qué es PianoLink?
 
@@ -25,10 +35,11 @@ PianoLink es una aplicación web de enseñanza musical en tiempo real que permit
 
 ### Casos de Uso
 
-- **Clases de Piano Remotas**: Profesor y alumno tocan simultáneamente, escuchando el instrumento del otro en tiempo real
-- **Masterclasses Colaborativas**: Un profesor puede "espiar" las partituras de múltiples alumnos y proyectar la de uno específico al resto
-- **Anotaciones Sincronizadas**: Dibujo sobre partituras PDF con sincronización instantánea
-- **Gestión de Repertorio**: Biblioteca de partituras en la nube con carpetas compartidas y privadas
+- 🎹 **Clases de Piano Remotas**: Profesor y alumno tocan simultáneamente, escuchando el instrumento del otro en tiempo real
+- 👁️ **Masterclasses Colaborativas**: Un profesor puede "espiar" las partituras de múltiples alumnos y proyectar la de uno específico al resto
+- ✏️ **Anotaciones Sincronizadas**: Dibujo sobre partituras PDF con sincronización instantánea
+- 📚 **Gestión de Repertorio**: Biblioteca de partituras en la nube con carpetas compartidas y privadas
+- 🎥 **Video Integrado**: Comunicación audiovisual vía Agora.io con Audio Bridge inteligente
 
 ---
 
@@ -49,20 +60,21 @@ PianoLink es una aplicación web de enseñanza musical en tiempo real que permit
 ### 📚 Sistema de Partituras
 - **Renderizado PDF con PDF.js**: Carga progresiva y zoom adaptativo
 - **Annotation Layer (Fabric.js)**: Dibujo vectorial con persistencia en MongoDB
-- **Modo Espía**: Profesor puede ver la partitura de cualquier alumno en tiempo real
+- **Láser Sincronizado**: Puntero láser para señalar partes del PDF en tiempo real
+- **Modo Espía**: Profesor puede ver la partitura de cualquier alumno
 - **Broadcaster**: Proyección de partitura de un alumno destacado a toda la clase
 
 ### 🛡️ Seguridad y Resiliencia
 - **Validación de Roles**: Solo profesores pueden cerrar clases o cambiar broadcasters
 - **Graceful Shutdown**: Limpieza ordenada de recursos en SIGTERM/SIGINT
 - **Dispose Pattern**: Liberación completa de listeners, intervalos y contextos de audio
-- **Exponential Backoff**: Reconexión inteligente en caso de caída del servidor
+- **CORS Configurable**: Restricción de orígenes por entorno
 
 ### 🔬 Herramientas de Diagnóstico (Solo Profesor)
 - **Diagnostic Sidebar**: Panel de telemetría con métricas MIDI en tiempo real
 - **Latency Monitor**: RTT (Round Trip Time) con indicadores visuales
 - **Activity Bar**: Tasa de mensajes MIDI por segundo
-- **Connection Status**: Estado de conexión con historial de eventos
+- **Health Check Endpoint**: `/health` para monitoreo de infraestructura
 
 ---
 
@@ -70,93 +82,58 @@ PianoLink es una aplicación web de enseñanza musical en tiempo real que permit
 
 ### Stack Tecnológico
 
-**Frontend:**
-```
-- Vanilla JavaScript (ES6 Modules)
-- WebMIDI API 2.0
-- Web Audio API
-- Socket.IO Client 4.x
-- PDF.js
-- Fabric.js (Canvas)
-- VexFlow (Notación Musical)
-- Tonal.js (Teoría Musical)
-```
+| Capa | Tecnologías |
+|------|-------------|
+| **Frontend** | Vanilla JS (ES6 Modules), WebMIDI API, Web Audio API, Socket.IO, PDF.js, Fabric.js, VexFlow, Tonal.js |
+| **Backend** | Node.js 16+, Express.js, Socket.IO, MongoDB Atlas, Cloudinary, JWT |
+| **Video** | Agora.io WebRTC (opcional) |
+| **Deploy** | Render / VPS con PM2 |
 
-**Backend:**
-```
-- Node.js 16+
-- Express.js
-- Socket.IO Server 4.x
-- MongoDB (Atlas)
-- Cloudinary (Almacenamiento de PDFs)
-- JWT (Autenticación)
-```
-
-### Módulos Principales
-
-#### Frontend Core
+### Estructura del Proyecto
 
 ```
-public/js/
-├── Main.js                      # Orquestador principal
-├── core/
-│   ├── AudioScheduler.js        # Gestión de AudioContext + Jitter Buffer
-│   ├── MidiProtocol.js          # Codificación binaria (13 bytes)
-│   ├── MidiStateManager.js      # State tracking + Watchdog (Fase 3)
-│   └── MidiOutputManager.js     # Output físico + Echo filter (Fase 4)
-├── modules/
-│   ├── AudioEngine.js           # Abstracción de WebMIDI + WebAudio
-│   ├── SocketClient.js          # Middleware de red con hibernación
-│   ├── UIManager.js             # Control de interfaz
-│   ├── ScoreLogic.js            # Gestión de PDFs y anotaciones
-│   ├── Whiteboard.js            # Notación musical (VexFlow + Tonal)
-│   ├── DiagnosticSidebar.js     # Panel de telemetría (profesor)
-│   └── AutoMuteManager.js       # Silenciado automático por frases
-```
-
-#### Backend
-
-```
-server.js                         # Relay de eventos MIDI + Snapshot Protocol
-├── Gestión de Salas
-├── Validación de Seguridad
-├── State Tracking (Teacher Active Notes)
-└── Graceful Shutdown
-```
-
-### Flujo de Datos MIDI
-
-```
-Piano Físico → WebMIDI Input → Input Gate (Anti-Loop) 
-    ↓
-MidiProtocol.encode() → 13 bytes
-    ↓
-Socket.IO Binary → Servidor (Validación de Seguridad)
-    ↓
-Broadcast a Sala → Clientes
-    ↓
-AudioScheduler (Jitter Buffer 30ms) → WebAudio Output / MIDI Output Físico
-```
-
-### Gestión de Estado (State Management)
-
-```
-┌─────────────────────────────────────────┐
-│      MidiStateManager (Cliente)         │
-├─────────────────────────────────────────┤
-│ • activeNotes: Map<noteId, metadata>   │
-│ • lastActivity: Map<noteId, timestamp>  │
-│ • Watchdog: Detecta notas colgadas (2s) │
-│ • Health Monitor: Reconciliación (30s)  │
-└─────────────────────────────────────────┘
-              ↕ Sincronización
-┌─────────────────────────────────────────┐
-│   Servidor (Room State Tracking)        │
-├─────────────────────────────────────────┤
-│ • teacherActiveNotes: Set<noteId>      │
-│ • Snapshot Protocol: Broadcast cada 5s  │
-│ • Reactive Snapshots: Al detectar cambio│
-└─────────────────────────────────────────┘
+pianolink/
+├── server.js                 # Servidor principal (Relay MIDI + WebSocket)
+├── ecosystem.config.js       # Configuración PM2 para producción
+├── package.json
+├── .env.example              # Plantilla de variables de entorno
+│
+├── config/
+│   ├── db.js                 # Conexión MongoDB
+│   └── cloudinary.js         # Storage de PDFs
+│
+├── controllers/
+│   ├── authController.js     # Login/Registro
+│   └── teacherController.js  # Operaciones de profesor
+│
+├── models/
+│   ├── User.js               # Modelo de usuario
+│   ├── Score.js              # Modelo de partitura
+│   └── Annotation.js         # Modelo de anotación
+│
+├── routes/
+│   ├── authRoutes.js
+│   ├── scoreRoutes.js
+│   └── teacherRoutes.js
+│
+├── public/
+│   ├── index.html            # SPA principal
+│   ├── login.html
+│   ├── css/style.css
+│   └── js/
+│       ├── Main.js           # Orquestador principal
+│       ├── core/             # Protocolos MIDI
+│       └── modules/          # Componentes modulares
+│
+├── docs/                     # 📁 Documentación activa
+│   ├── MIGRATION_BLUEPRINT.md
+│   ├── DIAGNOSTIC_SIDEBAR_README.md
+│   ├── WHITEBOARD_QUICK_START.md
+│   └── ...
+│
+└── archive/                  # 📦 Documentación histórica
+    ├── auditorías completadas
+    └── fixes implementados
 ```
 
 ---
@@ -168,16 +145,15 @@ AudioScheduler (Jitter Buffer 30ms) → WebAudio Output / MIDI Output Físico
 - **Node.js** 16.x o superior
 - **MongoDB** Atlas (o instancia local)
 - **Cloudinary** Account (para almacenamiento de PDFs)
-- **Navegador compatible** con WebMIDI:
-  - Chrome/Edge 90+
-  - Opera 76+
-  - ⚠️ Firefox/Safari NO soportan WebMIDI
+- **Navegador compatible** con WebMIDI: Chrome/Edge 90+, Opera 76+
+
+> ⚠️ Firefox y Safari NO soportan WebMIDI
 
 ### Instalación Local
 
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/tu-usuario/pianolink.git
+git clone https://github.com/misealv/pianolink.git
 cd pianolink
 
 # 2. Instalar dependencias
@@ -190,7 +166,7 @@ nano .env  # Editar con tus credenciales
 # 4. Crear usuario administrador
 node createAdmin.js
 
-# 5. Iniciar servidor de desarrollo
+# 5. Iniciar servidor
 npm start
 ```
 
@@ -200,207 +176,88 @@ El servidor estará disponible en `http://localhost:3000`
 
 ## ⚙️ Configuración
 
-### Variables de Entorno (`.env`)
+### Variables de Entorno
 
-```env
-# Puerto del servidor
-PORT=3000
+Copia `.env.example` y configura:
 
-# MongoDB Connection
-MONGO_URI=mongodb+srv://usuario:password@cluster.mongodb.net/pianolink
-
-# JWT Secret (Generar con: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
-JWT_SECRET=tu_secret_aqui_128_caracteres
-
-# Cloudinary (Almacenamiento de PDFs)
-CLOUDINARY_CLOUD_NAME=tu_cloud_name
-CLOUDINARY_API_KEY=tu_api_key
-CLOUDINARY_API_SECRET=tu_api_secret
-```
-
-### Rotación de Credenciales
-
-Antes del primer despliegue a producción, ejecuta:
-
-```bash
-chmod +x rotate_credentials.sh
-./rotate_credentials.sh
-```
-
-Este script:
-1. Genera un nuevo `JWT_SECRET` criptográficamente seguro
-2. Te guía para rotar la contraseña de MongoDB
-3. Te guía para regenerar el API Secret de Cloudinary
-4. Crea un archivo `.env.production` con las nuevas credenciales
-
-⚠️ **NUNCA** commitees el archivo `.env` o `.env.production` a Git.
+| Variable | Descripción | Requerida |
+|----------|-------------|-----------|
+| `PORT` | Puerto del servidor | ✅ |
+| `NODE_ENV` | `development` o `production` | ✅ |
+| `MONGO_URI` | URI de MongoDB Atlas | ✅ |
+| `JWT_SECRET` | Clave para tokens (32+ chars) | ✅ |
+| `CLOUDINARY_CLOUD_NAME` | Nombre del cloud | ✅ |
+| `CLOUDINARY_API_KEY` | API Key de Cloudinary | ✅ |
+| `CLOUDINARY_API_SECRET` | API Secret de Cloudinary | ✅ |
+| `AGORA_APP_ID` | App ID de Agora (video) | Opcional |
+| `AGORA_APP_CERTIFICATE` | Certificado de Agora | Opcional |
+| `CORS_ORIGINS` | Dominios permitidos (producción) | Opcional |
 
 ---
 
 ## 🚀 Despliegue
 
-### Opción 1: Heroku
+### Producción con PM2
 
 ```bash
-# 1. Crear app en Heroku
-heroku create pianolink-prod
+# Instalar PM2
+npm install -g pm2
 
-# 2. Configurar variables de entorno
-heroku config:set NODE_ENV=production
-heroku config:set MONGO_URI='tu_uri_aqui'
-heroku config:set JWT_SECRET='tu_secret_aqui'
-heroku config:set CLOUDINARY_CLOUD_NAME='tu_cloud'
-heroku config:set CLOUDINARY_API_KEY='tu_key'
-heroku config:set CLOUDINARY_API_SECRET='tu_secret'
+# Iniciar con configuración de producción
+pm2 start ecosystem.config.js --env production
 
-# 3. Deploy
-git push heroku main
-
-# 4. Verificar logs
-heroku logs --tail
+# Guardar para auto-inicio
+pm2 save
+pm2 startup
 ```
 
-### Opción 2: Railway
+### Health Check
 
-1. Conecta tu repositorio de GitHub
-2. Configura las variables de entorno en el dashboard
-3. Railway desplegará automáticamente
-
-### Opción 3: Docker
-
-```dockerfile
-# Dockerfile incluido
-docker build -t pianolink .
-docker run -p 3000:3000 --env-file .env.production pianolink
+```bash
+curl http://localhost:3000/health
 ```
 
-### Configuración de GitHub Secrets (CI/CD)
+Retorna estado del servidor, MongoDB y uso de memoria.
 
-Para configurar despliegue automático con GitHub Actions:
+---
 
-1. Ve a tu repositorio → **Settings** → **Secrets and variables** → **Actions**
-2. Añade los siguientes secrets:
+## 📚 Documentación
 
-```
-MONGO_URI              # URI de MongoDB Atlas
-JWT_SECRET             # Secret de 128 caracteres
-CLOUDINARY_CLOUD_NAME  # Tu cloud name de Cloudinary
-CLOUDINARY_API_KEY     # Tu API key
-CLOUDINARY_API_SECRET  # Tu API secret
-HEROKU_API_KEY         # (Si usas Heroku) Tu API key
-```
+| Documento | Descripción |
+|-----------|-------------|
+| [docs/MIGRATION_BLUEPRINT.md](docs/MIGRATION_BLUEPRINT.md) | Guía completa para migrar a VPS |
+| [docs/DIAGNOSTIC_SIDEBAR_README.md](docs/DIAGNOSTIC_SIDEBAR_README.md) | Manual del panel de diagnóstico |
+| [docs/WHITEBOARD_QUICK_START.md](docs/WHITEBOARD_QUICK_START.md) | Guía rápida de la pizarra |
+| [docs/SMART_AUDIO_BRIDGE_IMPLEMENTATION.md](docs/SMART_AUDIO_BRIDGE_IMPLEMENTATION.md) | Arquitectura del sistema de audio |
+| [docs/TEST_VIDEO_AUDIO.md](docs/TEST_VIDEO_AUDIO.md) | Guía de testing de video/audio |
 
-3. Ejemplo de workflow (`.github/workflows/deploy.yml`):
-
-```yaml
-name: Deploy to Production
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: akhileshns/heroku-deploy@v3.12.12
-        with:
-          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-          heroku_app_name: "pianolink-prod"
-          heroku_email: "tu@email.com"
-```
+> 📦 La carpeta `/archive` contiene documentación histórica de auditorías y fixes completados.
 
 ---
 
 ## 🔒 Seguridad
 
-### Medidas Implementadas
-
-- **Validación de Roles**: Comandos administrativos restringidos a profesores
-- **Rate Limiting**: Protección contra fuerza bruta en `/api/auth/login`
-- **Sanitización de Inputs**: Validación de `roomCode` y `userId` en servidor
-- **JWT Tokens**: Autenticación segura con expiración de 7 días
-- **CORS Configurado**: Restricción de orígenes en producción
-- **Graceful Shutdown**: Cierre ordenado ante SIGTERM/SIGINT
-
-### Auditoría de Seguridad
-
-Consulta [PRODUCTION_AUDIT_REPORT.md](PRODUCTION_AUDIT_REPORT.md) para el informe completo de auditoría pre-producción.
+- ✅ Validación de roles en servidor
+- ✅ JWT con expiración configurable
+- ✅ CORS restringido en producción
+- ✅ Graceful shutdown implementado
+- ✅ Variables sensibles en `.env` (nunca en código)
 
 ---
 
-## 📊 Monitoreo y Debugging
-
-### Modo Debug (Frontend)
-
-Activa logs detallados en la consola del navegador:
-
-```javascript
-localStorage.setItem('PIANOLINK_DEBUG', 'true');
-location.reload();
-```
-
-### Herramientas de Diagnóstico (Solo Profesor)
-
-Al entrar como profesor, presiona **`Ctrl+D`** para abrir el Diagnostic Sidebar:
-
-- **Latency Monitor**: RTT en tiempo real
-- **Activity Bar**: Mensajes MIDI por segundo
-- **Connection Status**: Estado de Socket.IO
-- **Quick Actions**: Panic (All Notes Off), Resync
-
-### Logs del Servidor
+## 🧪 Testing Manual
 
 ```bash
-# Desarrollo
-npm start
+# 1. Abre Chrome como profesor
+http://localhost:3000
 
-# Producción con PM2
-pm2 start server.js --name pianolink
-pm2 logs pianolink
+# 2. Abre otra pestaña/navegador como alumno
+# 3. Únete a la misma sala
+# 4. Verifica:
+#    - MIDI fluye en ambas direcciones
+#    - Anotaciones se sincronizan
+#    - Láser aparece en pantalla del alumno
 ```
-
----
-
-## 🧪 Testing
-
-```bash
-# Tests unitarios (TODO: Implementar)
-npm test
-
-# Prueba de carga manual
-# 1. Abre 10+ pestañas del navegador
-# 2. Une todos a la misma sala
-# 3. Verifica latencia en Diagnostic Sidebar
-```
-
----
-
-## 📚 Documentación Adicional
-
-- [AUTOPSY_INITIALIZATION.md](AUTOPSY_INITIALIZATION.md) - Análisis del flujo de arranque
-- [LIFECYCLE_DOCUMENTATION.md](LIFECYCLE_DOCUMENTATION.md) - Gestión de ciclo de vida (Dispose Pattern)
-- [DIAGNOSTIC_SIDEBAR_README.md](DIAGNOSTIC_SIDEBAR_README.md) - Guía del panel de telemetría
-- [PRODUCTION_AUDIT_REPORT.md](PRODUCTION_AUDIT_REPORT.md) - Auditoría de seguridad pre-producción
-
----
-
-## 🤝 Contribución
-
-Las contribuciones son bienvenidas. Por favor:
-
-1. Fork el proyecto
-2. Crea una rama (`git checkout -b feature/nueva-caracteristica`)
-3. Commit tus cambios (`git commit -m 'feat: Agregar nueva característica'`)
-4. Push a la rama (`git push origin feature/nueva-caracteristica`)
-5. Abre un Pull Request
-
-### Estándares de Código
-
-- ES6+ (módulos, async/await)
-- Comentarios JSDoc en funciones públicas
-- Dispose Pattern en todos los módulos con recursos
-- Logs estratificados (`Logger.log()` vs `console.error()`)
 
 ---
 
@@ -410,28 +267,29 @@ MIT License - ver [LICENSE](LICENSE) para más detalles.
 
 ---
 
-## 👥 Autores
-
-- **Equipo PianoLink** - Desarrollo inicial
-
----
-
-## 🙏 Agradecimientos
-
-- **WebMIDI API** - Por hacer posible el acceso de bajo nivel a dispositivos MIDI
-- **Socket.IO** - Por la infraestructura de tiempo real
-- **VexFlow** - Por el motor de notación musical
-- **PDF.js** - Por el renderizado de partituras
-
----
-
-## 📞 Soporte
-
-¿Problemas? Abre un [Issue](https://github.com/tu-usuario/pianolink/issues) o contacta a soporte@pianolink.com
-
----
-
 <div align="center">
+
+## 👨‍🎨 Sobre el Autor
+
+<table>
+<tr>
+<td align="center" width="100%">
+
+### **Miguel Antonio Sepúlveda Alvarez**
+
+🎹 **Pianista** | 🎼 **Compositor** | 👨‍🏫 **Docente**
+
+*Músico profesional con pasión por la educación y la tecnología. PianoLink nace de la necesidad real de conectar profesor y alumno de piano sin importar la distancia, manteniendo la esencia de una clase presencial.*
+
+---
+
+**"La música no conoce fronteras. Con PianoLink, tampoco la enseñanza."**
+
+</td>
+</tr>
+</table>
+
+---
 
 **Construido con ❤️ para la educación musical**
 
