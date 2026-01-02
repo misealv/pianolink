@@ -9,8 +9,21 @@ const { upload, cloudinary } = require('../config/cloudinary');
 
 // SUBIR ARCHIVO
 router.post('/upload', upload.single('file'), async (req, res) => {
+  console.log('[Upload] Solicitud de subida recibida');
+  console.log('[Upload] Body:', { title: req.body.title, roomCode: req.body.roomCode });
+  
   try {
-    if (!req.file) return res.status(400).json({ msg: 'Error: Falta archivo.' });
+    if (!req.file) {
+      console.log('[Upload] ❌ No se recibió archivo');
+      return res.status(400).json({ msg: 'Error: Falta archivo.' });
+    }
+    
+    console.log('[Upload] Archivo recibido:', {
+      originalname: req.file.originalname,
+      path: req.file.path,
+      filename: req.file.filename
+    });
+    
     const newScore = new Score({
       title: req.body.title || req.file.originalname,
       url: req.file.path,
@@ -21,8 +34,12 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       folder: req.body.folder || null 
     });
     const savedScore = await newScore.save();
+    console.log('[Upload] ✅ Score guardado:', savedScore._id);
     res.json(savedScore);
-  } catch (err) { res.status(500).send('Error subida'); }
+  } catch (err) {
+    console.error('[Upload] ❌ Error:', err);
+    res.status(500).json({ error: 'Error subida', details: err.message });
+  }
 });
 
 // RENOMBRAR CARPETA (Mueve archivos en Cloudinary + BD)

@@ -151,16 +151,66 @@ export class LibraryManager {
     async handleUpload() {
         const fileInput = document.getElementById('file-upload');
         const titleInput = document.getElementById('upload-title');
+        const uploadBtn = document.querySelector('.upload-area button') || document.getElementById('btn-upload');
         
-        if (!fileInput.files[0]) return;
+        if (!fileInput.files[0]) {
+            alert('⚠️ Selecciona un archivo PDF primero');
+            return;
+        }
+        
+        // Validar que sea PDF
+        const file = fileInput.files[0];
+        if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
+            alert('⚠️ Solo se permiten archivos PDF');
+            return;
+        }
+        
+        // Validar tamaño (máx 50MB)
+        if (file.size > 50 * 1024 * 1024) {
+            alert('⚠️ El archivo es demasiado grande (máximo 50MB)');
+            return;
+        }
+        
+        // Feedback visual: Subiendo...
+        const originalText = uploadBtn?.textContent || 'Subir';
+        if (uploadBtn) {
+            uploadBtn.textContent = '⏳ Subiendo...';
+            uploadBtn.disabled = true;
+        }
         
         const fd = new FormData();
-        fd.append('file', fileInput.files[0]);
+        fd.append('file', file);
         fd.append('roomCode', this.currentRoom);
-        fd.append('title', titleInput.value || "Partitura");
+        fd.append('title', titleInput.value || file.name.replace('.pdf', ''));
         
-        await fetch('/api/scores/upload', { method: 'POST', body: fd });
-        this.openShelf(); // Recargar lista
+        try {
+            const res = await fetch('/api/scores/upload', { method: 'POST', body: fd });
+            
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || `Error ${res.status}`);
+            }
+            
+            const data = await res.json();
+            console.log('✅ PDF subido:', data);
+            
+            // Limpiar inputs
+            fileInput.value = '';
+            if (titleInput) titleInput.value = '';
+            
+            // Recargar lista
+            this.openShelf();
+            
+        } catch (err) {
+            console.error('❌ Error subiendo PDF:', err);
+            alert(`❌ Error al subir el archivo:\n${err.message}\n\nRevisa la consola para más detalles.`);
+        } finally {
+            // Restaurar botón
+            if (uploadBtn) {
+                uploadBtn.textContent = originalText;
+                uploadBtn.disabled = false;
+            }
+        }
     }
 
     // --- MODO ESPEJO (SPIING) ---
