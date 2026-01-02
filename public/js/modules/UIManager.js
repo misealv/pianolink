@@ -204,58 +204,76 @@ export class UIManager {
         });
     }
 
-    // --- ILUMINACIÓN DE TECLAS (CON SPLIT + FAIL-SAFE) ---
+    // --- ILUMINACIÓN DE TECLAS (CON SPLIT + FAIL-SAFE + STACCATO FIX) ---
     highlightKey(note, velocity) {
+        // ⚡ FIX STACCATO: Velocity 0 = NoteOff con MÁXIMA PRIORIDAD
+        // Procesar inmediatamente sin pasar por lógica de encendido
+        if (velocity === 0) {
+            return this._forceKeyOff(note);
+        }
+
         // 1. Buscar la tecla física en el piano visual
         const key = this.piano.querySelector(`.key[data-note-midi="${note}"]`);
         if (!key) return; // Si la nota está fuera del rango (21-108), salir
     
-        // 2. GESTIÓN DEL WATCHDOG (Limpieza automática)
+        // 2. GESTIÓN DEL WATCHDOG (Limpieza automática) - Cancelar timer anterior
         if (this.noteTimeouts.has(note)) {
             clearTimeout(this.noteTimeouts.get(note));
             this.noteTimeouts.delete(note);
         }
     
-        // 3. LÓGICA DE COLOREADO
-        if (velocity > 0) {
-            // Determinamos el color (Normal o Split)
-            let color = this.baseColor;
-            if (this.isSplit) {
-                color = (note < this.splitPoint) ? this.splitColorL : this.splitColorR;
-            }
-    
-            // Aplicamos el estilo visual
-            const opacity = 0.4 + (velocity / 127) * 0.6;
-            key.style.backgroundColor = this.hexToRgba(color, opacity);
-            key.style.boxShadow = `0 0 10px ${color}`;
-            key.classList.add("note-active");
-            
-            // Guardar timestamp para detección de acordes
-            key.dataset.activatedAt = Date.now();
-    
-            // ⚡ FAIL-SAFE: TTL Visual aumentado a 8s para latencias extremas
-            const timeout = setTimeout(() => {
-                console.warn(`⏱️ UI Watchdog: Nota ${note} liberada por TTL (8s) - Paquete NoteOff perdido`);
-                this.highlightKey(note, 0); 
-            }, 8000); // ⬅️ AUMENTADO de 3s a 8s para Australia
-    
-            this.noteTimeouts.set(note, timeout);
-    
-        } else {
-            // 4. NOTA LIBERADA (Velocity 0)
+        // 3. LÓGICA DE COLOREADO (NoteOn)
+        // Determinamos el color (Normal o Split)
+        let color = this.baseColor;
+        if (this.isSplit) {
+            color = (note < this.splitPoint) ? this.splitColorL : this.splitColorR;
+        }
+
+        // Aplicamos el estilo visual
+        const opacity = 0.4 + (velocity / 127) * 0.6;
+        key.style.backgroundColor = this.hexToRgba(color, opacity);
+        key.style.boxShadow = `0 0 10px ${color}`;
+        key.classList.add("note-active");
+        
+        // Guardar timestamp para detección de acordes
+        key.dataset.activatedAt = Date.now();
+
+        // ⚡ FAIL-SAFE STACCATO: TTL reducido a 3s (era 8s)
+        // Si no llega NoteOff en 3s, liberar automáticamente
+        const timeout = setTimeout(() => {
+            console.warn(`⏱️ UI Watchdog: Nota ${note} liberada por TTL (3s)`);
+            this._forceKeyOff(note); 
+        }, 3000); // ⬅️ REDUCIDO de 8s a 3s para staccatos
+
+        this.noteTimeouts.set(note, timeout);
+    }
+
+    // ⚡ NUEVO: Apagado forzado de tecla con prioridad absoluta
+    // Este método NUNCA espera animaciones, actúa síncronamente
+    _forceKeyOff(note) {
+        // 1. Cancelar cualquier timer pendiente INMEDIATAMENTE
+        if (this.noteTimeouts.has(note)) {
+            clearTimeout(this.noteTimeouts.get(note));
+            this.noteTimeouts.delete(note);
+        }
+
+        // 2. Buscar y apagar la tecla SIN TRANSICIONES
+        const key = this.piano.querySelector(`.key[data-note-midi="${note}"]`);
+        if (key) {
+            // Forzar reflow para cancelar cualquier animación CSS en curso
+            key.style.transition = 'none';
             key.classList.remove("note-active");
             delete key.dataset.activatedAt;
-            this.restoreKeyColor(key, note); // Restaura el color base
+            this.restoreKeyColor(key, note);
             
-            // Asegurar limpieza del timeout
-            if (this.noteTimeouts.has(note)) {
-                clearTimeout(this.noteTimeouts.get(note));
-                this.noteTimeouts.delete(note);
-            }
+            // Restaurar transiciones después de un frame
+            requestAnimationFrame(() => {
+                key.style.transition = '';
+            });
         }
     }
     
-    // ⚡ NUEVO: Limpieza forzada de todas las teclas activas
+    // ⚡ Limpieza forzada de todas las teclas activas
     // Llamado cuando se detecta un cambio drástico de armonía
     clearStaleKeys() {
         const activeKeys = this.piano.querySelectorAll('.key.note-active');
@@ -270,7 +288,7 @@ export class UIManager {
             // Si la tecla lleva más de 2s activa, es sospechosa
             if (age > 2000) {
                 console.warn(`🧹 Auto-limpieza: Tecla ${note} (${age}ms activa) - Asumiendo noteOff perdido`);
-                this.highlightKey(note, 0);
+                this._forceKeyOff(note);
                 clearedCount++;
             }
         });
@@ -280,18 +298,10 @@ export class UIManager {
         }
     }
     
-    // NUEVO: Método de limpieza manual (llamado desde reconciliación)
+    // Método de limpieza manual (llamado desde reconciliación)
+    // Redirige al método optimizado _forceKeyOff
     forceReleaseKey(note) {
-        const key = this.piano.querySelector(`.key[data-note-midi="${note}"]`);
-        if (key) {
-            key.classList.remove("note-active");
-            this.restoreKeyColor(key, note);
-        }
-        
-        if (this.noteTimeouts.has(note)) {
-            clearTimeout(this.noteTimeouts.get(note));
-            this.noteTimeouts.delete(note);
-        }
+        this._forceKeyOff(note);
     }
     clearPiano() {
         if (!this.piano) return;

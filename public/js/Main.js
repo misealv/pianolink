@@ -1424,9 +1424,18 @@ function initSidebarToggle_OLD() {
 
 function processMidiMessage(data, isLocal) {
     const { status: s, data1: d1, data2: d2 } = data;
-    if ((s >= 144 && s <= 159) || (s >= 128 && s <= 143)) {
+    
+    // ⚡ FIX STACCATO: Detectar correctamente NoteOn vs NoteOff
+    const isNoteOn = (s >= 144 && s <= 159) && d2 > 0;
+    const isNoteOff = (s >= 128 && s <= 143) || ((s >= 144 && s <= 159) && d2 === 0);
+    
+    if (isNoteOn) {
         ui.highlightKey(d1, d2);
         whiteboard.handleNote(d1, d2);
+    } else if (isNoteOff) {
+        // NoteOff SIEMPRE pasa velocity 0 para forzar apagado visual
+        ui.highlightKey(d1, 0);
+        whiteboard.handleNote(d1, 0);
     } else if (s >= 176 && s <= 191 && d1 === 64) {
         ui.handlePedal(d2); 
     }
