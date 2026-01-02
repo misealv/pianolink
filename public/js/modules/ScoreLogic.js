@@ -613,4 +613,80 @@ export class ScoreLogic {
         const folder = prompt("¿Carpeta?");
         if(folder !== null) this.moveScoreToFolder(scoreId, folder || null);
     }
+
+    // ⚡ FIX: Método faltante para subir PDFs desde el modal de biblioteca
+    async uploadScore() {
+        const fileInput = this.el('file-upload');
+        const titleInput = this.el('upload-title');
+        const statusEl = this.el('upload-status');
+        const uploadBtn = this.el('btnUploadScore');
+        
+        if (!fileInput || !fileInput.files[0]) {
+            alert('⚠️ Selecciona un archivo PDF primero');
+            return;
+        }
+        
+        const file = fileInput.files[0];
+        
+        // Validar tipo
+        if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
+            alert('⚠️ Solo se permiten archivos PDF');
+            return;
+        }
+        
+        // Validar tamaño (máx 50MB)
+        if (file.size > 50 * 1024 * 1024) {
+            alert('⚠️ El archivo es demasiado grande (máximo 50MB)');
+            return;
+        }
+        
+        // Feedback visual
+        const originalText = uploadBtn?.textContent || '☁️ Subir';
+        if (uploadBtn) {
+            uploadBtn.textContent = '⏳ Subiendo...';
+            uploadBtn.disabled = true;
+        }
+        if (statusEl) statusEl.textContent = 'Subiendo archivo...';
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', titleInput?.value || file.name.replace('.pdf', ''));
+        formData.append('roomCode', this.getRoomCode());
+        formData.append('folder', this.currentFolder || '');
+        
+        try {
+            const res = await fetch('/api/scores/upload', { method: 'POST', body: formData });
+            
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || `Error ${res.status}`);
+            }
+            
+            const data = await res.json();
+            console.log('✅ PDF subido:', data);
+            
+            // Limpiar inputs
+            fileInput.value = '';
+            if (titleInput) titleInput.value = '';
+            if (statusEl) statusEl.textContent = '✅ Subido correctamente';
+            
+            // Recargar biblioteca
+            this.loadShelf();
+            
+            // Limpiar mensaje después de 3s
+            setTimeout(() => {
+                if (statusEl) statusEl.textContent = '';
+            }, 3000);
+            
+        } catch (err) {
+            console.error('❌ Error subiendo PDF:', err);
+            if (statusEl) statusEl.textContent = `❌ Error: ${err.message}`;
+            alert(`❌ Error al subir el archivo:\n${err.message}`);
+        } finally {
+            if (uploadBtn) {
+                uploadBtn.textContent = originalText;
+                uploadBtn.disabled = false;
+            }
+        }
+    }
 }
