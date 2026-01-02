@@ -72,10 +72,11 @@ export class UIManager {
         console.log('[UIManager] 🔧 Inicializando toolbar, currentTab:', this.currentTab);
         
         // ⚡ SINGLE SOURCE OF TRUTH: Solo clases controlan visibilidad
-        if (this.currentTab === 'whiteboard') {
+        // Toolbar visible en: whiteboard Y pdf (para anotaciones)
+        if (this.currentTab === 'whiteboard' || this.currentTab === 'pdf') {
             toolbar.classList.remove('toolbar-hidden');
             toolbar.classList.add('toolbar-visible');
-            console.log('[UIManager] ✅ Toolbar VISIBLE (whiteboard)');
+            console.log('[UIManager] ✅ Toolbar VISIBLE (' + this.currentTab + ')');
         } else {
             toolbar.classList.remove('toolbar-visible');
             toolbar.classList.add('toolbar-hidden');
@@ -652,11 +653,11 @@ export class UIManager {
         } else if (mode === 'pdf') {
             if (pdf) { pdf.classList.remove("hidden"); pdf.style.display = "flex"; }
             btnP?.classList.add("active");
-            // ⚡ SINGLE SOURCE OF TRUTH: Ocultar toolbar via clases
+            // ⚡ FIX: MOSTRAR toolbar en modo PDF para poder anotar sobre partituras
             if (toolbar) {
-                toolbar.classList.remove('toolbar-visible');
-                toolbar.classList.add('toolbar-hidden');
-                console.log('[UIManager] 🚫 Toolbar oculta (PDF)');
+                toolbar.classList.remove('toolbar-hidden');
+                toolbar.classList.add('toolbar-visible');
+                console.log('[UIManager] ✅ 🎨 TOOLBAR VISIBLE (PDF - Anotaciones)');
             }
         } else if (mode === 'whiteboard') {
             if (board) { board.classList.remove("hidden"); board.style.display = "flex"; }

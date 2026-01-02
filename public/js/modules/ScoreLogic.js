@@ -43,15 +43,27 @@ export class ScoreLogic {
         [modeMusic, modePdf, modeBoard].forEach(el => { if(el) { el.classList.add('hidden'); el.style.display = 'none'; }});
         [btnMusic, btnPdf, btnBoard].forEach(el => { if(el) el.classList.remove('active'); });
 
+        // ⚡ Helper: Controlar toolbar via CLASES (Single Source of Truth)
+        const showToolbar = (visible) => {
+            if (!toolbar) return;
+            if (visible) {
+                toolbar.classList.remove('toolbar-hidden');
+                toolbar.classList.add('toolbar-visible');
+            } else {
+                toolbar.classList.remove('toolbar-visible');
+                toolbar.classList.add('toolbar-hidden');
+            }
+        };
+
         if (tab === 'music') {
             if(modeMusic) { modeMusic.classList.remove('hidden'); modeMusic.style.display = 'flex'; }
             if(btnMusic) btnMusic.classList.add('active');
-            if(toolbar) toolbar.style.display = 'none';
+            showToolbar(false); // Ocultar en modo música
         } else if (tab === 'pdf') {
             if (this.pageNum === 'whiteboard') this.pageNum = this.lastPdfPage || 1;
             if(modePdf) { modePdf.classList.remove('hidden'); modePdf.style.display = 'flex'; }
             if(btnPdf) btnPdf.classList.add('active');
-            if(toolbar) toolbar.style.display = 'flex';
+            showToolbar(true); // ⚡ FIX: Mostrar toolbar para anotar sobre PDF
             
             this.setupEngine('annotation-layer', 'pdf');
             if(this.pdfDoc) setTimeout(() => this.renderPage(this.pageNum), 100);
@@ -61,7 +73,7 @@ export class ScoreLogic {
             this.pageNum = 'whiteboard'; 
             if(modeBoard) { modeBoard.classList.remove('hidden'); modeBoard.style.display = 'flex'; }
             if(btnBoard) btnBoard.classList.add('active');
-            if(toolbar) toolbar.style.display = 'flex';
+            showToolbar(true); // Mostrar toolbar en pizarra
             
             this.setupEngine('wb-layer', 'whiteboard');
             setTimeout(() => {
@@ -278,9 +290,17 @@ export class ScoreLogic {
             this.renderTask.promise.then(() => {
                 this.renderTask = null;
                 if (this.activeEngine && this.currentTab === 'pdf') {
+                    // ⚡ FIX: Actualizar dimensiones del canvas de Fabric
                     this.activeEngine.updateDimensions(viewport.width, viewport.height, finalScale);
+                    
+                    // ⚡ FIX: Cargar dibujos guardados para esta página
                     const savedData = this.pageData[num];
-                    if (savedData) this.activeEngine.loadJSON(savedData);
+                    if (savedData) {
+                        console.log(`[ScoreLogic] ✏️ Cargando ${typeof savedData === 'string' ? JSON.parse(savedData).objects?.length || 0 : 'datos'} objetos para página ${num}`);
+                        this.activeEngine.loadJSON(savedData);
+                    } else {
+                        console.log(`[ScoreLogic] 📄 Página ${num} sin anotaciones previas`);
+                    }
                 }
             }).catch(() => {});
         });
@@ -336,10 +356,22 @@ export class ScoreLogic {
         if(!this.pdfDoc) return;
         const newPage = this.pageNum + offset;
         if(newPage >= 1 && newPage <= this.pdfDoc.numPages) {
+            // ⚡ PASO 1: Guardar dibujos de la página actual ANTES de cambiar
             this.saveLocalState();
+            
+            // ⚡ PASO 2: Limpiar canvas de Fabric (sin emitir evento de clear)
+            if (this.activeEngine) {
+                this.activeEngine.clear(false); // false = no emitir wb-clear
+            }
+            
+            // ⚡ PASO 3: Cambiar a nueva página
             this.pageNum = newPage;
             this.renderPage(newPage);
+            
+            // ⚡ PASO 4: Sincronizar con otros usuarios
             this.socket.emit('update-pdf-state', { url: this.currentUrl, page: this.pageNum, roomCode: this.getRoomCode(), scoreId: this.currentScoreId });
+            
+            console.log(`[ScoreLogic] 📄 Página ${newPage} - Dibujos cargados:`, !!this.pageData[newPage]);
         }
     }
 
