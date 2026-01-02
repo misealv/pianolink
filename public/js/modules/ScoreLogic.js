@@ -140,6 +140,24 @@ export class ScoreLogic {
                 }
             }
         });
+        
+        // ⚡ SYNC: Responder a solicitudes de sincronización de otros usuarios
+        this.socket.on('wb-sync-request', (data) => {
+            // Solo responder si tenemos datos para esa página
+            const pageData = this.pageData[data.page];
+            if (pageData || (this.activeEngine && data.page == this.pageNum)) {
+                const canvasState = pageData || this.activeEngine.getJSON();
+                if (canvasState) {
+                    this.socket.emit('wb-sync-share', {
+                        requester: data.requester,
+                        page: data.page,
+                        canvasState: canvasState
+                    });
+                    console.log(`[ScoreLogic] 📤 Compartiendo estado de página ${data.page} con ${data.requester}`);
+                }
+            }
+        });
+        
         window.addEventListener('resize', () => {
              if (this.currentTab === 'whiteboard') this.resizeWhiteboard();
              else if (this.currentTab === 'pdf') {

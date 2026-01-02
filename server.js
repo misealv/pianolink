@@ -550,6 +550,26 @@ io.on("connection", (socket) => {
     socket.on('wb-pointer', (data) => {
         socket.to(data.room).volatile.emit('wb-pointer', data);
     });
+    
+    // SINCRONIZACIÓN: Solicitar estado actual de la pizarra
+    // Nota: Para pizarra libre (whiteboard) no hay persistencia en servidor
+    // Solo funciona si otro usuario tiene el estado y lo comparte
+    socket.on('wb-request-sync', (data) => {
+        // Pedir a otros usuarios de la sala que compartan su estado
+        socket.to(data.room).emit('wb-sync-request', {
+            requester: socket.id,
+            page: data.page
+        });
+    });
+    
+    // Respuesta de sincronización (otro usuario comparte su canvas)
+    socket.on('wb-sync-share', (data) => {
+        // Enviar directamente al usuario que lo solicitó
+        io.to(data.requester).emit('wb-sync-response', {
+            page: data.page,
+            canvasState: data.canvasState
+        });
+    });
 
     // Desconexión
     socket.on("disconnect", () => {
