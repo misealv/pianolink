@@ -120,9 +120,17 @@ function validateUserInRoom(socket, roomCode, requiredRole = null) {
         return false;
     }
     
-    if (requiredRole && user.role !== requiredRole) {
-        console.warn(`[Security] Usuario sin permisos (requiere ${requiredRole}): ${socket.id}`);
-        return false;
+    // ⚡ FIX: 'admin' tiene mismos permisos que 'teacher'
+    if (requiredRole) {
+        const userRole = user.role;
+        const hasPermission = (requiredRole === 'teacher') 
+            ? (userRole === 'teacher' || userRole === 'admin')
+            : (userRole === requiredRole);
+            
+        if (!hasPermission) {
+            console.warn(`[Security] Usuario sin permisos (requiere ${requiredRole}, tiene ${userRole}): ${socket.id}`);
+            return false;
+        }
     }
     
     return true;
@@ -437,8 +445,12 @@ io.on("connection", (socket) => {
 });
 
     socket.on("end-class", (roomCode) => {
-        // VALIDACIÓN: Solo profesores pueden cerrar la clase
+        console.log(`[EndClass] Solicitud de ${socket.id} para cerrar sala: ${roomCode}`);
+        console.log(`[EndClass] Socket.roomCode: ${socket.roomCode}`);
+        
+        // VALIDACIÓN: Solo profesores/admin pueden cerrar la clase
         if (!validateUserInRoom(socket, roomCode, 'teacher')) {
+            console.log(`[EndClass] ❌ Rechazado - usuario no autorizado`);
             socket.emit('error', { message: 'No autorizado para cerrar la clase' });
             return;
         }
