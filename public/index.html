@@ -288,6 +288,34 @@
     background: #ff764d !important;
     color: black !important;
 }
+
+/* Botones de acción para biblioteca (ScoreLogic) */
+.btn-icon {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+.btn-icon:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+.btn-icon.btn-danger:hover {
+    background: rgba(255, 68, 68, 0.8);
+    border-color: #ff4444;
+}
+.card-actions {
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+.score-card:hover .card-actions {
+    opacity: 1;
+}
+
 @font-face {
     font-family: 'Bravura';
     src: url('https://cdn.jsdelivr.net/gh/rism-digital/verovio@gh-pages/fonts/Bravura.woff2') format('woff2');

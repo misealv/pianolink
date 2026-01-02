@@ -504,41 +504,122 @@ export class ScoreLogic {
 
     async loadShelf() {
         const list = this.el('shelf-list');
+        const canEdit = this.isTeacher(); // Solo profesores ven botones de edición
+        
         try {
             const res = await fetch(`/api/scores/${this.getRoomCode()}`);
             const scores = await res.json();
             list.innerHTML = '';
+            
             if (this.currentFolder) {
+                // Botón volver
                 const back = document.createElement('div');
                 back.className = 'score-card folder-card';
                 back.innerHTML = `⬅️ Volver`;
                 back.onclick = () => { this.currentFolder = null; this.loadShelf(); };
                 list.appendChild(back);
-                this.renderShelfFiles(scores.filter(s => s.folder === this.currentFolder), list, true);
+                
+                // Archivos de esta carpeta
+                this.renderShelfFiles(scores.filter(s => s.folder === this.currentFolder), list, canEdit);
             } else {
+                // Mostrar carpetas
                 const dbFolders = [...new Set(scores.filter(s => s.folder).map(s => s.folder))];
                 [...new Set([...dbFolders, ...this.localFolders])].forEach(f => {
                     const div = document.createElement('div');
                     div.className = 'score-card folder-card';
-                    div.innerHTML = `📁 ${f}`;
-                    div.onclick = () => { this.currentFolder = f; this.loadShelf(); };
+                    
+                    // Nombre de carpeta (clickeable para entrar)
+                    const nameSpan = document.createElement('span');
+                    nameSpan.innerHTML = `📁 ${f}`;
+                    nameSpan.style.cursor = 'pointer';
+                    nameSpan.style.flex = '1';
+                    nameSpan.onclick = () => { this.currentFolder = f; this.loadShelf(); };
+                    div.appendChild(nameSpan);
+                    
+                    // Botones de edición (solo profesores)
+                    if (canEdit) {
+                        const btnContainer = document.createElement('div');
+                        btnContainer.className = 'card-actions';
+                        btnContainer.style.cssText = 'display:flex; gap:5px; margin-left:auto;';
+                        
+                        const btnRename = document.createElement('button');
+                        btnRename.innerHTML = '✏️';
+                        btnRename.title = 'Renombrar carpeta';
+                        btnRename.className = 'btn-icon';
+                        btnRename.onclick = (e) => { e.stopPropagation(); this.renameFolder(f); };
+                        
+                        const btnDelete = document.createElement('button');
+                        btnDelete.innerHTML = '🗑️';
+                        btnDelete.title = 'Borrar carpeta';
+                        btnDelete.className = 'btn-icon btn-danger';
+                        btnDelete.onclick = (e) => { e.stopPropagation(); this.deleteFolder(f); };
+                        
+                        btnContainer.appendChild(btnRename);
+                        btnContainer.appendChild(btnDelete);
+                        div.appendChild(btnContainer);
+                    }
+                    
+                    div.style.display = 'flex';
+                    div.style.alignItems = 'center';
                     list.appendChild(div);
                 });
-                this.renderShelfFiles(scores.filter(s => !s.folder), list, true);
+                
+                // Archivos sin carpeta
+                this.renderShelfFiles(scores.filter(s => !s.folder), list, canEdit);
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('[Shelf] Error cargando biblioteca:', e);
+            list.innerHTML = '<p style="color:#f66;">Error cargando archivos</p>';
+        }
     }
 
-    renderShelfFiles(files, container, isTeacher) {
+    renderShelfFiles(files, container, canEdit) {
         files.forEach(score => {
             const div = document.createElement('div');
             div.className = 'score-card';
-            div.innerHTML = `<div class="score-icon">📄</div><span class="score-title">${score.title}</span>`;
-            div.onclick = () => {
+            div.style.cssText = 'display:flex; flex-direction:column; position:relative;';
+            
+            // Contenido principal (clickeable para abrir)
+            const content = document.createElement('div');
+            content.style.cssText = 'cursor:pointer; text-align:center; flex:1;';
+            content.innerHTML = `<div class="score-icon">📄</div><span class="score-title">${score.title}</span>`;
+            content.onclick = () => {
                 this.el('shelf-modal').style.display = 'none';
                 this.openPdf(score.url, score.title, 1, score._id);
                 this.switchTab('pdf');
             };
+            div.appendChild(content);
+            
+            // Botones de edición (solo profesores)
+            if (canEdit) {
+                const btnContainer = document.createElement('div');
+                btnContainer.className = 'card-actions';
+                btnContainer.style.cssText = 'display:flex; justify-content:center; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid #333;';
+                
+                const btnRename = document.createElement('button');
+                btnRename.innerHTML = '✏️';
+                btnRename.title = 'Renombrar';
+                btnRename.className = 'btn-icon';
+                btnRename.onclick = (e) => { e.stopPropagation(); this.renameScore(score._id, score.title); };
+                
+                const btnMove = document.createElement('button');
+                btnMove.innerHTML = '📂';
+                btnMove.title = 'Mover a carpeta';
+                btnMove.className = 'btn-icon';
+                btnMove.onclick = (e) => { e.stopPropagation(); this.promptMoveScore(score._id); };
+                
+                const btnDelete = document.createElement('button');
+                btnDelete.innerHTML = '🗑️';
+                btnDelete.title = 'Borrar';
+                btnDelete.className = 'btn-icon btn-danger';
+                btnDelete.onclick = (e) => { e.stopPropagation(); this.deleteScore(score._id); };
+                
+                btnContainer.appendChild(btnRename);
+                btnContainer.appendChild(btnMove);
+                btnContainer.appendChild(btnDelete);
+                div.appendChild(btnContainer);
+            }
+            
             container.appendChild(div);
         });
     }
