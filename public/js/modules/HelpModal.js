@@ -12,6 +12,14 @@ class HelpModal {
 
     detectRole() {
         try {
+            // 1. Prioridad: Parámetro de URL (estudiantes entran con ?role=student)
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlRole = urlParams.get('role');
+            if (urlRole === 'student') {
+                return 'student';
+            }
+            
+            // 2. Fallback: localStorage
             const user = JSON.parse(localStorage.getItem('pianoUser') || '{}');
             return user.role === 'teacher' || user.role === 'admin' ? 'teacher' : 'student';
         } catch (e) {
