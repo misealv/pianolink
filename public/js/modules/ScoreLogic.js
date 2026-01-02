@@ -223,43 +223,30 @@ export class ScoreLogic {
     
     // ⚡ LÁSER: Mostrar el punto rojo con coordenadas normalizadas
     showLaserNormalized(xPercent, yPercent) {
-        let laserDot, referenceWidth, referenceHeight;
+        let laserDot, referenceEl;
         
         if (this.currentTab === 'whiteboard') {
             laserDot = this.el('wb-laser');
-            // Para whiteboard, usar el wrapper como referencia
-            const wrapper = this.el('whiteboard-wrapper');
-            if (wrapper) {
-                referenceWidth = wrapper.offsetWidth;
-                referenceHeight = wrapper.offsetHeight;
-            } else {
-                referenceWidth = 800;
-                referenceHeight = 600;
-            }
+            // Para whiteboard, usar el canvas de Fabric
+            referenceEl = this.el('wb-layer');
         } else {
             laserDot = this.el('remote-laser');
-            // Para PDF, usar el canvas del PDF como referencia (es el tamaño real)
-            const pdfCanvas = this.el('pdf-render');
-            if (pdfCanvas) {
-                referenceWidth = pdfCanvas.width;
-                referenceHeight = pdfCanvas.height;
-            } else {
-                referenceWidth = 800;
-                referenceHeight = 600;
-            }
+            // Para PDF, usar el canvas de anotaciones (mismo tamaño que PDF)
+            referenceEl = this.el('annotation-layer');
         }
         
-        if (!laserDot) return;
+        if (!laserDot || !referenceEl) return;
+        
+        // Obtener dimensiones visuales reales del canvas
+        const rect = referenceEl.getBoundingClientRect();
         
         // Desnormalizar: convertir porcentajes a píxeles
-        const x = xPercent * referenceWidth;
-        const y = yPercent * referenceHeight;
+        const x = xPercent * rect.width;
+        const y = yPercent * rect.height;
         
         laserDot.style.left = x + 'px';
         laserDot.style.top = y + 'px';
         laserDot.classList.add('active');
-        
-        console.log(`[Laser] Mostrando en (${x.toFixed(0)}, ${y.toFixed(0)}) - Ref: ${referenceWidth}x${referenceHeight}`);
     }
 
     async loadAnnotationsFromDB(scoreId) {

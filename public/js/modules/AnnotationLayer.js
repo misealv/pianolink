@@ -28,18 +28,21 @@ export class AnnotationLayer {
     }
 
     initEvents() {
-        // ⚡ LÁSER: Detectar movimiento del mouse
+        // ⚡ LÁSER: Detectar movimiento del mouse usando coordenadas del canvas HTML
         this.canvas.on('mouse:move', (opt) => {
             if (this.currentMode === 'laser' && this.onLaserMoveCallback) {
-                const pointer = this.canvas.getPointer(opt.e);
+                // Obtener coordenadas relativas al canvas HTML (no transformadas por zoom)
+                const canvasEl = this.canvas.getElement();
+                const rect = canvasEl.getBoundingClientRect();
+                const e = opt.e;
                 
-                // Usar el tamaño del canvas de Fabric (que debe coincidir con el PDF)
-                const canvasWidth = this.canvas.getWidth();
-                const canvasHeight = this.canvas.getHeight();
+                // Coordenadas del mouse relativas al canvas
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
                 
-                // Validar que las coordenadas estén dentro del canvas
-                const xPercent = Math.max(0, Math.min(1, pointer.x / canvasWidth));
-                const yPercent = Math.max(0, Math.min(1, pointer.y / canvasHeight));
+                // Normalizar usando el tamaño visual del canvas
+                const xPercent = Math.max(0, Math.min(1, mouseX / rect.width));
+                const yPercent = Math.max(0, Math.min(1, mouseY / rect.height));
                 
                 this.onLaserMoveCallback({ 
                     xPercent: xPercent, 
