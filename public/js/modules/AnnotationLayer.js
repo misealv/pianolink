@@ -32,13 +32,18 @@ export class AnnotationLayer {
         this.canvas.on('mouse:move', (opt) => {
             if (this.currentMode === 'laser' && this.onLaserMoveCallback) {
                 const pointer = this.canvas.getPointer(opt.e);
+                
+                // Usar el tamaño del canvas de Fabric (que debe coincidir con el PDF)
                 const canvasWidth = this.canvas.getWidth();
                 const canvasHeight = this.canvas.getHeight();
                 
-                // Normalizar a porcentajes (0-1) para sincronizar entre diferentes tamaños de pantalla
+                // Validar que las coordenadas estén dentro del canvas
+                const xPercent = Math.max(0, Math.min(1, pointer.x / canvasWidth));
+                const yPercent = Math.max(0, Math.min(1, pointer.y / canvasHeight));
+                
                 this.onLaserMoveCallback({ 
-                    xPercent: pointer.x / canvasWidth, 
-                    yPercent: pointer.y / canvasHeight,
+                    xPercent: xPercent, 
+                    yPercent: yPercent,
                     visible: true
                 });
             }

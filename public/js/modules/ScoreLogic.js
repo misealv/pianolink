@@ -223,42 +223,43 @@ export class ScoreLogic {
     
     // ⚡ LÁSER: Mostrar el punto rojo con coordenadas normalizadas
     showLaserNormalized(xPercent, yPercent) {
-        // Obtener el canvas de Fabric para dimensiones exactas
-        let canvasWidth, canvasHeight, laserDot;
+        let laserDot, referenceWidth, referenceHeight;
         
         if (this.currentTab === 'whiteboard') {
             laserDot = this.el('wb-laser');
-            if (this.whiteboardEngine) {
-                canvasWidth = this.whiteboardEngine.canvas.getWidth();
-                canvasHeight = this.whiteboardEngine.canvas.getHeight();
+            // Para whiteboard, usar el wrapper como referencia
+            const wrapper = this.el('whiteboard-wrapper');
+            if (wrapper) {
+                referenceWidth = wrapper.offsetWidth;
+                referenceHeight = wrapper.offsetHeight;
             } else {
-                const container = this.el('whiteboard-wrapper');
-                canvasWidth = container?.offsetWidth || 800;
-                canvasHeight = container?.offsetHeight || 600;
+                referenceWidth = 800;
+                referenceHeight = 600;
             }
         } else {
             laserDot = this.el('remote-laser');
-            if (this.pdfEngine) {
-                canvasWidth = this.pdfEngine.canvas.getWidth();
-                canvasHeight = this.pdfEngine.canvas.getHeight();
+            // Para PDF, usar el canvas del PDF como referencia (es el tamaño real)
+            const pdfCanvas = this.el('pdf-render');
+            if (pdfCanvas) {
+                referenceWidth = pdfCanvas.width;
+                referenceHeight = pdfCanvas.height;
             } else {
-                const container = this.el('score-wrapper');
-                canvasWidth = container?.offsetWidth || 800;
-                canvasHeight = container?.offsetHeight || 600;
+                referenceWidth = 800;
+                referenceHeight = 600;
             }
         }
         
         if (!laserDot) return;
         
-        // Desnormalizar: convertir porcentajes a píxeles según tamaño del canvas
-        const x = xPercent * canvasWidth;
-        const y = yPercent * canvasHeight;
+        // Desnormalizar: convertir porcentajes a píxeles
+        const x = xPercent * referenceWidth;
+        const y = yPercent * referenceHeight;
         
         laserDot.style.left = x + 'px';
         laserDot.style.top = y + 'px';
         laserDot.classList.add('active');
         
-        // NO usar timeout - el láser permanece visible hasta que se oculte explícitamente
+        console.log(`[Laser] Mostrando en (${x.toFixed(0)}, ${y.toFixed(0)}) - Ref: ${referenceWidth}x${referenceHeight}`);
     }
 
     async loadAnnotationsFromDB(scoreId) {
