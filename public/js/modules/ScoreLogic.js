@@ -260,6 +260,11 @@ export class ScoreLogic {
     renderPage(num) {
         if (!this.pdfDoc) return;
         if (this.renderTask) this.renderTask.cancel();
+        
+        // ⚡ FIX: Actualizar contador de página en UI
+        const pageNumEl = this.el('page-num');
+        if (pageNumEl) pageNumEl.textContent = num;
+        
         this.pdfDoc.getPage(num).then(page => {
             const canvas = this.el('pdf-render');
             const container = this.el('pdf-container');
@@ -294,6 +299,9 @@ export class ScoreLogic {
         pdfjsLib.getDocument(url).promise.then(pdf => {
             this.pdfDoc = pdf;
             this.el('page-count').textContent = pdf.numPages;
+            // ⚡ FIX: Actualizar página inicial en UI
+            const pageNumEl = this.el('page-num');
+            if (pageNumEl) pageNumEl.textContent = this.pageNum;
             this.el('pdfFloatingControls').style.display = 'flex';
             this.renderPage(this.pageNum);
         });
