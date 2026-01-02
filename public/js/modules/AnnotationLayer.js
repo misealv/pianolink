@@ -20,11 +20,22 @@ export class AnnotationLayer {
         this.currentScale = 1.0;
         this.textColor = "#ff0000";
         this.currentMode = 'move'; 
+        
+        // ⚡ LÁSER: Callback para emitir posición
+        this.onLaserMoveCallback = null;
 
         this.initEvents();
     }
 
     initEvents() {
+        // ⚡ LÁSER: Detectar movimiento del mouse
+        this.canvas.on('mouse:move', (opt) => {
+            if (this.currentMode === 'laser' && this.onLaserMoveCallback) {
+                const pointer = this.canvas.getPointer(opt.e);
+                this.onLaserMoveCallback({ x: pointer.x, y: pointer.y });
+            }
+        });
+        
         this.canvas.on('mouse:down', (opt) => {
             if (opt.target && this.currentMode === 'move') return;
             const pointer = this.canvas.getPointer(opt.e);
@@ -229,4 +240,7 @@ export class AnnotationLayer {
     onPathCreated(cb) { this.onPathCreatedCallback = cb; }
     onObjectRemoved(cb) { this.onObjectRemovedCallback = cb; }
     onClear(cb) { this.onClearCallback = cb; }
+    
+    // ⚡ LÁSER: Registrar callback para emitir posición
+    onLaserMove(cb) { this.onLaserMoveCallback = cb; }
 }

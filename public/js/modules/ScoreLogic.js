@@ -122,6 +122,15 @@ export class ScoreLogic {
                 delete this.pageData[this.pageNum];
             }
         });
+        
+        // ⚡ LÁSER: Recibir posición del puntero remoto (profesor → alumno)
+        this.socket.on('wb-pointer', (data) => {
+            // Solo mostrar si estamos en la misma página
+            if (data.page == this.pageNum) {
+                this.showRemoteLaser(data.x, data.y);
+            }
+        });
+        
         this.socket.on('wb-sync-response', (data) => {
             if (data.canvasState) {
                 this.pageData[data.page] = data.canvasState;
@@ -176,6 +185,41 @@ export class ScoreLogic {
             this.socket.emit('wb-clear', { room: this.getRoomCode(), page: this.pageNum, scoreId: this.currentScoreId });
             delete this.pageData[this.pageNum];
         });
+        
+        // ⚡ LÁSER: Emitir posición del puntero cuando profesor mueve mouse en modo láser
+        engine.onLaserMove((pos) => {
+            this.socket.volatile.emit('wb-pointer', { 
+                room: this.getRoomCode(), 
+                x: pos.x, 
+                y: pos.y, 
+                page: this.pageNum 
+            });
+            // También mostrar láser local (para feedback visual)
+            this.showLaser(pos.x, pos.y);
+        });
+    }
+    
+    // ⚡ LÁSER: Mostrar punto rojo remoto (para alumnos que lo ven)
+    showRemoteLaser(x, y) {
+        this.showLaser(x, y);
+    }
+    
+    // ⚡ LÁSER: Mostrar el punto rojo según el modo actual
+    showLaser(x, y) {
+        // Seleccionar el elemento láser correcto según el tab
+        const laserId = this.currentTab === 'whiteboard' ? 'wb-laser' : 'remote-laser';
+        const laserDot = this.el(laserId);
+        if (!laserDot) return;
+        
+        laserDot.style.left = x + 'px';
+        laserDot.style.top = y + 'px';
+        laserDot.classList.add('active');
+        
+        // Auto-ocultar después de 150ms si no hay más movimiento
+        clearTimeout(this.laserTimeout);
+        this.laserTimeout = setTimeout(() => {
+            laserDot.classList.remove('active');
+        }, 150);
     }
 
     async loadAnnotationsFromDB(scoreId) {
