@@ -71,12 +71,14 @@ export class UIManager {
         
         console.log('[UIManager] 🔧 Inicializando toolbar, currentTab:', this.currentTab);
         
-        // Aplicar visibilidad según pestaña actual
+        // ⚡ SINGLE SOURCE OF TRUTH: Solo clases controlan visibilidad
         if (this.currentTab === 'whiteboard') {
-            toolbar.style.display = 'flex';
+            toolbar.classList.remove('toolbar-hidden');
+            toolbar.classList.add('toolbar-visible');
             console.log('[UIManager] ✅ Toolbar VISIBLE (whiteboard)');
         } else {
-            toolbar.style.display = 'none';
+            toolbar.classList.remove('toolbar-visible');
+            toolbar.classList.add('toolbar-hidden');
             console.log('[UIManager] 🚫 Toolbar OCULTA (' + this.currentTab + ')');
         }
     }
@@ -641,25 +643,28 @@ export class UIManager {
         if (mode === 'music') {
             if (music) { music.classList.remove("hidden"); music.style.display = "flex"; }
             btnM?.classList.add("active");
-            // Ocultar toolbar
+            // ⚡ SINGLE SOURCE OF TRUTH: Ocultar toolbar via clases
             if (toolbar) {
-                toolbar.style.display = 'none';
+                toolbar.classList.remove('toolbar-visible');
+                toolbar.classList.add('toolbar-hidden');
                 console.log('[UIManager] 🚫 Toolbar oculta (música)');
             }
         } else if (mode === 'pdf') {
             if (pdf) { pdf.classList.remove("hidden"); pdf.style.display = "flex"; }
             btnP?.classList.add("active");
-            // Ocultar toolbar
+            // ⚡ SINGLE SOURCE OF TRUTH: Ocultar toolbar via clases
             if (toolbar) {
-                toolbar.style.display = 'none';
+                toolbar.classList.remove('toolbar-visible');
+                toolbar.classList.add('toolbar-hidden');
                 console.log('[UIManager] 🚫 Toolbar oculta (PDF)');
             }
         } else if (mode === 'whiteboard') {
             if (board) { board.classList.remove("hidden"); board.style.display = "flex"; }
             btnB?.classList.add("active");
-            // MOSTRAR TOOLBAR
+            // ⚡ SINGLE SOURCE OF TRUTH: Mostrar toolbar via clases
             if (toolbar) {
-                toolbar.style.display = 'flex';
+                toolbar.classList.remove('toolbar-hidden');
+                toolbar.classList.add('toolbar-visible');
                 console.log('[UIManager] ✅ 🎨 TOOLBAR VISIBLE (Pizarra)');
             }
         }

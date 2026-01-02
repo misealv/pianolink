@@ -658,13 +658,13 @@ iframe#pdfFrame.visible { display: block; }
   align-items: center;
 }
 
-/* ⚡ CLASES DE VISIBILIDAD SIMPLIFICADAS */
+/* ⚡ SINGLE SOURCE OF TRUTH - Solo clases controlan visibilidad */
 .drawing-toolbar.toolbar-hidden {
-  display: none;
+  display: none !important;
 }
 
 .drawing-toolbar.toolbar-visible {
-  display: flex;
+  display: flex !important;
 }
 
 .drawing-toolbar:hover {
