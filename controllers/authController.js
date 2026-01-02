@@ -5,10 +5,10 @@ const User = require('../models/User');
 
 // --- GENERADOR DE TOKENS ---
 const generateToken = (id) => {
-    let secret = process.env.JWT_SECRET;
+    const secret = process.env.JWT_SECRET;
     if (!secret) {
-        // Clave de respaldo silenciosa para desarrollo
-        secret = "clave_secreta_de_respaldo_pianolink_123456"; 
+        console.error('[AUTH] ❌ FATAL: JWT_SECRET no configurado en variables de entorno');
+        throw new Error('JWT_SECRET is required');
     }
     return jwt.sign({ id }, secret, { expiresIn: '30d' });
 };

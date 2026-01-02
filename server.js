@@ -15,8 +15,16 @@ const server = http.createServer(app);
 
 // Configuración Socket.io para Binarios con Keepalive Anti-Zombie
 // HIGH-PRIORITY MIDI STREAM (Fase 5)
+const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? (process.env.CORS_ORIGINS || 'https://pianolink.com').split(',').map(o => o.trim())
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+
 const io = new Server(server, {
-    cors: { origin: "*" },
+    cors: { 
+        origin: allowedOrigins,
+        methods: ['GET', 'POST'],
+        credentials: true
+    },
     maxHttpBufferSize: 1e7, // 10 MB (Suficiente para PDFs y MIDI)
     pingTimeout: 60000,     // 60s antes de considerar desconexión
     pingInterval: 25000,    // Enviar ping cada 25s
@@ -736,5 +744,89 @@ io.on("connection", (socket) => {
     });
 });
 
+// ==================================================
+// 6. GRACEFUL SHUTDOWN (PRODUCCIÓN)
+// ==================================================
+function gracefulShutdown(signal) {
+    console.log(`\n[Shutdown] Señal ${signal} recibida. Iniciando cierre limpio...`);
+    
+    // 1. Detener heartbeat de snapshots
+    if (snapshotHeartbeatInterval) {
+        clearInterval(snapshotHeartbeatInterval);
+        console.log('[Shutdown] Heartbeat de snapshots detenido.');
+    }
+    
+    // 2. Limpiar todas las salas y sus timers
+    Object.keys(rooms).forEach(roomCode => {
+        const room = rooms[roomCode];
+        if (room.snapshotTimer) clearTimeout(room.snapshotTimer);
+        if (room.inactivityTimer) clearTimeout(room.inactivityTimer);
+        
+        // Notificar a usuarios de la desconexión
+        io.to(roomCode).emit('server-shutdown', { 
+            message: 'Servidor reiniciando, reconecta en unos segundos' 
+        });
+    });
+    console.log('[Shutdown] Salas limpiadas y usuarios notificados.');
+    
+    // 3. Cerrar Socket.IO
+    io.close(() => {
+        console.log('[Shutdown] Socket.IO cerrado.');
+        
+        // 4. Cerrar servidor HTTP
+        server.close(() => {
+            console.log('[Shutdown] Servidor HTTP cerrado.');
+            console.log('[Shutdown] ✅ Limpieza completa. Saliendo...');
+            process.exit(0);
+        });
+    });
+    
+    // 5. Timeout de seguridad (si el cierre tarda más de 10s, forzar salida)
+    setTimeout(() => {
+        console.error('[Shutdown] ⚠️ Timeout alcanzado. Forzando salida...');
+        process.exit(1);
+    }, 10000);
+}
+
+// Capturar señales de terminación
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Capturar errores no manejados (última defensa)
+process.on('uncaughtException', (error) => {
+    console.error('[Critical Error] Excepción no capturada:', error);
+    gracefulShutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[Critical Error] Promesa rechazada no manejada:', reason);
+    // No cerramos aquí, solo logueamos - para evitar crasheos innecesarios
+});
+
+// ==================================================
+// 7. HEALTH CHECK ENDPOINT
+// ==================================================
+app.get('/health', (req, res) => {
+    const mongoose = require('mongoose');
+    res.json({
+        status: 'ok',
+        uptime: process.uptime(),
+        timestamp: Date.now(),
+        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        rooms: Object.keys(rooms).length,
+        memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB'
+    });
+});
+
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`🎹 PianoLink V4 (State-Aware Relay) corriendo en puerto ${PORT}`));
+server.listen(PORT, () => {
+    console.log(`🎹 PianoLink V4 (State-Aware Relay) corriendo en puerto ${PORT}`);
+    console.log(`📡 Entorno: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔒 CORS: ${process.env.NODE_ENV === 'production' ? 'Restringido' : 'Desarrollo'}`);
+    console.log('[Lifecycle] Graceful shutdown configurado.');
+    
+    // Notificar a PM2 que estamos listos
+    if (process.send) {
+        process.send('ready');
+    }
+});
