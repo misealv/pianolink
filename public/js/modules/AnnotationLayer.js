@@ -38,8 +38,16 @@ export class AnnotationLayer {
                 // Normalizar a porcentajes (0-1) para sincronizar entre diferentes tamaños de pantalla
                 this.onLaserMoveCallback({ 
                     xPercent: pointer.x / canvasWidth, 
-                    yPercent: pointer.y / canvasHeight 
+                    yPercent: pointer.y / canvasHeight,
+                    visible: true
                 });
+            }
+        });
+        
+        // ⚡ LÁSER: Ocultar cuando el mouse sale del canvas
+        this.canvas.on('mouse:out', () => {
+            if (this.currentMode === 'laser' && this.onLaserMoveCallback) {
+                this.onLaserMoveCallback({ visible: false });
             }
         });
         

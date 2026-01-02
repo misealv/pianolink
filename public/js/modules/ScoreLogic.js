@@ -127,7 +127,7 @@ export class ScoreLogic {
         this.socket.on('wb-pointer', (data) => {
             // Solo mostrar si estamos en la misma página
             if (data.page == this.pageNum) {
-                this.showRemoteLaser(data.xPercent, data.yPercent);
+                this.showRemoteLaser(data.xPercent, data.yPercent, data.visible);
             }
         });
         
@@ -191,50 +191,74 @@ export class ScoreLogic {
             this.socket.volatile.emit('wb-pointer', { 
                 room: this.getRoomCode(), 
                 xPercent: pos.xPercent,  // Coordenadas normalizadas (0-1)
-                yPercent: pos.yPercent, 
+                yPercent: pos.yPercent,
+                visible: pos.visible !== false, // true por defecto
                 page: this.pageNum 
             });
             // También mostrar láser local (para feedback visual)
-            this.showLaserNormalized(pos.xPercent, pos.yPercent);
+            if (pos.visible !== false) {
+                this.showLaserNormalized(pos.xPercent, pos.yPercent);
+            } else {
+                this.hideLaser();
+            }
         });
     }
     
     // ⚡ LÁSER: Mostrar punto rojo remoto (para alumnos que lo ven)
-    showRemoteLaser(xPercent, yPercent) {
-        this.showLaserNormalized(xPercent, yPercent);
+    showRemoteLaser(xPercent, yPercent, visible) {
+        if (visible === false) {
+            this.hideLaser();
+        } else {
+            this.showLaserNormalized(xPercent, yPercent);
+        }
+    }
+    
+    // ⚡ LÁSER: Ocultar el punto rojo
+    hideLaser() {
+        const laserPdf = this.el('remote-laser');
+        const laserWb = this.el('wb-laser');
+        if (laserPdf) laserPdf.classList.remove('active');
+        if (laserWb) laserWb.classList.remove('active');
     }
     
     // ⚡ LÁSER: Mostrar el punto rojo con coordenadas normalizadas
     showLaserNormalized(xPercent, yPercent) {
-        // Obtener el contenedor correcto según el tab
-        let container, laserDot;
+        // Obtener el canvas de Fabric para dimensiones exactas
+        let canvasWidth, canvasHeight, laserDot;
         
         if (this.currentTab === 'whiteboard') {
-            container = this.el('whiteboard-wrapper');
             laserDot = this.el('wb-laser');
+            if (this.whiteboardEngine) {
+                canvasWidth = this.whiteboardEngine.canvas.getWidth();
+                canvasHeight = this.whiteboardEngine.canvas.getHeight();
+            } else {
+                const container = this.el('whiteboard-wrapper');
+                canvasWidth = container?.offsetWidth || 800;
+                canvasHeight = container?.offsetHeight || 600;
+            }
         } else {
-            container = this.el('score-wrapper');
             laserDot = this.el('remote-laser');
+            if (this.pdfEngine) {
+                canvasWidth = this.pdfEngine.canvas.getWidth();
+                canvasHeight = this.pdfEngine.canvas.getHeight();
+            } else {
+                const container = this.el('score-wrapper');
+                canvasWidth = container?.offsetWidth || 800;
+                canvasHeight = container?.offsetHeight || 600;
+            }
         }
         
-        if (!laserDot || !container) return;
+        if (!laserDot) return;
         
-        // Desnormalizar: convertir porcentajes a píxeles según tamaño local
-        const containerWidth = container.offsetWidth;
-        const containerHeight = container.offsetHeight;
-        
-        const x = xPercent * containerWidth;
-        const y = yPercent * containerHeight;
+        // Desnormalizar: convertir porcentajes a píxeles según tamaño del canvas
+        const x = xPercent * canvasWidth;
+        const y = yPercent * canvasHeight;
         
         laserDot.style.left = x + 'px';
         laserDot.style.top = y + 'px';
         laserDot.classList.add('active');
         
-        // Auto-ocultar después de 150ms si no hay más movimiento
-        clearTimeout(this.laserTimeout);
-        this.laserTimeout = setTimeout(() => {
-            laserDot.classList.remove('active');
-        }, 150);
+        // NO usar timeout - el láser permanece visible hasta que se oculte explícitamente
     }
 
     async loadAnnotationsFromDB(scoreId) {
