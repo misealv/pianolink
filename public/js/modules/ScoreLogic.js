@@ -293,13 +293,16 @@ export class ScoreLogic {
                     // ⚡ FIX: Actualizar dimensiones del canvas de Fabric
                     this.activeEngine.updateDimensions(viewport.width, viewport.height, finalScale);
                     
+                    // ⚡ FIX CRITICO: Limpiar canvas ANTES de cargar datos de nueva página
+                    this.activeEngine.clear(false); // false = no emitir wb-clear a red
+                    
                     // ⚡ FIX: Cargar dibujos guardados para esta página
                     const savedData = this.pageData[num];
                     if (savedData) {
-                        console.log(`[ScoreLogic] ✏️ Cargando ${typeof savedData === 'string' ? JSON.parse(savedData).objects?.length || 0 : 'datos'} objetos para página ${num}`);
+                        console.log(`[ScoreLogic] ✏️ Cargando anotaciones para página ${num}`);
                         this.activeEngine.loadJSON(savedData);
                     } else {
-                        console.log(`[ScoreLogic] 📄 Página ${num} sin anotaciones previas`);
+                        console.log(`[ScoreLogic] 📄 Página ${num} limpia (sin anotaciones)`);
                     }
                 }
             }).catch(() => {});
@@ -307,6 +310,17 @@ export class ScoreLogic {
     }
 
     openPdf(url, title, initialPage = 1, scoreId = null) {
+        // ⚡ FIX: Si cambiamos de archivo, limpiar TODO
+        if (this.currentUrl !== url) {
+            console.log('[ScoreLogic] 📂 Nuevo archivo PDF - Limpiando canvas y cache');
+            // Limpiar canvas de Fabric
+            if (this.activeEngine) {
+                this.activeEngine.clear(false);
+            }
+            // Limpiar cache de dibujos del archivo anterior
+            this.pageData = {};
+        }
+        
         this.currentUrl = url; 
         this.currentScoreId = scoreId;
         this.pageNum = parseInt(initialPage) || 1;
@@ -359,19 +373,14 @@ export class ScoreLogic {
             // ⚡ PASO 1: Guardar dibujos de la página actual ANTES de cambiar
             this.saveLocalState();
             
-            // ⚡ PASO 2: Limpiar canvas de Fabric (sin emitir evento de clear)
-            if (this.activeEngine) {
-                this.activeEngine.clear(false); // false = no emitir wb-clear
-            }
-            
-            // ⚡ PASO 3: Cambiar a nueva página
+            // ⚡ PASO 2: Cambiar a nueva página (renderPage se encarga de limpiar y cargar)
             this.pageNum = newPage;
             this.renderPage(newPage);
             
-            // ⚡ PASO 4: Sincronizar con otros usuarios
+            // ⚡ PASO 3: Sincronizar con otros usuarios
             this.socket.emit('update-pdf-state', { url: this.currentUrl, page: this.pageNum, roomCode: this.getRoomCode(), scoreId: this.currentScoreId });
             
-            console.log(`[ScoreLogic] 📄 Página ${newPage} - Dibujos cargados:`, !!this.pageData[newPage]);
+            console.log(`[ScoreLogic] 📄 Cambiado a página ${newPage}`);
         }
     }
 
