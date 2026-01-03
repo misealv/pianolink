@@ -314,24 +314,62 @@
 
     /**
      * Crea la ventana de video remota
+     * INCLUYE: Barra de control de audio integrada (solo visible para profesores)
      * @private
      * @returns {HTMLElement}
      */
     VideoManager.prototype._createRemoteWindow = function() {
+        var self = this;
         var container = document.createElement('div');
         container.id = 'remote-video';
         container.className = 'video-window';
         container.style.cssText = 'right: 20px; top: 100px;'; // Posición inicial
         
+        // Detectar si es profesor para mostrar controles de audio
+        var isTeacher = false;
+        try {
+            var saved = JSON.parse(localStorage.getItem('pianoUser') || '{}');
+            isTeacher = saved.role === 'teacher' || saved.role === 'admin';
+        } catch(e) {}
+        
+        // Barra de control de audio (solo profesores)
+        var audioControlsHTML = isTeacher ? `
+            <div class="audio-control-bar">
+                <div class="audio-modes">
+                    <button id="audio-mode-midi" class="audio-mode-btn active" data-mode="MIDI_HYBRID" title="Piano + Voz (AEC ON, ANS OFF)">
+                        🎹
+                    </button>
+                    <button id="audio-mode-voice" class="audio-mode-btn" data-mode="CONVERSATION" title="Solo Voz (filtros agresivos)">
+                        💬
+                    </button>
+                    <button id="audio-mode-raw" class="audio-mode-btn" data-mode="EMERGENCY" title="Sin Filtros (audio raw)">
+                        🔴
+                    </button>
+                </div>
+                <div class="audio-actions">
+                    <button id="remote-mute-btn" class="audio-mute-mini" title="Silenciar estudiante">
+                        🔊
+                    </button>
+                    <div class="audio-level-mini">
+                        <div id="remote-audio-level" class="audio-level-fill"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="audio-control-status" class="audio-control-status">
+                <span class="mode-indicator">🎹 Piano + Voz</span>
+            </div>
+        ` : '';
+        
         container.innerHTML = `
             <div class="video-header">
-                <span class="video-title">👥 Remoto</span>
+                <span class="video-title" id="remote-video-title">👥 Remoto</span>
                 <div class="video-controls">
                     <button id="remote-minimize" class="video-btn" title="Minimizar">−</button>
                 </div>
             </div>
             <div class="video-body">
                 <div id="remote-video-container" class="video-player"></div>
+                ${audioControlsHTML}
                 <div id="remote-status" class="video-status">Esperando...</div>
             </div>
         `;
