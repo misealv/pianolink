@@ -401,6 +401,8 @@ const _getModeDisplayName = function(mode) {
         case 'EMERGENCY': return 'Sin Filtros';
         default: return mode;
     }
+};
+
 /**
  * Conecta event handlers de los botones de control de video
  * @private
