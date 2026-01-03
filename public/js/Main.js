@@ -39,6 +39,7 @@ window.uiManager = ui;
 // AGORA AV - FASE 0: VARIABLES GLOBALES
 // ==================================================
 let videoManager = null; // Se inicializa de forma diferida (3 segundos después del bootstrap)
+let audioStateManager = null; // Gestor de perfiles de audio (3 modos)
 
 // 2.5. HELPER FUNCTION (Debe estar ANTES de usarse)
 const checkTeacherRole = function() {
@@ -124,6 +125,11 @@ const initVideoManager = function() {
                     
                     // Mostrar botón de video una vez que el sistema está listo
                     _showVideoButton();
+                    
+                    // ========================================
+                    // AUDIO STATE MANAGER - Inicializar después de VideoManager
+                    // ========================================
+                    _initAudioStateManager();
                 })
                 .catch(function(error) {
                     console.error('[Main] ❌ VideoManager falló (no crítico):', error.message);
@@ -201,6 +207,339 @@ const _showVideoButton = function() {
     });
     
     console.log('[Main] 📹 Botón de video habilitado');
+};
+
+/**
+ * Inicializa el AudioStateManager para control de perfiles de audio
+ * 3 MODOS: MIDI_HYBRID (piano), CONVERSATION (voz), EMERGENCY (raw)
+ * @private
+ */
+const _initAudioStateManager = function() {
+    try {
+        // Verificar que AudioStateManager esté disponible
+        if (typeof AudioStateManager === 'undefined') {
+            console.warn('[Main] ⚠️ AudioStateManager no disponible - Módulo no cargado');
+            return;
+        }
+        
+        // Verificar VideoManager
+        if (!videoManager) {
+            console.warn('[Main] ⚠️ VideoManager no disponible para AudioStateManager');
+            return;
+        }
+        
+        // Obtener datos de usuario
+        let userRole = 'student';
+        let userId = socket ? socket.id : null;
+        
+        try {
+            const saved = JSON.parse(localStorage.getItem('pianoUser') || '{}');
+            userRole = saved.role || 'student';
+        } catch (e) {
+            console.warn('[Main] Error leyendo rol de usuario:', e);
+        }
+        
+        // Crear instancia
+        audioStateManager = new AudioStateManager({
+            bus: bus,
+            socket: socket,
+            videoManager: videoManager
+        });
+        
+        // Inicializar con rol
+        audioStateManager.init(userRole, userId);
+        
+        // Exponer globalmente para acceso desde panel de control
+        window.audioStateManager = audioStateManager;
+        
+        console.log('✅ [Main] AudioStateManager inicializado');
+        console.log('  - Rol:', userRole);
+        console.log('  - Perfil inicial: MIDI_HYBRID');
+        
+        // Si es profesor, mostrar panel de control de audio
+        if (userRole === 'teacher' || userRole === 'admin') {
+            _showAudioControlPanel();
+        }
+        
+        bus.emit('audio-state-manager-ready');
+        
+    } catch (error) {
+        console.error('[Main] ❌ Error inicializando AudioStateManager:', error);
+    }
+};
+
+/**
+ * Muestra el panel de control de audio para profesores
+ * Permite cambiar modo de audio del estudiante y mutear remotamente
+ * @private
+ */
+const _showAudioControlPanel = function() {
+    // Verificar que no exista ya
+    if (document.getElementById('audio-control-panel')) {
+        return;
+    }
+    
+    // Crear panel flotante
+    const panel = document.createElement('div');
+    panel.id = 'audio-control-panel';
+    panel.innerHTML = `
+        <div class="audio-panel-header">
+            <span>🎛️ Control de Audio</span>
+            <button id="audio-panel-minimize" class="audio-panel-btn" title="Minimizar">−</button>
+        </div>
+        <div class="audio-panel-body">
+            <div class="audio-panel-section">
+                <label>Modo del Estudiante:</label>
+                <select id="audio-mode-select">
+                    <option value="MIDI_HYBRID">🎹 Piano + Voz</option>
+                    <option value="CONVERSATION">💬 Solo Voz</option>
+                    <option value="EMERGENCY">🔴 Sin Filtros</option>
+                </select>
+                <button id="apply-audio-mode" class="audio-action-btn">Aplicar</button>
+            </div>
+            <div class="audio-panel-section">
+                <label>Mute Remoto:</label>
+                <button id="remote-mute-toggle" class="audio-mute-btn">🔇 Mutear Estudiante</button>
+            </div>
+            <div id="audio-panel-status" class="audio-panel-status">
+                Esperando conexión...
+            </div>
+        </div>
+    `;
+    
+    // Estilos inline para el panel
+    panel.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        width: 280px;
+        background: linear-gradient(135deg, rgba(48,53,103,0.98), rgba(30,34,70,0.98));
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 16px;
+        box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+        color: white;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 13px;
+        z-index: 9999;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+    `;
+    
+    document.body.appendChild(panel);
+    
+    // Estilos internos
+    const style = document.createElement('style');
+    style.textContent = `
+        .audio-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.3);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: move;
+        }
+        .audio-panel-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .audio-panel-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .audio-panel-body {
+            padding: 16px;
+        }
+        .audio-panel-body.minimized {
+            display: none;
+        }
+        .audio-panel-section {
+            margin-bottom: 16px;
+        }
+        .audio-panel-section label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
+        }
+        .audio-panel-section select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: rgba(0,0,0,0.3);
+            color: white;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .audio-action-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .audio-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(102,126,234,0.4);
+        }
+        .audio-mute-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #f44336, #e91e63);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .audio-mute-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(244,67,54,0.4);
+        }
+        .audio-mute-btn.unmute {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+        }
+        .audio-panel-status {
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 11px;
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        @keyframes bounceIn {
+            0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+            60% { transform: translateX(-50%) scale(1.1); }
+            100% { transform: translateX(-50%) scale(1); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Event listeners
+    _connectAudioControlEvents(panel);
+    
+    console.log('[Main] 🎛️ Panel de control de audio creado');
+};
+
+/**
+ * Conecta event listeners del panel de control de audio
+ * @param {HTMLElement} panel
+ * @private
+ */
+const _connectAudioControlEvents = function(panel) {
+    const minimizeBtn = document.getElementById('audio-panel-minimize');
+    const applyBtn = document.getElementById('apply-audio-mode');
+    const muteBtn = document.getElementById('remote-mute-toggle');
+    const modeSelect = document.getElementById('audio-mode-select');
+    const statusDiv = document.getElementById('audio-panel-status');
+    
+    let isStudentMuted = false;
+    let connectedStudentId = null;
+    
+    // Minimize toggle
+    if (minimizeBtn) {
+        minimizeBtn.addEventListener('click', function() {
+            const body = panel.querySelector('.audio-panel-body');
+            body.classList.toggle('minimized');
+            this.textContent = body.classList.contains('minimized') ? '+' : '−';
+        });
+    }
+    
+    // Aplicar modo de audio
+    if (applyBtn && modeSelect) {
+        applyBtn.addEventListener('click', function() {
+            if (!audioStateManager) {
+                console.error('[AudioPanel] AudioStateManager no disponible');
+                return;
+            }
+            
+            const selectedMode = modeSelect.value;
+            
+            // Enviar a todos los estudiantes (broadcast)
+            audioStateManager.sendChangeMode(null, selectedMode);
+            
+            // Feedback visual
+            applyBtn.textContent = '✓ Enviado';
+            applyBtn.style.background = 'linear-gradient(135deg, #4CAF50, #45a049)';
+            
+            setTimeout(function() {
+                applyBtn.textContent = 'Aplicar';
+                applyBtn.style.background = '';
+            }, 2000);
+            
+            console.log('[AudioPanel] Modo enviado:', selectedMode);
+        });
+    }
+    
+    // Toggle mute remoto
+    if (muteBtn) {
+        muteBtn.addEventListener('click', function() {
+            if (!audioStateManager) {
+                console.error('[AudioPanel] AudioStateManager no disponible');
+                return;
+            }
+            
+            isStudentMuted = !isStudentMuted;
+            
+            // Enviar a todos los estudiantes (broadcast)
+            audioStateManager.sendRemoteMute(null, isStudentMuted);
+            
+            // Actualizar UI
+            this.textContent = isStudentMuted ? '🔊 Desmutear Estudiante' : '🔇 Mutear Estudiante';
+            this.classList.toggle('unmute', isStudentMuted);
+            
+            console.log('[AudioPanel] Mute remoto:', isStudentMuted);
+        });
+    }
+    
+    // Escuchar confirmaciones del estudiante
+    bus.on('audio-mode-change-confirmed', function(data) {
+        if (statusDiv) {
+            statusDiv.innerHTML = '✅ ' + (data.userName || 'Estudiante') + ': ' + data.profile;
+            statusDiv.style.color = '#4CAF50';
+        }
+    });
+    
+    bus.on('remote-mute-confirmed', function(data) {
+        if (statusDiv) {
+            statusDiv.innerHTML = '✅ ' + (data.userName || 'Estudiante') + ': ' + (data.muted ? 'Muteado' : 'Desmuteado');
+            statusDiv.style.color = data.muted ? '#f44336' : '#4CAF50';
+        }
+    });
+    
+    // Actualizar estado cuando hay usuarios en la sala
+    socket.on('room-users', function(users) {
+        const students = users.filter(u => u.role === 'student');
+        if (statusDiv) {
+            if (students.length > 0) {
+                statusDiv.innerHTML = '🎓 ' + students.length + ' estudiante(s) conectado(s)';
+                statusDiv.style.color = '#4CAF50';
+            } else {
+                statusDiv.innerHTML = 'Esperando estudiantes...';
+                statusDiv.style.color = 'rgba(255,255,255,0.7)';
+            }
+        }
+    });
 };
 
 /**

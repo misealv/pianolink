@@ -591,6 +591,127 @@ io.on("connection", (socket) => {
         });
     });
 
+    // ==================================================
+    // AUDIO STATE MANAGER - CONTROL REMOTO
+    // ==================================================
+    
+    /**
+     * PROFESOR → ESTUDIANTE: Cambiar modo de audio
+     * Solo profesores/admins pueden enviar este comando
+     */
+    socket.on('change-audio-mode', (data) => {
+        const roomCode = socket.roomCode;
+        
+        // Validar que sea profesor/admin
+        if (socket.userRole !== 'teacher' && socket.userRole !== 'admin') {
+            console.log('[AudioControl] ⛔ Rechazado: usuario no autorizado', socket.userRole);
+            return;
+        }
+        
+        // Validar sala
+        if (!roomCode || !rooms[roomCode]) {
+            console.log('[AudioControl] ⛔ Sala no válida');
+            return;
+        }
+        
+        console.log('[AudioControl] 🔄 change-audio-mode:', data.profile, '→ target:', data.targetUserId || 'broadcast');
+        
+        // Preparar payload con info del origen
+        const payload = {
+            profile: data.profile,
+            fromUserId: socket.id,
+            fromRole: socket.userRole,
+            timestamp: Date.now()
+        };
+        
+        // Si hay target específico, enviar solo a ese usuario
+        if (data.targetUserId) {
+            io.to(data.targetUserId).emit('change-audio-mode', payload);
+        } else {
+            // Broadcast a toda la sala (excepto al profesor)
+            socket.to(roomCode).emit('change-audio-mode', payload);
+        }
+    });
+    
+    /**
+     * PROFESOR → ESTUDIANTE: Mute remoto
+     * Silencia el micrófono del estudiante remotamente
+     */
+    socket.on('remote-mute', (data) => {
+        const roomCode = socket.roomCode;
+        
+        // Validar que sea profesor/admin
+        if (socket.userRole !== 'teacher' && socket.userRole !== 'admin') {
+            console.log('[AudioControl] ⛔ Remote mute rechazado: no autorizado');
+            return;
+        }
+        
+        if (!roomCode || !rooms[roomCode]) {
+            console.log('[AudioControl] ⛔ Sala no válida para remote mute');
+            return;
+        }
+        
+        console.log('[AudioControl] 🔇 remote-mute:', data.muted ? 'MUTE' : 'UNMUTE', '→ target:', data.targetUserId || 'broadcast');
+        
+        const payload = {
+            muted: data.muted,
+            fromUserId: socket.id,
+            fromRole: socket.userRole,
+            timestamp: Date.now()
+        };
+        
+        if (data.targetUserId) {
+            io.to(data.targetUserId).emit('remote-mute', payload);
+        } else {
+            socket.to(roomCode).emit('remote-mute', payload);
+        }
+    });
+    
+    /**
+     * ESTUDIANTE → PROFESOR: Confirmación de cambio de modo
+     */
+    socket.on('audio-mode-confirmed', (data) => {
+        const roomCode = socket.roomCode;
+        if (!roomCode || !rooms[roomCode]) return;
+        
+        console.log('[AudioControl] ✅ Estudiante confirmó modo:', data.profile);
+        
+        // Broadcast a profesores de la sala
+        const room = rooms[roomCode];
+        Object.entries(room.users).forEach(([socketId, user]) => {
+            if (user.role === 'teacher' || user.role === 'admin') {
+                io.to(socketId).emit('audio-mode-confirmed', {
+                    userId: socket.id,
+                    userName: socket.userName,
+                    profile: data.profile,
+                    success: data.success
+                });
+            }
+        });
+    });
+    
+    /**
+     * ESTUDIANTE → PROFESOR: Confirmación de mute remoto
+     */
+    socket.on('remote-mute-confirmed', (data) => {
+        const roomCode = socket.roomCode;
+        if (!roomCode || !rooms[roomCode]) return;
+        
+        console.log('[AudioControl] ✅ Estudiante confirmó mute:', data.muted);
+        
+        const room = rooms[roomCode];
+        Object.entries(room.users).forEach(([socketId, user]) => {
+            if (user.role === 'teacher' || user.role === 'admin') {
+                io.to(socketId).emit('remote-mute-confirmed', {
+                    userId: socket.id,
+                    userName: socket.userName,
+                    muted: data.muted,
+                    success: data.success
+                });
+            }
+        });
+    });
+
     // Desconexión
     socket.on("disconnect", () => {
         const roomCode = socket.roomCode;
