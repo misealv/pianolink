@@ -73,7 +73,14 @@
             });
         });
         
-        console.log('[DraggableVideo] ✅ Sistema híbrido inicializado (mouse + touch)');
+        // === HANDLER DE ORIENTACIÓN/RESIZE ===
+        // Revalida posiciones cuando cambia el viewport (rotación de tablet)
+        self._resizeHandler = function() {
+            self._revalidatePositions();
+        };
+        window.addEventListener('resize', self._resizeHandler);
+        
+        console.log('[DraggableVideo] ✅ Sistema híbrido inicializado (mouse + touch + orientación)');
     };
 
     /**
@@ -277,6 +284,47 @@
     };
 
     /**
+     * Revalida posiciones de todas las ventanas tras cambio de viewport
+     * Se ejecuta en rotación de tablet o resize de ventana
+     * @private
+     */
+    DraggableVideo.prototype._revalidatePositions = function() {
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+        var margin = 10;
+        var adjusted = 0;
+        
+        document.querySelectorAll('.video-window').forEach(function(win) {
+            var rect = win.getBoundingClientRect();
+            var needsAdjust = false;
+            
+            // Si la ventana está fuera del viewport, reposicionar
+            if (rect.right > vw) {
+                win.style.left = Math.max(margin, vw - rect.width - margin) + 'px';
+                needsAdjust = true;
+            }
+            if (rect.left < 0) {
+                win.style.left = margin + 'px';
+                needsAdjust = true;
+            }
+            if (rect.bottom > vh) {
+                win.style.top = Math.max(margin, vh - rect.height - margin) + 'px';
+                needsAdjust = true;
+            }
+            if (rect.top < 0) {
+                win.style.top = margin + 'px';
+                needsAdjust = true;
+            }
+            
+            if (needsAdjust) adjusted++;
+        });
+        
+        if (adjusted > 0) {
+            console.log('[DraggableVideo] 📐 Viewport cambiado, ' + adjusted + ' ventana(s) reposicionada(s)');
+        }
+    };
+
+    /**
      * Destruye el sistema de arrastre (cleanup)
      */
     DraggableVideo.prototype.destroy = function() {
@@ -288,6 +336,12 @@
         if (self.rafId) {
             cancelAnimationFrame(self.rafId);
             self.rafId = null;
+        }
+        
+        // Remover handler de resize
+        if (self._resizeHandler) {
+            window.removeEventListener('resize', self._resizeHandler);
+            self._resizeHandler = null;
         }
         
         self.activeHandlers.forEach(function(handler) {

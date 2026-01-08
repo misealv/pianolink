@@ -62,7 +62,11 @@ export class DraggableToolbar {
         this.toolbar.addEventListener('pointerup', (e) => this.onPointerUp(e));
         this.toolbar.addEventListener('pointercancel', (e) => this.onPointerUp(e));
         
-        console.log('[DraggableToolbar] ✅ Pointer Events inicializados (híbrido mouse+touch)');
+        // === HANDLER DE ORIENTACIÓN/RESIZE ===
+        this._resizeHandler = () => this.ensureVisible();
+        window.addEventListener('resize', this._resizeHandler);
+        
+        console.log('[DraggableToolbar] ✅ Pointer Events inicializados (híbrido mouse+touch+orientación)');
     }
 
     onPointerDown(e) {
@@ -265,6 +269,13 @@ export class DraggableToolbar {
             cancelAnimationFrame(this.rafId);
             this.rafId = null;
         }
+        
+        // Remover handler de resize
+        if (this._resizeHandler) {
+            window.removeEventListener('resize', this._resizeHandler);
+            this._resizeHandler = null;
+        }
+        
         console.log('[DraggableToolbar] 🧹 Destruido');
     }
 }
