@@ -477,29 +477,70 @@ export class UIManager {
         if (!handle || !board) return;
 
         let startY, startHeight;
+        let rafId = null;
+        let pendingHeight = 0;
+        let activePointerId = null;
+
+        // === CSS PARA TOUCH ===
+        handle.style.touchAction = 'none';
 
         const doDrag = (e) => {
+            // Solo procesar el pointer que inició
+            if (e.pointerId !== activePointerId) return;
+            
+            e.preventDefault();
             const delta = e.clientY - startY;
             const newHeight = startHeight + delta;
+            
             if (newHeight > 200 && newHeight < window.innerHeight - 150) {
-                board.style.height = `${newHeight}px`;
-                board.style.flex = "none"; 
+                pendingHeight = newHeight;
+                
+                // RAF para fluidez
+                if (!rafId) {
+                    rafId = requestAnimationFrame(() => {
+                        board.style.height = `${pendingHeight}px`;
+                        board.style.flex = "none"; 
+                        rafId = null;
+                    });
+                }
             }
         };
 
-        const stopDrag = () => {
-            document.documentElement.removeEventListener('mousemove', doDrag);
-            document.documentElement.removeEventListener('mouseup', stopDrag);
+        const stopDrag = (e) => {
+            if (e.pointerId !== activePointerId) return;
+            
+            // Liberar captura
+            if (handle.hasPointerCapture && handle.hasPointerCapture(e.pointerId)) {
+                handle.releasePointerCapture(e.pointerId);
+            }
+            
+            handle.removeEventListener('pointermove', doDrag);
+            handle.removeEventListener('pointerup', stopDrag);
+            handle.removeEventListener('pointercancel', stopDrag);
+            
             document.body.style.cursor = ''; 
-            document.body.style.userSelect = ''; 
+            document.body.style.userSelect = '';
+            activePointerId = null;
+            
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
         };
 
-        handle.addEventListener('mousedown', (e) => {
+        handle.addEventListener('pointerdown', (e) => {
             e.preventDefault(); 
+            activePointerId = e.pointerId;
             startY = e.clientY;
             startHeight = parseInt(window.getComputedStyle(board).height, 10);
-            document.documentElement.addEventListener('mousemove', doDrag);
-            document.documentElement.addEventListener('mouseup', stopDrag);
+            
+            // Capturar pointer
+            handle.setPointerCapture(e.pointerId);
+            
+            handle.addEventListener('pointermove', doDrag);
+            handle.addEventListener('pointerup', stopDrag);
+            handle.addEventListener('pointercancel', stopDrag);
+            
             document.body.style.cursor = 'row-resize';
             document.body.style.userSelect = 'none';
         });

@@ -56,7 +56,7 @@
       /* ⚡ HOTFIX: Toolbar z-index corregido - CSS movido a style.css */
       /* Eliminar este bloque inline para evitar conflictos */
       
-/* --- OPTIMIZADO: Header del Toolbar con mejor cursor --- */
+/* --- OPTIMIZADO: Header del Toolbar con mejor cursor + TOUCH --- */
 .toolbar-header {
     width: 100%;
     padding: 6px 8px;
@@ -67,8 +67,10 @@
     justify-content: space-between;
     align-items: center;
     user-select: none;
+    -webkit-user-select: none;
     margin-bottom: 4px;
     transition: background 0.2s ease;
+    touch-action: none; /* CRÍTICO: Compatibilidad tablet */
 }
 
 .toolbar-header:hover {

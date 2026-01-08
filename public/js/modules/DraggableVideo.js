@@ -1,5 +1,13 @@
 /**
- * DraggableVideo.js - Sistema de Arrastre Independiente
+ * DraggableVideo.js - Sistema de Arrastre HÍBRIDO (Mouse + Touch)
+ * 
+ * MIGRACIÓN A POINTER EVENTS para compatibilidad con tablets (iPad/Android)
+ * 
+ * Técnicas implementadas:
+ * - Pointer Events API: pointerdown/pointermove/pointerup (unifica mouse + touch)
+ * - setPointerCapture: mantiene el arrastre aunque el dedo salga del elemento
+ * - touch-action CSS: evita interferencia del scroll nativo
+ * - requestAnimationFrame: fluidez en tablets de 60fps
  * 
  * Gestión de ventanas flotantes con drag & drop resiliente:
  * - Z-Index Manager: 900-950 (debajo de sidebar 1000+)
@@ -7,8 +15,8 @@
  * - Click-to-focus: ventana activa sube a z-index superior
  * - Cleanup automático: remueve listeners al destruir
  * 
- * MODULARIDAD: Funciona aunque VideoManager falle
- * Si no encuentra elementos, simplemente no hace nada (graceful degradation)
+ * @author Miguel Antonio Sepúlveda Alvarez
+ * @version 2.0.0 - Pointer Events Migration
  */
 
 (function(global) {
@@ -23,16 +31,24 @@
         this.offsetX = 0;
         this.offsetY = 0;
         this.isDragging = false;
-        this.zIndexBase = 900; // Base para ventanas de video
-        this.zIndexActive = 950; // Para ventana activa (click-to-focus)
-        this.activeHandlers = []; // Para cleanup
+        this.zIndexBase = 900;
+        this.zIndexActive = 950;
+        this.activeHandlers = [];
         
-        console.log('[DraggableVideo] Sistema de arrastre creado');
+        // RAF para optimización de rendimiento
+        this.rafId = null;
+        this.pendingX = 0;
+        this.pendingY = 0;
+        
+        // Pointer ID para captura
+        this.activePointerId = null;
+        
+        console.log('[DraggableVideo] Sistema de arrastre HÍBRIDO creado (Pointer Events)');
     }
 
     /**
      * Inicializa el sistema de arrastre para elementos específicos
-     * @param {Array<string>} selectors - Array de selectores CSS (ej: ['#local-video', '#remote-video'])
+     * @param {Array<string>} selectors - Array de selectores CSS
      */
     DraggableVideo.prototype.init = function(selectors) {
         var self = this;
@@ -42,7 +58,7 @@
             selectors = ['.video-window'];
         }
         
-        console.log('[DraggableVideo] Inicializando drag para:', selectors);
+        console.log('[DraggableVideo] Inicializando drag híbrido para:', selectors);
         
         selectors.forEach(function(selector) {
             var elements = document.querySelectorAll(selector);
@@ -57,11 +73,11 @@
             });
         });
         
-        console.log('[DraggableVideo] ✅ Sistema de arrastre inicializado');
+        console.log('[DraggableVideo] ✅ Sistema híbrido inicializado (mouse + touch)');
     };
 
     /**
-     * Hace un elemento específico draggable
+     * Hace un elemento específico draggable con Pointer Events
      * @param {HTMLElement} element - Elemento a hacer draggable
      * @private
      */
@@ -73,59 +89,79 @@
             return;
         }
         
-        // Buscar el header como handle (si existe)
+        // Buscar el header como handle
         var handle = element.querySelector('.video-header');
         if (!handle) {
             console.warn('[DraggableVideo] No se encontró .video-header, usando elemento completo');
             handle = element;
         }
         
-        // Configurar cursor y z-index inicial
+        // === CSS CRÍTICO PARA TOUCH ===
         handle.style.cursor = 'move';
+        handle.style.touchAction = 'none'; // CRÍTICO: evita scroll nativo
         element.style.zIndex = self.zIndexBase;
-        element.style.position = 'fixed'; // Asegurar posicionamiento
+        element.style.position = 'fixed';
+        element.style.touchAction = 'none'; // También en el contenedor
         
-        // Event Listeners
-        var onMouseDown = function(e) {
-            self._onMouseDown(e, element, handle);
+        // === POINTER EVENT HANDLERS ===
+        var onPointerDown = function(e) {
+            self._onPointerDown(e, element, handle);
+        };
+        
+        var onPointerMove = function(e) {
+            self._onPointerMove(e);
+        };
+        
+        var onPointerUp = function(e) {
+            self._onPointerUp(e, handle);
+        };
+        
+        var onPointerCancel = function(e) {
+            self._onPointerUp(e, handle); // Mismo comportamiento que up
         };
         
         var onClickToFocus = function() {
             self._bringToFront(element);
         };
         
-        handle.addEventListener('mousedown', onMouseDown);
+        // Registrar eventos en el HANDLE
+        handle.addEventListener('pointerdown', onPointerDown);
+        handle.addEventListener('pointermove', onPointerMove);
+        handle.addEventListener('pointerup', onPointerUp);
+        handle.addEventListener('pointercancel', onPointerCancel);
         element.addEventListener('click', onClickToFocus);
         
         // Guardar handlers para cleanup
-        self.activeHandlers.push({
-            element: handle,
-            event: 'mousedown',
-            handler: onMouseDown
-        });
-        self.activeHandlers.push({
-            element: element,
-            event: 'click',
-            handler: onClickToFocus
-        });
+        self.activeHandlers.push(
+            { element: handle, event: 'pointerdown', handler: onPointerDown },
+            { element: handle, event: 'pointermove', handler: onPointerMove },
+            { element: handle, event: 'pointerup', handler: onPointerUp },
+            { element: handle, event: 'pointercancel', handler: onPointerCancel },
+            { element: element, event: 'click', handler: onClickToFocus }
+        );
         
-        console.log('[DraggableVideo] Elemento draggable:', element.id || element.className);
+        console.log('[DraggableVideo] Elemento draggable (híbrido):', element.id || element.className);
     };
 
     /**
-     * Handler de mousedown (inicio de drag)
+     * Handler de pointerdown (inicio de drag)
+     * Compatible con mouse, touch y stylus
      * @private
      */
-    DraggableVideo.prototype._onMouseDown = function(e, element, handle) {
+    DraggableVideo.prototype._onPointerDown = function(e, element, handle) {
         var self = this;
         
-        // Prevenir selección de texto
+        // Prevenir comportamiento por defecto (selección de texto, etc)
         e.preventDefault();
         
         self.isDragging = true;
         self.draggedElement = element;
+        self.activePointerId = e.pointerId;
         
-        // Calcular offset relativo al cursor
+        // === CAPTURE: Mantener eventos aunque el dedo salga del elemento ===
+        handle.setPointerCapture(e.pointerId);
+        
+        // Calcular offset relativo al cursor/dedo
         var rect = element.getBoundingClientRect();
         self.offsetX = e.clientX - rect.left;
         self.offsetY = e.clientY - rect.top;
@@ -133,67 +169,95 @@
         // Traer ventana al frente
         self._bringToFront(element);
         
-        // Agregar listeners globales
-        var onMouseMove = function(e) {
-            self._onMouseMove(e);
-        };
+        // Agregar clase visual de "dragging"
+        element.classList.add('dragging');
         
-        var onMouseUp = function() {
-            self._onMouseUp();
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-        };
-        
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
-        
-        console.log('[DraggableVideo] Drag iniciado:', element.id);
+        console.log('[DraggableVideo] Drag iniciado (pointer):', element.id, 'PointerType:', e.pointerType);
     };
 
     /**
-     * Handler de mousemove (durante drag)
+     * Handler de pointermove (durante drag)
+     * Usa requestAnimationFrame para fluidez en tablets
      * @private
      */
-    DraggableVideo.prototype._onMouseMove = function(e) {
+    DraggableVideo.prototype._onPointerMove = function(e) {
         var self = this;
         
         if (!self.isDragging || !self.draggedElement) {
             return;
         }
         
+        // Solo procesar el pointer que inició el drag
+        if (e.pointerId !== self.activePointerId) {
+            return;
+        }
+        
+        // Prevenir scroll
+        e.preventDefault();
+        
         // Calcular nueva posición
         var newX = e.clientX - self.offsetX;
         var newY = e.clientY - self.offsetY;
         
-        // Bounds checking (no salir del viewport)
+        // Bounds checking
         var rect = self.draggedElement.getBoundingClientRect();
         var viewportWidth = window.innerWidth;
         var viewportHeight = window.innerHeight;
         
-        // Límites X
         newX = Math.max(0, Math.min(newX, viewportWidth - rect.width));
-        
-        // Límites Y
         newY = Math.max(0, Math.min(newY, viewportHeight - rect.height));
         
-        // Aplicar nueva posición
-        self.draggedElement.style.left = newX + 'px';
-        self.draggedElement.style.top = newY + 'px';
+        // Guardar posición pendiente
+        self.pendingX = newX;
+        self.pendingY = newY;
+        
+        // === OPTIMIZACIÓN: requestAnimationFrame para fluidez ===
+        if (!self.rafId) {
+            self.rafId = requestAnimationFrame(function() {
+                if (self.draggedElement) {
+                    self.draggedElement.style.left = self.pendingX + 'px';
+                    self.draggedElement.style.top = self.pendingY + 'px';
+                }
+                self.rafId = null;
+            });
+        }
     };
 
     /**
-     * Handler de mouseup (fin de drag)
+     * Handler de pointerup/pointercancel (fin de drag)
      * @private
      */
-    DraggableVideo.prototype._onMouseUp = function() {
+    DraggableVideo.prototype._onPointerUp = function(e, handle) {
         var self = this;
         
-        if (self.isDragging && self.draggedElement) {
+        if (!self.isDragging) {
+            return;
+        }
+        
+        // Solo procesar el pointer que inició el drag
+        if (e.pointerId !== self.activePointerId) {
+            return;
+        }
+        
+        // Liberar captura
+        if (handle && handle.hasPointerCapture && handle.hasPointerCapture(e.pointerId)) {
+            handle.releasePointerCapture(e.pointerId);
+        }
+        
+        if (self.draggedElement) {
+            self.draggedElement.classList.remove('dragging');
             console.log('[DraggableVideo] Drag finalizado:', self.draggedElement.id);
+        }
+        
+        // Cancelar RAF pendiente
+        if (self.rafId) {
+            cancelAnimationFrame(self.rafId);
+            self.rafId = null;
         }
         
         self.isDragging = false;
         self.draggedElement = null;
+        self.activePointerId = null;
     };
 
     /**
@@ -204,24 +268,27 @@
     DraggableVideo.prototype._bringToFront = function(element) {
         var self = this;
         
-        // Resetear todos los video-window al z-index base
         var allWindows = document.querySelectorAll('.video-window');
         allWindows.forEach(function(win) {
             win.style.zIndex = self.zIndexBase;
         });
         
-        // Traer elemento actual al frente
         element.style.zIndex = self.zIndexActive;
     };
 
     /**
      * Destruye el sistema de arrastre (cleanup)
-     * Remueve todos los event listeners
      */
     DraggableVideo.prototype.destroy = function() {
         var self = this;
         
         console.log('[DraggableVideo] 🧹 Limpiando event listeners...');
+        
+        // Cancelar RAF pendiente
+        if (self.rafId) {
+            cancelAnimationFrame(self.rafId);
+            self.rafId = null;
+        }
         
         self.activeHandlers.forEach(function(handler) {
             if (handler.element && handler.handler) {
@@ -232,6 +299,7 @@
         self.activeHandlers = [];
         self.isDragging = false;
         self.draggedElement = null;
+        self.activePointerId = null;
         
         console.log('[DraggableVideo] ✅ Sistema de arrastre destruido');
     };

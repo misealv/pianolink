@@ -628,7 +628,7 @@ function setupLatencyMonitor() {
     }
 }
 
-// --- GESTIÓN DEL RESIZER (PIZARRA VS PIANO) ---
+// --- GESTIÓN DEL RESIZER (PIZARRA VS PIANO) - POINTER EVENTS ---
 function initResizer() {
     const handle = document.getElementById('resizeHandle');
     const board = document.querySelector('.board-container');
@@ -637,34 +637,73 @@ function initResizer() {
     if (!handle || !board || !container) return;
 
     let isResizing = false;
+    let rafId = null;
+    let pendingHeight = 0;
+    let activePointerId = null;
 
-    handle.addEventListener('mousedown', function(e) {
+    // CSS para touch
+    handle.style.touchAction = 'none';
+
+    handle.addEventListener('pointerdown', function(e) {
         isResizing = true;
+        activePointerId = e.pointerId;
         document.body.style.cursor = 'row-resize';
+        
+        // Capturar pointer
+        handle.setPointerCapture(e.pointerId);
+        
         e.preventDefault();
     });
 
-    window.addEventListener('mousemove', function(e) {
+    handle.addEventListener('pointermove', function(e) {
         if (!isResizing) return;
+        if (e.pointerId !== activePointerId) return;
+        
+        e.preventDefault();
+        
         const containerRect = container.getBoundingClientRect();
         const newHeight = e.clientY - containerRect.top;
         const minSize = 100;
         const maxSize = containerRect.height - minSize;
 
         if (newHeight > minSize && newHeight < maxSize) {
-            const percentage = (newHeight / containerRect.height) * 100;
-            board.style.flex = '0 0 ' + percentage + '%';
-            board.style.height = percentage + '%';
+            pendingHeight = newHeight;
+            
+            // RAF para fluidez
+            if (!rafId) {
+                rafId = requestAnimationFrame(function() {
+                    const percentage = (pendingHeight / container.getBoundingClientRect().height) * 100;
+                    board.style.flex = '0 0 ' + percentage + '%';
+                    board.style.height = percentage + '%';
+                    rafId = null;
+                });
+            }
         }
     });
 
-    window.addEventListener('mouseup', function() {
-        if (isResizing) {
-            isResizing = false;
-            document.body.style.cursor = 'default';
-            window.dispatchEvent(new Event('resize'));
+    const stopResize = function(e) {
+        if (!isResizing) return;
+        if (e.pointerId !== activePointerId) return;
+        
+        // Liberar captura
+        if (handle.hasPointerCapture && handle.hasPointerCapture(e.pointerId)) {
+            handle.releasePointerCapture(e.pointerId);
         }
-    });
+        
+        isResizing = false;
+        activePointerId = null;
+        document.body.style.cursor = 'default';
+        
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+        
+        window.dispatchEvent(new Event('resize'));
+    };
+    
+    handle.addEventListener('pointerup', stopResize);
+    handle.addEventListener('pointercancel', stopResize);
 }
 
 // --- VINCULACIÓN DE HERRAMIENTAS EXTRAS (GOMA) ---

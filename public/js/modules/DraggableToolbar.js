@@ -1,7 +1,16 @@
 /**
  * /public/js/modules/DraggableToolbar.js
- * Sistema draggable para la barra de herramientas de dibujo.
- * Similar a DraggableVideo.js pero optimizado para toolbar vertical.
+ * Sistema draggable HÍBRIDO para la barra de herramientas de dibujo.
+ * 
+ * MIGRACIÓN A POINTER EVENTS - Compatible con tablets (iPad/Android)
+ * 
+ * Técnicas implementadas:
+ * - Pointer Events API: unifica mouse, touch y stylus
+ * - setPointerCapture: mantiene el arrastre aunque el dedo salga del elemento
+ * - touch-action CSS: evita interferencia del scroll nativo
+ * - requestAnimationFrame: fluidez en tablets de 60fps
+ * 
+ * @version 2.0.0 - Pointer Events Migration
  */
 export class DraggableToolbar {
     constructor(toolbarId) {
@@ -11,15 +20,24 @@ export class DraggableToolbar {
             return;
         }
 
-        console.log('[DraggableToolbar] ✅ Toolbar encontrado, inicializando...');
+        console.log('[DraggableToolbar] ✅ Toolbar encontrado, inicializando con Pointer Events...');
         this.isDragging = false;
         this.startX = 0;
         this.startY = 0;
         this.initialLeft = 0;
         this.initialTop = 0;
         
-        this.snapThreshold = 20; // Pixeles desde el borde para activar snap
-        this.snapEnabled = true; // Activado por defecto
+        this.snapThreshold = 20;
+        this.snapEnabled = true;
+        
+        // RAF para optimización
+        this.rafId = null;
+        this.pendingLeft = 0;
+        this.pendingTop = 0;
+        
+        // Pointer tracking
+        this.activePointerId = null;
+        this.dragHandle = null;
         
         this.init();
     }
@@ -27,23 +45,28 @@ export class DraggableToolbar {
     init() {
         // Configurar toolbar
         this.toolbar.style.userSelect = 'none';
+        this.toolbar.style.touchAction = 'none'; // CRÍTICO: evita scroll nativo
+        
+        // Encontrar el header como drag handle
+        this.dragHandle = this.toolbar.querySelector('.toolbar-header');
+        if (this.dragHandle) {
+            this.dragHandle.style.touchAction = 'none';
+        }
         
         // Restaurar posición guardada
         this.loadPosition();
 
-        // Event listeners
-        this.toolbar.addEventListener('mousedown', (e) => this.onMouseDown(e));
-        document.addEventListener('mousemove', (e) => this.onMouseMove(e));
-        document.addEventListener('mouseup', () => this.onMouseUp());
+        // === POINTER EVENTS (unificados) ===
+        this.toolbar.addEventListener('pointerdown', (e) => this.onPointerDown(e));
+        this.toolbar.addEventListener('pointermove', (e) => this.onPointerMove(e));
+        this.toolbar.addEventListener('pointerup', (e) => this.onPointerUp(e));
+        this.toolbar.addEventListener('pointercancel', (e) => this.onPointerUp(e));
         
-        // Touch events para móvil
-        this.toolbar.addEventListener('touchstart', (e) => this.onTouchStart(e));
-        document.addEventListener('touchmove', (e) => this.onTouchMove(e));
-        document.addEventListener('touchend', () => this.onTouchEnd());
+        console.log('[DraggableToolbar] ✅ Pointer Events inicializados (híbrido mouse+touch)');
     }
 
-    onMouseDown(e) {
-        // SIMPLIFICADO: Solo permitir drag desde el header (evita conflictos con submenú)
+    onPointerDown(e) {
+        // Solo permitir drag desde el header
         const isDragHandle = e.target.classList.contains('toolbar-header') || 
                              e.target.classList.contains('toolbar-title') ||
                              e.target.classList.contains('toolbar-drag-hint');
@@ -53,6 +76,7 @@ export class DraggableToolbar {
         }
         
         this.isDragging = true;
+        this.activePointerId = e.pointerId;
         this.startX = e.clientX;
         this.startY = e.clientY;
         
@@ -60,12 +84,24 @@ export class DraggableToolbar {
         this.initialLeft = rect.left;
         this.initialTop = rect.top;
         
-        // NO cambiar cursor - CSS lo maneja con hover
+        // === CAPTURE: Mantener eventos aunque el dedo salga del elemento ===
+        this.toolbar.setPointerCapture(e.pointerId);
+        
+        // Agregar clase visual
+        this.toolbar.classList.add('dragging');
+        
         e.preventDefault();
+        
+        console.log('[DraggableToolbar] Drag iniciado, PointerType:', e.pointerType);
     }
 
-    onMouseMove(e) {
+    onPointerMove(e) {
         if (!this.isDragging) return;
+        
+        // Solo procesar el pointer que inició el drag
+        if (e.pointerId !== this.activePointerId) return;
+        
+        e.preventDefault();
 
         const deltaX = e.clientX - this.startX;
         const deltaY = e.clientY - this.startY;
@@ -73,7 +109,7 @@ export class DraggableToolbar {
         let newLeft = this.initialLeft + deltaX;
         let newTop = this.initialTop + deltaY;
         
-        // Límites del viewport (con margen de seguridad)
+        // Límites del viewport
         const rect = this.toolbar.getBoundingClientRect();
         const maxX = window.innerWidth - rect.width - 10;
         const maxY = window.innerHeight - rect.height - 10;
@@ -81,17 +117,42 @@ export class DraggableToolbar {
         newLeft = Math.max(10, Math.min(newLeft, maxX));
         newTop = Math.max(10, Math.min(newTop, maxY));
         
-        this.toolbar.style.left = newLeft + 'px';
-        this.toolbar.style.top = newTop + 'px';
-        this.toolbar.style.right = 'auto';
-        this.toolbar.style.bottom = 'auto';
+        // Guardar posición pendiente
+        this.pendingLeft = newLeft;
+        this.pendingTop = newTop;
+        
+        // === OPTIMIZACIÓN: requestAnimationFrame para fluidez ===
+        if (!this.rafId) {
+            this.rafId = requestAnimationFrame(() => {
+                this.toolbar.style.left = this.pendingLeft + 'px';
+                this.toolbar.style.top = this.pendingTop + 'px';
+                this.toolbar.style.right = 'auto';
+                this.toolbar.style.bottom = 'auto';
+                this.rafId = null;
+            });
+        }
     }
 
-    onMouseUp() {
+    onPointerUp(e) {
         if (!this.isDragging) return;
         
+        // Solo procesar el pointer que inició el drag
+        if (e.pointerId !== this.activePointerId) return;
+        
+        // Liberar captura
+        if (this.toolbar.hasPointerCapture && this.toolbar.hasPointerCapture(e.pointerId)) {
+            this.toolbar.releasePointerCapture(e.pointerId);
+        }
+        
         this.isDragging = false;
-        // NO cambiar cursor aquí - dejar que CSS maneje el estado normal
+        this.activePointerId = null;
+        this.toolbar.classList.remove('dragging');
+        
+        // Cancelar RAF pendiente
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = null;
+        }
         
         // Aplicar snap si está habilitado
         if (this.snapEnabled) {
@@ -100,63 +161,8 @@ export class DraggableToolbar {
         
         // Guardar posición
         this.savePosition();
-    }
-
-    onTouchStart(e) {
-        // SIMPLIFICADO: Solo permitir drag desde el header
-        const isDragHandle = e.target.classList.contains('toolbar-header') || 
-                             e.target.classList.contains('toolbar-title') ||
-                             e.target.classList.contains('toolbar-drag-hint');
         
-        if (!isDragHandle) {
-            return;
-        }
-        
-        this.isDragging = true;
-        const touch = e.touches[0];
-        this.startX = touch.clientX;
-        this.startY = touch.clientY;
-        
-        const rect = this.toolbar.getBoundingClientRect();
-        this.initialLeft = rect.left;
-        this.initialTop = rect.top;
-        
-        e.preventDefault();
-    }
-
-    onTouchMove(e) {
-        if (!this.isDragging) return;
-        
-        const touch = e.touches[0];
-        const deltaX = touch.clientX - this.startX;
-        const deltaY = touch.clientY - this.startY;
-        
-        let newLeft = this.initialLeft + deltaX;
-        let newTop = this.initialTop + deltaY;
-        
-        const rect = this.toolbar.getBoundingClientRect();
-        const maxX = window.innerWidth - rect.width;
-        const maxY = window.innerHeight - rect.height;
-        
-        newLeft = Math.max(0, Math.min(newLeft, maxX));
-        newTop = Math.max(0, Math.min(newTop, maxY));
-        
-        this.toolbar.style.left = newLeft + 'px';
-        this.toolbar.style.top = newTop + 'px';
-        this.toolbar.style.right = 'auto';
-        this.toolbar.style.bottom = 'auto';
-    }
-
-    onTouchEnd() {
-        if (!this.isDragging) return;
-        
-        this.isDragging = false;
-        
-        if (this.snapEnabled) {
-            this.applySnap();
-        }
-        
-        this.savePosition();
+        console.log('[DraggableToolbar] Drag finalizado');
     }
 
     applySnap() {
@@ -172,7 +178,6 @@ export class DraggableToolbar {
             this.toolbar.style.right = 'auto';
             snapped = true;
         }
-        
         // Snap a derecha
         else if ((viewportWidth - rect.right) < this.snapThreshold) {
             this.toolbar.style.right = '10px';
@@ -186,7 +191,6 @@ export class DraggableToolbar {
             this.toolbar.style.bottom = 'auto';
             snapped = true;
         }
-        
         // Snap a abajo
         else if ((viewportHeight - rect.bottom) < this.snapThreshold) {
             this.toolbar.style.bottom = '10px';
@@ -220,7 +224,7 @@ export class DraggableToolbar {
                 if (position.bottom && position.bottom !== 'auto') this.toolbar.style.bottom = position.bottom;
                 console.log('[DraggableToolbar] ✅ Posición restaurada:', position);
                 
-                // NUEVO: Verificar que esté visible en viewport
+                // Verificar que esté visible en viewport
                 setTimeout(() => this.ensureVisible(), 100);
             } catch (e) {
                 console.warn('[DraggableToolbar] Error restaurando posición:', e);
@@ -254,5 +258,13 @@ export class DraggableToolbar {
     setSnapEnabled(enabled) {
         this.snapEnabled = enabled;
         console.log(`[DraggableToolbar] Snap ${enabled ? 'activado' : 'desactivado'}`);
+    }
+    
+    destroy() {
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = null;
+        }
+        console.log('[DraggableToolbar] 🧹 Destruido');
     }
 }
