@@ -371,6 +371,43 @@
             </div>
         </div>
 
+        <!-- Modal de Edición de Lead -->
+        <div id="editLeadModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:9999; backdrop-filter:blur(10px);">
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; border:2px solid #ff6600; border-radius:12px; padding:30px; width:90%; max-width:600px; max-height:80vh; overflow-y:auto; box-shadow:0 20px 60px rgba(255,102,0,0.3);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="color:#ff6600; margin:0; font-size:20px;">✏️ Editar Lead</h3>
+                    <button onclick="closeEditLeadModal()" style="background:none; border:none; color:#ff6600; font-size:28px; cursor:pointer; line-height:1;" title="Cerrar">×</button>
+                </div>
+                
+                <div style="display:flex; flex-direction:column; gap:15px;">
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Nombre Completo:</label>
+                        <input type="text" id="editLeadName" style="width:100%; padding:10px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Email:</label>
+                        <input type="email" id="editLeadEmail" style="width:100%; padding:10px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">WhatsApp:</label>
+                        <input type="text" id="editLeadWhatsApp" style="width:100%; padding:10px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">¿Por qué quiere ser Profesor Fundador?</label>
+                        <textarea id="editLeadBackground" rows="6" style="width:100%; padding:10px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
+                    </div>
+                </div>
+                
+                <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:20px; padding-top:15px; border-top:1px solid #333;">
+                    <button onclick="closeEditLeadModal()" style="padding:10px 20px; background:#333; border:none; border-radius:6px; color:#aaa; cursor:pointer; font-size:14px;">Cancelar</button>
+                    <button onclick="saveEditedLead()" style="padding:10px 20px; background:#ff6600; border:none; border-radius:6px; color:#fff; font-weight:600; cursor:pointer; font-size:14px;">💾 Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+
         <div id="view-platform" class="view-section">
             <h2 style="color:#5dade2; border-bottom-color:#5dade2;">🏢 Identidad Global (Piano Link)</h2>
             <p style="font-size:12px; color:#aaa; margin-bottom:20px;">
@@ -740,8 +777,10 @@
                 <td style="color:#888; font-size:12px;">${date}</td>
                 <td>
                     <button onclick="viewApplication('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Ver postulación completa">📋</button>
+                    <button onclick="editLead('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Editar lead">✏️</button>
                     <button onclick="updateLeadStatus('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Cambiar estado">🔄</button>
                     <button onclick="viewLeadNotes('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Ver notas">📝</button>
+                    <button onclick="deleteLead('${lead._id}', '${lead.name.replace(/'/g, "\\'")}')" style="cursor:pointer; background:none; border:none; font-size:16px; color:#ff4444;" title="Eliminar lead">🗑️</button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -1138,6 +1177,91 @@
             }
         }
     });
+
+    // =============================================
+    // EDITAR LEAD
+    // =============================================
+    let currentEditLeadId = null;
+
+    function editLead(leadId) {
+        const lead = allLeadsData.find(l => l._id === leadId);
+        if (!lead) return;
+        
+        currentEditLeadId = leadId;
+        document.getElementById('editLeadName').value = lead.name;
+        document.getElementById('editLeadEmail').value = lead.email;
+        document.getElementById('editLeadWhatsApp').value = lead.whatsapp;
+        document.getElementById('editLeadBackground').value = lead.background || '';
+        
+        document.getElementById('editLeadModal').style.display = 'block';
+    }
+
+    function closeEditLeadModal() {
+        document.getElementById('editLeadModal').style.display = 'none';
+        currentEditLeadId = null;
+    }
+
+    async function saveEditedLead() {
+        if (!currentEditLeadId) return;
+        
+        const name = document.getElementById('editLeadName').value.trim();
+        const email = document.getElementById('editLeadEmail').value.trim();
+        const whatsapp = document.getElementById('editLeadWhatsApp').value.trim();
+        const background = document.getElementById('editLeadBackground').value.trim();
+        
+        if (!name || !email || !whatsapp) {
+            alert('⚠️ Por favor completa todos los campos obligatorios');
+            return;
+        }
+        
+        try {
+            const res = await fetch(`/api/leads/${currentEditLeadId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, whatsapp, background })
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                closeEditLeadModal();
+                loadLeads();
+                showNotification('✅ Lead actualizado exitosamente', 'success');
+            } else {
+                alert('❌ Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error actualizando lead:', error);
+            alert('❌ Error de conexión');
+        }
+    }
+
+    // =============================================
+    // ELIMINAR LEAD
+    // =============================================
+    async function deleteLead(leadId, leadName) {
+        if (!confirm(`⚠️ ¿Estás seguro de eliminar a "${leadName}"?\n\nEsta acción NO se puede deshacer.`)) {
+            return;
+        }
+        
+        try {
+            const res = await fetch(`/api/leads/${leadId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                loadLeads();
+                showNotification('🗑️ Lead eliminado exitosamente', 'success');
+            } else {
+                alert('❌ Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error eliminando lead:', error);
+            alert('❌ Error de conexión');
+        }
+    }
 
     // Cerrar modales con ESC
     document.addEventListener('keydown', (e) => {

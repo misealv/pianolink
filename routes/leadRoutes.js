@@ -244,4 +244,104 @@ router.patch('/:id/status', async (req, res) => {
     }
 });
 
+/**
+ * PATCH /api/leads/:id
+ * Edita los datos de un lead
+ */
+router.patch('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, whatsapp, background } = req.body;
+        
+        // Validación
+        if (!name || !email || !whatsapp) {
+            return res.status(400).json({
+                success: false,
+                message: 'Nombre, email y whatsapp son requeridos'
+            });
+        }
+        
+        // Verificar si el nuevo email ya existe en otro lead
+        if (email) {
+            const existingLead = await Lead.findOne({ 
+                email: email.toLowerCase(),
+                _id: { $ne: id }
+            });
+            
+            if (existingLead) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Ya existe otro lead con ese email'
+                });
+            }
+        }
+        
+        const lead = await Lead.findByIdAndUpdate(
+            id,
+            {
+                name: name.trim(),
+                email: email.toLowerCase().trim(),
+                whatsapp: whatsapp.trim(),
+                background: background ? background.trim() : ''
+            },
+            { new: true, runValidators: true }
+        );
+        
+        if (!lead) {
+            return res.status(404).json({
+                success: false,
+                message: 'Lead no encontrado'
+            });
+        }
+        
+        console.log(`[Lead] ✏️ Lead editado: ${lead.email}`);
+        
+        res.json({
+            success: true,
+            message: 'Lead actualizado correctamente',
+            lead
+        });
+        
+    } catch (error) {
+        console.error('[Lead] Error editando:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al editar lead'
+        });
+    }
+});
+
+/**
+ * DELETE /api/leads/:id
+ * Elimina un lead por ID
+ */
+router.delete('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const lead = await Lead.findByIdAndDelete(id);
+        
+        if (!lead) {
+            return res.status(404).json({
+                success: false,
+                message: 'Lead no encontrado'
+            });
+        }
+        
+        console.log(`[Lead] 🗑️ Lead eliminado: ${lead.email}`);
+        
+        res.json({
+            success: true,
+            message: 'Lead eliminado correctamente'
+        });
+        
+    } catch (error) {
+        console.error('[Lead] Error eliminando:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al eliminar lead'
+        });
+    }
+});
+
 module.exports = router;
