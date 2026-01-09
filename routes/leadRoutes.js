@@ -110,4 +110,137 @@ router.get('/stats', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/leads/export
+ * Exporta todos los leads con stats para Excel/CSV
+ */
+router.get('/export', async (req, res) => {
+    try {
+        // Obtener estadísticas
+        const statsData = await Lead.aggregate([
+            {
+                $group: {
+                    _id: '$status',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const stats = {
+            new: 0,
+            contacted: 0,
+            qualified: 0,
+            converted: 0,
+            rejected: 0
+        };
+
+        statsData.forEach(stat => {
+            stats[stat._id] = stat.count;
+        });
+
+        // Obtener todos los leads
+        const leads = await Lead.find()
+            .select('name email whatsapp status source utmSource utmMedium utmCampaign notes createdAt contactedAt convertedAt')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        console.log(`[Lead] 📊 Exportando ${leads.length} leads`);
+
+        res.json({
+            success: true,
+            stats,
+            leads,
+            total: leads.length
+        });
+
+    } catch (error) {
+        console.error('[Lead] Error exportando leads:', error);
+        res.status(500).json({ success: false, message: 'Error al exportar' });
+    }
+});
+
+/**
+ * PATCH /api/leads/:id/notes
+ * Actualiza las notas de un lead
+ */
+router.patch('/:id/notes', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { notes } = req.body;
+
+        const lead = await Lead.findById(id);
+        if (!lead) {
+            return res.status(404).json({
+                success: false,
+                message: 'Lead no encontrado'
+            });
+        }
+
+        lead.notes = notes;
+        await lead.save();
+
+        console.log(`[Lead] 📝 Notas actualizadas: ${lead.email}`);
+
+        res.json({
+            success: true,
+            message: 'Notas actualizadas',
+            lead
+        });
+
+    } catch (error) {
+        console.error('[Lead] Error actualizando notas:', error);
+        res.status(500).json({ success: false, message: 'Error al actualizar' });
+    }
+});
+
+/**
+ * PATCH /api/leads/:id/status
+ * Actualiza el estado de un lead
+ */
+router.patch('/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const validStatuses = ['new', 'contacted', 'qualified', 'converted', 'rejected'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Estado inválido'
+            });
+        }
+
+        const lead = await Lead.findById(id);
+        if (!lead) {
+            return res.status(404).json({
+                success: false,
+                message: 'Lead no encontrado'
+            });
+        }
+
+        // Actualizar timestamps según estado
+        if (status === 'contacted' && !lead.contactedAt) {
+            lead.contactedAt = new Date();
+        }
+        if (status === 'converted' && !lead.convertedAt) {
+            lead.convertedAt = new Date();
+        }
+
+        lead.status = status;
+        await lead.save();
+
+        console.log(`[Lead] ✅ ${lead.email} → ${status}`);
+
+        res.json({
+            success: true,
+            message: 'Estado actualizado',
+            lead
+        });
+
+    } catch (error) {
+        console.error('[Lead] Error actualizando estado:', error);
+        res.status(500).json({ success: false, message: 'Error al actualizar' });
+    }
+});
+
 module.exports = router;

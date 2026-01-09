@@ -75,6 +75,47 @@
     .modal-content { background: #202020; padding: 25px; border-radius: 8px; width: 400px; border: 1px solid #444; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     .modal-content h3 { margin-top: 0; color: #ff764d; }
     .modal-content textarea { width: 100%; height: 100px; margin: 10px 0; resize: none; background: #111; color: white; border: 1px solid #444; padding: 10px; }
+    
+    /* Leads Section Styles */
+    .filter-btn { 
+      padding: 8px 16px; background: transparent; border: 1px solid #444; 
+      border-radius: 6px; color: #aaa; cursor: pointer; font-size: 12px; 
+      transition: 0.2s; font-weight: 600;
+    }
+    .filter-btn.active { 
+      background: #ff6600; border-color: #ff6600; color: #000; 
+    }
+    .filter-btn:hover:not(.active) { 
+      border-color: #ff6600; color: #ff6600; 
+    }
+    .status-badge { 
+      display: inline-block; padding: 4px 12px; border-radius: 20px; 
+      font-size: 10px; font-weight: 700; text-transform: uppercase; 
+      letter-spacing: 0.5px;
+    }
+    .status-new { background: rgba(0, 255, 136, 0.15); color: #00ff88; border: 1px solid #00ff88; }
+    .status-contacted { background: rgba(255, 170, 0, 0.15); color: #ffaa00; border: 1px solid #ffaa00; }
+    .status-qualified { background: rgba(0, 170, 255, 0.15); color: #00aaff; border: 1px solid #00aaff; }
+    .status-converted { background: rgba(255, 102, 0, 0.15); color: #ff6600; border: 1px solid #ff6600; }
+    .status-rejected { background: rgba(255, 68, 68, 0.15); color: #ff4444; border: 1px solid #ff4444; }
+    .whatsapp-link { 
+      color: #25d366; font-weight: 600; text-decoration: none; 
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .whatsapp-link:hover { text-decoration: underline; }
+    .status-option:hover {
+      border-color: #ff6600 !important;
+      background: #1a1a1a !important;
+      transform: translateX(4px);
+    }
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(400px); opacity: 0; }
+    }
   </style>
 </head>
 <body>
@@ -83,6 +124,9 @@
     <div class="brand">🎹 Super Admin</div>
     <div style="display:flex; align-items:center;">
         <button class="nav-btn active" onclick="switchView('teachers')" id="btnTeachers">👨‍🏫 Profesores</button>
+        <button class="nav-btn" onclick="switchView('leads')" id="btnLeads" style="border-color:#ff6600; color:#ff6600;">
+            🎯 Leads <span id="leadsBadge" class="badge-count" style="background:#ff6600;">0</span>
+        </button>
         <button class="nav-btn" onclick="switchView('feedback')" id="btnFeedback">
             📨 Buzón <span id="msgBadge" class="badge-count">0</span>
         </button>
@@ -141,6 +185,142 @@
                         <textarea id="replyInput" placeholder="Respuesta..."></textarea>
                         <button class="btn-send" onclick="sendReply()">Enviar</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- SECCIÓN LEADS (NUEVA) -->
+        <!-- ============================================ -->
+        <div id="view-leads" class="view-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="color:#ff6600;">🎯 Sistema de Captación de Leads</h2>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="loadLeads()" style="background:transparent; border:none; color:#888; cursor:pointer; font-size:11px;">↻ Recargar</button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:25px;">
+                <div style="background:#202020; border:1px solid #333; border-left:4px solid #00ff88; padding:20px; border-radius:8px;">
+                    <div style="font-size:10px; color:#888; text-transform:uppercase; margin-bottom:8px;">Nuevos</div>
+                    <div style="font-size:32px; font-weight:bold; color:#00ff88;" id="statNew">0</div>
+                </div>
+                <div style="background:#202020; border:1px solid #333; border-left:4px solid #ffaa00; padding:20px; border-radius:8px;">
+                    <div style="font-size:10px; color:#888; text-transform:uppercase; margin-bottom:8px;">Contactados</div>
+                    <div style="font-size:32px; font-weight:bold; color:#ffaa00;" id="statContacted">0</div>
+                </div>
+                <div style="background:#202020; border:1px solid #333; border-left:4px solid #00aaff; padding:20px; border-radius:8px;">
+                    <div style="font-size:10px; color:#888; text-transform:uppercase; margin-bottom:8px;">Calificados</div>
+                    <div style="font-size:32px; font-weight:bold; color:#00aaff;" id="statQualified">0</div>
+                </div>
+                <div style="background:#202020; border:1px solid #333; border-left:4px solid #ff6600; padding:20px; border-radius:8px;">
+                    <div style="font-size:10px; color:#888; text-transform:uppercase; margin-bottom:8px;">Convertidos</div>
+                    <div style="font-size:32px; font-weight:bold; color:#ff6600;" id="statConverted">0</div>
+                </div>
+            </div>
+
+            <!-- Filtros y Exportación -->
+            <div style="background:#202020; border:1px solid #454545; border-radius:8px; padding:20px; margin-bottom:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="filter-btn active" onclick="filterLeads('all')" id="filterAll">Todos</button>
+                        <button class="filter-btn" onclick="filterLeads('new')" id="filterNew">Nuevos</button>
+                        <button class="filter-btn" onclick="filterLeads('contacted')" id="filterContacted">Contactados</button>
+                        <button class="filter-btn" onclick="filterLeads('qualified')" id="filterQualified">Calificados</button>
+                        <button class="filter-btn" onclick="filterLeads('converted')" id="filterConverted">Convertidos</button>
+                    </div>
+                    
+                    <div style="position:relative;">
+                        <button onclick="toggleExportMenu()" style="padding:10px 20px; background:#ff6600; border:none; color:#000; font-weight:bold; cursor:pointer; border-radius:6px; display:flex; align-items:center; gap:8px;">
+                            <span>📊 Exportar Leads</span>
+                            <span style="font-size:10px;">▼</span>
+                        </button>
+                        <div id="exportMenu" style="display:none; position:absolute; right:0; top:45px; background:#111; border:1px solid #444; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.5); z-index:100; min-width:180px;">
+                            <button onclick="exportToExcel()" style="width:100%; padding:12px 16px; background:transparent; border:none; color:#fff; cursor:pointer; text-align:left; display:flex; align-items:center; gap:10px; border-radius:8px 8px 0 0;">
+                                <span style="font-size:18px;">📗</span>
+                                <span style="font-size:13px;">Excel (.xlsx)</span>
+                            </button>
+                            <button onclick="exportToCSV()" style="width:100%; padding:12px 16px; background:transparent; border:none; color:#fff; cursor:pointer; text-align:left; display:flex; align-items:center; gap:10px; border-radius:0 0 8px 8px; border-top:1px solid #333;">
+                                <span style="font-size:18px;">📄</span>
+                                <span style="font-size:13px;">CSV (.csv)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Buscador -->
+                <div style="margin-top:15px;">
+                    <input type="text" id="searchLeads" placeholder="🔍 Buscar por nombre, email o teléfono..." style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; color:white; border-radius:6px; font-size:13px;" oninput="searchLeadsTable()">
+                </div>
+            </div>
+
+            <!-- Tabla de Leads -->
+            <div style="background:#202020; border:1px solid #454545; border-radius:8px; overflow:hidden;">
+                <table id="leadsTable" style="width:100%;">
+                    <thead style="background:#151515;">
+                        <tr>
+                            <th style="padding:16px; font-size:11px; color:#888; text-transform:uppercase;">Nombre</th>
+                            <th>Email</th>
+                            <th>WhatsApp</th>
+                            <th>Estado</th>
+                            <th>Origen</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadsTableBody">
+                        <tr><td colspan="7" style="text-align:center; padding:40px; color:#666;">Cargando leads...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modal de Notas -->
+        <div id="notesModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); z-index:9999; backdrop-filter:blur(10px);">
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; border:2px solid #ff6600; border-radius:12px; padding:30px; width:90%; max-width:600px; box-shadow:0 20px 60px rgba(255,102,0,0.3);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="color:#ff6600; margin:0; font-size:20px;">📝 Notas del Lead</h3>
+                    <button onclick="closeNotesModal()" style="background:none; border:none; color:#ff6600; font-size:28px; cursor:pointer; line-height:1;" title="Cerrar">×</button>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Nombre:</label>
+                    <div id="modalLeadName" style="color:#fff; font-size:16px; font-weight:600; padding:10px; background:#0a0a0a; border-radius:6px;"></div>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label for="modalNotes" style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Notas de seguimiento:</label>
+                    <textarea id="modalNotes" rows="8" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px; resize:vertical;" placeholder="Agrega notas sobre el seguimiento, intereses específicos, fechas de contacto, etc."></textarea>
+                </div>
+                <div style="display:flex; gap:12px; justify-content:flex-end;">
+                    <button onclick="closeNotesModal()" style="padding:10px 20px; background:#333; border:none; border-radius:6px; color:#aaa; cursor:pointer; font-size:14px;">Cancelar</button>
+                    <button onclick="saveLeadNotes()" style="padding:10px 20px; background:#ff6600; border:none; border-radius:6px; color:#fff; cursor:pointer; font-size:14px; font-weight:600;">💾 Guardar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Cambio de Estado -->
+        <div id="statusModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); z-index:9999; backdrop-filter:blur(10px);">
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; border:2px solid #ff6600; border-radius:12px; padding:30px; width:90%; max-width:500px; box-shadow:0 20px 60px rgba(255,102,0,0.3);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="color:#ff6600; margin:0; font-size:20px;">🔄 Cambiar Estado</h3>
+                    <button onclick="closeStatusModal()" style="background:none; border:none; color:#ff6600; font-size:28px; cursor:pointer; line-height:1;" title="Cerrar">×</button>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Lead:</label>
+                    <div id="modalLeadNameStatus" style="color:#fff; font-size:16px; font-weight:600; padding:10px; background:#0a0a0a; border-radius:6px;"></div>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; color:#aaa; font-size:13px; margin-bottom:12px;">Nuevo estado:</label>
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <button onclick="confirmStatusChange('new')" class="status-option" data-status="new" style="padding:14px; background:#0a0a0a; border:2px solid #444; border-radius:8px; color:#fff; cursor:pointer; text-align:left; font-size:14px; transition:all 0.2s;">🆕 <strong>Nuevo</strong> - Lead recién registrado</button>
+                        <button onclick="confirmStatusChange('contacted')" class="status-option" data-status="contacted" style="padding:14px; background:#0a0a0a; border:2px solid #444; border-radius:8px; color:#fff; cursor:pointer; text-align:left; font-size:14px; transition:all 0.2s;">📞 <strong>Contactado</strong> - Ya se inició conversación</button>
+                        <button onclick="confirmStatusChange('qualified')" class="status-option" data-status="qualified" style="padding:14px; background:#0a0a0a; border:2px solid #444; border-radius:8px; color:#fff; cursor:pointer; text-align:left; font-size:14px; transition:all 0.2s;">⭐ <strong>Calificado</strong> - Lead con potencial confirmado</button>
+                        <button onclick="confirmStatusChange('converted')" class="status-option" data-status="converted" style="padding:14px; background:#0a0a0a; border:2px solid #00ff88; border-radius:8px; color:#fff; cursor:pointer; text-align:left; font-size:14px; transition:all 0.2s;">✅ <strong>Convertido</strong> - Ahora es profesor activo</button>
+                        <button onclick="confirmStatusChange('rejected')" class="status-option" data-status="rejected" style="padding:14px; background:#0a0a0a; border:2px solid #ff4444; border-radius:8px; color:#fff; cursor:pointer; text-align:left; font-size:14px; transition:all 0.2s;">❌ <strong>Rechazado</strong> - No continuará el proceso</button>
+                    </div>
+                </div>
+                <div style="display:flex; gap:12px; justify-content:flex-end;">
+                    <button onclick="closeStatusModal()" style="padding:10px 20px; background:#333; border:none; border-radius:6px; color:#aaa; cursor:pointer; font-size:14px;">Cancelar</button>
                 </div>
             </div>
         </div>
@@ -222,6 +402,9 @@
         if(viewName === 'teachers') {
             document.getElementById('btnTeachers').classList.add('active');
             loadTeachers();
+        } else if (viewName === 'leads') {
+            document.getElementById('btnLeads').classList.add('active');
+            loadLeads();
         } else if (viewName === 'feedback') {
             document.getElementById('btnFeedback').classList.add('active');
             loadChatSystem(); 
@@ -428,6 +611,425 @@
             btn.disabled=false;
         });
     }
+
+    // =============================================
+    // LEADS MANAGEMENT SYSTEM
+    // =============================================
+    let allLeadsData = [];
+    let currentFilter = 'all';
+
+    async function loadLeads() {
+        try {
+            const res = await fetch('/api/leads/export');
+            const data = await res.json();
+            allLeadsData = data.leads || [];
+            
+            // Actualizar estadísticas
+            document.getElementById('statNew').textContent = data.stats.new || 0;
+            document.getElementById('statContacted').textContent = data.stats.contacted || 0;
+            document.getElementById('statQualified').textContent = data.stats.qualified || 0;
+            document.getElementById('statConverted').textContent = data.stats.converted || 0;
+            
+            // Actualizar badge
+            const newCount = data.stats.new || 0;
+            const badge = document.getElementById('leadsBadge');
+            if (newCount > 0) {
+                badge.textContent = newCount;
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+            
+            // Renderizar tabla
+            renderLeadsTable(allLeadsData);
+        } catch (error) {
+            console.error('Error loading leads:', error);
+            document.getElementById('leadsTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:#ff4444;">Error al cargar leads</td></tr>';
+        }
+    }
+
+    function renderLeadsTable(leads) {
+        const tbody = document.getElementById('leadsTableBody');
+        
+        if (leads.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:#666;">No hay leads registrados</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        leads.forEach(lead => {
+            const statusClass = `status-${lead.status}`;
+            const statusText = {
+                'new': 'Nuevo',
+                'contacted': 'Contactado',
+                'qualified': 'Calificado',
+                'converted': 'Convertido',
+                'rejected': 'Rechazado'
+            }[lead.status] || lead.status;
+            
+            const source = lead.utmSource || lead.source || 'landing';
+            const date = new Date(lead.createdAt).toLocaleDateString('es-ES', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric' 
+            });
+            
+            // Formatear WhatsApp para link
+            const whatsappClean = lead.whatsapp.replace(/[^\d]/g, '');
+            const whatsappMsg = encodeURIComponent(`Hola ${lead.name.split(' ')[0]}, te escribo desde Piano Link para darte la bienvenida como Profesor Fundador. ¿Tienes un momento para conversar?`);
+            const whatsappLink = `https://wa.me/${whatsappClean}?text=${whatsappMsg}`;
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight:600; color:#fff;">${lead.name}</td>
+                <td style="color:#aaa; font-size:12px;">${lead.email}</td>
+                <td>
+                    <a href="${whatsappLink}" target="_blank" class="whatsapp-link">
+                        <span>📱</span>
+                        <span>${lead.whatsapp}</span>
+                    </a>
+                </td>
+                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                <td style="color:#888; font-size:11px; text-transform:uppercase;">${source}</td>
+                <td style="color:#888; font-size:12px;">${date}</td>
+                <td>
+                    <button onclick="updateLeadStatus('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Cambiar estado">🔄</button>
+                    <button onclick="viewLeadNotes('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Ver notas">📝</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filterLeads(status) {
+        currentFilter = status;
+        
+        // Actualizar botones
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`filter${status.charAt(0).toUpperCase() + status.slice(1)}`).classList.add('active');
+        
+        // Filtrar datos
+        let filtered = allLeadsData;
+        if (status !== 'all') {
+            filtered = allLeadsData.filter(lead => lead.status === status);
+        }
+        
+        renderLeadsTable(filtered);
+    }
+
+    function searchLeadsTable() {
+        const query = document.getElementById('searchLeads').value.toLowerCase();
+        
+        let filtered = currentFilter === 'all' 
+            ? allLeadsData 
+            : allLeadsData.filter(lead => lead.status === currentFilter);
+        
+        if (query) {
+            filtered = filtered.filter(lead => 
+                lead.name.toLowerCase().includes(query) ||
+                lead.email.toLowerCase().includes(query) ||
+                lead.whatsapp.includes(query)
+            );
+        }
+        
+        renderLeadsTable(filtered);
+    }
+
+    function toggleExportMenu() {
+        const menu = document.getElementById('exportMenu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        
+        // Cerrar al hacer click fuera
+        if (menu.style.display === 'block') {
+            setTimeout(() => {
+                document.addEventListener('click', function closeMenu(e) {
+                    if (!e.target.closest('#exportMenu') && !e.target.closest('button[onclick="toggleExportMenu()"]')) {
+                        menu.style.display = 'none';
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            }, 100);
+        }
+    }
+
+    // =============================================
+    // EXPORTACIÓN A EXCEL
+    // =============================================
+    async function exportToExcel() {
+        try {
+            // Obtener leads filtrados
+            let filtered = currentFilter === 'all' 
+                ? allLeadsData 
+                : allLeadsData.filter(lead => lead.status === currentFilter);
+            
+            const query = document.getElementById('searchLeads').value.toLowerCase();
+            if (query) {
+                filtered = filtered.filter(lead => 
+                    lead.name.toLowerCase().includes(query) ||
+                    lead.email.toLowerCase().includes(query) ||
+                    lead.whatsapp.includes(query)
+                );
+            }
+            
+            if (filtered.length === 0) {
+                alert('No hay leads para exportar con los filtros actuales');
+                return;
+            }
+            
+            // Cargar librería XLSX desde CDN
+            if (!window.XLSX) {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js';
+                document.head.appendChild(script);
+                await new Promise((resolve) => { script.onload = resolve; });
+            }
+            
+            // Preparar datos
+            const data = filtered.map(lead => ({
+                'Nombre': lead.name,
+                'Email': lead.email,
+                'WhatsApp': lead.whatsapp,
+                'Estado': lead.status,
+                'Origen': lead.utmSource || lead.source || 'landing',
+                'UTM Medium': lead.utmMedium || '',
+                'UTM Campaign': lead.utmCampaign || '',
+                'Notas': lead.notes || '',
+                'Fecha Registro': new Date(lead.createdAt).toLocaleString('es-ES'),
+                'Fecha Contacto': lead.contactedAt ? new Date(lead.contactedAt).toLocaleString('es-ES') : ''
+            }));
+            
+            // Crear workbook
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+            
+            // Descargar
+            const fecha = new Date().toISOString().split('T')[0];
+            const filename = `Leads_PianoLink_${fecha}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            
+            toggleExportMenu();
+            console.log(`✅ Exportados ${filtered.length} leads a Excel`);
+        } catch (error) {
+            console.error('Error exportando a Excel:', error);
+            alert('Error al exportar. Verifica la consola.');
+        }
+    }
+
+    // =============================================
+    // EXPORTACIÓN A CSV
+    // =============================================
+    function exportToCSV() {
+        try {
+            // Obtener leads filtrados
+            let filtered = currentFilter === 'all' 
+                ? allLeadsData 
+                : allLeadsData.filter(lead => lead.status === currentFilter);
+            
+            const query = document.getElementById('searchLeads').value.toLowerCase();
+            if (query) {
+                filtered = filtered.filter(lead => 
+                    lead.name.toLowerCase().includes(query) ||
+                    lead.email.toLowerCase().includes(query) ||
+                    lead.whatsapp.includes(query)
+                );
+            }
+            
+            if (filtered.length === 0) {
+                alert('No hay leads para exportar con los filtros actuales');
+                return;
+            }
+            
+            // Headers CSV
+            const headers = ['Nombre', 'Email', 'WhatsApp', 'Estado', 'Origen', 'UTM Medium', 'UTM Campaign', 'Notas', 'Fecha Registro', 'Fecha Contacto'];
+            
+            // Construir CSV
+            let csv = headers.join(',') + '\n';
+            filtered.forEach(lead => {
+                const row = [
+                    `"${lead.name}"`,
+                    `"${lead.email}"`,
+                    `"${lead.whatsapp}"`,
+                    lead.status,
+                    lead.utmSource || lead.source || 'landing',
+                    lead.utmMedium || '',
+                    lead.utmCampaign || '',
+                    `"${(lead.notes || '').replace(/"/g, '""')}"`,
+                    new Date(lead.createdAt).toLocaleString('es-ES'),
+                    lead.contactedAt ? new Date(lead.contactedAt).toLocaleString('es-ES') : ''
+                ];
+                csv += row.join(',') + '\n';
+            });
+            
+            // Descargar
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const fecha = new Date().toISOString().split('T')[0];
+            link.download = `Leads_PianoLink_${fecha}.csv`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            
+            toggleExportMenu();
+            console.log(`✅ Exportados ${filtered.length} leads a CSV`);
+        } catch (error) {
+            console.error('Error exportando a CSV:', error);
+            alert('Error al exportar CSV');
+        }
+    }
+
+    // =============================================
+    // MODAL DE NOTAS
+    // =============================================
+    let currentLeadId = null;
+
+    function viewLeadNotes(leadId) {
+        const lead = allLeadsData.find(l => l._id === leadId);
+        if (!lead) return;
+        
+        currentLeadId = leadId;
+        document.getElementById('modalLeadName').textContent = lead.name;
+        document.getElementById('modalNotes').value = lead.notes || '';
+        document.getElementById('notesModal').style.display = 'block';
+    }
+
+    function closeNotesModal() {
+        document.getElementById('notesModal').style.display = 'none';
+        currentLeadId = null;
+    }
+
+    async function saveLeadNotes() {
+        if (!currentLeadId) return;
+        
+        const notes = document.getElementById('modalNotes').value.trim();
+        
+        try {
+            const res = await fetch(`/api/leads/${currentLeadId}/notes`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes })
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                // Actualizar en el array local
+                const lead = allLeadsData.find(l => l._id === currentLeadId);
+                if (lead) lead.notes = notes;
+                
+                closeNotesModal();
+                console.log('✅ Notas guardadas');
+                
+                // Mostrar notificación temporal
+                showNotification('💾 Notas guardadas exitosamente', 'success');
+            } else {
+                alert('❌ Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error guardando notas:', error);
+            alert('❌ Error de conexión');
+        }
+    }
+
+    // =============================================
+    // MODAL DE CAMBIO DE ESTADO
+    // =============================================
+    let currentStatusLeadId = null;
+
+    function updateLeadStatus(leadId) {
+        const lead = allLeadsData.find(l => l._id === leadId);
+        if (!lead) return;
+        
+        currentStatusLeadId = leadId;
+        document.getElementById('modalLeadNameStatus').textContent = `${lead.name} (${lead.email})`;
+        document.getElementById('statusModal').style.display = 'block';
+    }
+
+    function closeStatusModal() {
+        document.getElementById('statusModal').style.display = 'none';
+        currentStatusLeadId = null;
+    }
+
+    async function confirmStatusChange(newStatus) {
+        if (!currentStatusLeadId) return;
+        
+        const lead = allLeadsData.find(l => l._id === currentStatusLeadId);
+        if (!lead) return;
+        
+        // Confirmación para cambios críticos
+        if (newStatus === 'converted') {
+            if (!confirm(`⚠️ ¿Confirmas que ${lead.name} es ahora un Profesor Activo?\n\nEsto marcará el lead como CONVERTIDO.`)) {
+                return;
+            }
+        } else if (newStatus === 'rejected') {
+            if (!confirm(`⚠️ ¿Confirmas que ${lead.name} NO continuará el proceso?\n\nEsto marcará el lead como RECHAZADO.`)) {
+                return;
+            }
+        }
+        
+        try {
+            const res = await fetch(`/api/leads/${currentStatusLeadId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                closeStatusModal();
+                loadLeads(); // Recargar toda la tabla
+                showNotification(`✅ Estado actualizado: ${newStatus}`, 'success');
+            } else {
+                alert('❌ Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error actualizando estado:', error);
+            alert('❌ Error de conexión');
+        }
+    }
+
+    // =============================================
+    // SISTEMA DE NOTIFICACIONES
+    // =============================================
+    function showNotification(message, type = 'info') {
+        const colors = {
+            success: '#00ff88',
+            error: '#ff4444',
+            info: '#ff6600'
+        };
+        
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a1a1a;
+            color: ${colors[type]};
+            border: 2px solid ${colors[type]};
+            border-radius: 8px;
+            padding: 16px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 10000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: slideIn 0.3s ease;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    // Cerrar modales con ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeNotesModal();
+            closeStatusModal();
+        }
+    });
 
     // Init
     loadTeachers();
