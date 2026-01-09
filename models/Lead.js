@@ -30,6 +30,14 @@ const leadSchema = mongoose.Schema({
         match: [/^[\d\s\+\-\(\)]+$/, 'Por favor ingrese un número válido']
     },
     
+    // Trayectoria del profesor (campo de postulación)
+    background: {
+        type: String,
+        trim: true,
+        maxlength: [1000, 'La trayectoria no puede exceder 1000 caracteres'],
+        default: ''
+    },
+    
     // Metadata de captura
     source: {
         type: String,

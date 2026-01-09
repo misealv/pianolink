@@ -12,7 +12,7 @@ const Lead = require('../models/Lead');
  */
 router.post('/', async (req, res) => {
     try {
-        const { name, email, whatsapp, utmSource, utmMedium, utmCampaign } = req.body;
+        const { name, email, whatsapp, background, utmSource, utmMedium, utmCampaign } = req.body;
         
         // Validación básica
         if (!name || !email || !whatsapp) {
@@ -44,6 +44,7 @@ router.post('/', async (req, res) => {
             name: name.trim(),
             email: email.toLowerCase().trim(),
             whatsapp: whatsapp.trim(),
+            background: background ? background.trim() : '',
             source: 'landing',
             utmSource: utmSource || '',
             utmMedium: utmMedium || '',
@@ -54,7 +55,7 @@ router.post('/', async (req, res) => {
         
         res.status(201).json({
             success: true,
-            message: 'Gracias, Maestro. Te contactaremos pronto para abrir tus puertas en Piano Link.',
+            message: 'Postulación recibida. Revisaremos tu perfil y te contactaremos en 48 horas.',
             leadId: lead._id
         });
         
@@ -140,7 +141,7 @@ router.get('/export', async (req, res) => {
 
         // Obtener todos los leads
         const leads = await Lead.find()
-            .select('name email whatsapp status source utmSource utmMedium utmCampaign notes createdAt contactedAt convertedAt')
+            .select('name email whatsapp background status source utmSource utmMedium utmCampaign notes createdAt contactedAt convertedAt')
             .sort({ createdAt: -1 })
             .lean();
 
