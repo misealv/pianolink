@@ -39,15 +39,6 @@
       z-index: 1;
     }
 
-    /* ESTILO PARA EL LOGO CARGADO (DINÁMICO) */
-    #globalLogo {
-        max-width: 350px;
-        height: auto;
-        margin-bottom: 20px;
-        filter: drop-shadow(0 0 10px rgba(255,255,255,0.1));
-        display: none; /* Se muestra con JS si existe */
-    }
-
     .brand-logo {
       font-size: 24px;
       font-weight: 800;
@@ -228,13 +219,9 @@
 <body>
 
   <div class="login-card">
-    
-    <img id="globalLogo" src="">
 
-    <div id="defaultBrand">
-        <div class="brand-logo">🎹 Piano Link</div>
-        <div class="brand-subtitle">Acceso Docente</div>
-    </div>
+    <div class="brand-logo">🎹 Piano Link</div>
+    <div class="brand-subtitle">Acceso Docente</div>
     
     <form id="loginForm">
       <input type="email" id="email" placeholder="Correo electrónico" required>
@@ -283,16 +270,6 @@
         try {
             const res = await fetch('/api/auth/platform-public');
             const config = await res.json();
-            
-            if (config.logoUrl) {
-                const img = document.getElementById('globalLogo');
-                img.src = config.logoUrl;
-                img.style.display = 'inline-block'; // Mostrar imagen
-                
-                // Ocultar el texto por defecto para que no se duplique
-                const def = document.getElementById('defaultBrand');
-                if(def) def.style.display = 'none';
-            }
 
             if (config.name) document.title = `Acceso | ${config.name}`;
             
