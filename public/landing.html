@@ -180,33 +180,37 @@
             
             <!-- Main headline -->
             <h1 class="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold leading-tight mb-8">
-                Tu Sala de Masterclass<br>
-                <span class="gradient-text italic">sin fronteras</span>
+                La Maestría del Piano,<br>
+                <span class="gradient-text italic">sin las limitaciones de Zoom</span>
             </h1>
             
             <!-- Subheadline -->
             <p class="text-lg sm:text-xl text-white/60 max-w-2xl mx-auto mb-12 leading-relaxed">
-                La plataforma de educación musical que eleva tu práctica docente. 
-                Conecta con tus estudiantes a través de tecnología MIDI de alta fidelidad, 
-                sin importar dónde se encuentren.
+                La primera sala virtual diseñada exclusivamente para la enseñanza de piano de alta fidelidad. 
+                Transmisión MIDI en tiempo real, audio de concierto y experiencia táctil perfecta.
             </p>
             
             <!-- CTA Buttons -->
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <button onclick="openModal()" 
                         class="touch-target w-full sm:w-auto px-8 py-4 bg-piano-orange text-white font-semibold rounded-full hover:bg-piano-orange-light transition-smooth glow-orange-strong">
-                    Unirme como Profesor Fundador
+                    🎯 Postular al Programa de Fundadores
                 </button>
-                <a href="#benefits" 
+                <a href="#tech" 
                    class="touch-target w-full sm:w-auto px-8 py-4 text-white/80 hover:text-white font-medium transition-smooth">
-                    Ver Beneficios ↓
+                    Ver el Salto Tecnológico ↓
                 </a>
             </div>
             
-            <!-- Trust indicator -->
-            <p class="mt-16 text-sm text-white/40">
-                Beta privada activa con <span class="text-piano-orange">10 profesores fundadores</span>
-            </p>
+            <!-- Scarcity indicator -->
+            <div class="mt-16 flex flex-col items-center gap-2">
+                <p class="text-sm text-piano-orange/80 font-medium">
+                    ⚠️ Últimos cupos disponibles para la fase de incubación 2026
+                </p>
+                <p class="text-xs text-white/30">
+                    Solo quedan <span class="text-piano-orange font-semibold">7 espacios</span> de 10 totales
+                </p>
+            </div>
         </div>
         
         <!-- Scroll indicator -->
@@ -215,45 +219,26 @@
         </div>
     </section>
     
-    <!-- Benefits Section (PRIORITARIO) -->
-    <section id="benefits" class="py-24 lg:py-32 bg-piano-dark">
+    <!-- El Salto Tecnológico Section -->
+    <section id="tech" class="py-24 lg:py-32 bg-piano-dark">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             
             <!-- Section header -->
             <div class="text-center mb-16 lg:mb-24">
                 <div class="deco-line mx-auto mb-8"></div>
                 <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold mb-6">
-                    ¿Por qué <span class="text-piano-orange">Piano Link</span>?
+                    El Salto Tecnológico
                 </h2>
-                <p class="text-white/50 max-w-xl mx-auto">
-                    Diseñado por músicos, para músicos. Cada función pensada para tu éxito como docente.
+                <p class="text-white/50 max-w-2xl mx-auto text-lg">
+                    No es otra videollamada. Es la primera plataforma diseñada exclusivamente 
+                    para las necesidades técnicas de la enseñanza del piano.
                 </p>
             </div>
             
-            <!-- Benefits grid -->
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+            <!-- Tech grid -->
+            <div class="grid md:grid-cols-3 gap-8 lg:gap-10">
                 
-                <!-- Benefit 1: Fidelización -->
-                <div class="benefit-card group p-8 lg:p-10 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth">
-                    <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
-                        <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                        </svg>
-                    </div>
-                    <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
-                        Fideliza a tus Estudiantes
-                    </h3>
-                    <p class="text-white/60 leading-relaxed text-lg">
-                        Crea un <strong class="text-white">ecosistema digital exclusivo</strong> que 
-                        genera pertenencia. Tus alumnos no querrán irse porque ninguna otra 
-                        plataforma les ofrece esta experiencia.
-                    </p>
-                    <p class="mt-4 text-piano-orange font-medium">
-                        → Reduce la deserción hasta un 40%
-                    </p>
-                </div>
-                
-                <!-- Benefit 2: Calidad de Audio -->
+                <!-- Tech 1: Audio de Concierto -->
                 <div class="benefit-card group p-8 lg:p-10 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth">
                     <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
                         <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -261,19 +246,196 @@
                         </svg>
                     </div>
                     <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
-                        Supera las Limitaciones de Zoom
+                        🎼 Audio de Concierto
                     </h3>
-                    <p class="text-white/60 leading-relaxed text-lg">
-                        <strong class="text-white">Audio de alta fidelidad</strong> optimizado específicamente 
-                        para las frecuencias del piano. Sin compresión agresiva, sin cortes, 
-                        sin artefactos digitales.
+                    <p class="text-white/60 leading-relaxed text-lg mb-4">
+                        Audio optimizado para las <strong class="text-white">frecuencias del piano</strong>, 
+                        no para la voz. Sin compresión agresiva, sin cortes, sin artefactos digitales.
                     </p>
-                    <p class="mt-4 text-piano-orange font-medium">
-                        → Escucha cada matiz dinámico
+                    <p class="text-piano-orange/80 text-sm font-medium">
+                        → Escucha cada matiz dinámico que Zoom comprime y elimina
                     </p>
                 </div>
                 
-                <!-- Benefit 3: Autoridad -->
+                <!-- Tech 2: Precisión MIDI HD -->
+                <div class="benefit-card group p-8 lg:p-10 bg-gradient-to-br from-piano-gray/50 to-piano-gray/30 border-2 border-piano-orange/30 rounded-2xl transition-smooth relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-piano-orange text-piano-black text-xs font-bold px-3 py-1 rounded-bl-xl">
+                        ÚNICO
+                    </div>
+                    <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/20 rounded-2xl mb-6">
+                        <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
+                        ⚡ Precisión MIDI HD
+                    </h3>
+                    <p class="text-white/60 leading-relaxed text-lg mb-4">
+                        <strong class="text-white">Visualiza la ejecución de tu alumno</strong> con precisión quirúrgica. 
+                        Transmisión de datos en tiempo real para correcciones técnicas inmediatas.
+                    </p>
+                    <p class="text-piano-orange/80 text-sm font-medium">
+                        → 127 niveles de velocidad, latencia <20ms
+                    </p>
+                </div>
+                
+                <!-- Tech 3: Experiencia Tablet-First -->
+                <div class="benefit-card group p-8 lg:p-10 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth">
+                    <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
+                        <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
+                        📱 Experiencia Tablet-First
+                    </h3>
+                    <p class="text-white/60 leading-relaxed text-lg mb-4">
+                        Diseñado para <strong class="text-white">iPad y Android</strong>. 
+                        Arrastra partituras, redimensiona videos y gestiona tu clase con gestos naturales.
+                    </p>
+                    <p class="text-piano-orange/80 text-sm font-medium">
+                        → Pointer Events API para control multitáctil perfecto
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Resultados en tu Negocio Section -->
+    <section id="benefits" class="py-24 lg:py-32 bg-piano-black">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            
+            <!-- Section header -->
+            <div class="text-center mb-16 lg:mb-24">
+                <div class="deco-line mx-auto mb-8"></div>
+                <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold mb-6">
+                    Resultados en tu <span class="text-piano-orange">Negocio</span>
+                </h2>
+                <p class="text-white/50 max-w-2xl mx-auto text-lg">
+                    No es solo tecnología por tecnología. Es la diferencia entre ser percibido 
+                    como un profesor más o como un maestro de élite.
+                </p>
+            </div>
+            
+            <!-- Results grid -->
+            <div class="grid md:grid-cols-2 gap-8 lg:gap-10 max-w-5xl mx-auto">
+                
+                <!-- Result 1: Fidelización -->
+                <div class="benefit-card group p-10 lg:p-12 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth">
+                    <div class="w-16 h-16 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
+                        <svg class="w-8 h-8 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-serif text-3xl font-semibold mb-5 text-white">
+                        Fidelización Premium
+                    </h3>
+                    <p class="text-white/70 leading-relaxed text-xl mb-4">
+                        Tus alumnos perciben un <strong class="text-white">valor premium</strong> que 
+                        genera compromiso a largo plazo.
+                    </p>
+                    <div class="bg-piano-orange/10 border border-piano-orange/30 rounded-xl p-6 mt-6">
+                        <p class="text-piano-orange text-2xl font-bold mb-2">-40%</p>
+                        <p class="text-white/60 text-sm">Reducción en deserción de estudiantes</p>
+                    </div>
+                </div>
+                
+                <!-- Result 2: Autoridad -->
+                <div class="benefit-card group p-10 lg:p-12 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth">
+                    <div class="w-16 h-16 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
+                        <svg class="w-8 h-8 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-serif text-3xl font-semibold mb-5 text-white">
+                        Autoridad de Élite
+                    </h3>
+                    <p class="text-white/70 leading-relaxed text-xl mb-4">
+                        <strong class="text-white">Diferénciate del resto.</strong> Usa la plataforma 
+                        que los grandes maestros están adoptando.
+                    </p>
+                    <div class="bg-piano-orange/10 border border-piano-orange/30 rounded-xl p-6 mt-6">
+                        <p class="text-piano-orange text-lg font-semibold mb-2">Status Premium</p>
+                        <p class="text-white/60 text-sm">Justifica tarifas más altas con tecnología de vanguardia</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Programa de Profesores Fundadores Section -->
+    <!-- Programa de Profesores Fundadores Section -->
+    <section id="programa" class="py-24 lg:py-32 bg-piano-dark border-t-2 border-piano-orange/20">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            
+            <!-- Section header con escasez -->
+            <div class="text-center mb-16 lg:mb-20">
+                <!-- Scarcity badge -->
+                <div class="inline-flex items-center gap-2 bg-piano-orange/10 border border-piano-orange/30 rounded-full px-6 py-3 mb-8">
+                    <span class="text-piano-orange text-2xl">⏰</span>
+                    <p class="text-piano-orange font-semibold text-sm">
+                        Solo <span class="text-xl font-bold">10 cupos</span> para la cohorte 2026 • Quedan <span class="text-xl font-bold">7</span>
+                    </p>
+                </div>
+                
+                <div class="deco-line mx-auto mb-8"></div>
+                <h2 class="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold mb-6">
+                    El Programa de <span class="text-piano-orange">Profesores Fundadores</span>
+                </h2>
+                <p class="text-white/60 max-w-3xl mx-auto text-lg leading-relaxed">
+                    No es solo acceso anticipado. Es asegurar beneficios económicos y de estatus 
+                    que <strong class="text-white">nunca volverán a estar disponibles</strong> una vez que Piano Link 
+                    se convierta en el estándar de la industria.
+                </p>
+            </div>
+            
+            <!-- Benefits grid -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+                
+                <!-- Benefit 1: Membresía Vitalicia Congelada -->
+                <div class="benefit-card group p-8 lg:p-10 bg-gradient-to-br from-piano-gray/50 to-piano-gray/30 border-2 border-piano-orange/30 rounded-2xl transition-smooth relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-piano-orange text-piano-black text-xs font-bold px-3 py-1 rounded-bl-xl">
+                        EXCLUSIVO
+                    </div>
+                    <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/20 rounded-2xl mb-6">
+                        <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
+                        🔒 Membresía Vitalicia Congelada
+                    </h3>
+                    <p class="text-white/60 leading-relaxed text-lg mb-4">
+                        Tu tarifa mensual <strong class="text-white">nunca aumentará</strong>. Cuando Piano Link 
+                        sea el estándar de la industria y los precios globales se multipliquen, 
+                        tú seguirás pagando tu tarifa de fundador.
+                    </p>
+                    <p class="text-piano-orange/80 text-sm font-medium">
+                        💎 Protección permanente contra inflación de precios
+                    </p>
+                </div>
+                
+                <!-- Benefit 2: Acceso Total de por Vida -->
+                <div class="benefit-card group p-8 lg:p-10 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth">
+                    <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
+                        <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                    </div>
+                    <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
+                        ☯️ Acceso Total de por Vida
+                    </h3>
+                    <p class="text-white/60 leading-relaxed text-lg mb-4">
+                        Todas las funcionalidades <strong class="text-white">actuales y futuras</strong> 
+                        sin costos adicionales de licencia. Mientras otros pagarán por cada nueva feature, 
+                        tú las tendrás incluidas.
+                    </p>
+                    <p class="text-piano-orange/80 text-sm font-medium">
+                        ⚡ Actualizaciones premium sin límite de tiempo
+                    </p>
+                </div>
+                
+                <!-- Benefit 3: Sello de Fundador -->
                 <div class="benefit-card group p-8 lg:p-10 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth md:col-span-2 lg:col-span-1">
                     <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
                         <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -281,15 +443,15 @@
                         </svg>
                     </div>
                     <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
-                        Eleva tu Estatus Profesional
+                        🏆 Sello de Profesor Fundador
                     </h3>
-                    <p class="text-white/60 leading-relaxed text-lg">
-                        Una <strong class="text-white">sala virtual de nivel mundial</strong> que 
-                        refleja tu excelencia. Impresiona a nuevos estudiantes y justifica 
-                        tarifas premium con tecnología de vanguardia.
+                    <p class="text-white/60 leading-relaxed text-lg mb-4">
+                        Un <strong class="text-white">distintivo exclusivo</strong> en tu perfil que te 
+                        acredita como pionero de la tecnología musical. Autoridad instantánea frente 
+                        a estudiantes y colegas.
                     </p>
-                    <p class="mt-4 text-piano-orange font-medium">
-                        → Posiciónate como referente
+                    <p class="text-piano-orange/80 text-sm font-medium">
+                        👑 Status de élite irreplicable para nuevos profesores
                     </p>
                 </div>
             </div>
@@ -319,13 +481,14 @@
         <div class="max-w-2xl mx-auto px-6">
             
             <div class="text-center mb-12">
-                <div class="deco-line mx-auto mb-8"></div>
                 <h2 class="font-serif text-3xl sm:text-4xl font-semibold mb-4">
-                    Únete como <span class="text-piano-orange">Profesor Fundador</span>
+                    Postula al Programa de Profesores Fundadores
                 </h2>
-                <p class="text-white/50">
-                    Estamos abriendo las puertas a un grupo selecto de maestros. 
-                    Déjanos tus datos y te contactaremos personalmente.
+                <p class="text-white/50 max-w-2xl mx-auto mb-6">
+                    Completa tu postulación. Revisaremos cada perfil personalmente para 
+                    asegurar que cumples con los estándares de excelencia de Piano Link.
+                <p class="text-piano-orange/70 text-sm font-medium">
+                    ⏰ Última oportunidad para la cohorte 2026
                 </p>
             </div>
             
@@ -336,47 +499,47 @@
                     <!-- Name -->
                     <div>
                         <label for="name" class="block text-sm font-medium text-white/70 mb-2">
-                            Nombre Completo
+                            Nombre Completo <span class="text-piano-orange">*</span>
                         </label>
                         <input type="text" 
                                id="name" 
                                name="name"
                                required
                                placeholder="Maestro Juan Pérez"
-                               class="w-full px-4 py-4 bg-piano-black border border-piano-border rounded-xl text-white placeholder-white/30 transition-smooth text-lg">
+                               class="touch-target w-full px-5 py-4 bg-piano-black/50 border border-piano-border rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-piano-orange/50 transition-smooth">
                     </div>
                     
                     <!-- Email -->
                     <div>
                         <label for="email" class="block text-sm font-medium text-white/70 mb-2">
-                            Correo Electrónico
+                            Email <span class="text-piano-orange">*</span>
                         </label>
                         <input type="email" 
                                id="email" 
                                name="email"
                                required
                                placeholder="maestro@ejemplo.com"
-                               class="w-full px-4 py-4 bg-piano-black border border-piano-border rounded-xl text-white placeholder-white/30 transition-smooth text-lg">
+                               class="touch-target w-full px-5 py-4 bg-piano-black/50 border border-piano-border rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-piano-orange/50 transition-smooth">
                     </div>
                     
                     <!-- WhatsApp -->
                     <div>
                         <label for="whatsapp" class="block text-sm font-medium text-white/70 mb-2">
-                            WhatsApp (con código de país)
+                            WhatsApp <span class="text-piano-orange">*</span>
                         </label>
                         <input type="tel" 
                                id="whatsapp" 
                                name="whatsapp"
                                required
-                               placeholder="+56 9 1234 5678"
-                               class="w-full px-4 py-4 bg-piano-black border border-piano-border rounded-xl text-white placeholder-white/30 transition-smooth text-lg">
+                               placeholder="+52 55 1234 5678"
+                               class="touch-target w-full px-5 py-4 bg-piano-black/50 border border-piano-border rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-piano-orange/50 transition-smooth">
                     </div>
                     
                     <!-- Submit Button -->
                     <button type="submit" 
                             id="submitBtn"
-                            class="touch-target w-full px-8 py-4 bg-piano-orange text-white font-semibold rounded-xl hover:bg-piano-orange-light transition-smooth text-lg mt-4">
-                        Solicitar Acceso como Fundador
+                            class="touch-target w-full px-8 py-5 bg-piano-orange text-white font-semibold text-lg rounded-2xl hover:bg-piano-orange-light transition-smooth glow-orange-strong">
+                        🎯 Enviar mi Postulación al Programa
                     </button>
                 </div>
                 
@@ -388,12 +551,16 @@
             
             <!-- Success Message (hidden by default) -->
             <div id="successMessage" class="hidden bg-piano-gray/50 border border-piano-orange/30 rounded-3xl p-10 text-center">
-                <div class="text-piano-orange text-6xl mb-4">✓</div>
+                <div class="text-piano-orange text-6xl mb-4">🎯</div>
                 <h3 class="font-serif text-2xl font-semibold mb-3">
-                    Gracias, Maestro
+                    Postulación Recibida, Maestro
                 </h3>
-                <p class="text-white/60 text-lg">
-                    Te contactaremos pronto para abrir tus puertas en Piano Link.
+                <p class="text-white/60 text-lg mb-4">
+                    Revisaremos tu perfil personalmente. Si cumples con nuestros estándares, 
+                    te contactaremos por WhatsApp en las próximas 48 horas.
+                </p>
+                <p class="text-piano-orange/70 text-sm font-medium">
+                    ⏳ Estás a un paso de congelar tu membresía de por vida
                 </p>
             </div>
         </div>
@@ -580,7 +747,8 @@
             const formData = {
                 name: document.getElementById('name').value.trim(),
                 email: document.getElementById('email').value.trim(),
-                whatsapp: document.getElementById('whatsapp').value.trim()
+                whatsapp: document.getElementById('whatsapp').value.trim(),
+                background: document.getElementById('background').value.trim()
             };
             
             // Get UTM parameters from URL
@@ -591,7 +759,7 @@
             
             // Disable button and show loading
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="animate-pulse">Enviando...</span>';
+            submitBtn.innerHTML = '<span class="animate-pulse">📤 Enviando postulación...</span>';
             
             try {
                 const response = await fetch('/api/leads', {
@@ -618,14 +786,14 @@
                     // Show error
                     alert(data.message || 'Error al enviar. Por favor intenta de nuevo.');
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Solicitar Acceso como Fundador';
+                    submitBtn.innerHTML = '🎯 Enviar Postulación al Programa';
                 }
                 
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error de conexión. Por favor intenta de nuevo.');
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Solicitar Acceso como Fundador';
+                submitBtn.innerHTML = '🎯 Enviar Postulación al Programa';
             }
         });
         
