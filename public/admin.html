@@ -325,6 +325,52 @@
             </div>
         </div>
 
+        <!-- Modal de Revisión de Postulación -->
+        <div id="applicationModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:9999; backdrop-filter:blur(10px);">
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; border:2px solid #ff6600; border-radius:12px; padding:30px; width:90%; max-width:700px; max-height:80vh; overflow-y:auto; box-shadow:0 20px 60px rgba(255,102,0,0.3);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="color:#ff6600; margin:0; font-size:20px;">📋 Revisión de Postulación</h3>
+                    <button onclick="closeApplicationModal()" style="background:none; border:none; color:#ff6600; font-size:28px; cursor:pointer; line-height:1;" title="Cerrar">×</button>
+                </div>
+                
+                <!-- Información del Lead -->
+                <div style="background:#0a0a0a; padding:15px; border-radius:8px; margin-bottom:20px;">
+                    <div id="appLeadName" style="font-size:18px; font-weight:600; color:#fff; margin-bottom:10px;"></div>
+                    <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; font-size:13px; color:#aaa;">
+                        <div>📧 <span id="appLeadEmail"></span></div>
+                        <div>📱 <span id="appLeadWhatsApp"></span></div>
+                    </div>
+                </div>
+                
+                <!-- Respuesta de Background -->
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; color:#ff6600; font-size:14px; font-weight:600; margin-bottom:10px;">
+                        💭 ¿Por qué quiere ser Profesor Fundador?
+                    </label>
+                    <div id="appBackground" style="background:#0a0a0a; padding:15px; border-radius:8px; color:#ddd; line-height:1.6; font-size:14px; min-height:100px; white-space:pre-wrap; border:1px solid #333;"></div>
+                </div>
+                
+                <!-- Notas del Admin (si existen) -->
+                <div id="appNotesSection" style="display:none; margin-bottom:20px;">
+                    <label style="display:block; color:#888; font-size:13px; font-weight:600; margin-bottom:8px;">📝 Notas del Admin:</label>
+                    <div id="appNotes" style="background:#0a0a0a; padding:12px; border-radius:8px; color:#aaa; font-size:13px; font-style:italic; border:1px solid #222;"></div>
+                </div>
+                
+                <!-- Estado Actual -->
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; color:#888; font-size:13px; font-weight:600; margin-bottom:8px;">📊 Estado Actual:</label>
+                    <div id="appStatus" style="display:inline-block;"></div>
+                </div>
+                
+                <!-- Acciones Rápidas -->
+                <div style="display:flex; gap:10px; justify-content:flex-end; padding-top:15px; border-top:1px solid #333;">
+                    <button onclick="closeApplicationModal()" style="padding:10px 20px; background:#333; border:none; border-radius:6px; color:#aaa; cursor:pointer; font-size:14px;">Cerrar</button>
+                    <button onclick="viewLeadNotesFromApp()" style="padding:10px 20px; background:#444; border:none; border-radius:6px; color:#fff; cursor:pointer; font-size:14px;">📝 Añadir Notas</button>
+                    <button onclick="updateLeadStatusFromApp()" style="padding:10px 20px; background:#ff6600; border:none; border-radius:6px; color:#fff; font-weight:600; cursor:pointer; font-size:14px;">🔄 Cambiar Estado</button>
+                </div>
+            </div>
+        </div>
+
         <div id="view-platform" class="view-section">
             <h2 style="color:#5dade2; border-bottom-color:#5dade2;">🏢 Identidad Global (Piano Link)</h2>
             <p style="font-size:12px; color:#aaa; margin-bottom:20px;">
@@ -693,6 +739,7 @@
                 <td style="color:#888; font-size:11px; text-transform:uppercase;">${source}</td>
                 <td style="color:#888; font-size:12px;">${date}</td>
                 <td>
+                    <button onclick="viewApplication('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Ver postulación completa">📋</button>
                     <button onclick="updateLeadStatus('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Cambiar estado">🔄</button>
                     <button onclick="viewLeadNotes('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Ver notas">📝</button>
                 </td>
@@ -1022,6 +1069,75 @@
             setTimeout(() => notification.remove(), 300);
         }, 3000);
     }
+
+    // =============================================
+    // MODAL DE REVISIÓN DE POSTULACIÓN
+    // =============================================
+    let currentApplicationLeadId = null;
+
+    function viewApplication(leadId) {
+        const lead = allLeadsData.find(l => l._id === leadId);
+        if (!lead) return;
+        
+        currentApplicationLeadId = leadId;
+        
+        // Información básica
+        document.getElementById('appLeadName').textContent = lead.name;
+        document.getElementById('appLeadEmail').textContent = lead.email;
+        document.getElementById('appLeadWhatsApp').textContent = lead.whatsapp;
+        
+        // Background (respuesta del formulario)
+        document.getElementById('appBackground').textContent = lead.background || '(El postulante no proporcionó información adicional)';
+        
+        // Notas del admin (si existen)
+        if (lead.notes && lead.notes.trim()) {
+            document.getElementById('appNotesSection').style.display = 'block';
+            document.getElementById('appNotes').textContent = lead.notes;
+        } else {
+            document.getElementById('appNotesSection').style.display = 'none';
+        }
+        
+        // Estado actual
+        const statusClass = `status-${lead.status}`;
+        const statusText = {
+            'new': 'Nuevo',
+            'contacted': 'Contactado',
+            'qualified': 'Calificado',
+            'converted': 'Convertido',
+            'rejected': 'Rechazado'
+        }[lead.status] || lead.status;
+        
+        document.getElementById('appStatus').innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
+        
+        // Mostrar modal
+        document.getElementById('applicationModal').style.display = 'block';
+    }
+
+    function closeApplicationModal() {
+        document.getElementById('applicationModal').style.display = 'none';
+        currentApplicationLeadId = null;
+    }
+
+    function viewLeadNotesFromApp() {
+        if (!currentApplicationLeadId) return;
+        closeApplicationModal();
+        viewLeadNotes(currentApplicationLeadId);
+    }
+
+    function updateLeadStatusFromApp() {
+        if (!currentApplicationLeadId) return;
+        closeApplicationModal();
+        updateLeadStatus(currentApplicationLeadId);
+    }
+
+    // Cerrar modal con ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (document.getElementById('applicationModal').style.display === 'block') {
+                closeApplicationModal();
+            }
+        }
+    });
 
     // Cerrar modales con ESC
     document.addEventListener('keydown', (e) => {
