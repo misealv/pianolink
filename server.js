@@ -52,7 +52,15 @@ app.use(express.static(path.join(__dirname, "public"), { index: false }));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/teacher', require('./routes/teacherRoutes'));
 app.use('/api/scores', require('./routes/scoreRoutes'));
+app.use('/api/leads', require('./routes/leadRoutes')); // Lead generation
 app.use('/admin', require('./routes/adminRoutes'));
+
+// ==================================================
+// LANDING PAGE - Ruta raíz
+// ==================================================
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+});
 
 // ==================================================
 // AGORA AV - FASE 0: ENDPOINT RESILIENTE
