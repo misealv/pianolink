@@ -79,10 +79,23 @@
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
         }
         
-        /* Touch targets */
+        /* Touch targets - Mínimo 44px para táctil perfecto */
         .touch-target {
             min-height: 44px;
             min-width: 44px;
+        }
+        
+        /* Inputs táctiles optimizados */
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        textarea {
+            min-height: 52px; /* 44px + padding para comodidad */
+        }
+        
+        /* Botones principales */
+        button.touch-target {
+            min-height: 52px;
         }
         
         /* Modal backdrop */
@@ -178,16 +191,17 @@
                 Exclusivo para Maestros de Piano
             </p>
             
-            <!-- Main headline -->
-            <h1 class="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold leading-tight mb-8">
-                La Maestría del Piano,<br>
-                <span class="gradient-text italic">sin las limitaciones de Zoom</span>
+            <!-- Main headline - NUEVA FRASE ÉPICA -->
+            <h1 class="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-8">
+                <span class="italic text-white/90">Imagina que en tu clase online,</span><br>
+                <span class="gradient-text">tú tocas tu piano y tu alumno escucha exactamente lo que tocas en su propio piano,</span><br>
+                <span class="text-white italic">y viceversa.</span>
             </h1>
             
             <!-- Subheadline -->
-            <p class="text-lg sm:text-xl text-white/60 max-w-2xl mx-auto mb-12 leading-relaxed">
-                La primera sala virtual diseñada exclusivamente para la enseñanza de piano de alta fidelidad. 
-                Transmisión MIDI en tiempo real, audio de concierto y experiencia táctil perfecta.
+            <p class="text-lg sm:text-xl text-white/60 max-w-3xl mx-auto mb-12 leading-relaxed">
+                La distancia física ha desaparecido. Una conexión pura, sin latencia, 
+                donde tu instrumento y el de tu alumno se convierten en uno solo a través de la red.
             </p>
             
             <!-- CTA Buttons -->
@@ -476,6 +490,136 @@
         </div>
     </section>
     
+    <!-- Contexto y Reflexión Section (Pre-Postulación) -->
+    <section class="py-24 lg:py-32 bg-piano-black border-y border-piano-border">
+        <div class="max-w-4xl mx-auto px-6">
+            
+            <div class="text-center mb-16">
+                <div class="deco-line mx-auto mb-8"></div>
+                <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold mb-6">
+                    ¿Esto es para ti?
+                </h2>
+                <p class="text-white/50 text-lg">
+                    Antes de postular, reflexiona sobre estas preguntas:
+                </p>
+            </div>
+            
+            <!-- Preguntas Persuasivas -->
+            <div class="space-y-8">
+                
+                <div class="group p-8 bg-piano-gray/30 border-l-4 border-piano-orange/50 rounded-r-2xl hover:bg-piano-gray/50 transition-smooth">
+                    <h3 class="font-serif text-2xl sm:text-3xl text-white/90 mb-4 italic leading-relaxed">
+                        "¿Sigues luchando con el audio comprimido de Zoom para enseñar el matiz de un piano?"
+                    </h3>
+                    <p class="text-white/50 text-lg">
+                        Cada dinámica que enseñas, cada sutileza en el timbre, se pierde en la compresión. 
+                        Tu alumno no puede escuchar la diferencia entre un <em>pianissimo</em> y un <em>piano</em>.
+                    </p>
+                </div>
+                
+                <div class="group p-8 bg-piano-gray/30 border-l-4 border-piano-orange/50 rounded-r-2xl hover:bg-piano-gray/50 transition-smooth">
+                    <h3 class="font-serif text-2xl sm:text-3xl text-white/90 mb-4 italic leading-relaxed">
+                        "¿Realizas clases de piano online pero sientes que tu piano digital está siendo subutilizado?"
+                    </h3>
+                    <p class="text-white/50 text-lg">
+                        Tienes un instrumento con capacidad MIDI profesional, pero sigues usando Zoom 
+                        como si fuera una clase de idiomas. Tu piano puede dar más.
+                    </p>
+                </div>
+                
+                <div class="group p-8 bg-piano-gray/30 border-l-4 border-piano-orange rounded-r-2xl hover:bg-piano-gray/50 transition-smooth glow-orange">
+                    <h3 class="font-serif text-2xl sm:text-3xl text-white mb-4 italic leading-relaxed">
+                        "¿Estás listo para dejar de dar clases por videollamada y empezar a dar <span class="text-piano-orange not-italic">Masterclasses de nivel mundial</span>?"
+                    </h3>
+                    <p class="text-white/50 text-lg">
+                        Piano Link no es una herramienta más. Es el cambio de categoría: 
+                        de profesor online a maestro de élite global.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mt-12 text-center">
+                <p class="text-piano-orange/80 font-medium mb-6">
+                    Si respondiste "sí" a alguna de estas preguntas, sigue leyendo.
+                </p>
+                <div class="inline-block w-12 h-1 bg-gradient-to-r from-transparent via-piano-orange to-transparent"></div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Requerimientos Técnicos (Contexto Pre-Postulación) -->
+    <section class="py-20 bg-piano-gray border-y border-piano-border/50">
+        <div class="max-w-4xl mx-auto px-6">
+            
+            <div class="text-center mb-12">
+                <h3 class="font-serif text-2xl sm:text-3xl font-semibold text-white mb-4">
+                    ¿Qué necesitas para usar Piano Link?
+                </h3>
+                <p class="text-white/50">
+                    Verifica que cumplas con estos requisitos mínimos antes de postular:
+                </p>
+            </div>
+            
+            <div class="grid sm:grid-cols-2 gap-6">
+                
+                <div class="flex items-start gap-4 p-6 bg-piano-black/30 rounded-xl border border-piano-border/50">
+                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-piano-orange/10 rounded-lg text-xl">
+                        🎹
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-white mb-2">Piano Digital con MIDI</h4>
+                        <p class="text-sm text-white/50">
+                            Cualquier piano digital o teclado con salida MIDI USB. No requiere modelos específicos.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-4 p-6 bg-piano-black/30 rounded-xl border border-piano-border/50">
+                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-piano-orange/10 rounded-lg text-xl">
+                        📱
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-white mb-2">Tablet (Recomendado) o PC</h4>
+                        <p class="text-sm text-white/50">
+                            iPad, Android tablet o computadora. Experiencia optimizada para pantallas táctiles.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-4 p-6 bg-piano-black/30 rounded-xl border border-piano-border/50">
+                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-piano-orange/10 rounded-lg text-xl">
+                        🌐
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-white mb-2">Conexión Estable</h4>
+                        <p class="text-sm text-white/50">
+                            Internet de al menos 5 Mbps. Ethernet recomendado para mejor latencia.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-4 p-6 bg-piano-black/30 rounded-xl border border-piano-border/50">
+                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-piano-orange/10 rounded-lg text-xl">
+                        🎤
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-white mb-2">Cámara y Micrófono</h4>
+                        <p class="text-sm text-white/50">
+                            Cualquier webcam o cámara integrada. El micrófono puede ser el del dispositivo.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 p-6 bg-piano-orange/5 border border-piano-orange/20 rounded-xl text-center">
+                <p class="text-white/70 text-sm">
+                    💡 <strong class="text-white">No necesitas equipo profesional.</strong> Piano Link está diseñado 
+                    para funcionar con el setup que ya tienes.
+                </p>
+            </div>
+        </div>
+    </section>
+    
     <!-- Registration Form Section -->
     <section id="register" class="py-24 lg:py-32 bg-piano-dark">
         <div class="max-w-2xl mx-auto px-6">
@@ -569,18 +713,21 @@
             </form>
             
             <!-- Success Message (hidden by default) -->
-            <div id="successMessage" class="hidden bg-piano-gray/50 border border-piano-orange/30 rounded-3xl p-10 text-center">
-                <div class="text-piano-orange text-6xl mb-4">🎯</div>
-                <h3 class="font-serif text-2xl font-semibold mb-3">
-                    Tu Postulación Está Activa
+            <div id="successMessage" class="hidden bg-piano-gray/50 border border-piano-orange/30 rounded-3xl p-10 text-center glow-orange">
+                <div class="text-piano-orange text-6xl mb-4">✅</div>
+                <h3 class="font-serif text-2xl sm:text-3xl font-semibold mb-4">
+                    Tu Postulación ha sido Enviada con Éxito
                 </h3>
-                <p class="text-white/60 text-lg mb-4">
-                    Dentro de los próximos días te llamaremos para una entrevista personal 
-                    y conocer más sobre tu trayectoria como profesor de piano.
+                <p class="text-white/70 text-lg mb-6 leading-relaxed max-w-xl mx-auto">
+                    Por favor, mantente atento a tu teléfono. <strong class="text-white">Recibirás una llamada de nuestro equipo</strong> 
+                    para realizar una entrevista personal y validar tu acceso al Programa de Profesores Fundadores.
                 </p>
-                <p class="text-piano-orange/70 text-sm font-medium">
-                    📞 Mantén tu WhatsApp activo - pronto nos comunicaremos contigo
-                </p>
+                <div class="inline-flex items-center gap-3 px-6 py-3 bg-piano-orange/10 border border-piano-orange/30 rounded-full">
+                    <span class="text-2xl">📞</span>
+                    <span class="text-piano-orange/90 text-sm font-medium">
+                        Mantén tu WhatsApp activo
+                    </span>
+                </div>
             </div>
         </div>
     </section>
