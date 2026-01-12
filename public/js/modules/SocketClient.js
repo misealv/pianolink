@@ -95,24 +95,25 @@ export class SocketClient {
             console.log(`[SocketClient] ✅ Reconectado después de ${attemptNumber} intentos.`);
             this._connectionState = 'connected';
             
-            // Intentar recuperar sala desde localStorage si se perdió
-            if (!this.roomCode) {
-                const savedRoom = localStorage.getItem('pianolink-last-room');
-                if (savedRoom) {
-                    console.log(`[SocketClient] 🔄 Recuperando sala: ${savedRoom}`);
-                    this.roomCode = savedRoom;
-                    
-                    // Notificar a Main.js para que re-una al usuario
-                    this.bus.emit("net-room-recovery", savedRoom);
-                }
+            // Siempre intentar recuperar sala desde localStorage
+            const savedRoom = localStorage.getItem('pianolink-last-room');
+            if (savedRoom) {
+                console.log(`[SocketClient] 🔄 Recuperando sala guardada: ${savedRoom}`);
+                this.roomCode = savedRoom;
             }
             
             this.bus.emit("net-status", "ONLINE");
-            this.bus.emit("net-reconnected"); // Trigger MIDI re-initialization
-            this.bus.emit("net-midi-recovery"); // NUEVO: Trigger full MIDI recovery
             
+            // Trigger full MIDI recovery ANTES de reiniciar heartbeat
+            this.bus.emit("net-midi-recovery");
+            
+            // Reactivar keepalive (ahora después de re-unirse)
             if (this.roomCode) {
-                this.startHeartbeat(); // Reactivar keepalive
+                // Delay para dar tiempo a que se complete el rejoin
+                setTimeout(() => {
+                    this.startHeartbeat();
+                    console.log('[SocketClient] ❤️ Heartbeat reiniciado después de reconexión');
+                }, 1000);
             }
         });
         

@@ -1010,15 +1010,20 @@ function setupEventHandlers() {
         
         // 3. Re-unirse a la sala si estamos en una
         const pianoUser = JSON.parse(localStorage.getItem('pianoUser') || '{}');
-        const roomCode = pianoUser.roomCode;
+        const savedRoom = localStorage.getItem('pianolink-last-room');
+        const roomCode = savedRoom || pianoUser.roomCode;
         
         if (roomCode && socketManager.socket.connected) {
-            console.log(`[Main] Re-uniéndose a sala: ${roomCode}`);
-            socketManager.joinRoom({
-                roomCode: roomCode,
-                username: pianoUser.username || 'Usuario',
-                userRole: pianoUser.role || 'student'
-            });
+            console.log(`[Main] 🔄 Re-uniéndose a sala después de reconexión: ${roomCode}`);
+            // Usar los parámetros correctos de joinRoom: (code, name, role)
+            socketManager.joinRoom(
+                roomCode,
+                pianoUser.username || pianoUser.name || 'Usuario',
+                pianoUser.role || 'student'
+            );
+            
+            // Notificar UI que volvimos a la sala
+            bus.emit('room-rejoined', roomCode);
         }
         
         // 4. Solicitar snapshot del estado actual

@@ -26,7 +26,7 @@ const io = new Server(server, {
         credentials: true
     },
     maxHttpBufferSize: 1e7, // 10 MB (Suficiente para PDFs y MIDI)
-    pingTimeout: 60000,     // 60s antes de considerar desconexión
+    pingTimeout: 120000,    // 120s antes de considerar desconexión (aumentado de 60s)
     pingInterval: 25000,    // Enviar ping cada 25s
     connectTimeout: 45000,  // Timeout para establecer conexión inicial
     transports: ['websocket', 'polling'], // Fallback a polling si websocket falla
