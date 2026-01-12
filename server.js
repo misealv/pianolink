@@ -56,13 +56,6 @@ app.use('/api/leads', require('./routes/leadRoutes')); // Lead generation
 app.use('/admin', require('./routes/adminRoutes'));
 
 // ==================================================
-// LANDING PAGE - Ruta raíz
-// ==================================================
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'landing.html'));
-});
-
-// ==================================================
 // AGORA AV - FASE 0: ENDPOINT RESILIENTE
 // ==================================================
 /**
@@ -96,13 +89,13 @@ app.get('/', (req, res) => {
       return res.sendFile(path.join(__dirname, 'public', 'index.html'));
   }
   
-  // B) Si entra limpio (localhost:3000) -> Mostrar Login
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+  // B) Si entra limpio (localhost:3000) -> Mostrar Landing Page
+  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
 });
 
 
 // Rutas de Entrada (SPA)
-app.get(['/', '/c/:slug'], (req, res) => {
+app.get(['/c/:slug'], (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
