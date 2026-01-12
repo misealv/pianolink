@@ -2160,3 +2160,30 @@ input[type="color"]#tool-color {
 .health-status.inactive {
   color: #666;
 }
+
+/* === TOAST NOTIFICATIONS === */
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+.toast {
+  animation: slideIn 0.3s ease-out;
+}

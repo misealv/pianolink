@@ -53,10 +53,101 @@ export class UIManager {
         // Para el auto-release automático
         this.noteTimeouts = new Map();
         
+        // ⚡ SISTEMA DE NOTIFICACIONES DE AUDIO
+        this.audioContext = null;
+        this.userJoinedPlayed = new Set(); // Evitar reproducir múltiples veces para el mismo usuario
+        this.initAudioNotifications();
+        
         // ⚡ INICIALIZAR ESTADO DE TOOLBAR
         this.initToolbarVisibility();
 
         console.log("✅ UIManager Listo. Overlay detectado:", !!this.waitingOverlay);
+    }
+    
+    /**
+     * Inicializa sistema de notificaciones de audio
+     */
+    initAudioNotifications() {
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            console.log('[UIManager] 🔊 AudioContext para notificaciones inicializado');
+        } catch (e) {
+            console.warn('[UIManager] ⚠️ No se pudo inicializar AudioContext para notificaciones:', e);
+        }
+    }
+    
+    /**
+     * Reproduce sonido cuando un usuario se une (estilo Google Meet)
+     */
+    playUserJoinedSound() {
+        if (!this.audioContext) return;
+        
+        try {
+            // Asegurar que el AudioContext esté running
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+            
+            const now = this.audioContext.currentTime;
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            // Sonido tipo "ding" suave y profesional
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(800, now);
+            oscillator.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
+            
+            // Envelope suave
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.15, now + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            
+            oscillator.start(now);
+            oscillator.stop(now + 0.3);
+            
+            console.log('[UIManager] 🔔 Sonido de entrada reproducido');
+        } catch (e) {
+            console.warn('[UIManager] ⚠️ Error reproduciendo sonido:', e);
+        }
+    }
+    
+    /**
+     * Reproduce sonido cuando un usuario sale
+     */
+    playUserLeftSound() {
+        if (!this.audioContext) return;
+        
+        try {
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+            
+            const now = this.audioContext.currentTime;
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            // Sonido descendente para salida
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(1000, now);
+            oscillator.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+            
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.12, now + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+            
+            oscillator.start(now);
+            oscillator.stop(now + 0.25);
+            
+            console.log('[UIManager] 🔕 Sonido de salida reproducido');
+        } catch (e) {
+            console.warn('[UIManager] ⚠️ Error reproduciendo sonido de salida:', e);
+        }
     }
     
     /**
@@ -344,6 +435,37 @@ export class UIManager {
     // --- LISTA DE PARTICIPANTES (CUE + ESPÍA) ---
     updateParticipants(users) {
         if(!this.participantsList) return;
+        
+        // 🔔 DETECTAR NUEVOS USUARIOS Y REPRODUCIR SONIDO
+        if (this.lastUserList && users) {
+            const previousUserIds = new Set(this.lastUserList.map(u => u.socketId));
+            const currentUserIds = new Set(users.map(u => u.socketId));
+            
+            // Detectar usuarios que entraron
+            users.forEach(user => {
+                if (!previousUserIds.has(user.socketId) && !this.userJoinedPlayed.has(user.socketId)) {
+                    console.log(`[UIManager] 🎉 Nuevo usuario detectado: ${user.name}`);
+                    this.playUserJoinedSound();
+                    this.userJoinedPlayed.add(user.socketId);
+                    
+                    // Opcional: Mostrar notificación visual
+                    this.showToast(`${user.name} se unió a la clase`, 'info');
+                }
+            });
+            
+            // Detectar usuarios que salieron
+            this.lastUserList.forEach(user => {
+                if (!currentUserIds.has(user.socketId)) {
+                    console.log(`[UIManager] 👋 Usuario salió: ${user.name}`);
+                    this.playUserLeftSound();
+                    this.userJoinedPlayed.delete(user.socketId);
+                    
+                    // Opcional: Mostrar notificación visual
+                    this.showToast(`${user.name} salió de la clase`, 'warning');
+                }
+            });
+        }
+        
         this.lastUserList = users;
         
         if (!users || users.length === 0) {
@@ -757,6 +879,40 @@ export class UIManager {
         this.bus.on("room-joined", (code) => this.log(`Unido a Sala: ${code}`, 'success'));
         this.bus.on("ui-panic", () => this.log("⚠️ Reset", 'warn'));
         this.log("Sistema V3 Listo.", "info");
+    }
+    
+    /**
+     * Muestra notificación toast temporal
+     */
+    showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        
+        // Estilos inline para el toast
+        Object.assign(toast.style, {
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            padding: '12px 20px',
+            background: type === 'info' ? 'rgba(0, 229, 255, 0.9)' : 'rgba(255, 165, 0, 0.9)',
+            color: '#000',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: '500',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            zIndex: '10000',
+            animation: 'slideIn 0.3s ease-out',
+            backdropFilter: 'blur(10px)'
+        });
+        
+        document.body.appendChild(toast);
+        
+        // Remover después de 3 segundos
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
     }
     
     // Indicador visual de estado de conexión en UI
