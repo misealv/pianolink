@@ -887,14 +887,36 @@ function setupEventHandlers() {
         });
     });
 
+    // === ⚡ RATE LIMITING PARA CC FLOODS ===
+    // Throttle adicional para CC ruidosos (Expression, Modulation, Breath)
+    const ccThrottleState = {
+        lastCC: new Map(),       // key: "cc-channel-control", value: timestamp
+        CC_FLOOD_THROTTLE: 16,   // 16ms = max 62.5 CC/s por control (profesional)
+        NOISY_CCS: [1, 2, 7, 11, 64, 74] // Modulation, Breath, Volume, Expression, Sustain, Brightness
+    };
+    
     bus.on("local-note", function(data) {
+        // === RATE LIMITING: Prevenir CC floods ===
+        const isCC = (data.status >= 176 && data.status <= 191);
+        if (isCC && ccThrottleState.NOISY_CCS.includes(data.data1)) {
+            const channel = data.status - 176;
+            const ccKey = `${channel}-${data.data1}`;
+            const now = performance.now();
+            const lastTime = ccThrottleState.lastCC.get(ccKey) || 0;
+            
+            if (now - lastTime < ccThrottleState.CC_FLOOD_THROTTLE) {
+                // Throttle: ignorar este CC para no saturar socket
+                return;
+            }
+            ccThrottleState.lastCC.set(ccKey, now);
+        }
+        
         socketManager.sendMidi(data.status, data.data1, data.data2);
         processMidiMessage(data, true);
         
         // === LOCAL ECHO: Enviar CC al hardware local ===
         // Las notas NO se envían (el usuario ya las escucha directamente del piano)
         // pero CC (pedal, volumen, etc.) SÍ deben reenviarse para que funcionen
-        const isCC = (data.status >= 176 && data.status <= 191);
         if (isCC) {
             audio.playLocal(data); // Enviar CC al hardware local
         }

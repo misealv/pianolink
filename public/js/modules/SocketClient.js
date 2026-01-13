@@ -125,6 +125,7 @@ export class SocketClient {
         this.socket.io.on("connect_error", this._connectErrorHandler);
 
         // --- DATA: MIDI BINARY (Soporta individual Y bundles) ---
+        // ⚡ CON JITTER BUFFER: Ordenamiento por timestamp
         this.socket.on("midi-binary", (packet) => {
             // Solo procesar si no estamos en hibernación
             if (this._connectionState !== 'hibernating') {
@@ -138,8 +139,16 @@ export class SocketClient {
                         return;
                     }
                     
-                    // Procesar cada mensaje del bundle
-                    messages.forEach(decoded => {
+                    // === 🔀 JITTER BUFFER: Ordenar por timestamp ===
+                    // Esto corrige paquetes que llegan desordenados por la red
+                    const sortedMessages = messages.sort((a, b) => {
+                        const tsA = a.timestamp || 0;
+                        const tsB = b.timestamp || 0;
+                        return tsA - tsB;
+                    });
+                    
+                    // Procesar cada mensaje del bundle EN ORDEN CORRECTO
+                    sortedMessages.forEach(decoded => {
                         if (decoded) {
                             this.bus.emit("remote-note", { 
                                 ...decoded, 

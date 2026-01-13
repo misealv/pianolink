@@ -845,7 +845,8 @@ function sendSnapshot(roomCode) {
     }
 }
 
-// Heartbeat periódico cada 5 segundos (backup del sistema reactivo)
+// ⚡ Heartbeat periódico cada 2 segundos (REDUCIDO de 5s para mayor resiliencia)
+// Esto sincroniza el estado completo del piano incluso durante legatos sostenidos
 function startSnapshotHeartbeat() {
     // Limpiar intervalo anterior si existe
     if (snapshotHeartbeatInterval) {
@@ -856,9 +857,9 @@ function startSnapshotHeartbeat() {
         Object.keys(rooms).forEach(roomCode => {
             sendSnapshot(roomCode);
         });
-    }, 5000);
+    }, 2000); // ⚡ REDUCIDO a 2000ms (era 5000ms)
     
-    console.log('[Snapshot] Heartbeat iniciado.');
+    console.log('[Snapshot] ⚡ Heartbeat MIDI iniciado (cada 2s).');
 }
 
 // Iniciar el heartbeat

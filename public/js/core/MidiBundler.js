@@ -18,6 +18,9 @@ export class MidiBundler {
         this.bundleTimer = null;
         this.messageQueue = [];
         
+        // === 🔒 MUTEX ANTI-RACE CONDITION ===
+        this._isFlushing = false;      // Lock para flush atómico
+        
         // === FILTRADO DE CC REDUNDANTES ===
         this.lastCCValues = new Map(); // key: "channel-cc", value: {value, timestamp}
         this.CC_THROTTLE_MS = 20;      // No enviar mismo CC más de 1 vez cada 20ms
@@ -28,10 +31,11 @@ export class MidiBundler {
             messagesSent: 0,
             messagesFiltered: 0,
             bundlesSent: 0,
-            avgBundleSize: 0
+            avgBundleSize: 0,
+            raceConditionsPrevented: 0  // Contador de races evitadas
         };
         
-        console.log('[MidiBundler] ⚡ High-Priority MIDI Stream (Professional Mode)');
+        console.log('[MidiBundler] ⚡ High-Priority MIDI Stream (Professional Mode + Mutex)');
         console.log(`  - Bundle interval: ${this.BUNDLE_INTERVAL_MS}ms`);
         console.log(`  - CC throttle: ${this.CC_THROTTLE_MS}ms`);
     }
@@ -148,38 +152,53 @@ export class MidiBundler {
     }
     
     /**
-     * Envía el bundle acumulado
+     * Envía el bundle acumulado (CON MUTEX ANTI-RACE)
      * @private
      */
     _flushBundle() {
-        if (this.messageQueue.length === 0) return;
-        
-        // Cancelar timer si existe
-        if (this.bundleTimer) {
-            clearTimeout(this.bundleTimer);
-            this.bundleTimer = null;
+        // === 🔒 MUTEX: Evitar doble flush ===
+        if (this._isFlushing) {
+            this.stats.raceConditionsPrevented++;
+            console.debug('[MidiBundler] ⚠️ Race condition prevenida (flush en progreso)');
+            return;
         }
         
-        // === ORDENAR POR PRIORIDAD (High primero) ===
-        this.messageQueue.sort((a, b) => {
-            if (a.priority === 'high' && b.priority === 'low') return -1;
-            if (a.priority === 'low' && b.priority === 'high') return 1;
-            return 0; // Mantener orden temporal si misma prioridad
-        });
+        if (this.messageQueue.length === 0) return;
         
-        // === ENVIAR BUNDLE ===
-        const bundle = this.messageQueue.slice(); // Copia
-        this.sendCallback(bundle);
+        // Adquirir lock
+        this._isFlushing = true;
         
-        // === ESTADÍSTICAS ===
-        this.stats.bundlesSent++;
-        this.stats.messagesSent += bundle.length;
-        this.stats.avgBundleSize = this.stats.messagesSent / this.stats.bundlesSent;
-        
-        // Limpiar cola
-        this.messageQueue = [];
-        
-        console.debug(`[MidiBundler] Bundle enviado: ${bundle.length} mensajes`);
+        try {
+            // Cancelar timer si existe
+            if (this.bundleTimer) {
+                clearTimeout(this.bundleTimer);
+                this.bundleTimer = null;
+            }
+            
+            // === ORDENAR POR PRIORIDAD (High primero) ===
+            this.messageQueue.sort((a, b) => {
+                if (a.priority === 'high' && b.priority === 'low') return -1;
+                if (a.priority === 'low' && b.priority === 'high') return 1;
+                return 0; // Mantener orden temporal si misma prioridad
+            });
+            
+            // === ENVIAR BUNDLE ===
+            const bundle = this.messageQueue.slice(); // Copia
+            this.sendCallback(bundle);
+            
+            // === ESTADÍSTICAS ===
+            this.stats.bundlesSent++;
+            this.stats.messagesSent += bundle.length;
+            this.stats.avgBundleSize = this.stats.messagesSent / this.stats.bundlesSent;
+            
+            // Limpiar cola
+            this.messageQueue = [];
+            
+            console.debug(`[MidiBundler] Bundle enviado: ${bundle.length} mensajes`);
+        } finally {
+            // Liberar lock SIEMPRE
+            this._isFlushing = false;
+        }
     }
     
     /**

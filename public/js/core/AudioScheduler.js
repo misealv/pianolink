@@ -125,11 +125,22 @@ export class AudioScheduler {
                 this.notesLate = 0;
             }
             
-            // Re-sincronizar cada 3 segundos para compensar deriva de reloj
-            if (!this.isSynced || (now - this.lastSyncTime) > 3000) {
-                this.syncOffset = (this.ctx.currentTime * 1000) - timestamp;
+            // === ⚡ RE-SINCRONIZACIÓN SUAVE (INTERPOLACIÓN) ===
+            // En lugar de saltar bruscamente, interpolamos el offset gradualmente
+            const newOffset = (this.ctx.currentTime * 1000) - timestamp;
+            
+            if (!this.isSynced) {
+                // Primera sincronización: aplicar directamente
+                this.syncOffset = newOffset;
                 this.isSynced = true;
                 this.lastSyncTime = now;
+            } else if ((now - this.lastSyncTime) > 3000) {
+                // Re-sync cada 3s: interpolar con 80% del offset anterior
+                // Esto suaviza los saltos y evita micro-cortes audibles
+                const SMOOTH_FACTOR = 0.2; // Solo 20% del nuevo valor
+                this.syncOffset = this.syncOffset * (1 - SMOOTH_FACTOR) + newOffset * SMOOTH_FACTOR;
+                this.lastSyncTime = now;
+                console.debug(`[AudioScheduler] 🔄 Re-sync suave: offset=${this.syncOffset.toFixed(1)}ms`);
             }
 
             // Calcular tiempo objetivo respetando el timestamp original
@@ -139,7 +150,7 @@ export class AudioScheduler {
             // --- CORRECCIÓN DE DERIVA (MUY tolerante para conexiones inestables) ---
             const drift = scheduledTime - this.ctx.currentTime;
             if (Math.abs(drift) > 3.0) {
-                // Deriva mayor a 3s: re-sincronizar
+                // Deriva mayor a 3s: re-sincronizar forzado
                 this.isSynced = false;
                 scheduledTime = this.ctx.currentTime + (this.BUFFER_MS / 1000);
             } else if (scheduledTime < this.ctx.currentTime - 0.05) {
