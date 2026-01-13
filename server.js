@@ -321,6 +321,9 @@ io.on("connection", (socket) => {
         // === DECODIFICAR BUNDLE (puede ser 1 o múltiples mensajes) ===
         const messages = decodeMidiBundle(arrayBuffer);
         
+        // === CONSTANTES DE SEGURIDAD ===
+        const MAX_ACTIVE_NOTES = 128; // Máximo de notas en un piano estándar
+        
         // === STATE TRACKING MIDI (SERVER-SIDE) - Procesar cada mensaje ===
         messages.forEach(msg => {
             try {
@@ -336,8 +339,20 @@ io.on("connection", (socket) => {
                     let stateChanged = false;
                     
                     if (isNoteOn) {
+                        // SEGURIDAD: Límite de notas activas para prevenir memory leak
+                        if (user.activeNotes.size >= MAX_ACTIVE_NOTES) {
+                            const oldestNote = user.activeNotes.values().next().value;
+                            user.activeNotes.delete(oldestNote);
+                            console.warn(`[MIDI] Límite notas usuario: ${socket.id}, liberando ${oldestNote}`);
+                        }
                         user.activeNotes.add(noteId);
+                        
                         if (socket.userRole === 'teacher') {
+                            if (room.teacherActiveNotes.size >= MAX_ACTIVE_NOTES) {
+                                const oldestNote = room.teacherActiveNotes.values().next().value;
+                                room.teacherActiveNotes.delete(oldestNote);
+                                console.warn(`[MIDI] Límite notas sala ${roomCode}, liberando ${oldestNote}`);
+                            }
                             room.teacherActiveNotes.add(noteId);
                             stateChanged = true;
                         }
@@ -509,66 +524,138 @@ io.on("connection", (socket) => {
     });
 
     // --- PIZARRA CON BASE DE DATOS ---
+    // ==================================================
+    // SEGURIDAD: Rate Limiting y Validación de Sala
+    // ==================================================
+    const wbRateLimiter = new Map(); // socketId -> { count, resetTime }
+    const WB_RATE_LIMIT = 30; // máximo 30 trazos por segundo
+    const WB_RATE_WINDOW = 1000; // ventana de 1 segundo
+    
+    function checkWbRateLimit(socketId) {
+        const now = Date.now();
+        let state = wbRateLimiter.get(socketId);
+        
+        if (!state || now > state.resetTime) {
+            state = { count: 0, resetTime: now + WB_RATE_WINDOW };
+        }
+        
+        state.count++;
+        wbRateLimiter.set(socketId, state);
+        
+        return state.count <= WB_RATE_LIMIT;
+    }
+    
+    function sanitizeWbData(data, socketRoomCode) {
+        // Validar que el usuario está en la sala que indica
+        if (data.room !== socketRoomCode) {
+            return null; // Intento de inyección cross-room
+        }
+        
+        return {
+            room: data.room,
+            page: data.page,
+            scoreId: data.scoreId ? String(data.scoreId).substring(0, 50) : null,
+            path: data.path,
+            id: data.id ? String(data.id).substring(0, 50) : null
+        };
+    }
 
-    // DIBUJAR: Rebotar y Guardar
+    // DIBUJAR: Rebotar y Guardar (CON SEGURIDAD)
     socket.on('wb-draw', async (data) => {
-        // 1. Enviar a los demás (Rápido)
-        socket.to(data.room).emit('wb-draw', data);
+        // SEGURIDAD: Rate limiting
+        if (!checkWbRateLimit(socket.id)) {
+            console.warn(`[Security] wb-draw rate limit: ${socket.id}`);
+            return;
+        }
+        
+        // SEGURIDAD: Validar sala y sanitizar
+        const sanitized = sanitizeWbData(data, socket.roomCode);
+        if (!sanitized) {
+            console.warn(`[Security] wb-draw cross-room blocked: ${socket.id} → ${data.room}`);
+            return;
+        }
+        
+        // 1. Enviar a los demás (Rápido - prioridad alta)
+        socket.to(sanitized.room).emit('wb-draw', sanitized);
 
-        // 2. Guardar en MongoDB (Si es una partitura guardada)
-        if (data.scoreId) {
-            try {
-                await Annotation.create({
-                    scoreId: data.scoreId,
-                    page: data.page,
-                    data: data.path // El trazo JSON
-                });
-            } catch (e) {
-                console.error("Error guardando trazo:", e);
-            }
+        // 2. Guardar en MongoDB (Background - prioridad baja, no bloqueante)
+        if (sanitized.scoreId) {
+            setImmediate(async () => {
+                try {
+                    await Annotation.create({
+                        scoreId: sanitized.scoreId,
+                        page: sanitized.page,
+                        data: sanitized.path
+                    });
+                } catch (e) {
+                    console.error("[wb-draw] Error guardando:", e.message);
+                }
+            });
         }
     });
 
-    // NUEVO: BORRAR OBJETO INDIVIDUAL
+    // NUEVO: BORRAR OBJETO INDIVIDUAL (CON SEGURIDAD)
     socket.on('wb-delete', async (data) => {
+        // SEGURIDAD: Rate limiting
+        if (!checkWbRateLimit(socket.id)) {
+            return;
+        }
+        
+        // SEGURIDAD: Validar sala
+        const sanitized = sanitizeWbData(data, socket.roomCode);
+        if (!sanitized) {
+            console.warn(`[Security] wb-delete cross-room blocked: ${socket.id}`);
+            return;
+        }
+        
         // 1. Avisar a los demás
-        socket.to(data.room).emit('wb-delete', data);
+        socket.to(sanitized.room).emit('wb-delete', sanitized);
 
-        // 2. Borrar de la BD
-        if (data.scoreId && data.id) {
-            try {
-                // Buscamos el documento donde annotation.data.id coincida con el ID recibido
-                await Annotation.deleteOne({ 
-                    scoreId: data.scoreId,
-                    page: data.page,
-                    "data.id": data.id 
-                });
-                console.log(`🗑️ Elemento borrado: ${data.id}`);
-            } catch (e) {
-                console.error("Error borrando elemento:", e);
-            }
+        // 2. Borrar de la BD (Background)
+        if (sanitized.scoreId && sanitized.id) {
+            setImmediate(async () => {
+                try {
+                    await Annotation.deleteOne({ 
+                        scoreId: sanitized.scoreId,
+                        page: sanitized.page,
+                        "data.id": sanitized.id 
+                    });
+                    console.log(`🗑️ Elemento borrado: ${sanitized.id}`);
+                } catch (e) {
+                    console.error("[wb-delete] Error:", e.message);
+                }
+            });
         }
     });
 
-    // BORRAR TODO (CLEAR): Rebotar y Actualizar BD
+    // BORRAR TODO (CLEAR): Rebotar y Actualizar BD (CON SEGURIDAD)
     socket.on('wb-clear', async (data) => {
-        socket.to(data.room).emit('wb-clear', data);
+        // SEGURIDAD: Validar sala
+        const sanitized = sanitizeWbData(data, socket.roomCode);
+        if (!sanitized) {
+            console.warn(`[Security] wb-clear cross-room blocked: ${socket.id}`);
+            return;
+        }
+        
+        socket.to(sanitized.room).emit('wb-clear', sanitized);
 
-        if (data.scoreId) {
-            try {
-                // Borrar anotaciones de ESA página
-                await Annotation.deleteMany({ 
-                    scoreId: data.scoreId, 
-                    page: data.page 
-                });
-            } catch (e) {
-                console.error("Error borrando anotaciones:", e);
-            }
+        if (sanitized.scoreId) {
+            setImmediate(async () => {
+                try {
+                    await Annotation.deleteMany({ 
+                        scoreId: sanitized.scoreId, 
+                        page: sanitized.page 
+                    });
+                } catch (e) {
+                    console.error("[wb-clear] Error:", e.message);
+                }
+            });
         }
     });
 
-    // LÁSER (No se guarda, solo rebota)
+    // LÁSER (No se guarda, solo rebota) - Validación ligera
     socket.on('wb-pointer', (data) => {
+        if (data.room !== socket.roomCode) return;
         socket.to(data.room).volatile.emit('wb-pointer', data);
     });
     
@@ -576,6 +663,7 @@ io.on("connection", (socket) => {
     // Nota: Para pizarra libre (whiteboard) no hay persistencia en servidor
     // Solo funciona si otro usuario tiene el estado y lo comparte
     socket.on('wb-request-sync', (data) => {
+        if (data.room !== socket.roomCode) return;
         // Pedir a otros usuarios de la sala que compartan su estado
         socket.to(data.room).emit('wb-sync-request', {
             requester: socket.id,

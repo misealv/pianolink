@@ -22,4 +22,14 @@ const AnnotationSchema = new mongoose.Schema({
     }
 });
 
+// === ÍNDICES PARA PERFORMANCE ===
+// Índice compuesto para búsquedas por partitura y página (uso más común)
+AnnotationSchema.index({ scoreId: 1, page: 1 });
+
+// Índice para búsqueda por ID de objeto (para borrado individual)
+AnnotationSchema.index({ scoreId: 1, "data.id": 1 });
+
+// Índice para limpieza por antigüedad (opcional, para mantenimiento)
+AnnotationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 365 }); // TTL 1 año
+
 module.exports = mongoose.model('Annotation', AnnotationSchema);
