@@ -7,7 +7,7 @@
     <meta name="description" content="La plataforma de educación musical de alta tecnología para profesores de piano de élite. MIDI en tiempo real, audio de alta fidelidad, latencia ultra-baja.">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/logo-pianolink.png">
+    <link rel="icon" type="image/png" href="/logoclaropianolink.jpg">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -15,21 +15,22 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'piano-black': '#0a0a0a',
-                        'piano-dark': '#111111',
-                        'piano-gray': '#1a1a1a',
-                        'piano-border': '#2a2a2a',
-                        'brand-cyan': '#00E5FF',
-                        'brand-purple': '#9D00FF',
-                        'brand-cyan-dim': '#00B8CC',
-                        'brand-purple-dim': '#7700CC',
+                        'ivory': '#FDFCFB',
+                        'silk': '#F7F6F4',
+                        'pearl': '#F0EFED',
+                        'midnight': '#1A2332',
+                        'charcoal': '#2C3440',
+                        'brand-cyan': '#00B8CC',
+                        'brand-purple': '#7700CC',
+                        'brand-cyan-light': '#E6F9FC',
+                        'brand-purple-light': '#F3E6FF',
                     },
                     fontFamily: {
                         'serif': ['Cormorant Garamond', 'Georgia', 'serif'],
@@ -42,7 +43,7 @@
     
     <style>
         body {
-            background-color: #0a0a0a;
+            background-color: #FDFCFB;
             font-family: 'Inter', sans-serif;
         }
         
@@ -50,25 +51,29 @@
             font-family: 'Cormorant Garamond', Georgia, serif;
         }
         
-        /* Gradient text */
+        /* Gradient text - Refined elegance */
         .gradient-text {
-            background: linear-gradient(135deg, #00E5FF 0%, #9D00FF 100%);
+            background: linear-gradient(135deg, #00B8CC 0%, #7700CC 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         
-        /* Glow effects */
-        .glow-cyan {
-            box-shadow: 0 0 30px rgba(0, 229, 255, 0.25), 0 0 60px rgba(157, 0, 255, 0.15);
+        /* Soft shadows - Professional depth */
+        .shadow-soft {
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04), 0 8px 40px rgba(0, 0, 0, 0.06);
         }
         
-        .glow-cyan-strong {
-            box-shadow: 0 0 40px rgba(0, 229, 255, 0.4), 0 0 80px rgba(157, 0, 255, 0.25);
+        .shadow-soft-lg {
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.06), 0 12px 60px rgba(0, 0, 0, 0.08);
         }
         
-        /* Subtle grain texture overlay */
-        .grain::before {
+        .shadow-accent {
+            box-shadow: 0 4px 24px rgba(0, 184, 204, 0.12), 0 8px 48px rgba(119, 0, 204, 0.08);
+        }
+        
+        /* Subtle texture overlay */
+        .sunlit::before {
             content: '';
             position: fixed;
             top: 0;
@@ -76,33 +81,31 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            opacity: 0.02;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.015;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
         }
         
-        /* Touch targets - Mínimo 44px para táctil perfecto */
+        /* Touch targets */
         .touch-target {
             min-height: 44px;
             min-width: 44px;
         }
         
-        /* Inputs táctiles optimizados */
         input[type="text"],
         input[type="email"],
         input[type="tel"],
         textarea {
-            min-height: 52px; /* 44px + padding para comodidad */
+            min-height: 52px;
         }
         
-        /* Botones principales */
         button.touch-target {
             min-height: 52px;
         }
         
         /* Modal backdrop */
         .modal-backdrop {
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
         }
         
         /* Smooth transitions */
@@ -111,57 +114,62 @@
         }
         
         /* Benefit card hover */
+        .benefit-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
         .benefit-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(0, 229, 255, 0.4);
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 184, 204, 0.1);
         }
         
-        /* Decorative line */
+        /* Decorative line - Refined */
         .deco-line {
-            width: 60px;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #00E5FF, #9D00FF, transparent);
-        }
-        
-        /* Logo pulse animation */
-        @keyframes logoPulse {
-            0%, 100% { filter: drop-shadow(0 0 20px rgba(0, 229, 255, 0.4)) drop-shadow(0 0 30px rgba(157, 0, 255, 0.3)); }
-            50% { filter: drop-shadow(0 0 40px rgba(0, 229, 255, 0.6)) drop-shadow(0 0 50px rgba(157, 0, 255, 0.4)); }
-        }
-        
-        .logo-glow {
-            animation: logoPulse 3s ease-in-out infinite;
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #00B8CC, #7700CC, transparent);
+            opacity: 0.4;
         }
         
         /* Input focus */
-        input:focus {
+        input:focus,
+        textarea:focus {
             outline: none;
-            border-color: #00E5FF !important;
-            box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.15);
+            border-color: #00B8CC !important;
+            box-shadow: 0 0 0 4px rgba(0, 184, 204, 0.08);
         }
         
-        /* Spec card */
+        /* Elegant spec card */
         .spec-card {
-            background: linear-gradient(135deg, rgba(0, 229, 255, 0.08) 0%, rgba(157, 0, 255, 0.05) 100%);
+            background: linear-gradient(135deg, rgba(0, 184, 204, 0.02) 0%, rgba(119, 0, 204, 0.02) 100%);
+        }
+        
+        /* Luminous gradient backgrounds */
+        .gradient-bg-hero {
+            background: linear-gradient(135deg, #FDFCFB 0%, #F0EFED 50%, #E6F9FC 100%);
+        }
+        
+        .gradient-bg-section {
+            background: linear-gradient(180deg, #F7F6F4 0%, #FDFCFB 100%);
         }
     </style>
 </head>
 
-<body class="grain text-white antialiased">
+<body class="sunlit text-slate-900 antialiased">
     
     <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-piano-black/90 backdrop-blur-md border-b border-piano-border">
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-ivory/95 backdrop-blur-xl border-b border-slate-200/60 shadow-soft">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 lg:h-20">
                 
                 <!-- Logo -->
-                <a href="/" class="flex items-center gap-3">
-                    <img src="/logo-pianolink.png" alt="Piano Link" class="h-10 lg:h-12 w-auto">
+                <a href="/" class="flex items-center gap-3 transition-smooth hover:opacity-80">
+                    <img src="/logoclaropianolink.jpg" alt="Piano Link" class="h-10 lg:h-12 w-auto rounded-xl shadow-soft">
                 </a>
                 
                 <!-- Access Button -->
                 <a href="/login.html" 
-                   class="touch-target flex items-center justify-center px-5 py-2.5 text-sm font-medium text-white/80 hover:text-piano-orange border border-piano-border hover:border-piano-orange/50 rounded-full transition-smooth">
+                   class="touch-target flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-charcoal hover:text-brand-cyan border-2 border-slate-200 hover:border-brand-cyan/40 rounded-full transition-smooth">
                     Acceso Profesor
                 </a>
             </div>
@@ -169,83 +177,83 @@
     </nav>
     
     <!-- Hero Section -->
-    <section class="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
+    <section class="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden gradient-bg-hero">
         
-        <!-- Background gradient -->
-        <div class="absolute inset-0 bg-gradient-to-b from-piano-black via-piano-dark to-piano-black"></div>
-        
-        <!-- Decorative circles -->
-        <div class="absolute top-1/4 -left-32 w-64 h-64 bg-piano-orange/5 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-1/4 -right-32 w-96 h-96 bg-piano-orange/5 rounded-full blur-3xl"></div>
+        <!-- Decorative light elements - Subtle luminosity -->
+        <div class="absolute top-1/4 -left-32 w-96 h-96 bg-brand-cyan-light/30 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-1/4 -right-32 w-[500px] h-[500px] bg-brand-purple-light/20 rounded-full blur-3xl"></div>
         
         <div class="relative z-10 max-w-5xl mx-auto px-6 text-center">
             
-            <!-- Logo prominente -->
-            <div class="mb-8">
-                <img src="/logo-pianolink.png" 
-                     alt="Piano Link" 
-                     class="h-32 sm:h-40 lg:h-48 w-auto mx-auto logo-glow">
+            <!-- Logo - Premium presentation -->
+            <div class="mb-10 inline-block">
+                <div class="bg-white/80 backdrop-blur-sm border border-slate-200/80 rounded-3xl p-8 shadow-soft-lg">
+                    <img src="/logoclaropianolink.jpg" 
+                         alt="Piano Link" 
+                         class="h-24 sm:h-32 lg:h-36 w-auto mx-auto rounded-2xl">
+                </div>
             </div>
             
-            <!-- Eyebrow -->
-            <p class="text-piano-orange text-sm font-medium tracking-[0.3em] uppercase mb-6">
+            <!-- Eyebrow - Refined exclusivity -->
+            <p class="text-brand-cyan text-sm font-semibold tracking-[0.3em] uppercase mb-8 opacity-90">
                 Exclusivo para Maestros de Piano
             </p>
             
-            <!-- Main headline - CLASE MUNDIAL -->
-            <h1 class="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
-                <span class="text-white">Tu piano en su sala.</span><br>
+            <!-- Main headline - WORLD CLASS -->
+            <h1 class="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-8 text-midnight">
+                <span>Tu piano en su sala.</span><br>
                 <span class="gradient-text">Su piano en la tuya.</span><br>
-                <span class="text-white italic">En tiempo real.</span>
+                <span class="italic">En tiempo real.</span>
             </h1>
             
-            <!-- Subheadline - Nicho Específico -->
-            <p class="text-lg sm:text-xl lg:text-2xl text-white/70 max-w-3xl mx-auto mb-12 leading-relaxed font-medium">
-                La plataforma de alta fidelidad diseñada exclusivamente para <span class="text-white">maestros que ya lideran</span> la enseñanza del piano online.
+            <!-- Subheadline - Elevated positioning -->
+            <p class="text-lg sm:text-xl lg:text-2xl text-slate-700 max-w-3xl mx-auto mb-12 leading-relaxed font-medium">
+                La plataforma que preserva el legado pedagógico del piano a través de la tecnología. 
+                Diseñada para <span class="text-midnight font-semibold">maestros que ya lideran</span> la enseñanza online.
             </p>
             
             <!-- CTA Buttons -->
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-5">
                 <button onclick="openModal()" 
-                        class="touch-target w-full sm:w-auto px-8 py-4 bg-piano-orange text-white font-semibold rounded-full hover:bg-piano-orange-light transition-smooth glow-orange-strong">
-                    🎯 Postular al Programa de Fundadores
+                        class="touch-target w-full sm:w-auto px-12 py-5 bg-gradient-to-r from-brand-cyan to-brand-purple text-white font-bold rounded-2xl shadow-accent hover:shadow-soft-lg transition-smooth transform hover:scale-105">
+                    Postular al Programa de Fundadores
                 </button>
                 <a href="#tech" 
-                   class="touch-target w-full sm:w-auto px-8 py-4 text-white/80 hover:text-white font-medium transition-smooth">
+                   class="touch-target w-full sm:w-auto px-8 py-4 text-charcoal hover:text-brand-cyan font-semibold transition-smooth">
                     Ver el Salto Tecnológico ↓
                 </a>
             </div>
             
-            <!-- Scarcity indicator -->
-            <div class="mt-16 flex flex-col items-center gap-2">
-                <p class="text-sm text-piano-orange/80 font-medium">
-                    ⚠️ Últimos cupos disponibles
+            <!-- Scarcity indicator - Exclusive invitation -->
+            <div class="mt-20 flex flex-col items-center gap-3">
+                <p class="text-sm text-brand-cyan font-bold uppercase tracking-wider">
+                    Acceso Limitado
                 </p>
-                <p class="text-xs text-white/30">
-                    Quedan <span class="text-piano-orange font-semibold">7 cupos disponibles</span>
+                <p class="text-xs text-slate-600 font-medium">
+                    Quedan <span class="text-brand-cyan font-bold">7 cupos disponibles</span> de 10 totales
                 </p>
             </div>
         </div>
         
         <!-- Scroll indicator -->
-        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/30">
-            <div class="w-px h-12 bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-slate-400">
+            <div class="w-px h-12 bg-gradient-to-b from-transparent via-slate-300 to-transparent"></div>
         </div>
     </section>
     
     <!-- El Salto Tecnológico Section -->
-    <section id="tech" class="py-24 lg:py-32 bg-piano-dark">
+    <section id="tech" class="py-24 lg:py-32 bg-white">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             
             <!-- Section header -->
             <div class="text-center mb-16 lg:mb-24">
                 <div class="deco-line mx-auto mb-8"></div>
-                <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold mb-6">
+                <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 text-midnight">
                     Por Qué Piano Link Supera a Zoom
                 </h2>
-                <p class="text-white/50 max-w-3xl mx-auto text-lg leading-relaxed">
+                <p class="text-slate-600 max-w-3xl mx-auto text-lg leading-relaxed">
                     Zoom fue diseñado para reuniones corporativas. Piano Link fue diseñado para 
-                    <span class="text-white">la transmisión exacta del arte pianístico</span>.
+                    <span class="text-midnight font-semibold">la transmisión exacta del arte pianístico</span>.
                 </p>
             </div>
             
@@ -253,61 +261,61 @@
             <div class="grid md:grid-cols-3 gap-8 lg:gap-10">
                 
                 <!-- Tech 1: Audio de Concierto -->
-                <div class="benefit-card group p-8 lg:p-10 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth">
-                    <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
-                        <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="benefit-card group p-8 lg:p-10 bg-white border-2 border-slate-200/60 rounded-3xl shadow-soft">
+                    <div class="w-14 h-14 flex items-center justify-center bg-gradient-to-r from-brand-cyan to-brand-purple/10 rounded-2xl mb-6">
+                        <svg class="w-7 h-7 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
                         </svg>
                     </div>
-                    <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
-                        🎼 Audio HD de Concierto
+                    <h3 class="font-serif text-2xl font-bold mb-4 text-midnight">
+                        Audio HD de Concierto
                     </h3>
-                    <p class="text-white/60 leading-relaxed text-lg mb-4">
-                        Optimizado para <strong class="text-white">frecuencias de piano</strong>, no de voz. 
+                    <p class="text-slate-600 leading-relaxed text-lg mb-4">
+                        Optimizado para <strong class="text-charcoal">frecuencias de piano</strong>, no de voz. 
                         Elimina la compresión agresiva que destruye la dinámica y el timbre.
                     </p>
-                    <p class="text-piano-orange/80 text-sm font-medium">
+                    <p class="text-brand-cyan text-sm font-semibold">
                         → Tu <em>pianissimo</em> suena como <em>pianissimo</em>, no como silencio
                     </p>
                 </div>
                 
                 <!-- Tech 2: Precisión MIDI HD -->
-                <div class="benefit-card group p-8 lg:p-10 bg-gradient-to-br from-piano-gray/50 to-piano-gray/30 border-2 border-piano-orange/30 rounded-2xl transition-smooth relative overflow-hidden">
-                    <div class="absolute top-0 right-0 bg-piano-orange text-piano-black text-xs font-bold px-3 py-1 rounded-bl-xl">
+                <div class="benefit-card group p-8 lg:p-10 bg-gradient-to-br from-brand-cyan-light/40 to-brand-purple-light/30 border-2 border-brand-cyan/30 rounded-3xl shadow-accent relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-gradient-to-r from-brand-cyan to-brand-purple text-white text-xs font-bold px-4 py-1.5 rounded-bl-2xl">
                         ÚNICO
                     </div>
-                    <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/20 rounded-2xl mb-6">
-                        <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-14 h-14 flex items-center justify-center bg-white rounded-2xl mb-6 shadow-soft">
+                        <svg class="w-7 h-7 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                         </svg>
                     </div>
-                    <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
-                        ⚡ Espejo MIDI HD
+                    <h3 class="font-serif text-2xl font-bold mb-4 text-midnight">
+                        Espejo MIDI HD
                     </h3>
-                    <p class="text-white/60 leading-relaxed text-lg mb-4">
-                        Lo que tú tocas <strong class="text-white">se replica en las teclas del alumno</strong> 
+                    <p class="text-slate-700 leading-relaxed text-lg mb-4">
+                        Lo que tú tocas <strong class="text-midnight">se replica en las teclas del alumno</strong> 
                         con precisión de 127 niveles de velocidad. Visualización quirúrgica en tiempo real.
                     </p>
-                    <p class="text-piano-orange/80 text-sm font-medium">
+                    <p class="text-brand-cyan text-sm font-semibold">
                         → Correcciones técnicas inmediatas, latencia &lt;20ms
                     </p>
                 </div>
                 
                 <!-- Tech 3: Experiencia Tablet-First -->
-                <div class="benefit-card group p-8 lg:p-10 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth">
-                    <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
-                        <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="benefit-card group p-8 lg:p-10 bg-white border-2 border-slate-200/60 rounded-3xl shadow-soft">
+                    <div class="w-14 h-14 flex items-center justify-center bg-gradient-to-r from-brand-cyan to-brand-purple/10 rounded-2xl mb-6">
+                        <svg class="w-7 h-7 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                         </svg>
                     </div>
-                    <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
-                        📱 Interfaz Tablet-First
+                    <h3 class="font-serif text-2xl font-bold mb-4 text-midnight">
+                        Interfaz Tablet-First
                     </h3>
-                    <p class="text-white/60 leading-relaxed text-lg mb-4">
-                        <strong class="text-white">Control total táctil</strong> diseñado para iPad. 
+                    <p class="text-slate-600 leading-relaxed text-lg mb-4">
+                        <strong class="text-charcoal">Control total táctil</strong> diseñado para iPad. 
                         Botones de 44px mínimo, gestos naturales, gestión de clase fluida.
                     </p>
-                    <p class="text-piano-orange/80 text-sm font-medium">
+                    <p class="text-brand-cyan text-sm font-semibold">
                         → Arrastra partituras, redimensiona videos sin esfuerzo
                     </p>
                 </div>
@@ -323,9 +331,9 @@
             <div class="text-center mb-16 lg:mb-24">
                 <div class="deco-line mx-auto mb-8"></div>
                 <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold mb-6">
-                    Resultados en tu <span class="text-piano-orange">Negocio</span>
+                    Resultados en tu <span class="text-brand-cyan">Negocio</span>
                 </h2>
-                <p class="text-white/50 max-w-2xl mx-auto text-lg">
+                <p class="text-white/75 max-w-2xl mx-auto text-lg">
                     No es solo tecnología por tecnología. Es la diferencia entre ser percibido 
                     como un profesor más o como un maestro de élite.
                 </p>
@@ -336,41 +344,41 @@
                 
                 <!-- Result 1: Fidelización -->
                 <div class="benefit-card group p-10 lg:p-12 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth">
-                    <div class="w-16 h-16 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
-                        <svg class="w-8 h-8 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-16 h-16 flex items-center justify-center bg-gradient-to-r from-brand-cyan to-brand-purple/10 rounded-2xl mb-6">
+                        <svg class="w-8 h-8 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                         </svg>
                     </div>
                     <h3 class="font-serif text-3xl font-semibold mb-5 text-white">
                         Fidelización Premium
                     </h3>
-                    <p class="text-white/70 leading-relaxed text-xl mb-4">
+                    <p class="text-white/85 leading-relaxed text-xl mb-4">
                         Tus alumnos perciben un <strong class="text-white">valor premium</strong> que 
                         genera compromiso a largo plazo.
                     </p>
-                    <div class="bg-piano-orange/10 border border-piano-orange/30 rounded-xl p-6 mt-6">
-                        <p class="text-piano-orange text-2xl font-bold mb-2">-40%</p>
-                        <p class="text-white/60 text-sm">Reducción en deserción de estudiantes</p>
+                    <div class="bg-gradient-to-r from-brand-cyan to-brand-purple/10 border border-brand-cyan/30 rounded-xl p-6 mt-6">
+                        <p class="text-brand-cyan text-2xl font-bold mb-2">-40%</p>
+                        <p class="text-white/80 text-sm">Reducción en deserción de estudiantes</p>
                     </div>
                 </div>
                 
                 <!-- Result 2: Autoridad -->
                 <div class="benefit-card group p-10 lg:p-12 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth">
-                    <div class="w-16 h-16 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
-                        <svg class="w-8 h-8 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-16 h-16 flex items-center justify-center bg-gradient-to-r from-brand-cyan to-brand-purple/10 rounded-2xl mb-6">
+                        <svg class="w-8 h-8 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
                         </svg>
                     </div>
                     <h3 class="font-serif text-3xl font-semibold mb-5 text-white">
                         Autoridad de Élite
                     </h3>
-                    <p class="text-white/70 leading-relaxed text-xl mb-4">
+                    <p class="text-white/85 leading-relaxed text-xl mb-4">
                         <strong class="text-white">Diferénciate del resto.</strong> Usa la plataforma 
                         que los grandes maestros están adoptando.
                     </p>
-                    <div class="bg-piano-orange/10 border border-piano-orange/30 rounded-xl p-6 mt-6">
-                        <p class="text-piano-orange text-lg font-semibold mb-2">Status Premium</p>
-                        <p class="text-white/60 text-sm">Justifica tarifas más altas con tecnología de vanguardia</p>
+                    <div class="bg-gradient-to-r from-brand-cyan to-brand-purple/10 border border-brand-cyan/30 rounded-xl p-6 mt-6">
+                        <p class="text-brand-cyan text-lg font-semibold mb-2">Status Premium</p>
+                        <p class="text-white/80 text-sm">Justifica tarifas más altas con tecnología de vanguardia</p>
                     </div>
                 </div>
             </div>
@@ -379,24 +387,26 @@
     
     <!-- Programa de Profesores Fundadores Section -->
     <!-- Programa de Profesores Fundadores Section -->
-    <section id="programa" class="py-24 lg:py-32 bg-piano-dark border-t-2 border-piano-orange/20">
+    <section id="programa" class="py-24 lg:py-32 bg-piano-dark border-t-2 border-brand-cyan/20">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             
             <!-- Section header con escasez -->
             <div class="text-center mb-16 lg:mb-20">
                 <!-- Scarcity badge -->
-                <div class="inline-flex items-center gap-2 bg-piano-orange/10 border border-piano-orange/30 rounded-full px-6 py-3 mb-8">
-                    <span class="text-piano-orange text-2xl">⏰</span>
-                    <p class="text-piano-orange font-semibold text-sm">
-                        Solo <span class="text-xl font-bold">10 cupos</span> para la cohorte 2026 • Quedan <span class="text-xl font-bold">7</span>
+                <div class="inline-flex items-center gap-3 bg-gradient-to-r from-brand-cyan-dim/10 to-brand-purple-dim/10 border border-brand-cyan/20 rounded-xl px-8 py-4 mb-8">
+                    <svg class="w-5 h-5 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-white/80 font-medium text-sm">
+                        Solo <span class="text-brand-cyan font-bold">10 cupos</span> para la cohorte 2026 • Quedan <span class="text-brand-cyan font-bold">7</span>
                     </p>
                 </div>
                 
                 <div class="deco-line mx-auto mb-8"></div>
                 <h2 class="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold mb-6">
-                    El Programa de <span class="text-piano-orange">Profesores Fundadores</span>
+                    El Programa de <span class="text-brand-cyan">Profesores Fundadores</span>
                 </h2>
-                <p class="text-white/60 max-w-3xl mx-auto text-lg leading-relaxed">
+                <p class="text-white/80 max-w-3xl mx-auto text-lg leading-relaxed">
                     No es solo acceso anticipado. Es asegurar beneficios económicos y de estatus 
                     que <strong class="text-white">nunca volverán a estar disponibles</strong> una vez que Piano Link 
                     se convierta en el estándar de la industria.
@@ -407,73 +417,65 @@
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
                 
                 <!-- Benefit 1: Membresía Vitalicia Congelada -->
-                <div class="benefit-card group p-8 lg:p-10 bg-gradient-to-br from-piano-gray/50 to-piano-gray/30 border-2 border-piano-orange/30 rounded-2xl transition-smooth relative overflow-hidden">
-                    <div class="absolute top-0 right-0 bg-piano-orange text-piano-black text-xs font-bold px-3 py-1 rounded-bl-xl">
+                <div class="benefit-card group p-8 lg:p-10 bg-gradient-to-br from-piano-gray/50 to-piano-gray/30 border-2 border-brand-cyan/30 rounded-2xl transition-smooth relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-gradient-to-r from-brand-cyan to-brand-purple text-piano-black text-xs font-bold px-3 py-1 rounded-bl-xl">
                         EXCLUSIVO
                     </div>
-                    <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/20 rounded-2xl mb-6">
-                        <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-14 h-14 flex items-center justify-center bg-gradient-to-r from-brand-cyan to-brand-purple/20 rounded-2xl mb-6">
+                        <svg class="w-7 h-7 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                         </svg>
                     </div>
                     <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
-                        🔒 Membresía Vitalicia Congelada
+                        Membresía Vitalicia Congelada
                     </h3>
-                    <p class="text-white/60 leading-relaxed text-lg mb-4">
+                    <p class="text-white/80 leading-relaxed text-lg mb-4">
                         Tu tarifa mensual <strong class="text-white">nunca aumentará</strong>. 
                         Estás protegido contra la inflación de precios global <strong class="text-white">para siempre</strong>. 
                         Mientras el mercado paga más, tú sigues con tu tarifa de fundador.
                     </p>
-                    <p class="text-piano-orange/80 text-sm font-medium">
-                        💎 Protección económica permanente contra aumentos futuros
+                    <p class="text-brand-cyan/90 text-sm font-medium">
+                        Protección económica permanente contra aumentos futuros
                     </p>
                 </div>
                 
                 <!-- Benefit 2: Acceso Total de por Vida -->
                 <div class="benefit-card group p-8 lg:p-10 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth">
-                    <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
-                        <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-14 h-14 flex items-center justify-center bg-gradient-to-r from-brand-cyan to-brand-purple/10 rounded-2xl mb-6">
+                        <svg class="w-7 h-7 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                         </svg>
                     </div>
                     <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
-                        ☯️ Acceso Total Infinito
+                        Acceso Total Infinito
                     </h3>
-                    <p class="text-white/60 leading-relaxed text-lg mb-4">
+                    <p class="text-white/80 leading-relaxed text-lg mb-4">
                         Recibe <strong class="text-white">todas las actualizaciones y futuras herramientas</strong> 
                         (IA, métricas avanzadas, grabaciones) <strong class="text-white">sin pagar un centavo extra</strong>. 
                         Mientras otros compran licencias adicionales, tú las tienes incluidas.
                     </p>
-                    <p class="text-piano-orange/80 text-sm font-medium">
-                        ⚡ Evolución tecnológica sin límites ni costos adicionales
+                    <p class="text-brand-cyan/90 text-sm font-medium">
+                        Evolución tecnológica sin límites ni costos adicionales
                     </p>
                 </div>
                 
                 <!-- Benefit 3: Sello de Fundador -->
                 <div class="benefit-card group p-8 lg:p-10 bg-piano-gray/50 border border-piano-border rounded-2xl transition-smooth md:col-span-2 lg:col-span-1">
-                    <div class="w-14 h-14 flex items-center justify-center bg-piano-orange/10 rounded-2xl mb-6">
-                        <svg class="w-7 h-7 text-piano-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-14 h-14 flex items-center justify-center bg-gradient-to-r from-brand-cyan to-brand-purple/10 rounded-2xl mb-6">
+                        <svg class="w-7 h-7 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
                         </svg>
                     </div>
                     <h3 class="font-serif text-2xl font-semibold mb-4 text-white">
-                        🏆 Sello de Profesor Fundador
+                        Sello de Profesor Fundador
                     </h3>
-                    <p class="text-white/60 leading-relaxed text-lg mb-4">
-                        Un <strong class="text-white">distintivo de pionero</strong> que acredita tu autoridad técnica 
-                        frente a alumnos y colegas. Posicionamiento exclusivo como early adopter de élite.
-                    </p>
-                    <p class="text-piano-orange/80 text-sm font-medium">
-                        👑 Status diferenciador en el mercado de educación musical
-                    </p>
-                    </h3>
-                    <p class="text-white/60 leading-relaxed text-lg mb-4">
+                    <p class="text-white/80 leading-relaxed text-lg mb-4">
                         Un <strong class="text-white">distintivo exclusivo</strong> en tu perfil que te 
                         acredita como pionero de la tecnología musical. Autoridad instantánea frente 
                         a estudiantes y colegas.
                     </p>
-                    <p class="text-piano-orange/80 text-sm font-medium">
-                        👑 Status de élite irreplicable para nuevos profesores
+                    <p class="text-brand-cyan/90 text-sm font-medium">
+                        Status de élite irreplicable para nuevos profesores
                     </p>
                 </div>
             </div>
@@ -484,16 +486,18 @@
     <section class="py-20 lg:py-28 bg-piano-black relative overflow-hidden">
         
         <!-- Background element -->
-        <div class="absolute inset-0 opacity-5">
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[20rem] font-serif text-white">
-                ♪
+        <div class="absolute inset-0 opacity-3">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                <svg class="w-64 h-64 text-white/5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
             </div>
         </div>
         
         <div class="relative z-10 max-w-4xl mx-auto px-6 text-center">
             <blockquote class="font-serif text-2xl sm:text-3xl lg:text-4xl italic text-white/80 leading-relaxed">
-                "No reemplazamos la clase presencial.<br>
-                <span class="text-piano-orange not-italic">La extendemos más allá de las fronteras.</span>"
+                “No reemplazamos la clase presencial.<br>
+                <span class="text-brand-cyan not-italic">La extendemos más allá de las fronteras.”
             </blockquote>
         </div>
     </section>
@@ -507,7 +511,7 @@
                 <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold mb-6">
                     ¿Esto es para ti?
                 </h2>
-                <p class="text-white/50 text-lg">
+                <p class="text-white/75 text-lg">
                     Antes de postular, reflexiona sobre estas preguntas:
                 </p>
             </div>
@@ -515,31 +519,31 @@
             <!-- Preguntas Persuasivas -->
             <div class="space-y-8">
                 
-                <div class="group p-8 bg-piano-gray/30 border-l-4 border-piano-orange/50 rounded-r-2xl hover:bg-piano-gray/50 transition-smooth">
+                <div class="group p-8 bg-piano-gray/30 border-l-4 border-brand-cyan/50 rounded-r-2xl hover:bg-piano-gray/50 transition-smooth">
                     <h3 class="font-serif text-2xl sm:text-3xl text-white/90 mb-4 italic leading-relaxed">
                         "¿Sigues luchando con el audio comprimido de Zoom para enseñar el matiz de un piano?"
                     </h3>
-                    <p class="text-white/50 text-lg">
+                    <p class="text-white/75 text-lg">
                         Cada dinámica que enseñas, cada sutileza en el timbre, se pierde en la compresión. 
                         Tu alumno no puede escuchar la diferencia entre un <em>pianissimo</em> y un <em>piano</em>.
                     </p>
                 </div>
                 
-                <div class="group p-8 bg-piano-gray/30 border-l-4 border-piano-orange/50 rounded-r-2xl hover:bg-piano-gray/50 transition-smooth">
+                <div class="group p-8 bg-piano-gray/30 border-l-4 border-brand-cyan/50 rounded-r-2xl hover:bg-piano-gray/50 transition-smooth">
                     <h3 class="font-serif text-2xl sm:text-3xl text-white/90 mb-4 italic leading-relaxed">
                         "¿Realizas clases de piano online pero sientes que tu piano digital está siendo subutilizado?"
                     </h3>
-                    <p class="text-white/50 text-lg">
+                    <p class="text-white/75 text-lg">
                         Tienes un instrumento con capacidad MIDI profesional, pero sigues usando Zoom 
                         como si fuera una clase de idiomas. Tu piano puede dar más.
                     </p>
                 </div>
                 
-                <div class="group p-8 bg-piano-gray/30 border-l-4 border-piano-orange rounded-r-2xl hover:bg-piano-gray/50 transition-smooth glow-orange">
+                <div class="group p-8 bg-piano-gray/30 border-l-4 border-brand-cyan rounded-r-2xl hover:bg-piano-gray/50 transition-smooth glow-cyan">
                     <h3 class="font-serif text-2xl sm:text-3xl text-white mb-4 italic leading-relaxed">
-                        "¿Estás listo para dejar de dar clases por videollamada y empezar a dar <span class="text-piano-orange not-italic">Masterclasses de nivel mundial</span>?"
+                        "¿Estás listo para dejar de dar clases por videollamada y empezar a dar <span class="text-brand-cyan not-italic">Masterclasses de nivel mundial</span>?"
                     </h3>
-                    <p class="text-white/50 text-lg">
+                    <p class="text-white/75 text-lg">
                         Piano Link no es una herramienta más. Es el cambio de categoría: 
                         de profesor online a maestro de élite global.
                     </p>
@@ -547,10 +551,10 @@
             </div>
             
             <div class="mt-12 text-center">
-                <p class="text-piano-orange/80 font-medium mb-6">
+                <p class="text-brand-cyan font-medium mb-6">
                     Si respondiste "sí" a alguna de estas preguntas, sigue leyendo.
                 </p>
-                <div class="inline-block w-12 h-1 bg-gradient-to-r from-transparent via-piano-orange to-transparent"></div>
+                <div class="inline-block w-12 h-1 bg-gradient-to-r from-transparent via-brand-cyan to-transparent"></div>
             </div>
         </div>
     </section>
@@ -563,7 +567,7 @@
                 <h3 class="font-serif text-2xl sm:text-3xl font-semibold text-white mb-4">
                     ¿Qué necesitas para usar Piano Link?
                 </h3>
-                <p class="text-white/50">
+                <p class="text-white/75">
                     Verifica que cumplas con estos requisitos mínimos antes de postular:
                 </p>
             </div>
@@ -571,57 +575,65 @@
             <div class="grid sm:grid-cols-2 gap-6">
                 
                 <div class="flex items-start gap-4 p-6 bg-piano-black/30 rounded-xl border border-piano-border/50">
-                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-piano-orange/10 rounded-lg text-xl">
-                        🎹
+                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gradient-to-r from-brand-cyan-dim/10 to-brand-purple-dim/10 rounded-lg">
+                        <svg class="w-6 h-6 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                        </svg>
                     </div>
                     <div>
                         <h4 class="font-semibold text-white mb-2">Piano Digital con MIDI</h4>
-                        <p class="text-sm text-white/50">
+                        <p class="text-sm text-white/75">
                             Cualquier piano digital o teclado con salida MIDI USB. No requiere modelos específicos.
                         </p>
                     </div>
                 </div>
                 
                 <div class="flex items-start gap-4 p-6 bg-piano-black/30 rounded-xl border border-piano-border/50">
-                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-piano-orange/10 rounded-lg text-xl">
-                        📱
+                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gradient-to-r from-brand-cyan-dim/10 to-brand-purple-dim/10 rounded-lg">
+                        <svg class="w-6 h-6 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
                     </div>
                     <div>
                         <h4 class="font-semibold text-white mb-2">Tablet (Recomendado) o PC</h4>
-                        <p class="text-sm text-white/50">
+                        <p class="text-sm text-white/75">
                             iPad, Android tablet o computadora. Experiencia optimizada para pantallas táctiles.
                         </p>
                     </div>
                 </div>
                 
                 <div class="flex items-start gap-4 p-6 bg-piano-black/30 rounded-xl border border-piano-border/50">
-                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-piano-orange/10 rounded-lg text-xl">
-                        🌐
+                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gradient-to-r from-brand-cyan-dim/10 to-brand-purple-dim/10 rounded-lg">
+                        <svg class="w-6 h-6 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+                        </svg>
                     </div>
                     <div>
                         <h4 class="font-semibold text-white mb-2">Conexión Estable</h4>
-                        <p class="text-sm text-white/50">
+                        <p class="text-sm text-white/75">
                             Internet de al menos 5 Mbps. Ethernet recomendado para mejor latencia.
                         </p>
                     </div>
                 </div>
                 
                 <div class="flex items-start gap-4 p-6 bg-piano-black/30 rounded-xl border border-piano-border/50">
-                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-piano-orange/10 rounded-lg text-xl">
-                        🎤
+                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gradient-to-r from-brand-cyan-dim/10 to-brand-purple-dim/10 rounded-lg">
+                        <svg class="w-6 h-6 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
                     </div>
                     <div>
                         <h4 class="font-semibold text-white mb-2">Cámara y Micrófono</h4>
-                        <p class="text-sm text-white/50">
+                        <p class="text-sm text-white/75">
                             Cualquier webcam o cámara integrada. El micrófono puede ser el del dispositivo.
                         </p>
                     </div>
                 </div>
             </div>
             
-            <div class="mt-8 p-6 bg-piano-orange/5 border border-piano-orange/20 rounded-xl text-center">
-                <p class="text-white/70 text-sm">
-                    💡 <strong class="text-white">No necesitas equipo profesional.</strong> Piano Link está diseñado 
+            <div class="mt-8 p-6 bg-gradient-to-r from-brand-cyan-dim/5 to-brand-purple-dim/5 border border-brand-cyan/10 rounded-xl">
+                <p class="text-white/85 text-sm leading-relaxed">
+                    <strong class="text-white">No necesitas equipo profesional.</strong> Piano Link está diseñado 
                     para funcionar con el setup que ya tienes.
                 </p>
             </div>
@@ -636,62 +648,62 @@
                 <h2 class="font-serif text-3xl sm:text-4xl font-semibold mb-4">
                     Postula al Programa de Profesores Fundadores
                 </h2>
-                <p class="text-white/50 max-w-2xl mx-auto mb-4 text-lg">
+                <p class="text-white/75 max-w-2xl mx-auto mb-4 text-lg">
                     <strong class="text-white">Buscamos excelencia.</strong> El acceso no es automático. 
                     Cada perfil es revisado personalmente para asegurar que cumples con nuestros estándares.
                 </p>
-                <p class="text-piano-orange/70 text-sm font-medium">
-                    ⏰ Solo 10 cupos para la cohorte 2026 (Quedan 7 disponibles)
+                <p class="text-brand-cyan/85 text-sm font-medium uppercase tracking-wider">
+                    Solo 10 cupos para la cohorte 2026 (Quedan 7 disponibles)
                 </p>
             </div>
             
             <!-- Registration Form -->
-            <form id="leadForm" class="bg-piano-gray/50 border border-piano-border rounded-3xl p-8 lg:p-10 glow-orange">
+            <form id="leadForm" class="bg-piano-gray/50 border border-piano-border rounded-3xl p-8 lg:p-10 glow-cyan">
                 
                 <div class="space-y-6">
                     <!-- Name -->
                     <div>
-                        <label for="name" class="block text-sm font-medium text-white/70 mb-2">
-                            Nombre Completo <span class="text-piano-orange">*</span>
+                        <label for="name" class="block text-sm font-medium text-white/85 mb-2">
+                            Nombre Completo <span class="text-brand-cyan">*</span>
                         </label>
                         <input type="text" 
                                id="name" 
                                name="name"
                                required
                                placeholder="Maestro Juan Pérez"
-                               class="touch-target w-full px-5 py-4 bg-piano-black/50 border border-piano-border rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-piano-orange/50 transition-smooth">
+                               class="touch-target w-full px-5 py-4 bg-piano-black/50 border border-piano-border rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-brand-cyan/50 transition-smooth">
                     </div>
                     
                     <!-- Email -->
                     <div>
-                        <label for="email" class="block text-sm font-medium text-white/70 mb-2">
-                            Email <span class="text-piano-orange">*</span>
+                        <label for="email" class="block text-sm font-medium text-white/85 mb-2">
+                            Email <span class="text-brand-cyan">*</span>
                         </label>
                         <input type="email" 
                                id="email" 
                                name="email"
                                required
                                placeholder="maestro@ejemplo.com"
-                               class="touch-target w-full px-5 py-4 bg-piano-black/50 border border-piano-border rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-piano-orange/50 transition-smooth">
+                               class="touch-target w-full px-5 py-4 bg-piano-black/50 border border-piano-border rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-brand-cyan/50 transition-smooth">
                     </div>
                     
                     <!-- WhatsApp -->
                     <div>
-                        <label for="whatsapp" class="block text-sm font-medium text-white/70 mb-2">
-                            WhatsApp <span class="text-piano-orange">*</span>
+                        <label for="whatsapp" class="block text-sm font-medium text-white/85 mb-2">
+                            WhatsApp <span class="text-brand-cyan">*</span>
                         </label>
                         <input type="tel" 
                                id="whatsapp" 
                                name="whatsapp"
                                required
                                placeholder="+52 55 1234 5678"
-                               class="touch-target w-full px-5 py-4 bg-piano-black/50 border border-piano-border rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-piano-orange/50 transition-smooth">
+                               class="touch-target w-full px-5 py-4 bg-piano-black/50 border border-piano-border rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-brand-cyan/50 transition-smooth">
                     </div>
                     
                     <!-- Background/Trayectoria (OBLIGATORIO) -->
                     <div>
-                        <label for="background" class="block text-sm font-medium text-white/70 mb-2">
-                            Trayectoria y Motivación <span class="text-piano-orange">*</span>
+                        <label for="background" class="block text-sm font-medium text-white/85 mb-2">
+                            Trayectoria y Motivación <span class="text-brand-cyan">*</span>
                         </label>
                         <textarea 
                             id="background" 
@@ -700,40 +712,48 @@
                             rows="5"
                             maxlength="1000"
                             placeholder="Cuéntanos sobre tu experiencia enseñando piano online, tus logros pedagógicos, qué te diferencia como maestro, y por qué Piano Link sería la herramienta perfecta para tu práctica docente de élite..."
-                            class="w-full px-5 py-4 bg-piano-black/50 border border-piano-border rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-piano-orange/50 transition-smooth resize-none"></textarea>
-                        <p class="text-xs text-white/40 mt-2 flex items-center gap-2">
-                            <span>💡</span>
-                            <span>Los perfiles con trayectoria demostrada y motivación clara tienen prioridad absoluta. Mínimo 100 caracteres.</span>
+                            class="w-full px-5 py-4 bg-piano-black/50 border border-piano-border rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-brand-cyan/50 transition-smooth resize-none"></textarea>
+                        <p class="text-xs text-white/70 mt-2">
+                            Los perfiles con trayectoria demostrada y motivación clara tienen prioridad absoluta. Mínimo 100 caracteres.
                         </p>
                     </div>
                     
                     <!-- Submit Button -->
                     <button type="submit" 
                             id="submitBtn"
-                            class="touch-target w-full px-8 py-5 bg-piano-orange text-white font-semibold text-lg rounded-2xl hover:bg-piano-orange-light transition-smooth glow-orange-strong">
-                        🎯 Enviar mi Postulación al Programa
+                            class="touch-target w-full px-8 py-5 bg-gradient-to-r from-brand-cyan-dim to-brand-purple-dim text-white font-semibold text-lg rounded-xl hover:shadow-lg hover:shadow-brand-cyan/20 transition-smooth">
+                        Enviar mi Postulación al Programa
                     </button>
                 </div>
                 
                 <!-- Privacy note -->
-                <p class="mt-6 text-center text-sm text-white/30">
-                    🔒 Tus datos están seguros. Nunca compartiremos tu información.
+                <p class="mt-6 text-center text-sm text-white/60">
+                    <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                    </svg>
+                    Tus datos están protegidos. Nunca compartiremos tu información.
                 </p>
             </form>
             
             <!-- Success Message (hidden by default) -->
-            <div id="successMessage" class="hidden bg-piano-gray/50 border border-piano-orange/30 rounded-3xl p-10 text-center glow-orange">
-                <div class="text-piano-orange text-6xl mb-4">✅</div>
+            <div id="successMessage" class="hidden bg-piano-gray/50 border border-brand-cyan/20 rounded-3xl p-10 text-center">
+                <div class="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-brand-cyan/20 to-brand-purple/20 rounded-full flex items-center justify-center">
+                    <svg class="w-10 h-10 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
                 <h3 class="font-serif text-2xl sm:text-3xl font-semibold mb-4">
                     Tu Postulación ha sido Enviada con Éxito
                 </h3>
-                <p class="text-white/70 text-lg mb-6 leading-relaxed max-w-xl mx-auto">
+                <p class="text-white/85 text-lg mb-6 leading-relaxed max-w-xl mx-auto">
                     Por favor, mantente atento a tu teléfono. <strong class="text-white">Recibirás una llamada de nuestro equipo</strong> 
                     para realizar una entrevista personal y validar tu acceso al Programa de Profesores Fundadores.
                 </p>
-                <div class="inline-flex items-center gap-3 px-6 py-3 bg-piano-orange/10 border border-piano-orange/30 rounded-full">
-                    <span class="text-2xl">📞</span>
-                    <span class="text-piano-orange/90 text-sm font-medium">
+                <div class="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-brand-cyan-dim/10 to-brand-purple-dim/10 border border-brand-cyan/20 rounded-xl">
+                    <svg class="w-5 h-5 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                    </svg>
+                    <span class="text-brand-cyan/90 text-sm font-medium">
                         Mantén tu WhatsApp activo
                     </span>
                 </div>
@@ -746,7 +766,7 @@
         <div class="max-w-6xl mx-auto px-6 lg:px-8">
             
             <div class="text-center mb-16">
-                <p class="text-piano-orange text-sm font-medium tracking-[0.2em] uppercase mb-4">
+                <p class="text-brand-cyan text-sm font-medium tracking-[0.2em] uppercase mb-4">
                     Para los técnicos
                 </p>
                 <h2 class="font-serif text-3xl sm:text-4xl font-semibold">
@@ -758,27 +778,43 @@
             <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 
                 <div class="spec-card p-6 border border-piano-border rounded-xl text-center">
-                    <div class="text-3xl mb-3">🎹</div>
+                    <div class="w-12 h-12 mx-auto mb-3 flex items-center justify-center bg-brand-cyan/10 rounded-lg">
+                        <svg class="w-6 h-6 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                        </svg>
+                    </div>
                     <h4 class="font-semibold text-white mb-2">Motor MIDI HD</h4>
-                    <p class="text-sm text-white/50">Transmisión sin pérdida, 127 niveles de velocidad</p>
+                    <p class="text-sm text-white/75">Transmisión sin pérdida, 127 niveles de velocidad</p>
                 </div>
                 
                 <div class="spec-card p-6 border border-piano-border rounded-xl text-center">
-                    <div class="text-3xl mb-3">📱</div>
+                    <div class="w-12 h-12 mx-auto mb-3 flex items-center justify-center bg-brand-cyan/10 rounded-lg">
+                        <svg class="w-6 h-6 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
                     <h4 class="font-semibold text-white mb-2">Soporte Tablets</h4>
-                    <p class="text-sm text-white/50">Pointer Events API, iPad y Android optimizados</p>
+                    <p class="text-sm text-white/75">Pointer Events API, iPad y Android optimizados</p>
                 </div>
                 
                 <div class="spec-card p-6 border border-piano-border rounded-xl text-center">
-                    <div class="text-3xl mb-3">⚡</div>
+                    <div class="w-12 h-12 mx-auto mb-3 flex items-center justify-center bg-brand-cyan/10 rounded-lg">
+                        <svg class="w-6 h-6 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
                     <h4 class="font-semibold text-white mb-2">Latencia Ultra-Baja</h4>
-                    <p class="text-sm text-white/50">Socket.io optimizado para tiempo real</p>
+                    <p class="text-sm text-white/75">Socket.io optimizado para tiempo real</p>
                 </div>
                 
                 <div class="spec-card p-6 border border-piano-border rounded-xl text-center">
-                    <div class="text-3xl mb-3">🖥️</div>
+                    <div class="w-12 h-12 mx-auto mb-3 flex items-center justify-center bg-brand-cyan/10 rounded-lg">
+                        <svg class="w-6 h-6 text-brand-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
                     <h4 class="font-semibold text-white mb-2">Multi-View 60fps</h4>
-                    <p class="text-sm text-white/50">Piano, partitura y video sincronizados</p>
+                    <p class="text-sm text-white/75">Piano, partitura y video sincronizados</p>
                 </div>
             </div>
         </div>
@@ -788,12 +824,12 @@
     <section class="py-16 bg-piano-dark border-t border-piano-border">
         <div class="max-w-3xl mx-auto px-6 text-center">
             
-            <p class="text-white/50 mb-6">
+            <p class="text-white/75 mb-6">
                 ¿Ya eres profesor fundador?
             </p>
             
             <a href="/login.html" 
-               class="touch-target inline-flex items-center justify-center px-8 py-4 bg-white text-piano-black font-semibold rounded-full hover:bg-piano-orange hover:text-white transition-smooth">
+               class="touch-target inline-flex items-center justify-center px-8 py-4 bg-white text-piano-black font-semibold rounded-full hover:bg-gradient-to-r from-brand-cyan to-brand-purple hover:text-white transition-smooth">
                 Acceder a mi Sala
             </a>
         </div>
@@ -806,25 +842,25 @@
                 
                 <!-- Logo -->
                 <div class="flex items-center gap-3">
-                    <img src="/logo-pianolink.png" alt="Piano Link" class="h-8 w-auto opacity-60">
+                    <img src="/logoclaropianolink.jpg" alt="Piano Link" class="h-8 w-auto opacity-60">
                 </div>
                 
                 <!-- Copyright -->
-                <p class="text-sm text-white/30">
+                <p class="text-sm text-white/60">
                     © 2026 Piano Link. Diseñado para maestros.
                 </p>
                 
                 <!-- Links -->
-                <div class="flex items-center gap-6 text-sm text-white/40">
-                    <a href="#" class="hover:text-piano-orange transition-smooth">Privacidad</a>
-                    <a href="#" class="hover:text-piano-orange transition-smooth">Términos</a>
-                    <a href="mailto:soporte@pianolink.pro" class="hover:text-piano-orange transition-smooth">Contacto</a>
+                <div class="flex items-center gap-6 text-sm text-white/70">
+                    <a href="#" class="hover:text-brand-cyan transition-smooth">Privacidad</a>
+                    <a href="#" class="hover:text-brand-cyan transition-smooth">Términos</a>
+                    <a href="mailto:soporte@pianolink.pro" class="hover:text-brand-cyan transition-smooth">Contacto</a>
                 </div>
             </div>
             
             <!-- Alianza Estratégica MySolutions -->
             <div class="mt-8 pt-6 border-t border-piano-border/30 flex flex-col items-center">
-                <span class="text-xs text-white/40 uppercase tracking-wider mb-3">
+                <span class="text-xs text-white/70 uppercase tracking-wider mb-3">
                     Alianza Estratégica
                 </span>
                 <a href="https://www.mysolutions.cl" target="_blank" rel="noopener noreferrer" class="transition-opacity hover:opacity-100 opacity-60">
@@ -842,11 +878,11 @@
         
         <!-- Modal content -->
         <div class="relative z-10 min-h-screen flex items-center justify-center p-6">
-            <div class="bg-piano-gray border border-piano-border rounded-3xl max-w-md w-full p-8 lg:p-10 glow-orange transform scale-95 opacity-0 transition-all duration-300" id="modalContent">
+            <div class="bg-piano-gray border border-piano-border rounded-3xl max-w-md w-full p-8 lg:p-10 glow-cyan transform scale-95 opacity-0 transition-all duration-300" id="modalContent">
                 
                 <!-- Close button -->
                 <button onclick="closeModal()" 
-                        class="absolute top-4 right-4 touch-target w-10 h-10 flex items-center justify-center text-white/40 hover:text-white transition-smooth">
+                        class="absolute top-4 right-4 touch-target w-10 h-10 flex items-center justify-center text-white/70 hover:text-white transition-smooth">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -854,19 +890,19 @@
                 
                 <!-- Content -->
                 <div class="text-center mb-6">
-                    <img src="/logo-pianolink.png" alt="Piano Link" class="h-16 w-auto mx-auto mb-4">
+                    <img src="/logoclaropianolink.jpg" alt="Piano Link" class="h-16 w-auto mx-auto mb-4">
                     <h3 class="font-serif text-2xl font-semibold">
                         ¡Excelente decisión!
                     </h3>
                 </div>
                 
-                <p class="text-white/60 text-center leading-relaxed mb-6">
+                <p class="text-white/80 text-center leading-relaxed mb-6">
                     Completa el formulario de registro más abajo para unirte 
-                    como <strong class="text-piano-orange">Profesor Fundador</strong>.
+                    como <strong class="text-brand-cyan">Profesor Fundador</strong>.
                 </p>
                 
                 <button onclick="scrollToForm()" 
-                        class="touch-target w-full px-6 py-4 bg-piano-orange text-white font-semibold rounded-xl hover:bg-piano-orange-light transition-smooth">
+                        class="touch-target w-full px-6 py-4 bg-gradient-to-r from-brand-cyan to-brand-purple text-white font-semibold rounded-xl hover:bg-gradient-to-r from-brand-cyan to-brand-purple transition-smooth">
                     Ir al Formulario ↓
                 </button>
             </div>
@@ -971,14 +1007,14 @@
                     // Show error
                     alert(data.message || 'Error al enviar. Por favor intenta de nuevo.');
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '🎯 Enviar Postulación al Programa';
+                    submitBtn.innerHTML = 'Enviar Postulación al Programa';
                 }
                 
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error de conexión. Por favor intenta de nuevo.');
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '🎯 Enviar Postulación al Programa';
+                submitBtn.innerHTML = 'Enviar Postulación al Programa';
             }
         });
         
