@@ -141,23 +141,59 @@
 
   <div class="container">
     <div class="create-panel">
-      <h2>+ Nuevo Profesor</h2>
-      <form id="createForm">
-        <label>Nombre</label>
-        <input type="text" id="name" required>
-        <label>Email</label>
-        <input type="email" id="email" required>
-        <label>Slug (URL Personalizada)</label>
-        <input type="text" id="slug" placeholder="Ej: miguel">
-        <label>Contraseña</label>
-        <input type="text" id="password" required>
-        <div style="margin-bottom: 20px; display: flex; align-items: center;">
-            <input type="checkbox" id="chkFounder" style="width: auto; margin: 0 10px 0 0;">
-            <label for="chkFounder" style="margin: 0; color: #ffbf00; font-weight: bold; cursor:pointer;">★ Profesor Fundador</label>
-        </div>
-        <button type="submit" class="action-btn">Crear Cuenta</button>
-      </form>
-      <div id="statusMsg" style="margin-top:15px; font-weight:bold; font-size:12px;"></div>
+      <!-- Formulario Profesores -->
+      <div id="formTeachers" style="display:block;">
+        <h2>+ Nuevo Profesor</h2>
+        <form id="createForm">
+          <label>Nombre</label>
+          <input type="text" id="name" required>
+          <label>Email</label>
+          <input type="email" id="email" required>
+          <label>Slug (URL Personalizada)</label>
+          <input type="text" id="slug" placeholder="Ej: miguel">
+          <label>Contraseña</label>
+          <input type="text" id="password" required>
+          <div style="margin-bottom: 20px; display: flex; align-items: center;">
+              <input type="checkbox" id="chkFounder" style="width: auto; margin: 0 10px 0 0;">
+              <label for="chkFounder" style="margin: 0; color: #ffbf00; font-weight: bold; cursor:pointer;">★ Profesor Fundador</label>
+          </div>
+          <button type="submit" class="action-btn">Crear Cuenta</button>
+        </form>
+        <div id="statusMsg" style="margin-top:15px; font-weight:bold; font-size:12px;"></div>
+      </div>
+
+      <!-- Formulario Leads -->
+      <div id="formLeads" style="display:none;">
+        <h2 style="color:#ff6600;">+ Nuevo Lead Manual</h2>
+        <form id="createLeadForm">
+          <label>Nombre Completo</label>
+          <input type="text" id="leadName" required placeholder="Ej: Ana Martínez">
+          
+          <label>Email</label>
+          <input type="email" id="leadEmail" required placeholder="ejemplo@correo.com">
+          
+          <label>WhatsApp</label>
+          <input type="tel" id="leadWhatsApp" required placeholder="+52 55 1234 5678">
+          
+          <label>Origen del Lead</label>
+          <select id="leadSource" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #111; border: 1px solid #454545; color: #fff; border-radius: 4px;">
+            <option value="manual">Manual</option>
+            <option value="referral">Referido</option>
+            <option value="social">Redes Sociales</option>
+            <option value="event">Evento</option>
+            <option value="other">Otro</option>
+          </select>
+          
+          <label>Información Adicional (Opcional)</label>
+          <textarea id="leadBackground" rows="4" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #111; border: 1px solid #454545; color: #fff; border-radius: 4px; resize: vertical;" placeholder="Experiencia, intereses, preferencias, etc."></textarea>
+          
+          <label>Notas de Seguimiento (Opcional)</label>
+          <textarea id="leadNotes" rows="3" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #111; border: 1px solid #454545; color: #fff; border-radius: 4px; resize: vertical;" placeholder="Recordatorios, próximos pasos, etc."></textarea>
+          
+          <button type="submit" class="action-btn" style="background: #ff6600;">Registrar Lead</button>
+        </form>
+        <div id="statusMsgLead" style="margin-top:15px; font-weight:bold; font-size:12px;"></div>
+      </div>
     </div>
 
     <div class="list-panel">
@@ -482,19 +518,28 @@
         document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
         document.getElementById(`view-${viewName}`).classList.add('active');
         
+        // Mostrar/ocultar formularios del panel lateral
         if(viewName === 'teachers') {
             document.getElementById('btnTeachers').classList.add('active');
+            document.getElementById('formTeachers').style.display = 'block';
+            document.getElementById('formLeads').style.display = 'none';
             loadTeachers();
         } else if (viewName === 'leads') {
             document.getElementById('btnLeads').classList.add('active');
+            document.getElementById('formTeachers').style.display = 'none';
+            document.getElementById('formLeads').style.display = 'block';
             loadLeads();
         } else if (viewName === 'feedback') {
             document.getElementById('btnFeedback').classList.add('active');
+            document.getElementById('formTeachers').style.display = 'none';
+            document.getElementById('formLeads').style.display = 'none';
             loadChatSystem(); 
             const badge = document.getElementById('msgBadge');
             if (badge.style.display !== 'none') { badge.style.display = 'none'; await markAllAsRead(); }
         } else if (viewName === 'platform') {
             document.getElementById('btnPlatform').classList.add('active');
+            document.getElementById('formTeachers').style.display = 'none';
+            document.getElementById('formLeads').style.display = 'none';
             loadPlatformConfig(); // <--- Cargar config al abrir pestaña
         }
     }
@@ -692,6 +737,66 @@
                 else { document.getElementById('statusMsg').innerText="Error"; }
             } catch(e) {}
             btn.disabled=false;
+        });
+    }
+
+    // Función Registro de Lead Manual
+    const createLeadForm = document.getElementById('createLeadForm');
+    if (createLeadForm) {
+        createLeadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button'); 
+            const statusMsg = document.getElementById('statusMsgLead');
+            btn.disabled = true;
+            statusMsg.innerText = '⏳ Registrando...';
+            statusMsg.style.color = '#ff6600';
+            
+            const name = document.getElementById('leadName').value.trim();
+            const email = document.getElementById('leadEmail').value.trim();
+            const whatsapp = document.getElementById('leadWhatsApp').value.trim();
+            const source = document.getElementById('leadSource').value;
+            const background = document.getElementById('leadBackground').value.trim();
+            const notes = document.getElementById('leadNotes').value.trim();
+            
+            try {
+                const res = await fetch('/api/leads', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        name,
+                        email,
+                        whatsapp,
+                        background,
+                        utmSource: source,
+                        notes,
+                        isManual: true
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if(res.ok) {
+                    statusMsg.innerText = "✅ Lead registrado exitosamente";
+                    statusMsg.style.color = '#00ff88';
+                    createLeadForm.reset();
+                    loadLeads();
+                    showNotification(`✅ ${name} agregado como nuevo lead`, 'success');
+                    
+                    // Limpiar mensaje después de 3 segundos
+                    setTimeout(() => {
+                        statusMsg.innerText = '';
+                    }, 3000);
+                } else {
+                    statusMsg.innerText = `❌ Error: ${data.message || 'No se pudo registrar'}`;
+                    statusMsg.style.color = '#ff4444';
+                }
+            } catch(e) {
+                statusMsg.innerText = '❌ Error de conexión';
+                statusMsg.style.color = '#ff4444';
+                console.error('Error registrando lead:', e);
+            }
+            
+            btn.disabled = false;
         });
     }
 

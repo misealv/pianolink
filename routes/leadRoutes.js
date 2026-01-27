@@ -8,11 +8,11 @@ const Lead = require('../models/Lead');
 
 /**
  * POST /api/leads
- * Registra un nuevo lead desde la landing page
+ * Registra un nuevo lead desde la landing page o manualmente desde admin
  */
 router.post('/', async (req, res) => {
     try {
-        const { name, email, whatsapp, background, utmSource, utmMedium, utmCampaign } = req.body;
+        const { name, email, whatsapp, background, utmSource, utmMedium, utmCampaign, notes, isManual } = req.body;
         
         // Validación básica
         if (!name || !email || !whatsapp) {
@@ -28,15 +28,33 @@ router.post('/', async (req, res) => {
             // Si ya existe, actualizar datos pero no crear duplicado
             existingLead.name = name;
             existingLead.whatsapp = whatsapp;
+            if (background) existingLead.background = background;
+            if (notes) existingLead.notes = notes;
             await existingLead.save();
             
             console.log(`[Lead] 📧 Lead existente actualizado: ${email}`);
             
             return res.status(200).json({
                 success: true,
-                message: 'Gracias, Maestro. Ya tenemos tu información registrada.',
+                message: isManual 
+                    ? 'Lead actualizado exitosamente.' 
+                    : 'Gracias, Maestro. Ya tenemos tu información registrada.',
                 isExisting: true
             });
+        }
+        
+        // Determinar el source correcto
+        let sourceValue = 'landing';
+        if (isManual && utmSource) {
+            // Mapear los valores del select al enum del modelo
+            const sourceMap = {
+                'manual': 'other',
+                'referral': 'referral',
+                'social': 'social',
+                'event': 'other',
+                'other': 'other'
+            };
+            sourceValue = sourceMap[utmSource] || 'other';
         }
         
         // Crear nuevo lead
@@ -45,17 +63,20 @@ router.post('/', async (req, res) => {
             email: email.toLowerCase().trim(),
             whatsapp: whatsapp.trim(),
             background: background ? background.trim() : '',
-            source: 'landing',
+            source: sourceValue,
             utmSource: utmSource || '',
             utmMedium: utmMedium || '',
-            utmCampaign: utmCampaign || ''
+            utmCampaign: utmCampaign || '',
+            notes: notes ? notes.trim() : ''
         });
         
-        console.log(`[Lead] ✅ Nuevo lead registrado: ${name} (${email})`);
+        console.log(`[Lead] ✅ Nuevo lead registrado${isManual ? ' (manual)' : ''}: ${name} (${email})`);
         
         res.status(201).json({
             success: true,
-            message: 'Postulación recibida. Revisaremos tu perfil y te contactaremos en 48 horas.',
+            message: isManual 
+                ? 'Lead registrado exitosamente.' 
+                : 'Postulación recibida. Revisaremos tu perfil y te contactaremos en 48 horas.',
             leadId: lead._id
         });
         
