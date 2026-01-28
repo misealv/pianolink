@@ -1342,6 +1342,33 @@
     }
 
     // =============================================
+    // ELIMINAR PROFESOR
+    // =============================================
+    async function deleteTeacher(teacherId) {
+        if (!confirm('⚠️ ¿Estás seguro de eliminar este profesor?\n\nEsta acción NO se puede deshacer.')) {
+            return;
+        }
+        
+        try {
+            const res = await fetch(`/api/auth/delete/${teacherId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                loadTeachers();
+                alert('✅ Profesor eliminado exitosamente');
+            } else {
+                alert('❌ Error: ' + (data.message || 'No se pudo eliminar'));
+            }
+        } catch (error) {
+            console.error('Error eliminando profesor:', error);
+            alert('❌ Error de conexión');
+        }
+    }
+
+    // =============================================
     // ELIMINAR LEAD
     // =============================================
     async function deleteLead(leadId, leadName) {
