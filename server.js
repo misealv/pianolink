@@ -8,11 +8,21 @@ const Annotation = require('./models/Annotation');
 
 // 1. Configuración Inicial
 dotenv.config();
+
+console.log('[SERVER] 🚀 Iniciando PianoLink...');
+console.log(`[SERVER] 🌍 Entorno: ${process.env.NODE_ENV}`);
+
 connectDB();
 
 // ✨ NUEVO: Inicializar sistema de eventos y listeners
+console.log('[SERVER] 📬 Registrando listeners de email...');
 const { registerEmailListeners } = require('./listeners/emailListeners');
 registerEmailListeners(); // Registra listeners de email al iniciar la app
+
+// Verificar configuración de email
+const emailService = require('./services/EmailService');
+const emailStatus = emailService.getStatus();
+console.log('[SERVER] 📧 Estado del servicio de email:', JSON.stringify(emailStatus, null, 2));
 
 const app = express();
 const server = http.createServer(app);
@@ -85,6 +95,35 @@ app.get('/api/agora/credentials', (req, res) => {
         hasToken: !!appCertificate, // Indica si hay certificado (para tokens futuros)
         timestamp: Date.now()
     });
+});
+
+// ==================================================
+// EMAIL SERVICE - ENDPOINT DE DIAGNÓSTICO
+// ==================================================
+/**
+ * Endpoint para verificar el estado del servicio de emails
+ * Útil para debugging en producción
+ */
+app.get('/api/email/status', (req, res) => {
+    const emailService = require('./services/EmailService');
+    const eventService = require('./services/EventService');
+    
+    const status = {
+        email: emailService.getStatus(),
+        events: {
+            listenerCount: eventService.listenerCount('teacher.created'),
+            maxListeners: eventService.getMaxListeners()
+        },
+        env: {
+            NODE_ENV: process.env.NODE_ENV,
+            RESEND_API_KEY_SET: !!process.env.RESEND_API_KEY,
+            EMAIL_FROM: process.env.EMAIL_FROM,
+            EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME,
+            FRONTEND_URL: process.env.FRONTEND_URL
+        }
+    };
+    
+    res.json(status);
 });
 
 app.get('/', (req, res) => {

@@ -2,6 +2,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs'); // <--- IMPORTANTE: Importamos la librería aquí
 const User = require('../models/User');
+const eventService = require('../services/EventService'); // Sistema de eventos
 
 // --- GENERADOR DE TOKENS ---
 const generateToken = (id) => {
@@ -87,6 +88,25 @@ exports.registerUser = async (req, res) => {
     });
 
     if (user) {
+      // ✨ NUEVO: Emitir evento de creación de profesor
+      console.log(`[REGISTER] 🎯 Emitiendo evento 'teacher.created' para: ${user.email}`);
+      
+      const eventData = {
+        teacher: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          slug: user.slug,
+          isFoundingMember: user.isFoundingMember
+        }
+      };
+      
+      console.log('[REGISTER] 📦 Datos del evento:', JSON.stringify(eventData, null, 2));
+      
+      eventService.emitSafe('teacher.created', eventData);
+      
+      console.log('[REGISTER] ✅ Evento emitido correctamente');
+      
       res.status(201).json({
         _id: user._id, 
         name: user.name, 

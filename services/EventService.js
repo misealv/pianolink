@@ -43,14 +43,12 @@ class EventService extends EventEmitter {
      * @private
      */
     _setupLogging() {
-        if (process.env.NODE_ENV !== 'production') {
-            const originalEmit = this.emit;
-            
-            this.emit = function(event, ...args) {
-                console.log(`[EVENT] 📡 ${event}`, args[0] ? `(${Object.keys(args[0]).join(', ')})` : '');
-                return originalEmit.call(this, event, ...args);
-            };
-        }
+        const originalEmit = this.emit;
+        
+        this.emit = function(event, ...args) {
+            console.log(`[EVENT] 📡 Emitiendo evento: ${event}`, args[0] ? `(${Object.keys(args[0]).join(', ')})` : '');
+            return originalEmit.call(this, event, ...args);
+        };
     }
     
     /**
@@ -94,9 +92,7 @@ class EventService extends EventEmitter {
         
         this.on(eventName, wrappedHandler);
         
-        if (process.env.NODE_ENV !== 'production') {
-            console.log(`[EVENT] ✅ Listener registrado: '${listenerName}' -> '${eventName}'`);
-        }
+        console.log(`[EVENT] ✅ Listener registrado: '${listenerName}' -> '${eventName}'`);
     }
 }
 
