@@ -10,6 +10,10 @@ const Annotation = require('./models/Annotation');
 dotenv.config();
 connectDB();
 
+// ✨ NUEVO: Inicializar sistema de eventos y listeners
+const { registerEmailListeners } = require('./listeners/emailListeners');
+registerEmailListeners(); // Registra listeners de email al iniciar la app
+
 const app = express();
 const server = http.createServer(app);
 
