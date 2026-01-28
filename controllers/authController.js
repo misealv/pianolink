@@ -141,6 +141,113 @@ exports.getTeacherBySlug = async (req, res) => {
     } catch (e) { res.status(500).json({ message: 'Error server' }); }
 };
 
+// 5. UPDATE PROFILE
+exports.updateProfile = async (req, res) => {
+    console.log('[UPDATE PROFILE] 📝 Solicitud de actualización de perfil');
+    
+    try {
+        const userId = req.user._id; // Viene del middleware de autenticación
+        const { name, email, currentPassword, newPassword, confirmPassword } = req.body;
+        
+        // Buscar usuario
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+        
+        console.log(`[UPDATE PROFILE] 👤 Usuario: ${user.email}`);
+        
+        // Actualizar campos básicos
+        if (name && name !== user.name) {
+            console.log(`[UPDATE PROFILE] Cambiando nombre: ${user.name} → ${name}`);
+            user.name = name;
+        }
+        
+        // Actualizar email (verificar que no esté en uso)
+        if (email && email !== user.email) {
+            const emailExists = await User.findOne({ email, _id: { $ne: userId } });
+            if (emailExists) {
+                return res.status(400).json({ message: 'Ese email ya está registrado' });
+            }
+            console.log(`[UPDATE PROFILE] Cambiando email: ${user.email} → ${email}`);
+            user.email = email;
+        }
+        
+        // Cambiar contraseña (requiere validación de contraseña actual)
+        if (newPassword) {
+            console.log('[UPDATE PROFILE] 🔐 Intentando cambiar contraseña...');
+            
+            // Validar que se proporcionó la contraseña actual
+            if (!currentPassword) {
+                return res.status(400).json({ 
+                    message: 'Debes proporcionar tu contraseña actual para cambiarla' 
+                });
+            }
+            
+            // Verificar contraseña actual
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) {
+                console.log('[UPDATE PROFILE] ❌ Contraseña actual incorrecta');
+                return res.status(401).json({ message: 'Contraseña actual incorrecta' });
+            }
+            
+            // Validar que la nueva contraseña y confirmación coincidan
+            if (newPassword !== confirmPassword) {
+                return res.status(400).json({ 
+                    message: 'La nueva contraseña y su confirmación no coinciden' 
+                });
+            }
+            
+            // Validar fortaleza de la contraseña
+            if (newPassword.length < 6) {
+                return res.status(400).json({ 
+                    message: 'La contraseña debe tener al menos 6 caracteres' 
+                });
+            }
+            
+            console.log('[UPDATE PROFILE] ✅ Contraseña validada, actualizando...');
+            
+            // Encriptar nueva contraseña
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(newPassword, salt);
+            
+            console.log('[UPDATE PROFILE] 🔒 Contraseña actualizada');
+        }
+        
+        // Guardar cambios
+        await user.save();
+        
+        console.log('[UPDATE PROFILE] ✅ Perfil actualizado exitosamente');
+        
+        // Emitir evento de actualización (para futuras notificaciones)
+        const eventService = require('../services/EventService');
+        eventService.emitSafe('teacher.updated', {
+            teacher: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                passwordChanged: !!newPassword
+            }
+        });
+        
+        // Responder con datos actualizados (sin contraseña)
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            slug: user.slug,
+            isFoundingMember: user.isFoundingMember,
+            branding: user.branding,
+            message: 'Perfil actualizado correctamente'
+        });
+        
+    } catch (error) {
+        console.error('[UPDATE PROFILE] ❌ Error:', error);
+        res.status(500).json({ message: 'Error al actualizar perfil' });
+    }
+};
+
 // 5. DELETE
 exports.deleteUser = async (req, res) => {
     try {

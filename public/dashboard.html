@@ -174,6 +174,185 @@
     /* Mensajes Admin */
     .admin-msg-box { background: rgba(93, 173, 226, 0.1); border: 1px solid #5dade2; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
     .admin-msg-title { color: #5dade2; font-weight: bold; font-size: 12px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+
+    /* --- MODAL DE EDICIÓN DE PERFIL --- */
+    .profile-modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(5px);
+        animation: fadeIn 0.2s;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    .profile-modal-content {
+        background: var(--panel-bg);
+        margin: 5% auto;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        animation: slideDown 0.3s;
+    }
+    @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    
+    .profile-modal-header {
+        background: linear-gradient(135deg, #ff764d 0%, #ff5733 100%);
+        padding: 20px 25px;
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .profile-modal-header h2 {
+        margin: 0;
+        color: white;
+        font-size: 20px;
+        font-weight: 700;
+    }
+    .profile-modal-close {
+        color: white;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        line-height: 1;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+    .profile-modal-close:hover { opacity: 1; }
+    
+    .profile-modal-body {
+        padding: 25px;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    
+    .form-section {
+        margin-bottom: 25px;
+        padding-bottom: 25px;
+        border-bottom: 1px solid var(--border);
+    }
+    .form-section:last-child { border-bottom: none; }
+    
+    .form-section-title {
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 15px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        color: #bbb;
+        font-weight: 600;
+    }
+    
+    .form-group input {
+        width: 100%;
+        background: #121212;
+        border: 1px solid #333;
+        color: white;
+        padding: 12px;
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-family: inherit;
+        font-size: 14px;
+        transition: border 0.3s;
+    }
+    
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+    
+    .form-note {
+        font-size: 11px;
+        color: #777;
+        margin-top: 5px;
+    }
+    
+    .password-toggle {
+        position: relative;
+    }
+    
+    .profile-modal-footer {
+        padding: 20px 25px;
+        background: #161616;
+        border-radius: 0 0 12px 12px;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+    
+    .btn-modal {
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+    }
+    
+    .btn-modal-primary {
+        background: var(--accent);
+        color: #000;
+    }
+    
+    .btn-modal-primary:hover {
+        background: #ff9f7e;
+        transform: translateY(-2px);
+    }
+    
+    .btn-modal-secondary {
+        background: transparent;
+        border: 1px solid #444;
+        color: #aaa;
+    }
+    
+    .btn-modal-secondary:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+    
+    .profile-msg {
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        font-size: 13px;
+        display: none;
+    }
+    
+    .profile-msg.success {
+        background: rgba(76, 175, 80, 0.2);
+        border: 1px solid #4caf50;
+        color: #81c784;
+    }
+    
+    .profile-msg.error {
+        background: rgba(244, 67, 54, 0.2);
+        border: 1px solid #f44336;
+        color: #e57373;
+    }
+
 /* --- SCROLLBAR OSCURO MODERNO --- */
 
 /* Ancho de la barra (Vertical y Horizontal) */
@@ -229,6 +408,9 @@
             </button>
             <button onclick="copyInviteLink()" class="action-btn btn-secondary">
                 🔗 COPIAR LINK ALUMNO
+            </button>
+            <button onclick="openProfileModal()" class="action-btn btn-secondary">
+                👤 EDITAR PERFIL
             </button>
             <div id="copyFeedback" style="font-size: 10px; color: #b4e080; text-align: center; margin-top: 5px; min-height: 15px;"></div>
         </div>
@@ -333,6 +515,70 @@
         </div>
     </form>
   </main>
+
+  <!-- Modal de Edición de Perfil -->
+  <div id="profileModal" class="profile-modal">
+    <div class="profile-modal-content">
+      <div class="profile-modal-header">
+        <h2>👤 Editar Perfil</h2>
+        <button class="profile-modal-close" onclick="closeProfileModal()">&times;</button>
+      </div>
+      
+      <div class="profile-modal-body">
+        <div id="profileMsg" class="profile-msg"></div>
+        
+        <form id="editProfileForm" onsubmit="updateUserProfile(event)">
+          <!-- Sección: Información Básica -->
+          <div class="form-section">
+            <div class="form-section-title">📋 Información Básica</div>
+            
+            <div class="form-group">
+              <label for="profileName">Nombre Completo</label>
+              <input type="text" id="profileName" placeholder="Tu nombre completo" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="profileEmail">Email</label>
+              <input type="email" id="profileEmail" placeholder="tu@email.com" required>
+              <div class="form-note">Usarás este email para iniciar sesión</div>
+            </div>
+          </div>
+          
+          <!-- Sección: Cambiar Contraseña (Opcional) -->
+          <div class="form-section">
+            <div class="form-section-title">🔐 Cambiar Contraseña</div>
+            <div class="form-note" style="margin-bottom: 15px;">
+              Deja estos campos vacíos si no deseas cambiar tu contraseña
+            </div>
+            
+            <div class="form-group">
+              <label for="currentPassword">Contraseña Actual</label>
+              <input type="password" id="currentPassword" placeholder="Tu contraseña actual">
+            </div>
+            
+            <div class="form-group">
+              <label for="newPassword">Nueva Contraseña</label>
+              <input type="password" id="newPassword" placeholder="Nueva contraseña (mínimo 6 caracteres)">
+            </div>
+            
+            <div class="form-group">
+              <label for="confirmPassword">Confirmar Nueva Contraseña</label>
+              <input type="password" id="confirmPassword" placeholder="Repite la nueva contraseña">
+            </div>
+          </div>
+        </form>
+      </div>
+      
+      <div class="profile-modal-footer">
+        <button type="button" class="btn-modal btn-modal-secondary" onclick="closeProfileModal()">
+          Cancelar
+        </button>
+        <button type="submit" form="editProfileForm" class="btn-modal btn-modal-primary">
+          💾 Guardar Cambios
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const user = JSON.parse(localStorage.getItem('pianoUser'));
@@ -459,6 +705,161 @@
             const feedback = document.getElementById('copyFeedback'); feedback.textContent = "✅ Link Copiado";
             setTimeout(() => feedback.textContent = "", 3000);
         });
+    }
+
+    // === FUNCIONES DE EDICIÓN DE PERFIL ===
+    
+    function openProfileModal() {
+        // Cargar datos actuales del usuario
+        document.getElementById('profileName').value = user.name || '';
+        document.getElementById('profileEmail').value = user.email || '';
+        
+        // Limpiar campos de contraseña
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+        
+        // Limpiar mensaje
+        const msg = document.getElementById('profileMsg');
+        msg.style.display = 'none';
+        msg.className = 'profile-msg';
+        
+        // Mostrar modal
+        document.getElementById('profileModal').style.display = 'block';
+    }
+    
+    function closeProfileModal() {
+        document.getElementById('profileModal').style.display = 'none';
+    }
+    
+    // Cerrar modal al hacer clic fuera de él
+    window.onclick = function(event) {
+        const modal = document.getElementById('profileModal');
+        if (event.target == modal) {
+            closeProfileModal();
+        }
+    }
+    
+    async function updateUserProfile(event) {
+        event.preventDefault();
+        
+        const msg = document.getElementById('profileMsg');
+        msg.style.display = 'block';
+        msg.className = 'profile-msg';
+        msg.textContent = '⏳ Actualizando perfil...';
+        
+        // Recopilar datos del formulario
+        const name = document.getElementById('profileName').value.trim();
+        const email = document.getElementById('profileEmail').value.trim();
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        // Validaciones frontend
+        if (!name || !email) {
+            msg.className = 'profile-msg error';
+            msg.textContent = '❌ El nombre y email son obligatorios';
+            return;
+        }
+        
+        // Si está cambiando contraseña, validar
+        if (newPassword || confirmPassword || currentPassword) {
+            if (!currentPassword) {
+                msg.className = 'profile-msg error';
+                msg.textContent = '❌ Debes ingresar tu contraseña actual';
+                return;
+            }
+            
+            if (!newPassword || !confirmPassword) {
+                msg.className = 'profile-msg error';
+                msg.textContent = '❌ Debes completar ambos campos de nueva contraseña';
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                msg.className = 'profile-msg error';
+                msg.textContent = '❌ Las contraseñas no coinciden';
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                msg.className = 'profile-msg error';
+                msg.textContent = '❌ La contraseña debe tener al menos 6 caracteres';
+                return;
+            }
+        }
+        
+        // Preparar datos para enviar
+        const updateData = {
+            name: name,
+            email: email
+        };
+        
+        // Solo incluir datos de contraseña si está cambiando
+        if (currentPassword && newPassword) {
+            updateData.currentPassword = currentPassword;
+            updateData.newPassword = newPassword;
+            updateData.confirmPassword = confirmPassword;
+        }
+        
+        try {
+            const response = await fetch('/api/auth/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
+                },
+                body: JSON.stringify(updateData)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                msg.className = 'profile-msg success';
+                msg.textContent = '✅ ' + (data.message || 'Perfil actualizado correctamente');
+                
+                // Actualizar datos en localStorage
+                const updatedUser = {
+                    ...user,
+                    name: data.name,
+                    email: data.email,
+                    branding: data.branding
+                };
+                localStorage.setItem('pianoUser', JSON.stringify(updatedUser));
+                
+                // Actualizar la UI
+                document.getElementById('welcomeName').textContent = data.name;
+                
+                // Si cambió contraseña, limpiar campos
+                if (currentPassword && newPassword) {
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                    
+                    setTimeout(() => {
+                        msg.textContent += ' - Redirigiendo al login...';
+                        setTimeout(() => {
+                            logout(); // Cerrar sesión para que vuelva a loguearse con nueva contraseña
+                        }, 2000);
+                    }, 1500);
+                } else {
+                    // Cerrar modal después de 2 segundos si no cambió contraseña
+                    setTimeout(() => {
+                        closeProfileModal();
+                        location.reload(); // Recargar para reflejar cambios
+                    }, 2000);
+                }
+                
+            } else {
+                msg.className = 'profile-msg error';
+                msg.textContent = '❌ ' + (data.message || 'Error al actualizar perfil');
+            }
+            
+        } catch (error) {
+            console.error('Error:', error);
+            msg.className = 'profile-msg error';
+            msg.textContent = '❌ Error de conexión. Intenta nuevamente.';
+        }
     }
 
     loadData();
