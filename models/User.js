@@ -39,6 +39,27 @@ const userSchema = mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// ... (resto del código de encriptación igual)
+// ✅ ENCRIPTACIÓN AUTOMÁTICA DE CONTRASEÑAS
+// Este hook se ejecuta antes de guardar un usuario
+userSchema.pre('save', async function(next) {
+  // Solo encriptar si la contraseña fue modificada (o es nueva)
+  if (!this.isModified('password')) {
+    return next();
+  }
+
+  try {
+    // Generar salt y hashear la contraseña
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ✅ MÉTODO PARA COMPARAR CONTRASEÑAS EN LOGIN
+userSchema.methods.matchPassword = async function(enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
 module.exports = mongoose.model('User', userSchema);
