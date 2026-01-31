@@ -61,12 +61,6 @@
     .chat-input-area textarea { flex: 1; height: 40px; background: #111; border: 1px solid #444; color: white; padding: 10px; border-radius: 4px; resize: none; }
     .btn-send { background: #ff764d; border: none; padding: 0 20px; color: black; font-weight: bold; border-radius: 4px; cursor: pointer; }
 
-    /* Plataforma UI */
-    .brand-preview-container { display:flex; gap:20px; margin-top:10px; }
-    .brand-box { background:#151515; padding:15px; border-radius:8px; border:1px solid #333; flex:1; display:flex; flex-direction:column; align-items:center; }
-    .brand-img { width: 80px; height: 80px; object-fit: contain; margin-bottom: 10px; border: 1px dashed #555; padding: 5px; }
-    .file-input { font-size:10px; color:#aaa; width:100%; }
-
     .view-section { display: none; }
     .view-section.active { display: block; }
     
@@ -129,9 +123,6 @@
         </button>
         <button class="nav-btn" onclick="switchView('feedback')" id="btnFeedback">
             📨 Buzón <span id="msgBadge" class="badge-count">0</span>
-        </button>
-        <button class="nav-btn" onclick="switchView('platform')" id="btnPlatform" style="border-color:#5dade2; color:#5dade2;">
-            🏢 Identidad
         </button>
         <button class="nav-btn" onclick="switchView('tracking')" id="btnTracking" style="border-color:#9b59b6; color:#9b59b6;">
             📊 Tracking
@@ -450,39 +441,6 @@
             </div>
         </div>
 
-        <div id="view-platform" class="view-section">
-            <h2 style="color:#5dade2; border-bottom-color:#5dade2;">🏢 Identidad Global (Piano Link)</h2>
-            <p style="font-size:12px; color:#aaa; margin-bottom:20px;">
-                Estos cambios afectarán al <strong>Header</strong> de todos los alumnos y profesores, y al icono del navegador.
-            </p>
-
-            <label>Nombre de la Plataforma (Título de pestaña)</label>
-            <input type="text" id="platformNameInput" placeholder="Piano Link">
-
-            <div class="brand-preview-container">
-                <div class="brand-box">
-                    <strong style="color:#fff; font-size:11px; margin-bottom:5px;">LOGO PRINCIPAL</strong>
-                    <img id="previewMainLogo" class="brand-img" src="">
-                    <input type="file" id="mainLogoInput" class="file-input" accept="image/*">
-                    <p style="font-size:9px; color:#666; text-align:center;">Aparece en Login y Header</p>
-                </div>
-
-                <div class="brand-box">
-                    <strong style="color:#fff; font-size:11px; margin-bottom:5px;">FAVICON (Pestaña)</strong>
-                    <img id="previewFavicon" class="brand-img" src="" style="width:32px; height:32px;">
-                    <input type="file" id="faviconInput" class="file-input" accept="image/*">
-                    <p style="font-size:9px; color:#666; text-align:center;">Icono pequeño del navegador</p>
-                </div>
-            </div>
-
-            <div style="margin-top:20px; text-align:right;">
-                <button onclick="savePlatformConfig()" class="action-btn" style="background:#5dade2; width:auto; padding:10px 30px;">
-                    💾 Guardar y Aplicar Globalmente
-                </button>
-            </div>
-            <div id="platformMsg" style="margin-top:10px; text-align:right; font-size:12px; font-weight:bold;"></div>
-        </div>
-
         <!-- SECCIÓN TRACKING PIXELS -->
         <div id="view-tracking" class="view-section">
             <h2 style="color:#9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom:10px;">📊 Píxeles de Tracking</h2>
@@ -707,11 +665,6 @@
             loadChatSystem(); 
             const badge = document.getElementById('msgBadge');
             if (badge.style.display !== 'none') { badge.style.display = 'none'; await markAllAsRead(); }
-        } else if (viewName === 'platform') {
-            document.getElementById('btnPlatform').classList.add('active');
-            document.getElementById('formTeachers').style.display = 'none';
-            document.getElementById('formLeads').style.display = 'none';
-            loadPlatformConfig(); // <--- Cargar config al abrir pestaña
         } else if (viewName === 'tracking') {
             document.getElementById('btnTracking').classList.add('active');
             document.getElementById('formTeachers').style.display = 'none';
@@ -722,64 +675,6 @@
             document.getElementById('formTeachers').style.display = 'none';
             document.getElementById('formLeads').style.display = 'none';
             loadCalendarConfig();
-        }
-    }
-
-    // --- PLATAFORMA (NUEVO) ---
-    async function loadPlatformConfig() {
-        try {
-            const res = await fetch('/admin/platform/config');
-            const data = await res.json();
-            if(data) {
-                document.getElementById('platformNameInput').value = data.platformName || "Piano Link";
-                if(data.logoUrl) document.getElementById('previewMainLogo').src = data.logoUrl;
-                if(data.faviconUrl) document.getElementById('previewFavicon').src = data.faviconUrl;
-            }
-        } catch(e) { console.error("Error loading config", e); }
-    }
-
-    // Convertir archivo a Base64
-    const toBase64 = file => new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-    });
-
-    async function savePlatformConfig() {
-        const msg = document.getElementById('platformMsg');
-        msg.innerText = "Guardando..."; msg.style.color = "#aaa";
-
-        const name = document.getElementById('platformNameInput').value;
-        const logoFile = document.getElementById('mainLogoInput').files[0];
-        const favFile = document.getElementById('faviconInput').files[0];
-
-        let logoUrl = null;
-        let faviconUrl = null;
-
-        if(logoFile) logoUrl = await toBase64(logoFile);
-        if(favFile) faviconUrl = await toBase64(favFile);
-
-        try {
-            const res = await fetch('/admin/platform/config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    platformName: name, 
-                    logoUrl: logoUrl, // Enviamos null si no cambió
-                    faviconUrl: faviconUrl
-                })
-            });
-            if(res.ok) {
-                msg.innerText = "✅ Configuración actualizada globalmente.";
-                msg.style.color = "#2ecc71";
-            } else {
-                msg.innerText = "❌ Error al guardar.";
-                msg.style.color = "#ff4d4d";
-            }
-        } catch(e) {
-            msg.innerText = "❌ Error de conexión.";
-            msg.style.color = "#ff4d4d";
         }
     }
 
