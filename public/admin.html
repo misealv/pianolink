@@ -328,12 +328,16 @@
             <!-- Filtros y Exportación -->
             <div style="background:#202020; border:1px solid #454545; border-radius:8px; padding:20px; margin-bottom:20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
-                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                         <button class="filter-btn active" onclick="filterLeads('all')" id="filterAll">Todos</button>
                         <button class="filter-btn" onclick="filterLeads('new')" id="filterNew">Nuevos</button>
                         <button class="filter-btn" onclick="filterLeads('contacted')" id="filterContacted">Contactados</button>
                         <button class="filter-btn" onclick="filterLeads('qualified')" id="filterQualified">Calificados</button>
                         <button class="filter-btn" onclick="filterLeads('converted')" id="filterConverted">Convertidos</button>
+                        <button onclick="openCreateLeadModal()" style="padding:8px 16px; background:#27ae60; border:none; color:#fff; font-weight:600; cursor:pointer; border-radius:6px; display:flex; align-items:center; gap:6px; font-size:13px; margin-left:10px;">
+                            <span>➕</span>
+                            <span>Crear Lead</span>
+                        </button>
                     </div>
                     
                     <div style="position:relative;">
@@ -544,35 +548,7 @@
                     </div>
                     
                     <div>
-                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">🌍 País / Zona Horaria:</label>
-                        <select id="editLeadCountry" onchange="updateLeadTimezone()" style="width:100%; padding:10px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
-                            <option value="">Seleccionar país...</option>
-                            <option value="Chile|America/Santiago">Chile (GMT-3)</option>
-                            <option value="Argentina|America/Argentina/Buenos_Aires">Argentina (GMT-3)</option>
-                            <option value="Uruguay|America/Montevideo">Uruguay (GMT-3)</option>
-                            <option value="Brasil|America/Sao_Paulo">Brasil (GMT-3)</option>
-                            <option value="Peru|America/Lima">Perú (GMT-5)</option>
-                            <option value="Colombia|America/Bogota">Colombia (GMT-5)</option>
-                            <option value="Ecuador|America/Guayaquil">Ecuador (GMT-5)</option>
-                            <option value="Venezuela|America/Caracas">Venezuela (GMT-4)</option>
-                            <option value="Bolivia|America/La_Paz">Bolivia (GMT-4)</option>
-                            <option value="Paraguay|America/Asuncion">Paraguay (GMT-4)</option>
-                            <option value="Mexico|America/Mexico_City">México (GMT-6)</option>
-                            <option value="Costa Rica|America/Costa_Rica">Costa Rica (GMT-6)</option>
-                            <option value="Panama|America/Panama">Panamá (GMT-5)</option>
-                            <option value="Guatemala|America/Guatemala">Guatemala (GMT-6)</option>
-                            <option value="Cuba|America/Havana">Cuba (GMT-5)</option>
-                            <option value="República Dominicana|America/Santo_Domingo">República Dominicana (GMT-4)</option>
-                            <option value="Estados Unidos|America/New_York">Estados Unidos - Este (GMT-5)</option>
-                            <option value="Estados Unidos|America/Chicago">Estados Unidos - Centro (GMT-6)</option>
-                            <option value="Estados Unidos|America/Los_Angeles">Estados Unidos - Pacífico (GMT-8)</option>
-                            <option value="España|Europe/Madrid">España (GMT+1)</option>
-                        </select>
-                        <input type="hidden" id="editLeadTimezone">
-                    </div>
-                    
-                    <div>
-                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">🌍 País / Zona Horaria:</label>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">🌍 País y zona horaria del usuario:</label>
                         <select id="editLeadCountry" onchange="updateLeadTimezone()" style="width:100%; padding:10px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
                             <option value="">Seleccionar país...</option>
                             <option value="Chile|America/Santiago">Chile (GMT-3)</option>
