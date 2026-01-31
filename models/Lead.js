@@ -38,6 +38,18 @@ const leadSchema = mongoose.Schema({
         default: ''
     },
     
+    // Zona horaria del lead (para programar demos correctamente)
+    timezone: {
+        type: String,
+        default: 'America/Santiago', // GMT-3 (Chile) por defecto
+        trim: true
+    },
+    country: {
+        type: String,
+        default: '',
+        trim: true
+    },
+    
     // Metadata de captura
     source: {
         type: String,

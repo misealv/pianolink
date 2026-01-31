@@ -79,6 +79,77 @@ class CalendarService {
     }
     
     /**
+     * Formatea fecha en español para mensaje de bienvenida
+     */
+    formatSpanishDate(date) {
+        const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        
+        const d = new Date(date);
+        const dayName = days[d.getDay()];
+        const day = d.getDate();
+        const month = months[d.getMonth()];
+        const hours = d.getHours().toString().padStart(2, '0');
+        const minutes = d.getMinutes().toString().padStart(2, '0');
+        
+        return `${dayName} ${day} de ${month} a las ${hours}:${minutes}`;
+    }
+    
+    /**
+     * Genera mensaje personalizado para la invitación del demo
+     */
+    generateDemoMessage(leadName, demoDate, duration) {
+        const fecha = this.formatSpanishDate(demoDate);
+        const whatsapp = '+56959089770';
+        
+        return `🎹 ¡Bienvenido/a a tu Demo Personalizada de PianoLink!
+
+Hola ${leadName},
+
+Nos alegra mucho que hayas decidido conocer PianoLink. Estamos emocionados de mostrarte cómo nuestra plataforma puede transformar tus clases de piano en una experiencia inolvidable.
+
+📅 Tu demo está programada para:
+${fecha}
+⏱️ Duración: ${duration} minutos
+
+🎯 ¿Qué necesitas para el demo?
+
+Para que puedas vivir la experiencia completa, asegúrate de tener:
+
+✅ Cable MIDI conectado al piano y computador
+✅ Navegador Chrome o Edge actualizado
+✅ Conexión a internet estable
+✅ Un lugar tranquilo y sin interrupciones
+✅ Tu piano digital encendido y listo
+
+🔗 Link de la Sala:
+${this.getPianoLinkRoomUrl()}
+
+👉 Ingresa 5 minutos antes para verificar tu setup
+
+💡 Consejos Importantes:
+
+• PianoLink funciona mejor en Chrome/Edge (no uses Safari)
+• Asegúrate de permitir el acceso a tu dispositivo MIDI cuando el navegador lo solicite
+• Si tienes problemas técnicos, contáctanos de inmediato
+
+📱 Soporte Técnico (WhatsApp):
+${whatsapp}
+
+¡Nos vemos pronto! 🎵
+
+Equipo PianoLink
+`;
+    }
+    
+    /**
+     * Retorna URL de la sala de demos de PianoLink
+     */
+    getPianoLinkRoomUrl() {
+        return 'https://pianolink.onrender.com/?role=student&sala=profesor-demo';
+    }
+    
+    /**
      * Crea un evento en Google Calendar
      * @param {Object} eventData - Datos del evento
      * @returns {Promise<Object>} Evento creado
@@ -92,61 +163,76 @@ class CalendarService {
         try {
             const {
                 summary,
-                description,
                 startDateTime,
                 endDateTime,
                 attendeeEmail,
-                attendeeName
+                attendeeName,
+                teacherEmail,
+                duration = 60,
+                timezone = 'America/Santiago' // Zona horaria del invitado principal
             } = eventData;
             
-            // Crear evento
+            // Generar mensaje personalizado
+            const customDescription = this.generateDemoMessage(
+                attendeeName,
+                startDateTime,
+                duration
+            );
+            
+            // Preparar lista de asistentes (lead + profesor)
+            const attendees = [
+                { 
+                    email: attendeeEmail,
+                    displayName: attendeeName
+                }
+            ];
+            
+            // Agregar profesor si hay email configurado
+            if (teacherEmail) {
+                attendees.push({
+                    email: teacherEmail,
+                    displayName: 'Profesor PianoLink'
+                });
+            }
+            
+            // Crear evento SIN Google Meet, con sala de PianoLink
             const event = {
-                summary: summary || 'Demo Piano Link',
-                description: description || 'Demostración de Piano Link para profesor interesado',
+                summary: summary || `Demo PianoLink - ${attendeeName}`,
+                description: customDescription,
                 start: {
                     dateTime: startDateTime,
-                    timeZone: 'America/Santiago' // Ajustar según tu zona horaria
+                    timeZone: timezone // Zona horaria del invitado (ej: America/Mexico_City para México)
                 },
                 end: {
                     dateTime: endDateTime,
-                    timeZone: 'America/Santiago'
+                    timeZone: timezone // Google Calendar convertirá automáticamente para cada asistente
                 },
-                attendees: [
-                    { 
-                        email: attendeeEmail,
-                        displayName: attendeeName
-                    }
-                ],
-                conferenceData: {
-                    createRequest: {
-                        requestId: `demo-${Date.now()}`,
-                        conferenceSolutionKey: {
-                            type: 'hangoutsMeet' // Genera link de Google Meet automáticamente
-                        }
-                    }
-                },
+                attendees: attendees,
                 reminders: {
                     useDefault: false,
                     overrides: [
-                        { method: 'email', minutes: 24 * 60 }, // 1 día antes
-                        { method: 'popup', minutes: 30 }
+                        { method: 'email', minutes: 24 * 60 },  // 1 día antes
+                        { method: 'popup', minutes: 60 },       // 1 hora antes
+                        { method: 'popup', minutes: 10 }        // 10 minutos antes
                     ]
-                }
+                },
+                // NO incluir conferenceData para evitar crear Google Meet
+                // La sala de PianoLink está en la descripción
             };
             
             const response = await this.calendar.events.insert({
                 calendarId: 'primary',
                 resource: event,
-                conferenceDataVersion: 1,
-                sendUpdates: 'all' // Enviar invitación por email
+                sendUpdates: 'all' // Enviar invitación por email a todos los asistentes
             });
             
             console.log(`[Calendar] ✅ Evento creado: ${response.data.id}`);
+            console.log(`[Calendar] 📧 Invitaciones enviadas a: ${attendees.map(a => a.email).join(', ')}`);
             
             return {
                 id: response.data.id,
-                link: response.data.hangoutLink || response.data.htmlLink,
-                meetingLink: response.data.hangoutLink
+                link: response.data.htmlLink,
+                meetingLink: this.getPianoLinkRoomUrl() // Link de la sala de PianoLink
             };
             
         } catch (error) {

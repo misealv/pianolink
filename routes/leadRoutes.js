@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const Lead = require('../models/Lead');
 const CalendarService = require('../services/CalendarService');
+const { detectCountryFromPhone } = require('../utils/timezoneHelper');
 
 /**
  * POST /api/leads
@@ -80,6 +81,14 @@ router.post('/', async (req, res) => {
             utmCampaign: utmCampaign || '',
             notes: notes ? notes.trim() : ''
         };
+        
+        // Detectar país y timezone desde WhatsApp
+        const { country, timezone } = detectCountryFromPhone(whatsapp);
+        if (country) {
+            leadData.country = country;
+            leadData.timezone = timezone;
+            console.log(`[Lead] 🌍 País detectado: ${country} (${timezone})`);
+        }
         
         // Agregar tracking data si existe
         if (trackingData) {
@@ -303,7 +312,7 @@ router.patch('/:id/status', async (req, res) => {
 router.patch('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, email, whatsapp, background } = req.body;
+        const { name, email, whatsapp, background, country, timezone } = req.body;
         
         // Validación
         if (!name || !email || !whatsapp) {
@@ -328,14 +337,24 @@ router.patch('/:id', async (req, res) => {
             }
         }
         
+        const updateData = {
+            name: name.trim(),
+            email: email.toLowerCase().trim(),
+            whatsapp: whatsapp.trim(),
+            background: background ? background.trim() : ''
+        };
+        
+        // Actualizar país y timezone si se proporcionan
+        if (country !== undefined) {
+            updateData.country = country.trim();
+        }
+        if (timezone !== undefined) {
+            updateData.timezone = timezone.trim();
+        }
+        
         const lead = await Lead.findByIdAndUpdate(
             id,
-            {
-                name: name.trim(),
-                email: email.toLowerCase().trim(),
-                whatsapp: whatsapp.trim(),
-                background: background ? background.trim() : ''
-            },
+            updateData,
             { new: true, runValidators: true }
         );
         
@@ -506,13 +525,25 @@ router.post('/:id/schedule-demo', async (req, res) => {
             const startDateTime = new Date(demoDate);
             const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
             
+            // Obtener email del profesor asignado (si existe)
+            let teacherEmail = null;
+            if (lead.assignedTeacher) {
+                const User = require('../models/User');
+                const teacher = await User.findById(lead.assignedTeacher);
+                if (teacher) {
+                    teacherEmail = teacher.email;
+                }
+            }
+            
             const calendarEvent = await CalendarService.createEvent({
-                summary: `Demo Piano Link - ${lead.name}`,
-                description: `Demostración de Piano Link para ${lead.name}\n\nEmail: ${lead.email}\nWhatsApp: ${lead.whatsapp}`,
+                summary: `Demo PianoLink - ${lead.name}`,
                 startDateTime: startDateTime.toISOString(),
                 endDateTime: endDateTime.toISOString(),
                 attendeeEmail: lead.email,
-                attendeeName: lead.name
+                attendeeName: lead.name,
+                teacherEmail: teacherEmail, // Incluir profesor como asistente
+                duration: duration, // Pasar duración para el mensaje personalizado
+                timezone: lead.timezone || 'America/Santiago' // Zona horaria del lead
             });
             
             calendarEventId = calendarEvent.id || '';
