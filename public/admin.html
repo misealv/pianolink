@@ -21,6 +21,70 @@
     .nav-btn:hover, .nav-btn.active { background: #444; color: #fff; border-color: #777; }
     .logout-btn { background: #ff4d4d; border: none; color: white; }
     
+    /* Menú desplegable de acciones */
+    .actions-menu {
+        position: relative;
+        display: inline-block;
+    }
+    .actions-btn {
+        background: transparent;
+        border: 1px solid #444;
+        color: #aaa;
+        padding: 6px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 18px;
+        transition: 0.2s;
+    }
+    .actions-btn:hover {
+        background: #333;
+        color: #fff;
+        border-color: #666;
+    }
+    .actions-dropdown {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 100%;
+        background: #1a1a1a;
+        border: 1px solid #444;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        z-index: 1000;
+        min-width: 200px;
+        margin-top: 4px;
+    }
+    .actions-dropdown.show {
+        display: block;
+    }
+    .action-item {
+        padding: 10px 16px;
+        cursor: pointer;
+        transition: 0.15s;
+        border-bottom: 1px solid #2a2a2a;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: #ddd;
+    }
+    .action-item:last-child {
+        border-bottom: none;
+    }
+    .action-item:hover {
+        background: #2a2a2a;
+        color: #fff;
+    }
+    .action-item.danger:hover {
+        background: #ff4444;
+        color: #fff;
+    }
+    .action-item .icon {
+        font-size: 16px;
+        width: 20px;
+        text-align: center;
+    }
+    
     .badge-count {
         position: absolute; top: -8px; right: -8px;
         background-color: #ff4d4d; color: white; font-size: 10px; font-weight: bold;
@@ -1418,19 +1482,75 @@
                 <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                 <td style="color:#888; font-size:11px; text-transform:uppercase;">${source}</td>
                 <td style="color:#888; font-size:12px;">${date}</td>
-                <td>
-                    <button onclick="viewApplication('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Ver postulación completa">📋</button>
-                    <button onclick="scheduleDemoModal('${lead._id}', '${lead.name.replace(/'/g, "\\'")}', '${lead.email}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Agendar demo">📅</button>
-                    <button onclick="editLead('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Editar lead">✏️</button>
-                    <button onclick="updateLeadStatus('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Cambiar estado">🔄</button>
-                    <button onclick="viewLeadNotes('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Ver notas">📝</button>
-                    <button onclick="deleteLead('${lead._id}', '${lead.name.replace(/'/g, "\\'")}')" style="cursor:pointer; background:none; border:none; font-size:16px; color:#ff4444;" title="Eliminar lead">🗑️</button>
+                <td style="text-align:center;">
+                    <div class="actions-menu">
+                        <button class="actions-btn" onclick="toggleActionsMenu(event, '${lead._id}')" title="Acciones">⋮</button>
+                        <div class="actions-dropdown" id="actions-${lead._id}">
+                            <div class="action-item" onclick="viewApplication('${lead._id}'); closeAllMenus();">
+                                <span class="icon">📋</span>
+                                <span>Ver postulación</span>
+                            </div>
+                            <div class="action-item" onclick="scheduleDemoModal('${lead._id}', '${lead.name.replace(/'/g, "\\'")}', '${lead.email}'); closeAllMenus();">
+                                <span class="icon">📅</span>
+                                <span>Agendar demo</span>
+                            </div>
+                            <div class="action-item" onclick="editLead('${lead._id}'); closeAllMenus();">
+                                <span class="icon">✏️</span>
+                                <span>Editar lead</span>
+                            </div>
+                            <div class="action-item" onclick="updateLeadStatus('${lead._id}'); closeAllMenus();">
+                                <span class="icon">🔄</span>
+                                <span>Cambiar estado</span>
+                            </div>
+                            <div class="action-item" onclick="viewLeadNotes('${lead._id}'); closeAllMenus();">
+                                <span class="icon">📝</span>
+                                <span>Ver/Editar notas</span>
+                            </div>
+                            <div class="action-item danger" onclick="deleteLead('${lead._id}', '${lead.name.replace(/'/g, "\\'")}'); closeAllMenus();">
+                                <span class="icon">🗑️</span>
+                                <span>Eliminar lead</span>
+                            </div>
+                        </div>
+                    </div>
                 </td>
             `;
             tbody.appendChild(tr);
         });
     }
 
+    // =============================================
+    // MENÚ DESPLEGABLE DE ACCIONES
+    // =============================================
+    function toggleActionsMenu(event, leadId) {
+        event.stopPropagation();
+        const menu = document.getElementById(`actions-${leadId}`);
+        const isOpen = menu.classList.contains('show');
+        
+        // Cerrar todos los menús
+        closeAllMenus();
+        
+        // Abrir este menú si estaba cerrado
+        if (!isOpen) {
+            menu.classList.add('show');
+        }
+    }
+    
+    function closeAllMenus() {
+        document.querySelectorAll('.actions-dropdown').forEach(menu => {
+            menu.classList.remove('show');
+        });
+    }
+    
+    // Cerrar menús al hacer click fuera
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.actions-menu')) {
+            closeAllMenus();
+        }
+    });
+
+    // =============================================
+    // FILTROS Y BÚSQUEDA
+    // =============================================
     function filterLeads(status) {
         currentFilter = status;
         
