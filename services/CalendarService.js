@@ -381,6 +381,30 @@ Equipo PianoLink
     }
     
     /**
+     * Prueba la conexión con Google Calendar
+     * @returns {Promise<Object>} Resultado del test
+     */
+    async testConnection() {
+        if (!this.isConfigured) {
+            throw new Error('Calendar no está configurado');
+        }
+        
+        try {
+            // Intentar listar calendarios como test
+            const response = await this.calendar.calendarList.list({
+                maxResults: 1
+            });
+            
+            return {
+                calendarsFound: response.data.items?.length || 0,
+                primaryCalendar: response.data.items?.[0]?.summary || 'Calendar principal'
+            };
+        } catch (error) {
+            throw new Error(`Error de conexión: ${error.message}`);
+        }
+    }
+    
+    /**
      * Reinicializa el servicio con nuevas credenciales
      * Usado cuando se actualizan las credenciales desde el admin panel
      */

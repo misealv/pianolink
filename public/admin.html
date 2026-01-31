@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <title>Piano Link | Super Admin</title>
+  
+  <!-- Flatpickr CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+  
   <style>
     body { background-color: #1a1a1a; color: #dcdcdc; font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
     
@@ -351,11 +356,11 @@
                     <div id="modalLeadEmailDemo" style="color:#aaa; font-size:14px; padding:10px; background:#0a0a0a; border-radius:6px;"></div>
                 </div>
                 <div style="margin-bottom:15px;">
-                    <label for="demoDate" style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Fecha y hora de la demo:</label>
-                    <input type="datetime-local" id="demoDate" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-size:14px;">
+                    <label for="demoDate" style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">📅 Fecha y hora de la demo:</label>
+                    <input type="text" id="demoDate" placeholder="Click para seleccionar fecha y hora" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-size:14px; cursor:pointer;">
                 </div>
                 <div style="margin-bottom:20px;">
-                    <label for="demoDuration" style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Duración (minutos):</label>
+                    <label for="demoDuration" style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">⏱️ Duración:</label>
                     <select id="demoDuration" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-size:14px;">
                         <option value="30">30 minutos</option>
                         <option value="45">45 minutos</option>
@@ -363,9 +368,9 @@
                         <option value="90">90 minutos (1.5 horas)</option>
                     </select>
                 </div>
-                <div style="background:#0a0a0a; padding:12px; border-radius:6px; margin-bottom:20px; border-left:3px solid #27ae60;">
+                <div id="calendarStatusInfo" style="background:#0a0a0a; padding:12px; border-radius:6px; margin-bottom:20px; border-left:3px solid #27ae60;">
                     <p style="margin:0; font-size:12px; color:#aaa;">
-                        ℹ️ Se creará un evento en Google Calendar con link de Google Meet y se enviará invitación automática al lead.
+                        📧 Se enviará invitación por email con sala PianoLink y recordatorios (1 día, 1 hora, 10 min antes)
                     </p>
                 </div>
                 <div id="demoMessage" style="margin-bottom:15px; font-size:13px; text-align:center; font-weight:bold;"></div>
@@ -841,6 +846,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
     const userSession = JSON.parse(localStorage.getItem('pianoUser'));
     if (!userSession || userSession.role !== 'admin') window.location.href = 'login.html';
@@ -2000,24 +2006,92 @@
     // AGENDAR DEMO CON GOOGLE CALENDAR
     // =============================================
     let currentDemoLeadId = null;
+    let demoDatePicker = null;
 
     function scheduleDemoModal(leadId, leadName, leadEmail) {
         currentDemoLeadId = leadId;
         document.getElementById('modalLeadNameDemo').textContent = leadName;
         document.getElementById('modalLeadEmailDemo').textContent = leadEmail;
         
-        // Establecer fecha mínima a hoy
-        const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(10, 0, 0, 0); // Por defecto mañana a las 10 AM
+        // Verificar estado de Google Calendar
+        checkCalendarStatus();
         
-        const dateInput = document.getElementById('demoDate');
-        dateInput.min = now.toISOString().slice(0, 16);
-        dateInput.value = tomorrow.toISOString().slice(0, 16);
+        // Inicializar Flatpickr si no existe
+        if (!demoDatePicker) {
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(10, 0, 0, 0); // Por defecto mañana a las 10 AM
+            
+            demoDatePicker = flatpickr('#demoDate', {
+                enableTime: true,
+                dateFormat: 'Y-m-d H:i',
+                time_24hr: true,
+                minDate: 'today',
+                defaultDate: tomorrow,
+                minuteIncrement: 15,
+                locale: {
+                    firstDayOfWeek: 1,
+                    weekdays: {
+                        shorthand: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+                        longhand: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+                    },
+                    months: {
+                        shorthand: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                        longhand: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+                    }
+                },
+                onOpen: function(selectedDates, dateStr, instance) {
+                    // Resaltar el input cuando se abre
+                    instance.input.style.borderColor = '#27ae60';
+                },
+                onClose: function(selectedDates, dateStr, instance) {
+                    instance.input.style.borderColor = '#333';
+                }
+            });
+        } else {
+            // Reset a mañana 10 AM
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(10, 0, 0, 0);
+            demoDatePicker.setDate(tomorrow);
+        }
         
         document.getElementById('demoMessage').textContent = '';
         document.getElementById('demoModal').style.display = 'block';
+    }
+    
+    async function checkCalendarStatus() {
+        try {
+            const res = await fetch('/api/calendar/test');
+            const data = await res.json();
+            
+            const infoDiv = document.getElementById('calendarStatusInfo');
+            if (data.success) {
+                infoDiv.innerHTML = `
+                    <p style="margin:0; font-size:12px; color:#00ff88;">
+                        ✅ Google Calendar configurado - Se enviará invitación automática
+                    </p>
+                    <p style="margin:4px 0 0 0; font-size:11px; color:#aaa;">
+                        Sala PianoLink • Recordatorios: 1 día, 1 hora, 10 min antes
+                    </p>
+                `;
+                infoDiv.style.borderLeftColor = '#00ff88';
+            } else {
+                infoDiv.innerHTML = `
+                    <p style="margin:0; font-size:12px; color:#ffaa00;">
+                        ⚠️ Google Calendar no configurado
+                    </p>
+                    <p style="margin:4px 0 0 0; font-size:11px; color:#aaa;">
+                        La demo se guardará pero no se enviará invitación automática.<br>
+                        Configura Calendar en: Admin Panel → 📅 Calendar
+                    </p>
+                `;
+                infoDiv.style.borderLeftColor = '#ffaa00';
+            }
+        } catch (error) {
+            console.error('Error checking calendar status:', error);
+        }
     }
 
     function closeDemoModal() {
@@ -2026,18 +2100,19 @@
     }
 
     async function scheduleDemoConfirm() {
-        const demoDate = document.getElementById('demoDate').value;
         const duration = parseInt(document.getElementById('demoDuration').value);
         const msgDiv = document.getElementById('demoMessage');
         
-        if (!demoDate) {
+        // Obtener fecha de Flatpickr
+        const selectedDate = demoDatePicker ? demoDatePicker.selectedDates[0] : null;
+        
+        if (!selectedDate) {
             msgDiv.textContent = '⚠️ Selecciona fecha y hora';
             msgDiv.style.color = '#ff6600';
             return;
         }
         
         // Validar que la fecha sea futura
-        const selectedDate = new Date(demoDate);
         if (selectedDate < new Date()) {
             msgDiv.textContent = '⚠️ La fecha debe ser futura';
             msgDiv.style.color = '#ff6600';

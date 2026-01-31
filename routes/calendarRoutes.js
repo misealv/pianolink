@@ -294,4 +294,37 @@ router.get('/status', (req, res) => {
     });
 });
 
+/**
+ * GET /api/calendar/test
+ * Prueba la conexión con Google Calendar
+ */
+router.get('/test', async (req, res) => {
+    try {
+        if (!CalendarService.isConfigured) {
+            return res.json({
+                success: false,
+                message: 'Google Calendar no está configurado',
+                hint: 'Configura las credenciales en Admin Panel → 📅 Calendar'
+            });
+        }
+
+        // Intentar listar calendarios como test de conexión
+        const result = await CalendarService.testConnection();
+        
+        res.json({
+            success: true,
+            message: 'Conexión exitosa con Google Calendar',
+            ...result
+        });
+        
+    } catch (error) {
+        console.error('[Calendar] Error en test:', error.message);
+        res.json({
+            success: false,
+            message: 'Error al conectar con Google Calendar',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

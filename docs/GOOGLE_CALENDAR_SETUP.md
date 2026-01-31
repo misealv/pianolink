@@ -40,7 +40,9 @@ Este error ocurre cuando intentas autorizar antes de configurar las credenciales
 6. En **"Scopes"**: Click **"Guardar y continuar"** (sin agregar nada)
 7. En **"Usuarios de prueba"**: 
    - Click **"+ ADD USERS"**
-   - Agrega TU email (el que usarás para las demos)
+   - Agrega **TODOS los emails** que recibirán invitaciones de demos
+   - **IMPORTANTE**: Si el email del lead no está aquí, NO recibirá la invitación
+   - Ejemplo: Si vas a hacer demo con `miseal@gmail.com`, agrégalo aquí
    - Click **"Guardar"**
 8. Click **"Volver al panel"**
 
@@ -155,11 +157,22 @@ Si todo salió bien, verás en los logs del servidor:
 [Calendar] ✅ Google Calendar configurado correctamente
 ```
 
-Ahora cuando crees demos de leads, se programarán automáticamente en Google Calendar con links de Google Meet.
+Ahora cuando crees demos de leads, se programarán automáticamente en Google Calendar con invitaciones personalizadas.
+
+**⚠️ IMPORTANTE**: Las invitaciones solo se enviarán a emails agregados como "Usuarios de prueba" en Google Cloud Console.
 
 ---
 
 ## 🐛 Troubleshooting
+
+### **Error: "No llega la invitación al email del lead"**
+- **Causa**: El email del lead NO está en la lista de "Usuarios de prueba" en Google Cloud
+- **Solución**: 
+  1. Ve a Google Cloud Console → "Pantalla de consentimiento"
+  2. En "Usuarios de prueba" → Click "+ ADD USERS"
+  3. Agrega el email del lead (ej: `miseal@gmail.com`)
+  4. Guarda y vuelve a crear el demo
+- **Nota**: En desarrollo, solo los emails en esta lista recibirán invitaciones
 
 ### **Error: "Credenciales no configuradas"**
 - Verifica que guardaste Client ID, Client Secret y Redirect URI
