@@ -136,6 +136,9 @@
         <button class="nav-btn" onclick="switchView('tracking')" id="btnTracking" style="border-color:#9b59b6; color:#9b59b6;">
             📊 Tracking
         </button>
+        <button class="nav-btn" onclick="switchView('calendar')" id="btnCalendar" style="border-color:#27ae60; color:#27ae60;">
+            📅 Calendar
+        </button>
         
         <div style="width: 20px;"></div>
         <button class="nav-btn logout-btn" onclick="logout()">Salir</button>
@@ -549,6 +552,101 @@
                 </ol>
             </div>
         </div>
+
+        <!-- SECCIÓN GOOGLE CALENDAR -->
+        <div id="view-calendar" class="view-section">
+            <h2 style="color:#27ae60; border-bottom: 2px solid #27ae60; padding-bottom:10px;">📅 Integración Google Calendar</h2>
+            <p style="font-size:12px; color:#aaa; margin-bottom:20px;">
+                Configura las credenciales de Google Calendar para programar demos automáticamente con links de Google Meet.
+            </p>
+
+            <div style="background:#2a1a1a; border:1px solid #d35400; padding:15px; border-radius:6px; margin-bottom:25px;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                    <span style="font-size:20px;">⚠️</span>
+                    <strong style="color:#e67e22; font-size:13px;">IMPORTANTE: Configuración inicial requerida</strong>
+                </div>
+                <p style="font-size:11px; color:#aaa; margin:0; line-height:1.6;">
+                    Antes de llenar este formulario, debes crear credenciales OAuth2 en Google Cloud Console. 
+                    <a href="https://console.cloud.google.com" target="_blank" style="color:#3498db; text-decoration:underline;">Ir a Google Cloud Console →</a>
+                </p>
+            </div>
+
+            <div style="margin-bottom:25px;">
+                <label style="font-size:13px; color:#fff; margin-bottom:8px; display:block; font-weight:600;">
+                    🔑 Client ID
+                </label>
+                <input type="text" id="calendarClientId" placeholder="123456789-abc123.apps.googleusercontent.com" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #444; color:#fff; font-family:monospace; font-size:12px; border-radius:6px;">
+                <p style="font-size:10px; color:#666; margin-top:5px;">
+                    💡 <strong>Dónde conseguirlo:</strong> Google Cloud Console → APIs y servicios → Credenciales → ID de cliente OAuth 2.0
+                </p>
+            </div>
+
+            <div style="margin-bottom:25px;">
+                <label style="font-size:13px; color:#fff; margin-bottom:8px; display:block; font-weight:600;">
+                    🔐 Client Secret
+                </label>
+                <input type="password" id="calendarClientSecret" placeholder="GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #444; color:#fff; font-family:monospace; font-size:12px; border-radius:6px;">
+                <p style="font-size:10px; color:#666; margin-top:5px;">
+                    💡 <strong>Dónde conseguirlo:</strong> Mismo lugar que Client ID (se muestra al crear las credenciales)
+                </p>
+            </div>
+
+            <div style="margin-bottom:25px;">
+                <label style="font-size:13px; color:#fff; margin-bottom:8px; display:block; font-weight:600;">
+                    🔗 Redirect URI
+                </label>
+                <input type="text" id="calendarRedirectUri" value="https://pianolink.onrender.com/api/calendar/oauth2callback" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #444; color:#fff; font-family:monospace; font-size:12px; border-radius:6px;">
+                <p style="font-size:10px; color:#666; margin-top:5px;">
+                    💡 <strong>IMPORTANTE:</strong> Debes agregar esta URI en Google Cloud Console → Credenciales → URIs de redirección autorizadas
+                </p>
+            </div>
+
+            <div style="margin-bottom:25px;">
+                <label style="font-size:13px; color:#fff; margin-bottom:8px; display:block; font-weight:600;">
+                    🎫 Refresh Token
+                </label>
+                <textarea id="calendarRefreshToken" rows="3" placeholder="1//0abc123def456..." style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #444; color:#0f0; font-family:monospace; font-size:12px; border-radius:6px; resize:vertical;"></textarea>
+                <p style="font-size:10px; color:#666; margin-top:5px;">
+                    💡 <strong>Cómo obtenerlo:</strong> Después de guardar Client ID y Secret, visita 
+                    <code style="background:#0a0a0a; padding:2px 6px; border-radius:3px; color:#3498db;">/api/calendar/auth</code> 
+                    para autorizar y obtener el refresh token
+                </p>
+            </div>
+
+            <div style="display:flex; gap:15px; justify-content:flex-end; margin-top:30px;">
+                <button onclick="loadCalendarConfig()" class="action-btn" style="background:#444; width:auto; padding:12px 25px;">
+                    🔄 Recargar
+                </button>
+                <button onclick="testCalendarConnection()" class="action-btn" style="background:#3498db; width:auto; padding:12px 25px;">
+                    🧪 Probar Conexión
+                </button>
+                <button onclick="saveCalendarConfig()" class="action-btn" style="background:#27ae60; width:auto; padding:12px 25px;">
+                    💾 Guardar Credenciales
+                </button>
+            </div>
+            <div id="calendarMsg" style="margin-top:15px; text-align:right; font-size:13px; font-weight:bold;"></div>
+
+            <div style="margin-top:40px; padding:20px; background:#1a1a1a; border:1px solid #333; border-radius:8px;">
+                <h3 style="color:#27ae60; margin-top:0; font-size:14px;">📖 Guía de Configuración</h3>
+                <ol style="font-size:12px; color:#aaa; line-height:1.8; padding-left:20px;">
+                    <li><strong>Crear proyecto:</strong> Google Cloud Console → Nuevo proyecto</li>
+                    <li><strong>Habilitar API:</strong> APIs y servicios → Habilitar → Google Calendar API</li>
+                    <li><strong>Crear credenciales:</strong> Credenciales → Crear → ID de cliente OAuth 2.0</li>
+                    <li><strong>Configurar pantalla:</strong> Pantalla de consentimiento OAuth → Tipo: Externo</li>
+                    <li><strong>Agregar Redirect URI:</strong> En credenciales, agregar la URI mostrada arriba</li>
+                    <li><strong>Copiar credenciales:</strong> Client ID y Client Secret</li>
+                    <li><strong>Pegar aquí:</strong> Llenar los campos de arriba</li>
+                    <li><strong>Guardar:</strong> Clic en "Guardar Credenciales"</li>
+                    <li><strong>Autorizar:</strong> Visitar <code style="background:#0a0a0a; padding:2px 6px; border-radius:3px;">/api/calendar/auth</code></li>
+                    <li><strong>Copiar token:</strong> Pegar el refresh_token aquí y guardar de nuevo</li>
+                </ol>
+                <div style="margin-top:15px; padding:12px; background:#0a0a0a; border-left:3px solid #27ae60; border-radius:4px;">
+                    <p style="font-size:11px; color:#27ae60; margin:0;">
+                        ✅ <strong>Beneficio:</strong> Una vez configurado, las demos se crearán automáticamente con links de Google Meet
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
   </div>
 
@@ -619,6 +717,11 @@
             document.getElementById('formTeachers').style.display = 'none';
             document.getElementById('formLeads').style.display = 'none';
             loadTrackingScripts();
+        } else if (viewName === 'calendar') {
+            document.getElementById('btnCalendar').classList.add('active');
+            document.getElementById('formTeachers').style.display = 'none';
+            document.getElementById('formLeads').style.display = 'none';
+            loadCalendarConfig();
         }
     }
 
@@ -720,6 +823,90 @@
         } catch (error) {
             console.error("Error saving tracking scripts:", error);
             msg.innerText = "❌ Error de conexión";
+            msg.style.color = "#ff4d4d";
+        }
+    }
+
+    // --- GOOGLE CALENDAR CONFIG ---
+    async function loadCalendarConfig() {
+        try {
+            const res = await fetch('/admin/google-calendar');
+            const data = await res.json();
+            document.getElementById('calendarClientId').value = data.clientId || '';
+            document.getElementById('calendarClientSecret').value = data.clientSecret || '';
+            document.getElementById('calendarRedirectUri').value = data.redirectUri || 'https://pianolink.onrender.com/api/calendar/oauth2callback';
+            document.getElementById('calendarRefreshToken').value = data.refreshToken || '';
+        } catch(e) {
+            console.error("Error loading calendar config", e);
+        }
+    }
+
+    async function saveCalendarConfig() {
+        const msg = document.getElementById('calendarMsg');
+        msg.innerText = "Guardando..."; 
+        msg.style.color = "#aaa";
+
+        const clientId = document.getElementById('calendarClientId').value.trim();
+        const clientSecret = document.getElementById('calendarClientSecret').value.trim();
+        const redirectUri = document.getElementById('calendarRedirectUri').value.trim();
+        const refreshToken = document.getElementById('calendarRefreshToken').value.trim();
+
+        if (!clientId || !clientSecret || !redirectUri) {
+            msg.innerText = "⚠️ Faltan campos requeridos (Client ID, Secret, Redirect URI)";
+            msg.style.color = "#ff6600";
+            return;
+        }
+
+        try {
+            const res = await fetch('/admin/google-calendar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clientId, clientSecret, redirectUri, refreshToken })
+            });
+
+            const result = await res.json();
+            
+            if (result.success) {
+                msg.innerText = "✅ Credenciales guardadas correctamente";
+                msg.style.color = "#27ae60";
+                
+                if (!refreshToken) {
+                    setTimeout(() => {
+                        msg.innerHTML = "⚠️ Ahora visita <a href='/api/calendar/auth' target='_blank' style='color:#3498db;'>este enlace</a> para obtener el refresh token";
+                        msg.style.color = "#ff6600";
+                    }, 2000);
+                }
+            } else {
+                msg.innerText = "❌ Error al guardar";
+                msg.style.color = "#ff4d4d";
+            }
+        } catch (error) {
+            console.error("Error saving calendar config:", error);
+            msg.innerText = "❌ Error de conexión";
+            msg.style.color = "#ff4d4d";
+        }
+    }
+
+    async function testCalendarConnection() {
+        const msg = document.getElementById('calendarMsg');
+        msg.innerText = "🧪 Probando conexión..."; 
+        msg.style.color = "#3498db";
+
+        try {
+            // Intentar obtener el estado del calendar service
+            const res = await fetch('/api/calendar/status');
+            const data = await res.json();
+            
+            if (data.configured) {
+                msg.innerText = "✅ Conexión exitosa - Calendar configurado correctamente";
+                msg.style.color = "#27ae60";
+            } else {
+                msg.innerText = "⚠️ Calendar no configurado - Completa todos los campos";
+                msg.style.color = "#ff6600";
+            }
+        } catch (error) {
+            console.error("Error testing calendar:", error);
+            msg.innerText = "❌ Error probando conexión";
             msg.style.color = "#ff4d4d";
         }
     }

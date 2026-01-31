@@ -174,18 +174,17 @@ router.get('/oauth2callback', async (req, res) => {
                             <ul>
                                 <li>Guarda este token en un lugar seguro</li>
                                 <li>No lo compartas públicamente</li>
-                                <li>Agrégalo a <code>.env</code> como:<br>
+                                <li>Pégalo en <strong>Admin Panel → 📅 Calendar → Refresh Token</strong></li>
+                                <li>O agrégalo a <code>.env</code> como:<br>
                                     <code>GOOGLE_CALENDAR_REFRESH_TOKEN=${tokens.refresh_token || ''}</code>
                                 </li>
-                                <li>Reinicia tu servidor después de agregarlo</li>
                             </ul>
                         </div>
                         
                         <h3>📋 Próximos Pasos:</h3>
                         <ol>
-                            <li>Abre tu archivo <code>.env</code></li>
-                            <li>Pega el token copiado</li>
-                            <li>Reinicia el servidor: <code>npm start</code></li>
+                            <li><strong>Opción A (Recomendado):</strong> Ve a <code>/admin.html</code> → Pestaña "📅 Calendar" → Pega el token</li>
+                            <li><strong>Opción B:</strong> Abre tu archivo <code>.env</code> y pega el token</li>
                             <li>¡Listo! Ya puedes programar demos automáticamente</li>
                         </ol>
                     </div>

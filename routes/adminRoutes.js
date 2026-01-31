@@ -96,6 +96,60 @@ router.post('/tracking-scripts', async (req, res) => {
     }
 });
 
+/* -------------------------------------------------------------------------- */
+/* RUTAS DE GOOGLE CALENDAR                     */
+/* -------------------------------------------------------------------------- */
+
+// Obtener credenciales de Google Calendar
+router.get('/google-calendar', async (req, res) => {
+    try {
+        let config = await GlobalConfig.findOne({ isDefault: true });
+        if (!config) {
+            config = await GlobalConfig.create({ isDefault: true });
+        }
+        res.json({
+            clientId: config.googleCalendar?.clientId || '',
+            clientSecret: config.googleCalendar?.clientSecret || '',
+            redirectUri: config.googleCalendar?.redirectUri || 'https://pianolink.onrender.com/api/calendar/oauth2callback',
+            refreshToken: config.googleCalendar?.refreshToken || ''
+        });
+    } catch (error) {
+        console.error('Error obteniendo credenciales de Google Calendar:', error);
+        res.status(500).json({ message: 'Error al obtener credenciales' });
+    }
+});
+
+// Guardar credenciales de Google Calendar
+router.post('/google-calendar', async (req, res) => {
+    try {
+        const { clientId, clientSecret, redirectUri, refreshToken } = req.body;
+        
+        let config = await GlobalConfig.findOne({ isDefault: true });
+        if (!config) {
+            config = await GlobalConfig.create({ isDefault: true });
+        }
+        
+        config.googleCalendar = {
+            clientId: clientId || '',
+            clientSecret: clientSecret || '',
+            redirectUri: redirectUri || 'https://pianolink.onrender.com/api/calendar/oauth2callback',
+            refreshToken: refreshToken || ''
+        };
+        
+        await config.save();
+        
+        // Reinicializar CalendarService con nuevas credenciales
+        const CalendarService = require('../services/CalendarService');
+        await CalendarService.reinitialize();
+        
+        console.log('✅ Credenciales de Google Calendar actualizadas');
+        res.json({ success: true, message: 'Credenciales guardadas correctamente' });
+    } catch (error) {
+        console.error('Error guardando credenciales de Google Calendar:', error);
+        res.status(500).json({ message: 'Error al guardar credenciales' });
+    }
+});
+
 router.delete('/feedbacks/:id', async (req, res) => {
     try {
         await Feedback.findByIdAndDelete(req.params.id);

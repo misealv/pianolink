@@ -17,6 +17,14 @@ const globalConfigSchema = new mongoose.Schema({
         googleAnalytics: { type: String, default: "" } // Script completo de Google Analytics
     },
     
+    // Google Calendar API (Para programar demos automáticamente)
+    googleCalendar: {
+        clientId: { type: String, default: "" },
+        clientSecret: { type: String, default: "" },
+        redirectUri: { type: String, default: "https://pianolink.onrender.com/api/calendar/oauth2callback" },
+        refreshToken: { type: String, default: "" }
+    },
+    
     // Configuración extra (por si quieres agregar más cosas luego)
     maintenanceMode: { type: Boolean, default: false }
 }, { timestamps: true });

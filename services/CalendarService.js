@@ -6,11 +6,7 @@
  * 1. Crear proyecto en Google Cloud Console
  * 2. Habilitar Google Calendar API
  * 3. Crear credenciales OAuth 2.0
- * 4. Agregar variables de entorno en .env:
- *    - GOOGLE_CALENDAR_CLIENT_ID
- *    - GOOGLE_CALENDAR_CLIENT_SECRET
- *    - GOOGLE_CALENDAR_REDIRECT_URI
- *    - GOOGLE_CALENDAR_REFRESH_TOKEN
+ * 4. Configurar desde Admin Panel → Integración Calendar
  */
 
 const { google } = require('googleapis');
@@ -27,13 +23,30 @@ class CalendarService {
     
     /**
      * Inicializa el cliente de Google Calendar
+     * Primero intenta cargar desde BD, luego desde .env (fallback)
      */
-    initialize() {
+    async initialize() {
         try {
-            const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
-            const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
-            const redirectUri = process.env.GOOGLE_CALENDAR_REDIRECT_URI;
-            const refreshToken = process.env.GOOGLE_CALENDAR_REFRESH_TOKEN;
+            // Intentar cargar desde base de datos
+            const GlobalConfig = require('../models/GlobalConfig');
+            const config = await GlobalConfig.findOne({ isDefault: true });
+            
+            let clientId, clientSecret, redirectUri, refreshToken;
+            
+            if (config && config.googleCalendar) {
+                clientId = config.googleCalendar.clientId;
+                clientSecret = config.googleCalendar.clientSecret;
+                redirectUri = config.googleCalendar.redirectUri;
+                refreshToken = config.googleCalendar.refreshToken;
+            }
+            
+            // Fallback a variables de entorno si no hay en BD
+            if (!clientId || !clientSecret || !refreshToken) {
+                clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
+                clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
+                redirectUri = process.env.GOOGLE_CALENDAR_REDIRECT_URI;
+                refreshToken = process.env.GOOGLE_CALENDAR_REFRESH_TOKEN;
+            }
             
             if (!clientId || !clientSecret || !redirectUri || !refreshToken) {
                 console.warn('[Calendar] ⚠️ Credenciales de Google Calendar no configuradas');
@@ -251,7 +264,7 @@ class CalendarService {
         try {
             const { tokens } = await this.oauth2Client.getToken(code);
             console.log('[Calendar] 🔑 Refresh Token:', tokens.refresh_token);
-            console.log('[Calendar] ℹ️ Agrega esto a tu .env como GOOGLE_CALENDAR_REFRESH_TOKEN');
+            console.log('[Calendar] ℹ️ Guarda esto en Admin Panel → Integración Calendar');
             
             return tokens;
         } catch (error) {
@@ -259,7 +272,19 @@ class CalendarService {
             throw error;
         }
     }
+    
+    /**
+     * Reinicializa el servicio con nuevas credenciales
+     * Usado cuando se actualizan las credenciales desde el admin panel
+     */
+    async reinitialize() {
+        console.log('[Calendar] 🔄 Reinicializando con nuevas credenciales...');
+        await this.initialize();
+        return this.isConfigured;
+    }
 }
 
-// Exportar instancia única (singleton)
-module.exports = new CalendarService();
+// Exportar la clase (no instancia) para poder reinicializar
+const instance = new CalendarService();
+module.exports = instance;
+module.exports.CalendarService = CalendarService;
