@@ -24,6 +24,10 @@ const emailService = require('./services/EmailService');
 const emailStatus = emailService.getStatus();
 console.log('[SERVER] 📧 Estado del servicio de email:', JSON.stringify(emailStatus, null, 2));
 
+// ✨ NUEVO: Inicializar Session Tracker
+const SessionTracker = require('./services/SessionTracker');
+console.log('[SERVER] 📊 Session Tracker inicializado');
+
 const app = express();
 const server = http.createServer(app);
 
@@ -68,6 +72,7 @@ app.use('/api/teacher', require('./routes/teacherRoutes'));
 app.use('/api/scores', require('./routes/scoreRoutes'));
 app.use('/api/leads', require('./routes/leadRoutes')); // Lead generation
 app.use('/api/calendar', require('./routes/calendarRoutes')); // Google Calendar integration
+app.use('/api/analytics', require('./routes/analyticsRoutes')); // Session Analytics
 app.use('/admin', require('./routes/adminRoutes'));
 
 // ==================================================
@@ -340,23 +345,47 @@ io.on("connection", (socket) => {
     // --- GESTIÓN DE SALAS ---
     
     // Crear Sala (Profesor)
-    socket.on("create-room", (payload) => {
+    socket.on("create-room", async (payload) => {
         const roomCode = (payload.roomCode || generateCode()).toUpperCase();
         setupUserInRoom(socket, roomCode, payload.username || "Profesor", "teacher");
         
         rooms[roomCode].isActive = true; // El profe activa la sala
         socket.emit("room-created", roomCode);
         syncRoomState(roomCode);
+        
+        // 📊 TRACK: Iniciar sesión
+        try {
+            // Obtener datos del profesor desde el token/payload si está disponible
+            const teacherData = {
+                userId: payload.userId || socket.id,
+                email: payload.email || 'unknown@pianolink.com',
+                name: payload.username || 'Profesor'
+            };
+            await SessionTracker.startSession(roomCode, teacherData);
+        } catch (error) {
+            console.error('[Track] Error iniciando sesión:', error);
+        }
     });
 
     // Unirse a Sala (Alumno)
-    socket.on("join-room", (payload) => {
+    socket.on("join-room", async (payload) => {
         const roomCode = (payload.roomCode || "").toUpperCase();
         if (!rooms[roomCode]) {
             rooms[roomCode] = { users: {}, isActive: false };
         }
         
         setupUserInRoom(socket, roomCode, payload.username || "Alumno", payload.userRole || "student");
+        
+        // Trackear estudiante que se une
+        try {
+            await SessionTracker.addStudent(roomCode, {
+                socketId: socket.id,
+                name: payload.username || "Alumno",
+                role: payload.userRole || "student"
+            });
+        } catch (error) {
+            console.error('[Track] Error agregando estudiante:', error);
+        }
         
         socket.emit("room-joined", roomCode);
         if(rooms[roomCode].isActive) socket.broadcast.to(roomCode).emit("user-entered-sound");
@@ -508,6 +537,21 @@ io.on("connection", (socket) => {
             dat: filteredBuffer,
             userId: user.name // Identificación verificada
         });
+        
+        // Trackear actividad MIDI
+        try {
+            const noteCount = filteredMessages.filter(msg => {
+                const status = msg.status;
+                return (status >= 128 && status <= 159); // Note On/Off
+            }).length;
+            
+            if (noteCount > 0) {
+                const type = socket.userRole === 'teacher' ? 'sent' : 'received';
+                SessionTracker.trackMidi(roomCode, type, noteCount);
+            }
+        } catch (error) {
+            console.error('[Track] Error tracking MIDI:', error);
+        }
     });
    
    //Ping para saber latencia
@@ -533,6 +577,8 @@ io.on("connection", (socket) => {
 
     // Actualizar memoria del servidor
     const userState = room.users[socket.id].pdfState;
+    const hadPdf = !!userState.url;
+    
     if (newState.url) userState.url = newState.url;
     if (newState.page) userState.page = newState.page;
     
@@ -540,6 +586,15 @@ io.on("connection", (socket) => {
     // Esto permite que el profesor sepa qué anotaciones buscar en la DB al usar el modo espía
     if (newState.scoreId) userState.scoreId = newState.scoreId; 
     // -----------------------------
+    
+    // Trackear si el profesor carga un PDF por primera vez
+    if (!hadPdf && newState.url && socket.userRole === 'teacher') {
+        try {
+            SessionTracker.trackPDF(socket.roomCode, newState.scoreId || 'unknown');
+        } catch (error) {
+            console.error('[Track] Error tracking PDF:', error);
+        }
+    }
 
     // Rebotar a todos (para modo espía instantáneo)
     io.to(socket.roomCode).emit("user-pdf-updated", {
@@ -551,7 +606,7 @@ io.on("connection", (socket) => {
     broadcastUserList(socket.roomCode);
 });
 
-    socket.on("end-class", (roomCode) => {
+    socket.on("end-class", async (roomCode) => {
         console.log(`[EndClass] Solicitud de ${socket.id} para cerrar sala: ${roomCode}`);
         console.log(`[EndClass] Socket.roomCode: ${socket.roomCode}`);
         
@@ -564,6 +619,13 @@ io.on("connection", (socket) => {
         
         const room = rooms[roomCode];
         if (!room) return;
+        
+        // Trackear fin de sesión (iniciada por profesor)
+        try {
+            await SessionTracker.endSession(roomCode, true);
+        } catch (error) {
+            console.error('[Track] Error ending session:', error);
+        }
         
         room.isActive = false;
         io.to(roomCode).emit("class-status", { isActive: false });
@@ -601,6 +663,18 @@ io.on("connection", (socket) => {
         const newBroadcaster = (current === targetId) ? null : targetId;
         
         rooms[roomCode].broadcaster = newBroadcaster;
+        
+        // Trackear cambio de broadcaster
+        if (newBroadcaster) {
+            const broadcasterUser = rooms[roomCode].users[newBroadcaster];
+            if (broadcasterUser) {
+                try {
+                    SessionTracker.trackBroadcasterChange(roomCode, broadcasterUser.name);
+                } catch (error) {
+                    console.error('[Track] Error tracking broadcaster:', error);
+                }
+            }
+        }
     
         // 1. Avisar quién es la nueva estrella
         io.to(roomCode).emit("broadcaster-changed", newBroadcaster);
@@ -673,6 +747,15 @@ io.on("connection", (socket) => {
         
         // 1. Enviar a los demás (Rápido - prioridad alta)
         socket.to(sanitized.room).emit('wb-draw', sanitized);
+        
+        // Trackear uso de whiteboard (solo del profesor)
+        if (socket.userRole === 'teacher' && sanitized.room) {
+            try {
+                SessionTracker.trackWhiteboard(sanitized.room);
+            } catch (error) {
+                console.error('[Track] Error tracking whiteboard:', error);
+            }
+        }
 
         // 2. Guardar en MongoDB (Background - prioridad baja, no bloqueante)
         if (sanitized.scoreId) {
@@ -801,6 +884,13 @@ io.on("connection", (socket) => {
         
         console.log('[AudioControl] 🔄 change-audio-mode:', data.profile, '→ target:', data.targetUserId || 'broadcast');
         
+        // Trackear cambio de modo audio
+        try {
+            SessionTracker.trackAudioMode(roomCode, data.profile);
+        } catch (error) {
+            console.error('[Track] Error tracking audio mode:', error);
+        }
+        
         // Preparar payload con info del origen
         const payload = {
             profile: data.profile,
@@ -837,6 +927,15 @@ io.on("connection", (socket) => {
         }
         
         console.log('[AudioControl] 🔇 remote-mute:', data.muted ? 'MUTE' : 'UNMUTE', '→ target:', data.targetUserId || 'broadcast');
+        
+        // Trackear mute remoto
+        if (data.muted) {
+            try {
+                SessionTracker.trackRemoteMute(roomCode);
+            } catch (error) {
+                console.error('[Track] Error tracking remote mute:', error);
+            }
+        }
         
         const payload = {
             muted: data.muted,
@@ -930,6 +1029,15 @@ io.on("connection", (socket) => {
             speaker: data.speaker || 'unknown'
         });
         
+        // Trackear consulta PLB
+        if (result && result.hint) {
+            try {
+                SessionTracker.trackPLBQuery(roomCode);
+            } catch (error) {
+                console.error('[Track] Error tracking PLB query:', error);
+            }
+        }
+        
         // Si hay un hint, enviarlo solo al profesor de la sala
         if (result && result.hint) {
             const room = rooms[roomCode];
@@ -1000,6 +1108,17 @@ io.on("connection", (socket) => {
             });
             
             console.log(`[PLB] 📚 Mejora guardada por ${userEmail}: "${data.context?.substring(0, 30)}..."`);
+            
+            // Trackear mejora PLB
+            try {
+                const roomCode = socket.roomCode;
+                if (roomCode) {
+                    SessionTracker.trackPLBImprovement(roomCode);
+                }
+            } catch (error) {
+                console.error('[Track] Error tracking PLB improvement:', error);
+            }
+            
             socket.emit('plb-improve-result', { success: true, exampleId: result._id });
         } catch (error) {
             console.error('[PLB] Error guardando mejora:', error);
@@ -1008,10 +1127,17 @@ io.on("connection", (socket) => {
     });
 
     // Desconexión
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
         const roomCode = socket.roomCode;
         if (roomCode && rooms[roomCode]) {
             const room = rooms[roomCode];
+            
+            // Trackear salida de estudiante
+            try {
+                await SessionTracker.removeStudent(roomCode, socket.id);
+            } catch (error) {
+                console.error('[Track] Error removing student:', error);
+            }
             
             // Limpiar timers de snapshot si existen
             if (room.snapshotTimer) clearTimeout(room.snapshotTimer);

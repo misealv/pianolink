@@ -11,9 +11,9 @@ const CalendarService = require('../services/CalendarService');
  * Obtiene la URL de autorización de Google
  * Usar solo para configuración inicial
  */
-router.get('/auth', (req, res) => {
+router.get('/auth', async (req, res) => {
     try {
-        const authUrl = CalendarService.getAuthUrl();
+        const authUrl = await CalendarService.getAuthUrl();
         
         res.send(`
             <html>
@@ -78,7 +78,81 @@ router.get('/auth', (req, res) => {
             </html>
         `);
     } catch (error) {
-        res.status(500).send('Error generando URL de autorización: ' + error.message);
+        console.error('[Calendar Route] Error en /auth:', error.message);
+        res.status(500).send(`
+            <html>
+                <head>
+                    <title>Error - Configuración Requerida</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            max-width: 600px;
+                            margin: 50px auto;
+                            padding: 20px;
+                            background: #f5f5f5;
+                        }
+                        .container {
+                            background: white;
+                            padding: 30px;
+                            border-radius: 10px;
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                        }
+                        h1 {
+                            color: #e74c3c;
+                        }
+                        .error {
+                            background: #fdecea;
+                            padding: 15px;
+                            border-left: 4px solid #e74c3c;
+                            margin: 20px 0;
+                        }
+                        .info {
+                            background: #e8f4fd;
+                            padding: 15px;
+                            border-left: 4px solid #1a73e8;
+                            margin: 20px 0;
+                        }
+                        .btn {
+                            display: inline-block;
+                            padding: 12px 24px;
+                            background: #1a73e8;
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 5px;
+                            margin-top: 20px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>⚠️ Configuración Requerida</h1>
+                        
+                        <div class="error">
+                            <strong>Error:</strong> ${error.message}
+                        </div>
+                        
+                        <div class="info">
+                            <strong>📋 Instrucciones:</strong>
+                            <ol>
+                                <li>Ve al <strong>Panel de Admin</strong></li>
+                                <li>Click en <strong>📅 Calendar</strong></li>
+                                <li>Ingresa tus credenciales de Google Cloud:
+                                    <ul>
+                                        <li>Client ID</li>
+                                        <li>Client Secret</li>
+                                        <li>Redirect URI</li>
+                                    </ul>
+                                </li>
+                                <li>Haz click en <strong>Guardar Credenciales</strong></li>
+                                <li>Luego regresa a esta página para autorizar</li>
+                            </ol>
+                        </div>
+                        
+                        <a href="/admin.html" class="btn">Ir al Panel de Admin</a>
+                    </div>
+                </body>
+            </html>
+        `);
     }
 });
 

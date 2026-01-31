@@ -227,32 +227,53 @@ class CalendarService {
     
     /**
      * Obtiene la URL de autorización (para setup inicial)
-     * @returns {string} URL de autorización
+     * @returns {Promise<string>} URL de autorización
      */
-    getAuthUrl() {
-        if (!this.oauth2Client) {
-            const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
-            const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
-            const redirectUri = process.env.GOOGLE_CALENDAR_REDIRECT_URI;
+    async getAuthUrl() {
+        try {
+            let clientId, clientSecret, redirectUri;
             
+            // Intentar cargar desde base de datos primero
+            const GlobalConfig = require('../models/GlobalConfig');
+            const config = await GlobalConfig.findOne({ isDefault: true });
+            
+            if (config && config.googleCalendar) {
+                clientId = config.googleCalendar.clientId;
+                clientSecret = config.googleCalendar.clientSecret;
+                redirectUri = config.googleCalendar.redirectUri;
+            }
+            
+            // Fallback a variables de entorno
+            if (!clientId) clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
+            if (!clientSecret) clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
+            if (!redirectUri) redirectUri = process.env.GOOGLE_CALENDAR_REDIRECT_URI;
+            
+            if (!clientId || !clientSecret || !redirectUri) {
+                throw new Error('Credenciales de Google Calendar no configuradas. Por favor configúralas en el Admin Panel → Integración Calendar antes de autorizar.');
+            }
+            
+            // Crear o actualizar cliente OAuth2
             this.oauth2Client = new google.auth.OAuth2(
                 clientId,
                 clientSecret,
                 redirectUri
             );
+            
+            const scopes = [
+                'https://www.googleapis.com/auth/calendar.events'
+            ];
+            
+            const url = this.oauth2Client.generateAuthUrl({
+                access_type: 'offline',
+                scope: scopes,
+                prompt: 'consent'
+            });
+            
+            return url;
+        } catch (error) {
+            console.error('[Calendar] ❌ Error generando URL de autorización:', error.message);
+            throw error;
         }
-        
-        const scopes = [
-            'https://www.googleapis.com/auth/calendar.events'
-        ];
-        
-        const url = this.oauth2Client.generateAuthUrl({
-            access_type: 'offline',
-            scope: scopes,
-            prompt: 'consent'
-        });
-        
-        return url;
     }
     
     /**
