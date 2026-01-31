@@ -334,6 +334,47 @@
             </div>
         </div>
 
+        <!-- Modal de Agendar Demo -->
+        <div id="demoModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); z-index:9999; backdrop-filter:blur(10px);">
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; border:2px solid #27ae60; border-radius:12px; padding:30px; width:90%; max-width:500px; box-shadow:0 20px 60px rgba(39,174,96,0.3);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="color:#27ae60; margin:0; font-size:20px;">📅 Agendar Demo</h3>
+                    <button onclick="closeDemoModal()" style="background:none; border:none; color:#27ae60; font-size:28px; cursor:pointer; line-height:1;" title="Cerrar">×</button>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Lead:</label>
+                    <div id="modalLeadNameDemo" style="color:#fff; font-size:16px; font-weight:600; padding:10px; background:#0a0a0a; border-radius:6px;"></div>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Email:</label>
+                    <div id="modalLeadEmailDemo" style="color:#aaa; font-size:14px; padding:10px; background:#0a0a0a; border-radius:6px;"></div>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label for="demoDate" style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Fecha y hora de la demo:</label>
+                    <input type="datetime-local" id="demoDate" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-size:14px;">
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label for="demoDuration" style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Duración (minutos):</label>
+                    <select id="demoDuration" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-size:14px;">
+                        <option value="30">30 minutos</option>
+                        <option value="45">45 minutos</option>
+                        <option value="60" selected>60 minutos (1 hora)</option>
+                        <option value="90">90 minutos (1.5 horas)</option>
+                    </select>
+                </div>
+                <div style="background:#0a0a0a; padding:12px; border-radius:6px; margin-bottom:20px; border-left:3px solid #27ae60;">
+                    <p style="margin:0; font-size:12px; color:#aaa;">
+                        ℹ️ Se creará un evento en Google Calendar con link de Google Meet y se enviará invitación automática al lead.
+                    </p>
+                </div>
+                <div id="demoMessage" style="margin-bottom:15px; font-size:13px; text-align:center; font-weight:bold;"></div>
+                <div style="display:flex; gap:12px; justify-content:flex-end;">
+                    <button onclick="closeDemoModal()" style="padding:10px 20px; background:#333; border:none; border-radius:6px; color:#aaa; cursor:pointer; font-size:14px;">Cancelar</button>
+                    <button onclick="scheduleDemoConfirm()" style="padding:10px 20px; background:#27ae60; border:none; border-radius:6px; color:#fff; cursor:pointer; font-size:14px; font-weight:600;">📅 Agendar Demo</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal de Cambio de Estado -->
         <div id="statusModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); z-index:9999; backdrop-filter:blur(10px);">
             <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; border:2px solid #ff6600; border-radius:12px; padding:30px; width:90%; max-width:500px; box-shadow:0 20px 60px rgba(255,102,0,0.3);">
@@ -1306,6 +1347,7 @@
                 <td style="color:#888; font-size:12px;">${date}</td>
                 <td>
                     <button onclick="viewApplication('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Ver postulación completa">📋</button>
+                    <button onclick="scheduleDemoModal('${lead._id}', '${lead.name.replace(/'/g, "\\'")}', '${lead.email}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Agendar demo">📅</button>
                     <button onclick="editLead('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Editar lead">✏️</button>
                     <button onclick="updateLeadStatus('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Cambiar estado">🔄</button>
                     <button onclick="viewLeadNotes('${lead._id}')" style="cursor:pointer; background:none; border:none; font-size:16px;" title="Ver notas">📝</button>
@@ -1793,6 +1835,97 @@
     }
 
     // =============================================
+    // AGENDAR DEMO CON GOOGLE CALENDAR
+    // =============================================
+    let currentDemoLeadId = null;
+
+    function scheduleDemoModal(leadId, leadName, leadEmail) {
+        currentDemoLeadId = leadId;
+        document.getElementById('modalLeadNameDemo').textContent = leadName;
+        document.getElementById('modalLeadEmailDemo').textContent = leadEmail;
+        
+        // Establecer fecha mínima a hoy
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(10, 0, 0, 0); // Por defecto mañana a las 10 AM
+        
+        const dateInput = document.getElementById('demoDate');
+        dateInput.min = now.toISOString().slice(0, 16);
+        dateInput.value = tomorrow.toISOString().slice(0, 16);
+        
+        document.getElementById('demoMessage').textContent = '';
+        document.getElementById('demoModal').style.display = 'block';
+    }
+
+    function closeDemoModal() {
+        document.getElementById('demoModal').style.display = 'none';
+        currentDemoLeadId = null;
+    }
+
+    async function scheduleDemoConfirm() {
+        const demoDate = document.getElementById('demoDate').value;
+        const duration = parseInt(document.getElementById('demoDuration').value);
+        const msgDiv = document.getElementById('demoMessage');
+        
+        if (!demoDate) {
+            msgDiv.textContent = '⚠️ Selecciona fecha y hora';
+            msgDiv.style.color = '#ff6600';
+            return;
+        }
+        
+        // Validar que la fecha sea futura
+        const selectedDate = new Date(demoDate);
+        if (selectedDate < new Date()) {
+            msgDiv.textContent = '⚠️ La fecha debe ser futura';
+            msgDiv.style.color = '#ff6600';
+            return;
+        }
+        
+        msgDiv.textContent = '⏳ Creando demo en Google Calendar...';
+        msgDiv.style.color = '#3498db';
+        
+        try {
+            const res = await fetch(`/api/leads/${currentDemoLeadId}/schedule-demo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    demoDate: selectedDate.toISOString(),
+                    duration: duration
+                })
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                msgDiv.textContent = '✅ Demo agendada correctamente';
+                msgDiv.style.color = '#27ae60';
+                
+                // Mostrar link de Meet si está disponible
+                if (data.meetingLink && data.meetingLink !== 'No disponible - agregar manualmente') {
+                    setTimeout(() => {
+                        msgDiv.innerHTML = `✅ Demo agendada<br><a href="${data.meetingLink}" target="_blank" style="color:#3498db; font-size:12px;">📹 Ver link de Google Meet</a>`;
+                    }, 1000);
+                }
+                
+                // Recargar leads y cerrar modal después de 2 segundos
+                setTimeout(() => {
+                    closeDemoModal();
+                    loadLeads();
+                    showNotification('📅 Demo agendada con éxito', 'success');
+                }, 2500);
+            } else {
+                msgDiv.textContent = '❌ Error: ' + (data.message || 'No se pudo agendar');
+                msgDiv.style.color = '#e74c3c';
+            }
+        } catch (error) {
+            console.error('Error agendando demo:', error);
+            msgDiv.textContent = '❌ Error de conexión';
+            msgDiv.style.color = '#e74c3c';
+        }
+    }
+
+    // =============================================
     // ELIMINAR LEAD
     // =============================================
     async function deleteLead(leadId, leadName) {
@@ -1824,6 +1957,7 @@
         if (e.key === 'Escape') {
             closeNotesModal();
             closeStatusModal();
+            closeDemoModal();
         }
     });
 
