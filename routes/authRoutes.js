@@ -3,9 +3,6 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 
-const adminController = require('../controllers/adminController');
-router.get('/platform-public', adminController.getPublicPlatformConfig);
-
 const { 
     loginUser, 
     registerUser, 
