@@ -2,6 +2,8 @@
  * /public/js/Main.js
  * Controlador Principal - PianoLink V4 (Fase 1-5 Integrado)
  */
+console.log('📦 [Main.js] Archivo cargado correctamente');
+
 import { SocketClient } from './modules/SocketClient.js';
 import { AudioEngine } from './modules/AudioEngine.js';
 import { Whiteboard } from './modules/Whiteboard.js';
@@ -10,6 +12,10 @@ import { ScoreLogic } from './modules/ScoreLogic.js';
 import { FreeBoard } from './modules/FreeBoard.js';
 import { DiagnosticSidebar } from './modules/DiagnosticSidebar.js';
 import { DraggableToolbar } from './modules/DraggableToolbar.js';
+import { PLBTranscriber } from './modules/PLBTranscriber.js';
+import { PLBHud } from './modules/PLBHud.js';
+
+console.log('📦 [Main.js] Todos los imports completados');
 
 // 1. EVENT BUS (Sistema nervioso central)
 class EventBus extends EventTarget {
@@ -34,6 +40,12 @@ const freeBoard = new FreeBoard(scoreLogic);
 
 // ⚡ Exponer uiManager globalmente para acceso desde Whiteboard
 window.uiManager = ui; 
+
+// ==================================================
+// PLB (PIANO LINK BRAIN) - VARIABLES GLOBALES
+// ==================================================
+let plbTranscriber = null;
+let plbHud = null;
 
 // ==================================================
 // AGORA AV - FASE 0: VARIABLES GLOBALES
@@ -64,6 +76,48 @@ const initDiagnosticSidebar = function() {
         }
     } catch (error) {
         console.error('[Main] ⚠️ Error inicializando Diagnostic Sidebar (no crítico):', error);
+    }
+};
+
+// ==================================================
+// 2.7. PLB (PIANO LINK BRAIN) - INICIALIZACIÓN
+// ==================================================
+const initPLB = function() {
+    console.log('[Main] 🔍 initPLB() ejecutándose...');
+    try {
+        const user = JSON.parse(localStorage.getItem('pianoUser') || '{}');
+        console.log('[Main] 🔍 Usuario completo:', JSON.stringify(user));
+        console.log('[Main] 🔍 Email detectado:', user.email || '(ninguno)');
+        
+        // Crear el HUD (solo se muestra para profesores)
+        plbHud = new PLBHud(bus, socketManager.socket);
+        
+        // El transcriber se activa para todos, pero el servidor
+        // solo procesa para demo@pianolink.com
+        plbTranscriber = new PLBTranscriber(bus, socketManager.socket);
+        
+        // Exponer globalmente para debugging
+        window.bus = bus;
+        window.plbTranscriber = plbTranscriber;
+        window.plbHud = plbHud;
+        
+        // Si el usuario tiene email, intentar activar PLB
+        if (user.email) {
+            console.log(`[Main] 🧠 Intentando activar PLB para: ${user.email}`);
+            const started = plbTranscriber.start(user.email);
+            console.log(`[Main] 🧠 PLB start() resultado: ${started}`);
+        } else {
+            console.warn('[Main] ⚠️ PLB: Usuario sin email - no se puede activar transcriber');
+            console.warn('[Main] ⚠️ Para activar PLB, ejecuta en consola:');
+            console.warn('[Main] ⚠️   const u = JSON.parse(localStorage.pianoUser);');
+            console.warn('[Main] ⚠️   u.email = "demo@pianolink.com";');
+            console.warn('[Main] ⚠️   localStorage.pianoUser = JSON.stringify(u);');
+            console.warn('[Main] ⚠️   location.reload();');
+        }
+        
+        console.log('[Main] 🧠 PLB inicializado.');
+    } catch (error) {
+        console.error('[Main] ⚠️ Error inicializando PLB (no crítico):', error);
     }
 };
 
@@ -501,6 +555,16 @@ async function bootstrap() {
         initDiagnosticSidebar();
     } catch (error) {
         console.warn('[Main] ⚠️ DiagnosticSidebar no disponible:', error);
+    }
+    
+    // ==================================================
+    // PLB (PIANO LINK BRAIN) - INICIALIZACIÓN INMEDIATA
+    // ==================================================
+    console.log('[Main] 🔍 Intentando inicializar PLB...');
+    try {
+        initPLB();
+    } catch (error) {
+        console.error('[Main] ⚠️ PLB no disponible:', error);
     }
     
     // Init de UI (resiliente a fallos)

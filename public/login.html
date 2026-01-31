@@ -309,7 +309,22 @@
           msg.style.color = "#b4e080"; 
           msg.textContent = "✅ Acceso concedido. Redirigiendo...";
           
-          const userToSave = data.user || data;
+          // El servidor envía directamente el objeto user con todos los campos
+          const userData = data.user || data;
+          
+          // Asegurarnos de incluir el email para PLB
+          const userToSave = {
+            _id: userData._id,
+            name: userData.name,
+            email: userData.email || email, // Usar email del form si no viene del servidor
+            role: userData.role,
+            slug: userData.slug,
+            isFoundingMember: userData.isFoundingMember,
+            branding: userData.branding,
+            token: userData.token
+          };
+          
+          console.log('[Login] Guardando usuario:', userToSave);
 
           localStorage.setItem('pianoUser', JSON.stringify(userToSave));
           

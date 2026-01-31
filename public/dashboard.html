@@ -862,18 +862,31 @@
         }
     }
 
+    // Función para cargar mensajes del admin (si los hay)
+    async function loadMyMessages() {
+        try {
+            const res = await fetch(`${API_URL}/me?email=${user.email}`);
+            const data = await res.json();
+            
+            if (data.adminMessages && data.adminMessages.length > 0) {
+                const section = document.getElementById('adminMessagesSection');
+                const list = document.getElementById('messagesList');
+                
+                section.style.display = 'block';
+                list.innerHTML = data.adminMessages.map(m => 
+                    `<div style="padding: 8px 0; border-bottom: 1px solid #333;">
+                        <span style="color:#5dade2;">${new Date(m.date).toLocaleDateString()}</span>: ${m.content}
+                    </div>`
+                ).join('');
+            }
+        } catch (e) {
+            console.log('No admin messages');
+        }
+    }
+
     loadData();
     loadGlobalBrand();
     loadMyMessages(); // Cargar mensajes admin si existen
   </script>
-
-  <!-- 🎯 Botón de Ayuda Flotante -->
-  <button class="help-trigger-btn" onclick="window.helpModal?.open()" title="Ayuda">
-    <span class="help-trigger-icon">?</span>
-    <span class="help-trigger-tooltip">Ayuda</span>
-  </button>
-
-  <!-- Sistema de Ayuda Interactivo -->
-  <script src="/js/modules/HelpModal.js"></script>
 </body>
 </html>

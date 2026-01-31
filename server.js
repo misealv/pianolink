@@ -126,6 +126,17 @@ app.get('/api/email/status', (req, res) => {
     res.json(status);
 });
 
+// ==================================================
+// PLB (PIANO LINK BRAIN) - ENDPOINT DE STATUS
+// ==================================================
+/**
+ * Endpoint para verificar el estado del servicio PLB
+ */
+app.get('/api/plb/status', (req, res) => {
+    const PLBService = require('./services/PLBService');
+    res.json(PLBService.getMetrics());
+});
+
 app.get('/', (req, res) => {
   // A) Si la URL tiene parámetros (ej: ?sala=123 o ?role=student) -> Mostrar Piano
   if (req.query.sala || req.query.room || req.query.role || req.query.code) {
@@ -530,6 +541,11 @@ io.on("connection", (socket) => {
         
         if (room.snapshotTimer) clearTimeout(room.snapshotTimer);
         if (room.inactivityTimer) clearTimeout(room.inactivityTimer);
+        
+        // Limpiar estado PLB de la sala
+        const PLBService = require('./services/PLBService');
+        PLBService.clearRoomState(roomCode);
+        
         delete rooms[roomCode];
     });
     
@@ -842,6 +858,116 @@ io.on("connection", (socket) => {
                 });
             }
         });
+    });
+
+    // ==================================================
+    // PLB (PIANO LINK BRAIN) - EVENTOS DE IA
+    // ==================================================
+    const PLBService = require('./services/PLBService');
+    
+    /**
+     * CLIENTE → SERVIDOR: Transcripción de audio
+     * Solo procesa si el usuario está en la lista permitida
+     */
+    socket.on('plb-transcript', async (data) => {
+        const roomCode = socket.roomCode;
+        if (!roomCode || !rooms[roomCode]) return;
+        
+        // Obtener email del usuario (guardado en socket o data)
+        const userEmail = data.userEmail || socket.userEmail;
+        
+        if (!userEmail) {
+            return; // Sin email, ignorar silenciosamente
+        }
+        
+        // Verificar si puede usar PLB
+        if (!PLBService.isUserAllowed(userEmail)) {
+            return; // No autorizado, ignorar silenciosamente
+        }
+        
+        console.log(`[PLB] 📝 Transcripción de ${data.speaker}: "${data.text.substring(0, 50)}..."`);
+        
+        // Procesar transcripción
+        const result = await PLBService.processTranscript(roomCode, userEmail, {
+            text: data.text,
+            speaker: data.speaker || 'unknown'
+        });
+        
+        // Si hay un hint, enviarlo solo al profesor de la sala
+        if (result && result.hint) {
+            const room = rooms[roomCode];
+            Object.entries(room.users).forEach(([socketId, user]) => {
+                if (user.role === 'teacher' || user.role === 'admin') {
+                    io.to(socketId).emit('plb-hint', {
+                        hint: result.hint,
+                        latency: result.latency,
+                        timestamp: result.timestamp,
+                        context: result.context // Contexto para feedback/mejora
+                    });
+                }
+            });
+        }
+    });
+    
+    /**
+     * CLIENTE → SERVIDOR: Guardar email del usuario para PLB
+     */
+    socket.on('plb-register', (data) => {
+        if (data.email) {
+            socket.userEmail = data.email.toLowerCase();
+            console.log(`[PLB] 📧 Usuario registrado: ${socket.userEmail}`);
+            
+            // Informar al cliente si tiene PLB habilitado
+            const isAllowed = PLBService.isUserAllowed(socket.userEmail);
+            socket.emit('plb-status', { 
+                enabled: isAllowed,
+                email: socket.userEmail
+            });
+        }
+    });
+    
+    /**
+     * SERVIDOR → CLIENTE: Métricas de PLB (solo para admins)
+     */
+    socket.on('plb-get-metrics', () => {
+        if (socket.userRole === 'admin') {
+            socket.emit('plb-metrics', PLBService.getMetrics());
+        }
+    });
+
+    /**
+     * CLIENTE → SERVIDOR: Guardar mejora de respuesta PLB
+     * El profesor puede mejorar las respuestas del asistente
+     */
+    socket.on('plb-improve', async (data) => {
+        // Obtener email del socket o del data enviado
+        const userEmail = socket.userEmail || data.userEmail;
+        
+        if (!userEmail) {
+            socket.emit('plb-improve-result', { success: false, error: 'No autenticado' });
+            return;
+        }
+        
+        // Solo usuarios permitidos pueden enviar mejoras
+        if (!PLBService.isUserAllowed(userEmail)) {
+            socket.emit('plb-improve-result', { success: false, error: 'No autorizado' });
+            return;
+        }
+        
+        try {
+            const result = await PLBService.saveImprovement({
+                context: data.context,
+                originalResponse: data.originalResponse,
+                improvedResponse: data.improvedResponse,
+                teacherEmail: userEmail
+            });
+            
+            console.log(`[PLB] 📚 Mejora guardada por ${userEmail}: "${data.context?.substring(0, 30)}..."`);
+            socket.emit('plb-improve-result', { success: true, exampleId: result._id });
+        } catch (error) {
+            console.error('[PLB] Error guardando mejora:', error);
+            socket.emit('plb-improve-result', { success: false, error: error.message });
+        }
     });
 
     // Desconexión

@@ -438,6 +438,10 @@
                 codec: 'vp8'
             });
             
+            // ====== NUEVO: Habilitar indicador de volumen para monitoreo ======
+            self.client.enableAudioVolumeIndicator();
+            console.log('[VideoManager] 📊 Indicador de volumen habilitado');
+            
             // Event listeners del cliente
             self._setupAgoraEventListeners();
             
@@ -458,33 +462,92 @@
     VideoManager.prototype._setupAgoraEventListeners = function() {
         var self = this;
         
+        // ====== NUEVO: Usuario remoto se unió (tracking temprano) ======
+        self.client.on('user-joined', function(user) {
+            console.log('[VideoManager] 👤 Usuario remoto se unió. UID:', user.uid);
+            self._updateRemoteStatus('connecting');
+            self.bus.emit('video-user-joined', { uid: user.uid });
+        });
+        
         // Usuario remoto publicó tracks
         self.client.on('user-published', async function(user, mediaType) {
             console.log('[VideoManager] 📡 Usuario remoto publicó:', mediaType, 'UID:', user.uid);
             
-            try {
-                // Suscribirse al track
-                await self.client.subscribe(user, mediaType);
-                console.log('[VideoManager] ✅ Suscrito a', mediaType, 'de UID:', user.uid);
-                
-                // Guardar usuario
-                if (!self.remoteUsers[user.uid]) {
-                    self.remoteUsers[user.uid] = user;
+            // Retry logic para suscripción
+            var maxRetries = 3;
+            var retryDelay = 1000;
+            
+            for (var attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    // Suscribirse al track
+                    await self.client.subscribe(user, mediaType);
+                    console.log('[VideoManager] ✅ Suscrito a', mediaType, 'de UID:', user.uid, '(intento', attempt + ')');
+                    
+                    // Guardar usuario
+                    if (!self.remoteUsers[user.uid]) {
+                        self.remoteUsers[user.uid] = user;
+                    }
+                    
+                    // Renderizar según tipo de media
+                    if (mediaType === 'video') {
+                        self._playRemoteVideo(user);
+                        self._updateRemoteStatus('connected');
+                    }
+                    
+                    if (mediaType === 'audio') {
+                        // ====== NUEVO: Verificar que audioTrack existe ======
+                        if (!user.audioTrack) {
+                            console.warn('[VideoManager] ⚠️ audioTrack es null, esperando...');
+                            await new Promise(function(resolve) { setTimeout(resolve, 500); });
+                        }
+                        
+                        if (user.audioTrack) {
+                            // ====== NUEVO: Manejo de autoplay policy ======
+                            try {
+                                await user.audioTrack.play();
+                                console.log('[VideoManager] 🔊 Audio remoto reproduciéndose');
+                                self.bus.emit('video-remote-audio-playing', { uid: user.uid });
+                            } catch (playError) {
+                                console.warn('[VideoManager] ⚠️ Autoplay bloqueado, requiere interacción del usuario');
+                                console.warn('[VideoManager] Error:', playError.message);
+                                
+                                // Guardar track para reproducir después de interacción
+                                self._pendingAudioTrack = user.audioTrack;
+                                self._pendingAudioUid = user.uid;
+                                
+                                // Notificar a UI para mostrar botón de "Activar Audio"
+                                self.bus.emit('video-audio-blocked', { 
+                                    uid: user.uid,
+                                    reason: 'autoplay-policy'
+                                });
+                                
+                                // Intentar reproducir en próxima interacción del usuario
+                                self._setupAudioUnblockListener();
+                            }
+                        } else {
+                            console.error('[VideoManager] ❌ audioTrack sigue siendo null después de esperar');
+                        }
+                    }
+                    
+                    // Éxito - salir del loop de retry
+                    break;
+                    
+                } catch (error) {
+                    console.error('[VideoManager] ❌ Error suscribiendo a usuario (intento ' + attempt + '):', error.message);
+                    
+                    if (attempt < maxRetries) {
+                        console.log('[VideoManager] 🔄 Reintentando en ' + retryDelay + 'ms...');
+                        await new Promise(function(resolve) { setTimeout(resolve, retryDelay); });
+                        retryDelay *= 2; // Backoff exponencial
+                    } else {
+                        console.error('[VideoManager] ❌ Falló después de ' + maxRetries + ' intentos');
+                        self.bus.emit('video-subscription-failed', {
+                            uid: user.uid,
+                            mediaType: mediaType,
+                            error: error.message
+                        });
+                    }
                 }
-                
-                // Renderizar según tipo de media
-                if (mediaType === 'video') {
-                    self._playRemoteVideo(user);
-                    self._updateRemoteStatus('connected');
-                }
-                
-                if (mediaType === 'audio') {
-                    user.audioTrack.play();
-                    console.log('[VideoManager] 🔊 Audio remoto reproduciéndose');
-                }
-                
-            } catch (error) {
-                console.error('[VideoManager] ❌ Error suscribiendo a usuario:', error);
             }
         });
         
@@ -497,6 +560,11 @@
                 if (container) {
                     container.innerHTML = '';
                 }
+            }
+            
+            if (mediaType === 'audio') {
+                console.log('[VideoManager] 🔇 Audio remoto detenido');
+                self.bus.emit('video-remote-audio-stopped', { uid: user.uid });
             }
         });
         
@@ -516,7 +584,106 @@
         self.client.on('connection-state-change', function(curState, prevState) {
             console.log('[VideoManager] 🔌 Estado conexión:', prevState, '→', curState);
             self.bus.emit('video-connection-state', { current: curState, previous: prevState });
+            
+            // ====== NUEVO: Manejar reconexión ======
+            if (curState === 'DISCONNECTED') {
+                console.warn('[VideoManager] ⚠️ Desconectado de Agora');
+                self._updateLocalStatus('disconnected');
+                self._updateRemoteStatus('disconnected');
+            } else if (curState === 'RECONNECTING') {
+                console.warn('[VideoManager] 🔄 Reconectando a Agora...');
+                self._updateLocalStatus('reconnecting');
+            } else if (curState === 'CONNECTED' && prevState === 'RECONNECTING') {
+                console.log('[VideoManager] ✅ Reconexión exitosa');
+                self._updateLocalStatus('connected');
+            }
         });
+        
+        // ====== NUEVO: Listener de excepciones de Agora ======
+        self.client.on('exception', function(event) {
+            console.error('[VideoManager] ⚠️ Excepción Agora:', event.code, event.msg);
+            
+            // Códigos específicos de audio
+            var audioErrorCodes = [
+                'AUDIO_INPUT_LEVEL_TOO_LOW',
+                'AUDIO_OUTPUT_BLOCKED', 
+                'MICROPHONE_IS_MUTED',
+                'NO_AUDIO_INPUT_DEVICE'
+            ];
+            
+            if (audioErrorCodes.includes(event.code)) {
+                console.error('[VideoManager] 🔊 Error de audio detectado:', event.code);
+                self.bus.emit('video-audio-exception', {
+                    code: event.code,
+                    message: event.msg
+                });
+            }
+        });
+        
+        // ====== NUEVO: Monitoreo de calidad de red ======
+        self.client.on('network-quality', function(stats) {
+            // Solo loguear si la calidad es mala
+            if (stats.uplinkNetworkQuality >= 4 || stats.downlinkNetworkQuality >= 4) {
+                console.warn('[VideoManager] ⚠️ Calidad de red baja - Uplink:', stats.uplinkNetworkQuality, 'Downlink:', stats.downlinkNetworkQuality);
+                self.bus.emit('video-network-quality', {
+                    uplink: stats.uplinkNetworkQuality,
+                    downlink: stats.downlinkNetworkQuality,
+                    warning: true
+                });
+            }
+        });
+        
+        // ====== NUEVO: Listener de volumen de audio remoto ======
+        self.client.on('volume-indicator', function(volumes) {
+            volumes.forEach(function(volume) {
+                if (volume.uid && volume.level > 0) {
+                    // Audio remoto detectado
+                    self.bus.emit('video-remote-audio-level', {
+                        uid: volume.uid,
+                        level: volume.level
+                    });
+                }
+            });
+        });
+    };
+    
+    /**
+     * NUEVO: Configura listener para desbloquear audio después de interacción del usuario
+     * @private
+     */
+    VideoManager.prototype._setupAudioUnblockListener = function() {
+        var self = this;
+        
+        // Si ya hay listener, no agregar otro
+        if (self._audioUnblockListenerAdded) return;
+        
+        var unblockAudio = async function() {
+            if (self._pendingAudioTrack) {
+                try {
+                    console.log('[VideoManager] 🔓 Intentando reproducir audio después de interacción...');
+                    await self._pendingAudioTrack.play();
+                    console.log('[VideoManager] 🔊 Audio remoto desbloqueado y reproduciéndose');
+                    self.bus.emit('video-remote-audio-playing', { uid: self._pendingAudioUid });
+                    
+                    // Limpiar
+                    self._pendingAudioTrack = null;
+                    self._pendingAudioUid = null;
+                    
+                    // Remover listener
+                    document.removeEventListener('click', unblockAudio);
+                    document.removeEventListener('keydown', unblockAudio);
+                    self._audioUnblockListenerAdded = false;
+                } catch (error) {
+                    console.error('[VideoManager] ❌ Error reproduciendo audio:', error);
+                }
+            }
+        };
+        
+        document.addEventListener('click', unblockAudio, { once: true });
+        document.addEventListener('keydown', unblockAudio, { once: true });
+        self._audioUnblockListenerAdded = true;
+        
+        console.log('[VideoManager] 👆 Esperando interacción del usuario para desbloquear audio...');
     };
 
     /**
@@ -1004,6 +1171,129 @@
         } catch (error) {
             console.error('[VideoManager] ❌ Error saliendo del canal:', error);
             throw error;
+        }
+    };
+    
+    // ==================================================
+    // NUEVO: MÉTODOS DE DIAGNÓSTICO
+    // ==================================================
+    
+    /**
+     * Obtiene diagnóstico completo del estado de video/audio
+     * Útil para debugging durante demos
+     * @returns {Object} Estado completo del VideoManager
+     */
+    VideoManager.prototype.getDiagnostics = function() {
+        var self = this;
+        
+        var diagnostics = {
+            timestamp: new Date().toISOString(),
+            initialized: self.isInitialized,
+            joined: self.isJoined,
+            channelName: self.channelName,
+            uid: self.uid,
+            hasAppId: !!self.appId,
+            hasClient: !!self.client,
+            localTracks: {
+                audio: !!self.localAudioTrack,
+                video: !!self.localVideoTrack,
+                audioEnabled: self.localAudioTrack ? self.localAudioTrack.enabled : false,
+                videoEnabled: self.localVideoTrack ? self.localVideoTrack.enabled : false,
+                audioMuted: self.isMuted.audio,
+                videoMuted: self.isMuted.video
+            },
+            remoteUsers: Object.keys(self.remoteUsers).map(function(uid) {
+                var user = self.remoteUsers[uid];
+                return {
+                    uid: uid,
+                    hasAudio: !!user.audioTrack,
+                    hasVideo: !!user.videoTrack,
+                    audioPlaying: user.audioTrack ? !user.audioTrack.isPlaying : false
+                };
+            }),
+            pendingAudio: {
+                hasPendingTrack: !!self._pendingAudioTrack,
+                pendingUid: self._pendingAudioUid
+            },
+            ducking: {
+                enabled: self.duckingEnabled,
+                midiActive: self.isMidiActive
+            }
+        };
+        
+        console.log('[VideoManager] 📊 DIAGNÓSTICO:', JSON.stringify(diagnostics, null, 2));
+        return diagnostics;
+    };
+    
+    /**
+     * Fuerza reproducción de audio remoto (para debugging)
+     * Usar en consola: videoManager.forcePlayRemoteAudio()
+     */
+    VideoManager.prototype.forcePlayRemoteAudio = async function() {
+        var self = this;
+        
+        console.log('[VideoManager] 🔧 Forzando reproducción de audio remoto...');
+        
+        // Intentar reproducir audio pendiente primero
+        if (self._pendingAudioTrack) {
+            try {
+                await self._pendingAudioTrack.play();
+                console.log('[VideoManager] ✅ Audio pendiente reproducido');
+                self._pendingAudioTrack = null;
+                return true;
+            } catch (e) {
+                console.error('[VideoManager] ❌ Error reproduciendo audio pendiente:', e);
+            }
+        }
+        
+        // Buscar en usuarios remotos
+        for (var uid in self.remoteUsers) {
+            var user = self.remoteUsers[uid];
+            if (user.audioTrack) {
+                try {
+                    await user.audioTrack.play();
+                    console.log('[VideoManager] ✅ Audio de UID', uid, 'reproducido');
+                    return true;
+                } catch (e) {
+                    console.error('[VideoManager] ❌ Error reproduciendo audio de UID', uid, ':', e);
+                }
+            }
+        }
+        
+        console.warn('[VideoManager] ⚠️ No hay audio remoto disponible para reproducir');
+        return false;
+    };
+    
+    /**
+     * Re-suscribe a todos los usuarios remotos (para recuperación de audio)
+     */
+    VideoManager.prototype.resubscribeAll = async function() {
+        var self = this;
+        
+        console.log('[VideoManager] 🔄 Re-suscribiendo a todos los usuarios remotos...');
+        
+        for (var uid in self.remoteUsers) {
+            var user = self.remoteUsers[uid];
+            
+            try {
+                // Re-suscribir audio si existe
+                if (user.hasAudio) {
+                    await self.client.subscribe(user, 'audio');
+                    if (user.audioTrack) {
+                        await user.audioTrack.play();
+                    }
+                    console.log('[VideoManager] ✅ Re-suscrito audio de UID', uid);
+                }
+                
+                // Re-suscribir video si existe
+                if (user.hasVideo) {
+                    await self.client.subscribe(user, 'video');
+                    self._playRemoteVideo(user);
+                    console.log('[VideoManager] ✅ Re-suscrito video de UID', uid);
+                }
+            } catch (e) {
+                console.error('[VideoManager] ❌ Error re-suscribiendo UID', uid, ':', e);
+            }
         }
     };
 
