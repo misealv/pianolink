@@ -17,6 +17,63 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Facebook Pixel Code -->
+    <script>
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        
+        // Reemplaza 'YOUR_PIXEL_ID' con tu ID real de Facebook Pixel
+        // fbq('init', 'YOUR_PIXEL_ID');
+        fbq('track', 'PageView');
+        
+        // Tracking de eventos específicos
+        function trackFormStart() {
+            fbq('track', 'InitiateCheckout'); // Lead empieza a llenar formulario
+        }
+        
+        function trackFormSubmit() {
+            fbq('track', 'Lead'); // Lead completa formulario
+        }
+    </script>
+    <noscript>
+        <img height="1" width="1" style="display:none"
+             src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1"/>
+    </noscript>
+    <!-- End Facebook Pixel Code -->
+    
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        
+        // Reemplaza 'G-XXXXXXXXXX' con tu ID de Google Analytics
+        // gtag('config', 'G-XXXXXXXXXX');
+        
+        // Obtener Client ID para tracking
+        function getGAClientId() {
+            try {
+                gtag('get', 'G-XXXXXXXXXX', 'client_id', function(clientId) {
+                    window.gaClientId = clientId;
+                });
+            } catch(e) {
+                window.gaClientId = '';
+            }
+        }
+        
+        // Tracking de eventos
+        function trackEvent(eventName, params) {
+            gtag('event', eventName, params);
+        }
+    </script>
+    
     <script>
         tailwind.config = {
             theme: {
@@ -983,6 +1040,35 @@
         });
         
         // =============================================
+        // Tracking: Detectar cuando empiezan a llenar el formulario
+        // =============================================
+        let formStartTracked = false;
+        const formInputs = document.querySelectorAll('#leadForm input, #leadForm textarea');
+        
+        formInputs.forEach(input => {
+            input.addEventListener('focus', () => {
+                if (!formStartTracked) {
+                    formStartTracked = true;
+                    
+                    // Track en Facebook Pixel
+                    if (typeof fbq !== 'undefined') {
+                        trackFormStart();
+                    }
+                    
+                    // Track en Google Analytics
+                    if (typeof gtag !== 'undefined') {
+                        trackEvent('form_start', {
+                            form_name: 'lead_form',
+                            form_destination: 'profesor_fundador'
+                        });
+                    }
+                    
+                    console.log('[Tracking] Form started');
+                }
+            }, { once: true });
+        });
+        
+        // =============================================
         // Lead Form Submission
         // =============================================
         const leadForm = document.getElementById('leadForm');
@@ -1006,6 +1092,14 @@
             formData.utmMedium = urlParams.get('utm_medium') || '';
             formData.utmCampaign = urlParams.get('utm_campaign') || '';
             
+            // Agregar tracking data
+            formData.trackingData = {
+                fbClickId: urlParams.get('fbclid') || '',
+                gClientId: window.gaClientId || '',
+                referrer: document.referrer || '',
+                formStarted: formStartTracked
+            };
+            
             // Disable button and show loading
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="animate-pulse">📤 Enviando postulación...</span>';
@@ -1022,6 +1116,19 @@
                 const data = await response.json();
                 
                 if (data.success) {
+                    // Track conversión en Facebook Pixel
+                    if (typeof fbq !== 'undefined') {
+                        trackFormSubmit();
+                    }
+                    
+                    // Track conversión en Google Analytics
+                    if (typeof gtag !== 'undefined') {
+                        trackEvent('form_submit', {
+                            form_name: 'lead_form',
+                            form_destination: 'profesor_fundador'
+                        });
+                    }
+                    
                     // Show success message
                     leadForm.classList.add('hidden');
                     successMessage.classList.remove('hidden');

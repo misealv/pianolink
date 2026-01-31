@@ -67,6 +67,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/teacher', require('./routes/teacherRoutes'));
 app.use('/api/scores', require('./routes/scoreRoutes'));
 app.use('/api/leads', require('./routes/leadRoutes')); // Lead generation
+app.use('/api/calendar', require('./routes/calendarRoutes')); // Google Calendar integration
 app.use('/admin', require('./routes/adminRoutes'));
 
 // ==================================================

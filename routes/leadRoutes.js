@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const Lead = require('../models/Lead');
+const CalendarService = require('../services/CalendarService');
 
 /**
  * POST /api/leads
@@ -12,7 +13,7 @@ const Lead = require('../models/Lead');
  */
 router.post('/', async (req, res) => {
     try {
-        const { name, email, whatsapp, background, utmSource, utmMedium, utmCampaign, notes, isManual } = req.body;
+        const { name, email, whatsapp, background, utmSource, utmMedium, utmCampaign, notes, isManual, trackingData } = req.body;
         
         // Validación básica
         if (!name || !email || !whatsapp) {
@@ -30,6 +31,16 @@ router.post('/', async (req, res) => {
             existingLead.whatsapp = whatsapp;
             if (background) existingLead.background = background;
             if (notes) existingLead.notes = notes;
+            
+            // Actualizar tracking data si se proporciona
+            if (trackingData) {
+                existingLead.trackingData = {
+                    ...existingLead.trackingData,
+                    ...trackingData,
+                    landingPageViews: (existingLead.trackingData.landingPageViews || 0) + 1
+                };
+            }
+            
             await existingLead.save();
             
             console.log(`[Lead] 📧 Lead existente actualizado: ${email}`);
@@ -58,7 +69,7 @@ router.post('/', async (req, res) => {
         }
         
         // Crear nuevo lead
-        const lead = await Lead.create({
+        const leadData = {
             name: name.trim(),
             email: email.toLowerCase().trim(),
             whatsapp: whatsapp.trim(),
@@ -68,7 +79,27 @@ router.post('/', async (req, res) => {
             utmMedium: utmMedium || '',
             utmCampaign: utmCampaign || '',
             notes: notes ? notes.trim() : ''
-        });
+        };
+        
+        // Agregar tracking data si existe
+        if (trackingData) {
+            leadData.trackingData = {
+                fbClickId: trackingData.fbClickId || '',
+                gClientId: trackingData.gClientId || '',
+                landingPageViews: 1,
+                formStarted: trackingData.formStarted || false,
+                referrer: trackingData.referrer || ''
+            };
+        }
+        
+        // Auto-programar primer seguimiento en 2 días si no es manual
+        if (!isManual) {
+            const firstFollowUp = new Date();
+            firstFollowUp.setDate(firstFollowUp.getDate() + 2);
+            leadData.nextFollowUp = firstFollowUp;
+        }
+        
+        const lead = await Lead.create(leadData);
         
         console.log(`[Lead] ✅ Nuevo lead registrado${isManual ? ' (manual)' : ''}: ${name} (${email})`);
         
@@ -361,6 +392,154 @@ router.delete('/:id', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error al eliminar lead'
+        });
+    }
+});
+
+/**
+ * POST /api/leads/:id/follow-up
+ * Agregar un seguimiento a un lead
+ */
+router.post('/:id/follow-up', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { action, notes, result, nextDate } = req.body;
+        
+        const lead = await Lead.findById(id);
+        
+        if (!lead) {
+            return res.status(404).json({
+                success: false,
+                message: 'Lead no encontrado'
+            });
+        }
+        
+        // Agregar seguimiento
+        await lead.addFollowUp(action, notes, result, nextDate ? new Date(nextDate) : null);
+        
+        console.log(`[Lead] 📝 Seguimiento agregado a ${lead.email}: ${action}`);
+        
+        res.json({
+            success: true,
+            message: 'Seguimiento registrado correctamente',
+            lead
+        });
+        
+    } catch (error) {
+        console.error('[Lead] Error agregando seguimiento:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al registrar seguimiento'
+        });
+    }
+});
+
+/**
+ * GET /api/leads/follow-ups/due
+ * Obtener leads que necesitan seguimiento hoy
+ */
+router.get('/follow-ups/due', async (req, res) => {
+    try {
+        const leadsDue = await Lead.getFollowUpsDue();
+        
+        res.json({
+            success: true,
+            count: leadsDue.length,
+            leads: leadsDue
+        });
+        
+    } catch (error) {
+        console.error('[Lead] Error obteniendo seguimientos:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener seguimientos'
+        });
+    }
+});
+
+/**
+ * GET /api/leads/follow-ups/overdue
+ * Obtener leads sin seguimiento programado (más de 3 días)
+ */
+router.get('/follow-ups/overdue', async (req, res) => {
+    try {
+        const leadsOverdue = await Lead.getLeadsWithoutFollowUp();
+        
+        res.json({
+            success: true,
+            count: leadsOverdue.length,
+            leads: leadsOverdue
+        });
+        
+    } catch (error) {
+        console.error('[Lead] Error obteniendo leads atrasados:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al obtener leads atrasados'
+        });
+    }
+});
+
+/**
+ * POST /api/leads/:id/schedule-demo
+ * Programar una demo para un lead con integración a Google Calendar
+ */
+router.post('/:id/schedule-demo', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { demoDate, duration = 60 } = req.body; // duration en minutos
+        
+        const lead = await Lead.findById(id);
+        
+        if (!lead) {
+            return res.status(404).json({
+                success: false,
+                message: 'Lead no encontrado'
+            });
+        }
+        
+        let calendarEventId = '';
+        let meetingLink = '';
+        
+        // Intentar crear evento en Google Calendar
+        try {
+            const startDateTime = new Date(demoDate);
+            const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
+            
+            const calendarEvent = await CalendarService.createEvent({
+                summary: `Demo Piano Link - ${lead.name}`,
+                description: `Demostración de Piano Link para ${lead.name}\n\nEmail: ${lead.email}\nWhatsApp: ${lead.whatsapp}`,
+                startDateTime: startDateTime.toISOString(),
+                endDateTime: endDateTime.toISOString(),
+                attendeeEmail: lead.email,
+                attendeeName: lead.name
+            });
+            
+            calendarEventId = calendarEvent.id || '';
+            meetingLink = calendarEvent.meetingLink || calendarEvent.link || '';
+            
+        } catch (calendarError) {
+            console.error('[Lead] ⚠️ Error creando evento en Calendar:', calendarError.message);
+            // Continuar sin Calendar, solo guardar en BD
+        }
+        
+        // Programar demo en el lead
+        await lead.scheduleDemo(new Date(demoDate), calendarEventId, meetingLink);
+        
+        console.log(`[Lead] 📅 Demo programada para ${lead.email}: ${demoDate}`);
+        
+        res.json({
+            success: true,
+            message: 'Demo programada correctamente',
+            lead,
+            meetingLink: meetingLink || 'No disponible - agregar manualmente'
+        });
+        
+    } catch (error) {
+        console.error('[Lead] Error programando demo:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al programar demo'
         });
     }
 });
