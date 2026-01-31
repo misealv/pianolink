@@ -133,6 +133,9 @@
         <button class="nav-btn" onclick="switchView('platform')" id="btnPlatform" style="border-color:#5dade2; color:#5dade2;">
             🏢 Identidad
         </button>
+        <button class="nav-btn" onclick="switchView('tracking')" id="btnTracking" style="border-color:#9b59b6; color:#9b59b6;">
+            📊 Tracking
+        </button>
         
         <div style="width: 20px;"></div>
         <button class="nav-btn logout-btn" onclick="logout()">Salir</button>
@@ -476,6 +479,76 @@
             </div>
             <div id="platformMsg" style="margin-top:10px; text-align:right; font-size:12px; font-weight:bold;"></div>
         </div>
+
+        <!-- SECCIÓN TRACKING PIXELS -->
+        <div id="view-tracking" class="view-section">
+            <h2 style="color:#9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom:10px;">📊 Píxeles de Tracking</h2>
+            <p style="font-size:12px; color:#aaa; margin-bottom:20px;">
+                Pega aquí el código completo de tus píxeles de tracking. Se cargarán automáticamente en <strong>landing.html</strong>.
+            </p>
+
+            <div style="margin-bottom:30px;">
+                <label style="font-size:13px; color:#fff; display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                    <span style="background:#3b5998; padding:4px 10px; border-radius:4px; font-weight:bold;">Facebook</span>
+                    Facebook Pixel
+                </label>
+                <textarea id="facebookPixelScript" rows="12" style="width:100%; padding:15px; background:#0a0a0a; border:1px solid #444; color:#0f0; font-family:monospace; font-size:11px; border-radius:6px; resize:vertical;" placeholder="<!-- Facebook Pixel Code -->
+<script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', 'TU_PIXEL_ID');
+  fbq('track', 'PageView');
+</script>
+<!-- End Facebook Pixel Code -->"></textarea>
+                <p style="font-size:10px; color:#666; margin-top:5px;">
+                    💡 <strong>Dónde conseguirlo:</strong> Facebook Business Manager → Configuración de eventos → Píxeles → Ver código
+                </p>
+            </div>
+
+            <div style="margin-bottom:30px;">
+                <label style="font-size:13px; color:#fff; display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                    <span style="background:#e37400; padding:4px 10px; border-radius:4px; font-weight:bold;">GA4</span>
+                    Google Analytics 4
+                </label>
+                <textarea id="googleAnalyticsScript" rows="12" style="width:100%; padding:15px; background:#0a0a0a; border:1px solid #444; color:#0ff; font-family:monospace; font-size:11px; border-radius:6px; resize:vertical;" placeholder="<!-- Google tag (gtag.js) -->
+<script async src=&quot;https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX&quot;></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script>"></textarea>
+                <p style="font-size:10px; color:#666; margin-top:5px;">
+                    💡 <strong>Dónde conseguirlo:</strong> Google Analytics → Admin → Flujos de datos → Ver instrucciones de etiquetas
+                </p>
+            </div>
+
+            <div style="display:flex; gap:15px; justify-content:flex-end; margin-top:30px;">
+                <button onclick="loadTrackingScripts()" class="action-btn" style="background:#444; width:auto; padding:12px 25px;">
+                    🔄 Recargar
+                </button>
+                <button onclick="saveTrackingScripts()" class="action-btn" style="background:#9b59b6; width:auto; padding:12px 25px;">
+                    💾 Guardar Scripts
+                </button>
+            </div>
+            <div id="trackingMsg" style="margin-top:15px; text-align:right; font-size:13px; font-weight:bold;"></div>
+
+            <div style="margin-top:40px; padding:20px; background:#1a1a1a; border:1px solid #333; border-radius:8px;">
+                <h3 style="color:#9b59b6; margin-top:0; font-size:14px;">📖 ¿Cómo funciona?</h3>
+                <ol style="font-size:12px; color:#aaa; line-height:1.8; padding-left:20px;">
+                    <li>Pega el código completo de cada píxel en los campos de arriba</li>
+                    <li>Haz clic en "Guardar Scripts" para almacenarlos en la base de datos</li>
+                    <li>Los scripts se cargarán automáticamente en <code style="background:#0a0a0a; padding:2px 6px; border-radius:3px; color:#0f0;">landing.html</code></li>
+                    <li>No necesitas editar archivos manualmente nunca más</li>
+                </ol>
+            </div>
+        </div>
     </div>
   </div>
 
@@ -541,6 +614,11 @@
             document.getElementById('formTeachers').style.display = 'none';
             document.getElementById('formLeads').style.display = 'none';
             loadPlatformConfig(); // <--- Cargar config al abrir pestaña
+        } else if (viewName === 'tracking') {
+            document.getElementById('btnTracking').classList.add('active');
+            document.getElementById('formTeachers').style.display = 'none';
+            document.getElementById('formLeads').style.display = 'none';
+            loadTrackingScripts();
         }
     }
 
@@ -598,6 +676,50 @@
             }
         } catch(e) {
             msg.innerText = "❌ Error de conexión.";
+            msg.style.color = "#ff4d4d";
+        }
+    }
+
+    // --- TRACKING SCRIPTS ---
+    async function loadTrackingScripts() {
+        try {
+            const res = await fetch('/admin/tracking-scripts');
+            const data = await res.json();
+            document.getElementById('facebookPixelScript').value = data.facebookPixel || '';
+            document.getElementById('googleAnalyticsScript').value = data.googleAnalytics || '';
+        } catch(e) {
+            console.error("Error loading tracking scripts", e);
+        }
+    }
+
+    async function saveTrackingScripts() {
+        const msg = document.getElementById('trackingMsg');
+        msg.innerText = "Guardando..."; 
+        msg.style.color = "#aaa";
+
+        const facebookPixel = document.getElementById('facebookPixelScript').value.trim();
+        const googleAnalytics = document.getElementById('googleAnalyticsScript').value.trim();
+
+        try {
+            const res = await fetch('/admin/tracking-scripts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ facebookPixel, googleAnalytics })
+            });
+
+            const result = await res.json();
+            
+            if (result.success) {
+                msg.innerText = "✅ Scripts guardados correctamente";
+                msg.style.color = "#0f0";
+                setTimeout(() => { msg.innerText = ""; }, 3000);
+            } else {
+                msg.innerText = "❌ Error al guardar";
+                msg.style.color = "#ff4d4d";
+            }
+        } catch (error) {
+            console.error("Error saving tracking scripts:", error);
+            msg.innerText = "❌ Error de conexión";
             msg.style.color = "#ff4d4d";
         }
     }

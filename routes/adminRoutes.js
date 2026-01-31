@@ -3,6 +3,7 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const Feedback = require('../models/Feedback'); // Importante para leer mensajes
 const Message = require('../models/Message');
+const GlobalConfig = require('../models/GlobalConfig');
 /* -------------------------------------------------------------------------- */
 /* RUTAS DE USUARIOS                            */
 /* -------------------------------------------------------------------------- */
@@ -46,6 +47,52 @@ router.post('/feedbacks/mark-read', async (req, res) => {
     } catch (error) {
         console.error("Error marcando leídos:", error);
         res.status(500).json({ message: 'Error al actualizar estado' });
+    }
+});
+
+/* -------------------------------------------------------------------------- */
+/* RUTAS DE TRACKING PIXELS                     */
+/* -------------------------------------------------------------------------- */
+
+// Obtener scripts de tracking actuales
+router.get('/tracking-scripts', async (req, res) => {
+    try {
+        let config = await GlobalConfig.findOne({ isDefault: true });
+        if (!config) {
+            config = await GlobalConfig.create({ isDefault: true });
+        }
+        res.json({
+            facebookPixel: config.trackingScripts?.facebookPixel || '',
+            googleAnalytics: config.trackingScripts?.googleAnalytics || ''
+        });
+    } catch (error) {
+        console.error('Error obteniendo tracking scripts:', error);
+        res.status(500).json({ message: 'Error al obtener scripts' });
+    }
+});
+
+// Guardar scripts de tracking
+router.post('/tracking-scripts', async (req, res) => {
+    try {
+        const { facebookPixel, googleAnalytics } = req.body;
+        
+        let config = await GlobalConfig.findOne({ isDefault: true });
+        if (!config) {
+            config = await GlobalConfig.create({ isDefault: true });
+        }
+        
+        config.trackingScripts = {
+            facebookPixel: facebookPixel || '',
+            googleAnalytics: googleAnalytics || ''
+        };
+        
+        await config.save();
+        
+        console.log('✅ Scripts de tracking actualizados');
+        res.json({ success: true, message: 'Scripts guardados correctamente' });
+    } catch (error) {
+        console.error('Error guardando tracking scripts:', error);
+        res.status(500).json({ message: 'Error al guardar scripts' });
     }
 });
 

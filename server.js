@@ -71,6 +71,42 @@ app.use('/api/calendar', require('./routes/calendarRoutes')); // Google Calendar
 app.use('/admin', require('./routes/adminRoutes'));
 
 // ==================================================
+// TRACKING SCRIPTS ENDPOINT - Servir scripts dinámicamente
+// ==================================================
+const GlobalConfig = require('./models/GlobalConfig');
+
+app.get('/tracking-scripts.js', async (req, res) => {
+    try {
+        const config = await GlobalConfig.findOne({ isDefault: true });
+        
+        let scripts = '/* PianoLink - Tracking Scripts */\n';
+        
+        if (config && config.trackingScripts) {
+            if (config.trackingScripts.facebookPixel) {
+                scripts += '\n/* Facebook Pixel */\n';
+                scripts += config.trackingScripts.facebookPixel + '\n\n';
+            }
+            
+            if (config.trackingScripts.googleAnalytics) {
+                scripts += '\n/* Google Analytics */\n';
+                scripts += config.trackingScripts.googleAnalytics + '\n\n';
+            }
+        }
+        
+        if (scripts === '/* PianoLink - Tracking Scripts */\n') {
+            scripts += '\nconsole.log("⚠️ No hay scripts de tracking configurados. Configúralos en Admin → Tracking");\n';
+        }
+        
+        res.setHeader('Content-Type', 'application/javascript');
+        res.send(scripts);
+    } catch (error) {
+        console.error('[Tracking] Error sirviendo scripts:', error);
+        res.setHeader('Content-Type', 'application/javascript');
+        res.send('console.error("Error cargando tracking scripts");');
+    }
+});
+
+// ==================================================
 // AGORA AV - FASE 0: ENDPOINT RESILIENTE
 // ==================================================
 /**
