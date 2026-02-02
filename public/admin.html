@@ -2091,16 +2091,24 @@
         let country = '';
         let timezone = 'America/Santiago';
         
-        if (countryTimezone) {
-            [country, timezone] = countryTimezone.split('|');
+        if (countryTimezone && countryTimezone.trim() !== '') {
+            const parts = countryTimezone.split('|');
+            country = parts[0] || '';
+            timezone = parts[1] || 'America/Santiago';
         } else {
-            timezone = document.getElementById('editLeadTimezone').value || 'America/Santiago';
+            // Si no hay país seleccionado, intentar mantener el valor actual
+            const hiddenTimezone = document.getElementById('editLeadTimezone').value;
+            if (hiddenTimezone) {
+                timezone = hiddenTimezone;
+            }
         }
         
         if (!name || !email || !whatsapp) {
             alert('⚠️ Por favor completa todos los campos obligatorios');
             return;
         }
+        
+        console.log('Guardando lead con:', { country, timezone, status, source });
         
         try {
             const res = await fetch(`/api/leads/${currentEditLeadId}`, {
@@ -2111,8 +2119,8 @@
                     email, 
                     whatsapp, 
                     background, 
-                    country, 
-                    timezone,
+                    country: country.trim(), 
+                    timezone: timezone.trim(),
                     status,
                     utmSource: source
                 })

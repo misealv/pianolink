@@ -361,12 +361,14 @@ router.patch('/:id', async (req, res) => {
             background: background ? background.trim() : ''
         };
         
-        // Actualizar país y timezone si se proporcionan
-        if (country !== undefined) {
+        // Actualizar país y timezone si se proporcionan (y no están vacíos)
+        if (country !== undefined && country.trim() !== '') {
             updateData.country = country.trim();
+            console.log(`[Lead] 🌍 Actualizando país: ${country.trim()}`);
         }
-        if (timezone !== undefined) {
+        if (timezone !== undefined && timezone.trim() !== '') {
             updateData.timezone = timezone.trim();
+            console.log(`[Lead] 🕐 Actualizando timezone: ${timezone.trim()}`);
         }
         
         // Actualizar estado si se proporciona
