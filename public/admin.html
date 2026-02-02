@@ -57,6 +57,12 @@
     .actions-dropdown.show {
         display: block;
     }
+    .actions-dropdown.open-upward {
+        top: auto;
+        bottom: 100%;
+        margin-top: 0;
+        margin-bottom: 4px;
+    }
     .action-item {
         padding: 10px 16px;
         cursor: pointer;
@@ -1533,6 +1539,7 @@
     // =============================================
     function toggleActionsMenu(event, leadId) {
         event.stopPropagation();
+        const button = event.target;
         const menu = document.getElementById(`actions-${leadId}`);
         const isOpen = menu.classList.contains('show');
         
@@ -1542,12 +1549,26 @@
         // Abrir este menú si estaba cerrado
         if (!isOpen) {
             menu.classList.add('show');
+            
+            // Detectar si el menú se sale de la pantalla por abajo
+            setTimeout(() => {
+                const menuRect = menu.getBoundingClientRect();
+                const windowHeight = window.innerHeight;
+                
+                // Si el menú se sale por abajo, abrirlo hacia arriba
+                if (menuRect.bottom > windowHeight - 20) {
+                    menu.classList.add('open-upward');
+                } else {
+                    menu.classList.remove('open-upward');
+                }
+            }, 10);
         }
     }
     
     function closeAllMenus() {
         document.querySelectorAll('.actions-dropdown').forEach(menu => {
             menu.classList.remove('show');
+            menu.classList.remove('open-upward');
         });
     }
     
