@@ -231,38 +231,7 @@
         <div id="statusMsg" style="margin-top:15px; font-weight:bold; font-size:12px;"></div>
       </div>
 
-      <!-- Formulario Leads -->
-      <div id="formLeads" style="display:none;">
-        <h2 style="color:#ff6600;">+ Nuevo Lead Manual</h2>
-        <form id="createLeadForm">
-          <label>Nombre Completo</label>
-          <input type="text" id="leadName" required placeholder="Ej: Ana Martínez">
-          
-          <label>Email</label>
-          <input type="email" id="leadEmail" required placeholder="ejemplo@correo.com">
-          
-          <label>WhatsApp</label>
-          <input type="tel" id="leadWhatsApp" required placeholder="+52 55 1234 5678">
-          
-          <label>Origen del Lead</label>
-          <select id="leadSource" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #111; border: 1px solid #454545; color: #fff; border-radius: 4px;">
-            <option value="manual">Manual</option>
-            <option value="referral">Referido</option>
-            <option value="social">Redes Sociales</option>
-            <option value="event">Evento</option>
-            <option value="other">Otro</option>
-          </select>
-          
-          <label>Información Adicional (Opcional)</label>
-          <textarea id="leadBackground" rows="4" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #111; border: 1px solid #454545; color: #fff; border-radius: 4px; resize: vertical;" placeholder="Experiencia, intereses, preferencias, etc."></textarea>
-          
-          <label>Notas de Seguimiento (Opcional)</label>
-          <textarea id="leadNotes" rows="3" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #111; border: 1px solid #454545; color: #fff; border-radius: 4px; resize: vertical;" placeholder="Recordatorios, próximos pasos, etc."></textarea>
-          
-          <button type="submit" class="action-btn" style="background: #ff6600;">Registrar Lead</button>
-        </form>
-        <div id="statusMsgLead" style="margin-top:15px; font-weight:bold; font-size:12px;"></div>
-      </div>
+
     </div>
 
     <div class="list-panel">
@@ -524,7 +493,7 @@
 
         <!-- Modal de Edición de Lead -->
         <div id="editLeadModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:9999; backdrop-filter:blur(10px);">
-            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; border:2px solid #ff6600; border-radius:12px; padding:30px; width:90%; max-width:600px; max-height:80vh; overflow-y:auto; box-shadow:0 20px 60px rgba(255,102,0,0.3);">
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; border:2px solid #ff6600; border-radius:12px; padding:30px; width:90%; max-width:650px; max-height:85vh; overflow-y:auto; box-shadow:0 20px 60px rgba(255,102,0,0.3);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <h3 style="color:#ff6600; margin:0; font-size:20px;">✏️ Editar Lead</h3>
                     <button onclick="closeEditLeadModal()" style="background:none; border:none; color:#ff6600; font-size:28px; cursor:pointer; line-height:1;" title="Cerrar">×</button>
@@ -548,7 +517,7 @@
                     </div>
                     
                     <div>
-                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">🌍 País y zona horaria del usuario:</label>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">🌍 País:</label>
                         <select id="editLeadCountry" onchange="updateLeadTimezone()" style="width:100%; padding:10px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
                             <option value="">Seleccionar país...</option>
                             <option value="Chile|America/Santiago">Chile (GMT-3)</option>
@@ -576,6 +545,35 @@
                     </div>
                     
                     <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Estado:</label>
+                        <select id="editLeadStatus" style="width:100%; padding:10px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
+                            <option value="new">🆕 Nuevo</option>
+                            <option value="contacted">📞 Contactado</option>
+                            <option value="qualified">⭐ Calificado</option>
+                            <option value="converted">✅ Convertido</option>
+                            <option value="rejected">❌ Rechazado</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Origen:</label>
+                        <select id="editLeadSource" style="width:100%; padding:10px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
+                            <option value="manual">Manual</option>
+                            <option value="landing">Landing Page</option>
+                            <option value="referral">Referido</option>
+                            <option value="social">Redes Sociales</option>
+                            <option value="event">Evento</option>
+                            <option value="ads">Publicidad</option>
+                            <option value="other">Otro</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Fecha de Creación:</label>
+                        <input type="text" id="editLeadDate" readonly style="width:100%; padding:10px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#888; font-family:inherit; font-size:14px; cursor:not-allowed;">
+                    </div>
+                    
+                    <div>
                         <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">¿Por qué quiere ser Profesor Fundador?</label>
                         <textarea id="editLeadBackground" rows="6" style="width:100%; padding:10px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
                     </div>
@@ -585,6 +583,108 @@
                     <button onclick="closeEditLeadModal()" style="padding:10px 20px; background:#333; border:none; border-radius:6px; color:#aaa; cursor:pointer; font-size:14px;">Cancelar</button>
                     <button onclick="saveEditedLead()" style="padding:10px 20px; background:#ff6600; border:none; border-radius:6px; color:#fff; font-weight:600; cursor:pointer; font-size:14px;">💾 Guardar Cambios</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Modal de Creación de Lead -->
+        <div id="createLeadModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:9999; backdrop-filter:blur(10px);">
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#1a1a1a; border:2px solid #27ae60; border-radius:12px; padding:30px; width:90%; max-width:650px; max-height:85vh; overflow-y:auto; box-shadow:0 20px 60px rgba(39,174,96,0.3);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="color:#27ae60; margin:0; font-size:20px;">➕ Crear Nuevo Lead</h3>
+                    <button onclick="closeCreateLeadModal()" style="background:none; border:none; color:#27ae60; font-size:28px; cursor:pointer; line-height:1;" title="Cerrar">×</button>
+                </div>
+                
+                <form id="newLeadForm" style="display:flex; flex-direction:column; gap:15px;">
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Nombre Completo *</label>
+                        <input type="text" id="newLeadName" required placeholder="Ej: Ana María Martínez" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Email *</label>
+                        <input type="email" id="newLeadEmail" required placeholder="ejemplo@correo.com" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">WhatsApp *</label>
+                        <input type="tel" id="newLeadWhatsApp" required placeholder="+52 55 1234 5678" onchange="detectNewCountryFromWhatsApp()" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
+                        <span id="newDetectedCountryHint" style="font-size:11px; color:#666; margin-top:4px; display:block;"></span>
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">🌍 País *</label>
+                        <select id="newLeadCountry" required onchange="updateNewLeadTimezone()" style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
+                            <option value="">Seleccionar país...</option>
+                            <option value="Chile|America/Santiago">Chile (GMT-3)</option>
+                            <option value="Argentina|America/Argentina/Buenos_Aires">Argentina (GMT-3)</option>
+                            <option value="Uruguay|America/Montevideo">Uruguay (GMT-3)</option>
+                            <option value="Brasil|America/Sao_Paulo">Brasil (GMT-3)</option>
+                            <option value="Peru|America/Lima">Perú (GMT-5)</option>
+                            <option value="Colombia|America/Bogota">Colombia (GMT-5)</option>
+                            <option value="Ecuador|America/Guayaquil">Ecuador (GMT-5)</option>
+                            <option value="Venezuela|America/Caracas">Venezuela (GMT-4)</option>
+                            <option value="Bolivia|America/La_Paz">Bolivia (GMT-4)</option>
+                            <option value="Paraguay|America/Asuncion">Paraguay (GMT-4)</option>
+                            <option value="Mexico|America/Mexico_City">México (GMT-6)</option>
+                            <option value="Costa Rica|America/Costa_Rica">Costa Rica (GMT-6)</option>
+                            <option value="Panama|America/Panama">Panamá (GMT-5)</option>
+                            <option value="Guatemala|America/Guatemala">Guatemala (GMT-6)</option>
+                            <option value="Cuba|America/Havana">Cuba (GMT-5)</option>
+                            <option value="República Dominicana|America/Santo_Domingo">República Dominicana (GMT-4)</option>
+                            <option value="Estados Unidos|America/New_York">Estados Unidos - Este (GMT-5)</option>
+                            <option value="Estados Unidos|America/Chicago">Estados Unidos - Centro (GMT-6)</option>
+                            <option value="Estados Unidos|America/Los_Angeles">Estados Unidos - Pacífico (GMT-8)</option>
+                            <option value="España|Europe/Madrid">España (GMT+1)</option>
+                        </select>
+                        <input type="hidden" id="newLeadTimezone">
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Estado *</label>
+                        <select id="newLeadStatus" required style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
+                            <option value="new">🆕 Nuevo</option>
+                            <option value="contacted">📞 Contactado</option>
+                            <option value="qualified">⭐ Calificado</option>
+                            <option value="converted">✅ Convertido</option>
+                            <option value="rejected">❌ Rechazado</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Origen *</label>
+                        <select id="newLeadSource" required style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px;">
+                            <option value="manual">Manual</option>
+                            <option value="landing">Landing Page</option>
+                            <option value="referral">Referido</option>
+                            <option value="social">Redes Sociales</option>
+                            <option value="event">Evento</option>
+                            <option value="ads">Publicidad</option>
+                            <option value="other">Otro</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Fecha de Creación</label>
+                        <input type="text" id="newLeadDate" readonly style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#888; font-family:inherit; font-size:14px; cursor:not-allowed;">
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">¿Por qué quiere ser Profesor Fundador?</label>
+                        <textarea id="newLeadBackground" rows="5" placeholder="Información sobre su interés, experiencia, motivación..." style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label style="display:block; color:#aaa; font-size:13px; margin-bottom:8px;">Notas de Seguimiento</label>
+                        <textarea id="newLeadNotes" rows="4" placeholder="Recordatorios, próximos pasos, observaciones..." style="width:100%; padding:12px; background:#0a0a0a; border:1px solid #333; border-radius:6px; color:#fff; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
+                    </div>
+                    
+                    <div id="newLeadMessage" style="margin-top:10px; font-size:13px; text-align:center; font-weight:bold;"></div>
+                    
+                    <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:10px; padding-top:15px; border-top:1px solid #333;">
+                        <button type="button" onclick="closeCreateLeadModal()" style="padding:12px 24px; background:#333; border:none; border-radius:6px; color:#aaa; cursor:pointer; font-size:14px;">Cancelar</button>
+                        <button type="submit" style="padding:12px 24px; background:#27ae60; border:none; border-radius:6px; color:#fff; font-weight:600; cursor:pointer; font-size:14px;">➕ Crear Lead</button>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -903,34 +1003,28 @@
         if(viewName === 'teachers') {
             document.getElementById('btnTeachers').classList.add('active');
             document.getElementById('formTeachers').style.display = 'block';
-            document.getElementById('formLeads').style.display = 'none';
             loadTeachers();
         } else if (viewName === 'leads') {
             document.getElementById('btnLeads').classList.add('active');
             document.getElementById('formTeachers').style.display = 'none';
-            document.getElementById('formLeads').style.display = 'block';
             loadLeads();
         } else if (viewName === 'feedback') {
             document.getElementById('btnFeedback').classList.add('active');
             document.getElementById('formTeachers').style.display = 'none';
-            document.getElementById('formLeads').style.display = 'none';
             loadChatSystem(); 
             const badge = document.getElementById('msgBadge');
             if (badge.style.display !== 'none') { badge.style.display = 'none'; await markAllAsRead(); }
         } else if (viewName === 'analytics') {
             document.getElementById('btnAnalytics').classList.add('active');
             document.getElementById('formTeachers').style.display = 'none';
-            document.getElementById('formLeads').style.display = 'none';
             loadAnalyticsView();
         } else if (viewName === 'tracking') {
             document.getElementById('btnTracking').classList.add('active');
             document.getElementById('formTeachers').style.display = 'none';
-            document.getElementById('formLeads').style.display = 'none';
             loadTrackingScripts();
         } else if (viewName === 'calendar') {
             document.getElementById('btnCalendar').classList.add('active');
             document.getElementById('formTeachers').style.display = 'none';
-            document.getElementById('formLeads').style.display = 'none';
             loadCalendarConfig();
         }
     }
@@ -1306,66 +1400,6 @@
                 else { document.getElementById('statusMsg').innerText="Error"; }
             } catch(e) {}
             btn.disabled=false;
-        });
-    }
-
-    // Función Registro de Lead Manual
-    const createLeadForm = document.getElementById('createLeadForm');
-    if (createLeadForm) {
-        createLeadForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector('button'); 
-            const statusMsg = document.getElementById('statusMsgLead');
-            btn.disabled = true;
-            statusMsg.innerText = '⏳ Registrando...';
-            statusMsg.style.color = '#ff6600';
-            
-            const name = document.getElementById('leadName').value.trim();
-            const email = document.getElementById('leadEmail').value.trim();
-            const whatsapp = document.getElementById('leadWhatsApp').value.trim();
-            const source = document.getElementById('leadSource').value;
-            const background = document.getElementById('leadBackground').value.trim();
-            const notes = document.getElementById('leadNotes').value.trim();
-            
-            try {
-                const res = await fetch('/api/leads', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        name,
-                        email,
-                        whatsapp,
-                        background,
-                        utmSource: source,
-                        notes,
-                        isManual: true
-                    })
-                });
-                
-                const data = await res.json();
-                
-                if(res.ok) {
-                    statusMsg.innerText = "✅ Lead registrado exitosamente";
-                    statusMsg.style.color = '#00ff88';
-                    createLeadForm.reset();
-                    loadLeads();
-                    showNotification(`✅ ${name} agregado como nuevo lead`, 'success');
-                    
-                    // Limpiar mensaje después de 3 segundos
-                    setTimeout(() => {
-                        statusMsg.innerText = '';
-                    }, 3000);
-                } else {
-                    statusMsg.innerText = `❌ Error: ${data.message || 'No se pudo registrar'}`;
-                    statusMsg.style.color = '#ff4444';
-                }
-            } catch(e) {
-                statusMsg.innerText = '❌ Error de conexión';
-                statusMsg.style.color = '#ff4444';
-                console.error('Error registrando lead:', e);
-            }
-            
-            btn.disabled = false;
         });
     }
 
@@ -1933,6 +1967,23 @@
         document.getElementById('editLeadWhatsApp').value = lead.whatsapp;
         document.getElementById('editLeadBackground').value = lead.background || '';
         
+        // Establecer estado
+        document.getElementById('editLeadStatus').value = lead.status || 'new';
+        
+        // Establecer origen
+        document.getElementById('editLeadSource').value = lead.utmSource || 'manual';
+        
+        // Establecer fecha
+        const createdDate = new Date(lead.createdAt);
+        const dateStr = createdDate.toLocaleString('es-ES', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        document.getElementById('editLeadDate').value = dateStr;
+        
         // Establecer país y timezone
         const country = lead.country || '';
         const timezone = lead.timezone || 'America/Santiago';
@@ -2033,6 +2084,8 @@
         const email = document.getElementById('editLeadEmail').value.trim();
         const whatsapp = document.getElementById('editLeadWhatsApp').value.trim();
         const background = document.getElementById('editLeadBackground').value.trim();
+        const status = document.getElementById('editLeadStatus').value;
+        const source = document.getElementById('editLeadSource').value;
         
         const countryTimezone = document.getElementById('editLeadCountry').value;
         let country = '';
@@ -2053,7 +2106,16 @@
             const res = await fetch(`/api/leads/${currentEditLeadId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, whatsapp, background, country, timezone })
+                body: JSON.stringify({ 
+                    name, 
+                    email, 
+                    whatsapp, 
+                    background, 
+                    country, 
+                    timezone,
+                    status,
+                    utmSource: source
+                })
             });
             
             const data = await res.json();
@@ -2070,6 +2132,172 @@
             alert('❌ Error de conexión');
         }
     }
+
+    // =============================================
+    // CREAR NUEVO LEAD (MODAL)
+    // =============================================
+    function openCreateLeadModal() {
+        // Resetear formulario
+        document.getElementById('newLeadForm').reset();
+        
+        // Establecer fecha actual
+        const now = new Date();
+        const dateStr = now.toLocaleString('es-ES', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        document.getElementById('newLeadDate').value = dateStr;
+        
+        // Limpiar mensajes
+        document.getElementById('newLeadMessage').textContent = '';
+        document.getElementById('newDetectedCountryHint').textContent = '';
+        
+        // Mostrar modal
+        document.getElementById('createLeadModal').style.display = 'flex';
+    }
+
+    function closeCreateLeadModal() {
+        document.getElementById('createLeadModal').style.display = 'none';
+    }
+
+    function detectNewCountryFromWhatsApp() {
+        const whatsapp = document.getElementById('newLeadWhatsApp').value.trim();
+        const hint = document.getElementById('newDetectedCountryHint');
+        const countrySelect = document.getElementById('newLeadCountry');
+        
+        // Mapeo de códigos de país
+        const countryMap = {
+            '+54': 'Argentina|America/Argentina/Buenos_Aires',
+            '+55': 'Brasil|America/Sao_Paulo',
+            '+56': 'Chile|America/Santiago',
+            '+57': 'Colombia|America/Bogota',
+            '+58': 'Venezuela|America/Caracas',
+            '+51': 'Peru|America/Lima',
+            '+593': 'Ecuador|America/Guayaquil',
+            '+52': 'Mexico|America/Mexico_City',
+            '+598': 'Uruguay|America/Montevideo',
+            '+591': 'Bolivia|America/La_Paz',
+            '+595': 'Paraguay|America/Asuncion',
+            '+506': 'Costa Rica|America/Costa_Rica',
+            '+507': 'Panama|America/Panama',
+            '+502': 'Guatemala|America/Guatemala',
+            '+53': 'Cuba|America/Havana',
+            '+1809': 'República Dominicana|America/Santo_Domingo',
+            '+1': 'Estados Unidos|America/New_York',
+            '+34': 'España|Europe/Madrid'
+        };
+        
+        // Detectar país
+        for (const [code, value] of Object.entries(countryMap)) {
+            if (whatsapp.startsWith(code)) {
+                const country = value.split('|')[0];
+                countrySelect.value = value;
+                updateNewLeadTimezone();
+                hint.textContent = `✓ País detectado: ${country}`;
+                hint.style.color = '#27ae60';
+                return;
+            }
+        }
+        
+        // No se detectó
+        hint.textContent = '⚠ No se pudo detectar el país. Selecciona manualmente.';
+        hint.style.color = '#ffaa00';
+    }
+
+    function updateNewLeadTimezone() {
+        const countryTimezone = document.getElementById('newLeadCountry').value;
+        if (countryTimezone) {
+            const [country, timezone] = countryTimezone.split('|');
+            document.getElementById('newLeadTimezone').value = timezone;
+        }
+    }
+
+    // Manejar envío del formulario
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('newLeadForm');
+        if (form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const msgDiv = document.getElementById('newLeadMessage');
+                
+                // Deshabilitar botón
+                submitBtn.disabled = true;
+                msgDiv.textContent = '⏳ Creando lead...';
+                msgDiv.style.color = '#3498db';
+                
+                // Recopilar datos
+                const name = document.getElementById('newLeadName').value.trim();
+                const email = document.getElementById('newLeadEmail').value.trim();
+                const whatsapp = document.getElementById('newLeadWhatsApp').value.trim();
+                const background = document.getElementById('newLeadBackground').value.trim();
+                const notes = document.getElementById('newLeadNotes').value.trim();
+                const status = document.getElementById('newLeadStatus').value;
+                const source = document.getElementById('newLeadSource').value;
+                
+                const countryTimezone = document.getElementById('newLeadCountry').value;
+                let country = '';
+                let timezone = 'America/Santiago';
+                
+                if (countryTimezone) {
+                    [country, timezone] = countryTimezone.split('|');
+                }
+                
+                try {
+                    const res = await fetch('/api/leads', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name,
+                            email,
+                            whatsapp,
+                            background,
+                            notes,
+                            status,
+                            country,
+                            timezone,
+                            utmSource: source,
+                            isManual: true
+                        })
+                    });
+                    
+                    const data = await res.json();
+                    
+                    if (res.ok) {
+                        msgDiv.textContent = '✅ Lead creado exitosamente';
+                        msgDiv.style.color = '#27ae60';
+                        
+                        // Recargar lista de leads
+                        setTimeout(() => {
+                            closeCreateLeadModal();
+                            loadLeads();
+                            showNotification(`✅ ${name} agregado como nuevo lead`, 'success');
+                        }, 1500);
+                    } else {
+                        msgDiv.textContent = '❌ Error: ' + (data.message || 'No se pudo crear el lead');
+                        msgDiv.style.color = '#e74c3c';
+                        submitBtn.disabled = false;
+                    }
+                } catch (error) {
+                    console.error('Error creando lead:', error);
+                    msgDiv.textContent = '❌ Error de conexión';
+                    msgDiv.style.color = '#e74c3c';
+                    submitBtn.disabled = false;
+                }
+            });
+        }
+    });
+
+    // Cerrar modal con ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.getElementById('createLeadModal').style.display === 'flex') {
+            closeCreateLeadModal();
+        }
+    });
 
     // =============================================
     // ELIMINAR PROFESOR
