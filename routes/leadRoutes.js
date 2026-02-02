@@ -14,7 +14,7 @@ const { detectCountryFromPhone } = require('../utils/timezoneHelper');
  */
 router.post('/', async (req, res) => {
     try {
-        const { name, email, whatsapp, background, utmSource, utmMedium, utmCampaign, notes, isManual, trackingData } = req.body;
+        const { name, email, whatsapp, background, utmSource, utmMedium, utmCampaign, notes, isManual, trackingData, country, timezone, status } = req.body;
         
         // Validación básica
         if (!name || !email || !whatsapp) {
@@ -32,6 +32,9 @@ router.post('/', async (req, res) => {
             existingLead.whatsapp = whatsapp;
             if (background) existingLead.background = background;
             if (notes) existingLead.notes = notes;
+            if (country) existingLead.country = country;
+            if (timezone) existingLead.timezone = timezone;
+            if (status) existingLead.status = status;
             
             // Actualizar tracking data si se proporciona
             if (trackingData) {
@@ -61,9 +64,11 @@ router.post('/', async (req, res) => {
             // Mapear los valores del select al enum del modelo
             const sourceMap = {
                 'manual': 'other',
+                'landing': 'landing',
                 'referral': 'referral',
                 'social': 'social',
                 'event': 'other',
+                'ads': 'ads',
                 'other': 'other'
             };
             sourceValue = sourceMap[utmSource] || 'other';
@@ -82,12 +87,24 @@ router.post('/', async (req, res) => {
             notes: notes ? notes.trim() : ''
         };
         
-        // Detectar país y timezone desde WhatsApp
-        const { country, timezone } = detectCountryFromPhone(whatsapp);
-        if (country) {
-            leadData.country = country;
-            leadData.timezone = timezone;
-            console.log(`[Lead] 🌍 País detectado: ${country} (${timezone})`);
+        // Si se proporciona país y timezone desde el formulario (manual), usarlos
+        if (country && timezone) {
+            leadData.country = country.trim();
+            leadData.timezone = timezone.trim();
+            console.log(`[Lead] 🌍 País manual: ${country} (${timezone})`);
+        } else {
+            // Detectar país y timezone desde WhatsApp solo si no se proporcionaron
+            const detected = detectCountryFromPhone(whatsapp);
+            if (detected.country) {
+                leadData.country = detected.country;
+                leadData.timezone = detected.timezone;
+                console.log(`[Lead] 🌍 País detectado: ${detected.country} (${detected.timezone})`);
+            }
+        }
+        
+        // Establecer estado si se proporciona
+        if (status) {
+            leadData.status = status;
         }
         
         // Agregar tracking data si existe
@@ -312,7 +329,7 @@ router.patch('/:id/status', async (req, res) => {
 router.patch('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, email, whatsapp, background, country, timezone } = req.body;
+        const { name, email, whatsapp, background, country, timezone, status, utmSource } = req.body;
         
         // Validación
         if (!name || !email || !whatsapp) {
@@ -350,6 +367,27 @@ router.patch('/:id', async (req, res) => {
         }
         if (timezone !== undefined) {
             updateData.timezone = timezone.trim();
+        }
+        
+        // Actualizar estado si se proporciona
+        if (status !== undefined) {
+            updateData.status = status;
+        }
+        
+        // Actualizar origen si se proporciona
+        if (utmSource !== undefined) {
+            updateData.utmSource = utmSource;
+            // Mapear al source enum
+            const sourceMap = {
+                'manual': 'other',
+                'landing': 'landing',
+                'referral': 'referral',
+                'social': 'social',
+                'event': 'other',
+                'ads': 'ads',
+                'other': 'other'
+            };
+            updateData.source = sourceMap[utmSource] || 'other';
         }
         
         const lead = await Lead.findByIdAndUpdate(
