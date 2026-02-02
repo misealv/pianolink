@@ -219,7 +219,7 @@ router.get('/export', async (req, res) => {
 
         // Obtener todos los leads
         const leads = await Lead.find()
-            .select('name email whatsapp background status source utmSource utmMedium utmCampaign notes createdAt contactedAt convertedAt')
+            .select('name email whatsapp background country timezone status source utmSource utmMedium utmCampaign notes createdAt contactedAt convertedAt')
             .sort({ createdAt: -1 })
             .lean();
 
