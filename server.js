@@ -28,6 +28,11 @@ console.log('[SERVER] 📧 Estado del servicio de email:', JSON.stringify(emailS
 const SessionTracker = require('./services/SessionTracker');
 console.log('[SERVER] 📊 Session Tracker inicializado');
 
+// ✨ v2.0: Inicializar servicios de suscripción y cron
+const CronService = require('./services/CronService');
+CronService.start();
+console.log('[SERVER] ⏰ Cron Service inicializado');
+
 const app = express();
 const server = http.createServer(app);
 
@@ -74,6 +79,11 @@ app.use('/api/leads', require('./routes/leadRoutes')); // Lead generation
 app.use('/api/calendar', require('./routes/calendarRoutes')); // Google Calendar integration
 app.use('/api/analytics', require('./routes/analyticsRoutes')); // Session Analytics
 app.use('/admin', require('./routes/adminRoutes'));
+
+// ✨ v2.0: Rutas de Suscripciones, Salas y Webhooks
+app.use('/api/rooms', require('./routes/rooms'));
+app.use('/api/subscription', require('./routes/subscription'));
+app.use('/api/webhooks', require('./routes/webhooks'));
 
 // ==================================================
 // TRACKING SCRIPTS ENDPOINT - Servir scripts dinámicamente
