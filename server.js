@@ -351,7 +351,6 @@ io.on("connection", (socket) => {
         
         rooms[roomCode].isActive = true; // El profe activa la sala
         socket.emit("room-created", roomCode);
-        syncRoomState(roomCode);
         
         // 📊 TRACK: Iniciar sesión
         try {
@@ -365,6 +364,13 @@ io.on("connection", (socket) => {
         } catch (error) {
             console.error('[Track] Error iniciando sesión:', error);
         }
+        
+        // ✅ FIX: Sincronizar estado DESPUÉS de todo el setup
+        // Usar setImmediate para asegurar que se procese en el siguiente tick del event loop
+        setImmediate(() => {
+            syncRoomState(roomCode);
+            console.log(`[Room] Profesor ${payload.username} creó sala ${roomCode} - Estado sincronizado`);
+        });
     });
 
     // Unirse a Sala (Alumno)
@@ -387,15 +393,23 @@ io.on("connection", (socket) => {
             console.error('[Track] Error agregando estudiante:', error);
         }
         
+        // ✅ FIX: Emitir room-joined ANTES de sincronizar para que el cliente esté listo
         socket.emit("room-joined", roomCode);
-        if(rooms[roomCode].isActive) socket.broadcast.to(roomCode).emit("user-entered-sound");
         
-        syncRoomState(roomCode);
+        // ✅ FIX: Notificar inmediatamente con sonido si la clase está activa
+        if(rooms[roomCode].isActive) {
+            socket.broadcast.to(roomCode).emit("user-entered-sound");
+        }
         
-        // --- FULL SNAPSHOT AL UNIRSE (CRÍTICO PARA RECONEXIÓN) ---
-        setTimeout(() => {
+        // ✅ FIX: Usar setImmediate para asegurar sincronización en el siguiente tick
+        // Esto garantiza que el cliente ya procesó "room-joined" y está listo
+        setImmediate(() => {
+            syncRoomState(roomCode);
+            console.log(`[Room] ${payload.username} se unió a sala ${roomCode} - Lista actualizada para todos`);
+            
+            // --- FULL SNAPSHOT AL UNIRSE (CRÍTICO PARA RECONEXIÓN) ---
             const room = rooms[roomCode];
-            if (room && room.teacherActiveNotes) {
+            if (room && room.teacherActiveNotes && room.teacherActiveNotes.size > 0) {
                 const snapshot = Array.from(room.teacherActiveNotes);
                 socket.emit('midi-snapshot', {
                     notes: snapshot,
@@ -404,7 +418,16 @@ io.on("connection", (socket) => {
                 });
                 console.log(`[Snapshot] Full snapshot enviado a ${socket.id}: ${snapshot.length} notas`);
             }
-        }, 100); // Pequeño delay para asegurar que el cliente esté listo
+        });
+    });
+    
+    // ✅ FIX: Evento para solicitar lista de usuarios manualmente
+    socket.on("request-user-list", (payload) => {
+        const roomCode = payload.roomCode || socket.roomCode;
+        if (roomCode && rooms[roomCode]) {
+            console.log(`[Room] Cliente ${socket.id} solicitó lista de usuarios de sala ${roomCode}`);
+            broadcastUserList(roomCode);
+        }
     });
 
     // --- RELAY DE AUDIO/MIDI (V5 CON BUNDLE SUPPORT) ---
@@ -1129,8 +1152,13 @@ io.on("connection", (socket) => {
     // Desconexión
     socket.on("disconnect", async () => {
         const roomCode = socket.roomCode;
+        const userName = socket.userName;
+        const userRole = socket.userRole;
+        
         if (roomCode && rooms[roomCode]) {
             const room = rooms[roomCode];
+            
+            console.log(`[Disconnect] Usuario ${userName} (${userRole}) desconectado de sala ${roomCode}`);
             
             // Trackear salida de estudiante
             try {
@@ -1167,6 +1195,8 @@ io.on("connection", (socket) => {
                     snapshotHeartbeatInterval = null;
                 }
             } else {
+                // ✅ FIX: Actualizar lista de usuarios inmediatamente cuando alguien se desconecta
+                console.log(`[Disconnect] Actualizando lista de usuarios en sala ${roomCode}`);
                 broadcastUserList(roomCode);
             }
         }
@@ -1220,13 +1250,21 @@ function syncRoomState(roomCode) {
 
 function broadcastUserList(roomCode) {
     const room = rooms[roomCode];
-    if (!room) return;
+    if (!room) {
+        console.warn(`[broadcastUserList] Sala ${roomCode} no existe`);
+        return;
+    }
+    
     const list = Object.entries(room.users).map(([id, u]) => ({
         socketId: id,
         name: u.name,
         role: u.role,
         pdfState: u.pdfState
     }));
+    
+    console.log(`[broadcastUserList] Enviando lista a sala ${roomCode}: ${list.length} usuarios`, 
+                list.map(u => `${u.name}(${u.role})`).join(', '));
+    
     io.to(roomCode).emit("room-users", list);
 }
 

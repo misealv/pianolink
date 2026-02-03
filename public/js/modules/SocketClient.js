@@ -189,8 +189,30 @@ export class SocketClient {
         this.socket.on("class-status", (status) => this.bus.emit("class-status", status));
         this.socket.on("user-pdf-updated", (data) => this.bus.emit("remote-pdf", data));
         
-        this.socket.on("room-created", (code) => { this.roomCode = code; this.bus.emit("room-created", code); });
-        this.socket.on("room-joined", (code) => { this.roomCode = code; this.bus.emit("room-joined", code); });
+        this.socket.on("room-created", (code) => { 
+            this.roomCode = code; 
+            this.bus.emit("room-created", code);
+            // ✅ FIX: Solicitar lista de usuarios después de crear sala
+            setTimeout(() => {
+                if (this.socket.connected) {
+                    this.socket.emit('request-user-list', { roomCode: code });
+                    console.log('[SocketClient] Solicitando lista de usuarios después de crear sala');
+                }
+            }, 100);
+        });
+        
+        this.socket.on("room-joined", (code) => { 
+            this.roomCode = code; 
+            this.bus.emit("room-joined", code);
+            // ✅ FIX: Solicitar lista de usuarios después de unirse
+            setTimeout(() => {
+                if (this.socket.connected) {
+                    this.socket.emit('request-user-list', { roomCode: code });
+                    console.log('[SocketClient] Solicitando lista de usuarios después de unirse');
+                }
+            }, 100);
+        });
+        
         //  Escuchar cambio de Broadcaster
         this.socket.on("broadcaster-changed", (id) => this.bus.emit("net-broadcaster-changed", id));
         // 👇 NUEVO: Escuchar orden de expulsión (GoodBye)
