@@ -85,6 +85,7 @@ app.use('/api/rooms', require('./routes/rooms'));
 app.use('/api/subscription', require('./routes/subscription'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/payment', require('./routes/payment')); // PayPal payments
+app.use('/api/admin/payments', require('./routes/adminPayments')); // Admin payments
 
 // ==================================================
 // TRACKING SCRIPTS ENDPOINT - Servir scripts dinámicamente

@@ -6,7 +6,8 @@ const { protect } = require('../middleware/authMiddleware');
 const { 
     loginUser, 
     registerUser, 
-    getTeachers, 
+    getTeachers,
+    getStudents, // <--- Students endpoint
     getTeacherBySlug,
     deleteUser, // <--- Importante: Importar la nueva función
     updateProfile // <--- NUEVO: Importar updateProfile
@@ -15,6 +16,7 @@ const {
 router.post('/login', loginUser);
 router.post('/register', registerUser);
 router.get('/teachers', getTeachers);
+router.get('/students', getStudents); // <--- Students endpoint
 router.get('/public/:slug', getTeacherBySlug);
 router.delete('/delete/:id', deleteUser); // <--- La ruta nueva
 

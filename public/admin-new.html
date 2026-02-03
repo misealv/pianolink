@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PianoLink | Admin Panel</title>
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<div class="admin-layout">
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <span>🎹</span> PianoLink
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <!-- CRM -->
+            <div class="nav-section">
+                <div class="nav-section-title">CRM</div>
+                <div class="nav-item active" data-module="dashboard" onclick="switchModule('dashboard')">
+                    <span class="icon">📊</span> Dashboard
+                </div>
+                <div class="nav-item" data-module="leads" onclick="switchModule('leads')">
+                    <span class="icon">🎯</span> Leads
+                    <span class="badge" id="leads-badge" style="display:none;">0</span>
+                </div>
+                <div class="nav-item" data-module="tracking" onclick="switchModule('tracking')">
+                    <span class="icon">📈</span> Tracking
+                </div>
+                <div class="nav-item" data-module="calendar" onclick="switchModule('calendar')">
+                    <span class="icon">📅</span> Calendar
+                </div>
+            </div>
+            
+            <!-- Profesores -->
+            <div class="nav-section">
+                <div class="nav-section-title">Profesores</div>
+                <div class="nav-item" data-module="teachers" onclick="switchModule('teachers')">
+                    <span class="icon">👨‍🏫</span> Gestión
+                </div>
+            </div>
+            
+            <!-- Alumnos -->
+            <div class="nav-section">
+                <div class="nav-section-title">Alumnos</div>
+                <div class="nav-item" data-module="students" onclick="switchModule('students')">
+                    <span class="icon">👨‍🎓</span> Gestión
+                </div>
+            </div>
+            
+            <!-- Pagos -->
+            <div class="nav-section">
+                <div class="nav-section-title">Finanzas</div>
+                <div class="nav-item" data-module="payments" onclick="switchModule('payments')">
+                    <span class="icon">💰</span> Pagos
+                </div>
+            </div>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <button class="btn-logout" onclick="logout()">🚪 Cerrar Sesión</button>
+        </div>
+    </aside>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="main-content">
+        <header class="content-header">
+            <h1 class="content-title" id="content-title"><span>📊</span> Dashboard</h1>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-secondary" onclick="location.reload()">🔄 Actualizar</button>
+            </div>
+        </header>
+
+        <div class="content-body">
+            <!-- ==================== DASHBOARD ==================== -->
+            <div id="module-dashboard" class="module-view active">
+                <div class="dashboard-grid">
+                    <div class="stat-card accent-green">
+                        <div class="stat-icon">🆕</div>
+                        <div class="stat-value" id="stat-leads-new">0</div>
+                        <div class="stat-label">Leads Nuevos</div>
+                    </div>
+                    <div class="stat-card accent-yellow">
+                        <div class="stat-icon">📞</div>
+                        <div class="stat-value" id="stat-leads-contacted">0</div>
+                        <div class="stat-label">Contactados</div>
+                    </div>
+                    <div class="stat-card accent-blue">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-value" id="stat-leads-qualified">0</div>
+                        <div class="stat-label">Calificados</div>
+                    </div>
+                    <div class="stat-card accent-orange">
+                        <div class="stat-icon">🎉</div>
+                        <div class="stat-value" id="stat-leads-converted">0</div>
+                        <div class="stat-label">Convertidos</div>
+                    </div>
+                    <div class="stat-card accent-purple">
+                        <div class="stat-icon">👨‍🏫</div>
+                        <div class="stat-value" id="stat-teachers">0</div>
+                        <div class="stat-label">Profesores</div>
+                    </div>
+                </div>
+                
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:30px; text-align:center;">
+                    <h3 style="color:var(--accent-orange); margin-bottom:15px;">🎹 Bienvenido al Panel de Administración</h3>
+                    <p style="color:var(--text-secondary);">Usa el menú lateral para navegar entre los módulos.</p>
+                </div>
+            </div>
+
+            <!-- ==================== LEADS ==================== -->
+            <div id="module-leads" class="module-view">
+                <!-- Stats Cards -->
+                <div class="dashboard-grid">
+                    <div class="stat-card accent-green">
+                        <div class="stat-value" id="stat-new">0</div>
+                        <div class="stat-label">Nuevos</div>
+                    </div>
+                    <div class="stat-card accent-yellow">
+                        <div class="stat-value" id="stat-contacted">0</div>
+                        <div class="stat-label">Contactados</div>
+                    </div>
+                    <div class="stat-card accent-blue">
+                        <div class="stat-value" id="stat-qualified">0</div>
+                        <div class="stat-label">Calificados</div>
+                    </div>
+                    <div class="stat-card accent-orange">
+                        <div class="stat-value" id="stat-converted">0</div>
+                        <div class="stat-label">Convertidos</div>
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="filters-bar">
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all" onclick="filterLeads('all')">Todos</button>
+                        <button class="filter-btn" data-filter="new" onclick="filterLeads('new')">Nuevos</button>
+                        <button class="filter-btn" data-filter="contacted" onclick="filterLeads('contacted')">Contactados</button>
+                        <button class="filter-btn" data-filter="qualified" onclick="filterLeads('qualified')">Calificados</button>
+                        <button class="filter-btn" data-filter="converted" onclick="filterLeads('converted')">Convertidos</button>
+                    </div>
+                    <div class="search-box">
+                        <span>🔍</span>
+                        <input type="text" id="search-leads" placeholder="Buscar..." oninput="searchLeads()">
+                    </div>
+                    <button class="btn btn-primary" onclick="openCreateLeadModal()">➕ Nuevo Lead</button>
+                </div>
+                
+                <!-- Table -->
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>WhatsApp</th>
+                                <th>País</th>
+                                <th>Estado</th>
+                                <th>Origen</th>
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leads-table-body">
+                            <tr><td colspan="8" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ==================== TRACKING ==================== -->
+            <div id="module-tracking" class="module-view">
+                <div class="config-section">
+                    <h3>
+                        <span style="background:#3b5998; padding:4px 10px; border-radius:4px;">Facebook</span>
+                        Facebook Pixel
+                    </h3>
+                    <div class="form-group">
+                        <textarea id="facebook-pixel" class="code" rows="10" placeholder="<!-- Facebook Pixel Code -->"></textarea>
+                    </div>
+                    <p style="font-size:11px; color:var(--text-muted);">
+                        💡 Dónde conseguirlo: Facebook Business Manager → Configuración de eventos → Píxeles → Ver código
+                    </p>
+                </div>
+                
+                <div class="config-section">
+                    <h3>
+                        <span style="background:#e37400; padding:4px 10px; border-radius:4px;">GA4</span>
+                        Google Analytics 4
+                    </h3>
+                    <div class="form-group">
+                        <textarea id="google-analytics" class="code" rows="10" placeholder="<!-- Google tag (gtag.js) -->"></textarea>
+                    </div>
+                    <p style="font-size:11px; color:var(--text-muted);">
+                        💡 Dónde conseguirlo: Google Analytics → Admin → Flujos de datos → Ver instrucciones
+                    </p>
+                </div>
+                
+                <div style="display:flex; gap:10px; justify-content:flex-end;">
+                    <button class="btn btn-secondary" onclick="loadTrackingScripts()">🔄 Recargar</button>
+                    <button class="btn btn-primary" onclick="saveTrackingScripts()">💾 Guardar</button>
+                </div>
+            </div>
+
+            <!-- ==================== CALENDAR ==================== -->
+            <div id="module-calendar" class="module-view">
+                <div style="background:#2a1a1a; border:1px solid #d35400; padding:15px; border-radius:8px; margin-bottom:20px;">
+                    <strong style="color:#e67e22;">⚠️ IMPORTANTE:</strong>
+                    <span style="color:var(--text-secondary); font-size:13px;">
+                        Antes de configurar, crea credenciales OAuth2 en 
+                        <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent-blue);">Google Cloud Console</a>
+                    </span>
+                </div>
+                
+                <div class="config-section">
+                    <h3>🔑 Credenciales Google Calendar</h3>
+                    
+                    <div class="form-group">
+                        <label>Client ID</label>
+                        <input type="text" id="calendar-client-id" placeholder="123456789-abc123.apps.googleusercontent.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Client Secret</label>
+                        <input type="password" id="calendar-client-secret" placeholder="GOCSPX-xxxx">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Redirect URI</label>
+                        <input type="text" id="calendar-redirect-uri" value="https://pianolink.onrender.com/api/calendar/oauth2callback">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Refresh Token</label>
+                        <textarea id="calendar-refresh-token" rows="3" placeholder="1//0abc123..."></textarea>
+                        <p style="font-size:11px; color:var(--text-muted); margin-top:5px;">
+                            Después de guardar, visita <a href="/api/calendar/auth" target="_blank" style="color:var(--accent-blue);">/api/calendar/auth</a> para obtener el token
+                        </p>
+                    </div>
+                </div>
+                
+                <div style="display:flex; gap:10px; justify-content:flex-end;">
+                    <button class="btn btn-secondary" onclick="loadCalendarConfig()">🔄 Recargar</button>
+                    <button class="btn btn-secondary" onclick="testCalendarConnection()">🧪 Probar</button>
+                    <button class="btn btn-primary" onclick="saveCalendarConfig()">💾 Guardar</button>
+                </div>
+            </div>
+
+            <!-- ==================== PROFESORES ==================== -->
+            <div id="module-teachers" class="module-view">
+                <!-- Stats -->
+                <div class="dashboard-grid">
+                    <div class="stat-card accent-purple">
+                        <div class="stat-icon">👨‍🏫</div>
+                        <div class="stat-value" id="stat-teachers-total">0</div>
+                        <div class="stat-label">Total Profesores</div>
+                    </div>
+                    <div class="stat-card accent-yellow">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-value" id="stat-teachers-founders">0</div>
+                        <div class="stat-label">Fundadores</div>
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="filters-bar">
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all" onclick="filterTeachers('all')">Todos</button>
+                        <button class="filter-btn" data-filter="founders" onclick="filterTeachers('founders')">Fundadores</button>
+                        <button class="filter-btn" data-filter="regular" onclick="filterTeachers('regular')">Regulares</button>
+                    </div>
+                    <div class="search-box">
+                        <span>🔍</span>
+                        <input type="text" id="search-teachers" placeholder="Buscar profesor..." oninput="searchTeachers()">
+                    </div>
+                    <button class="btn btn-primary" onclick="openCreateTeacherModal()">➕ Nuevo Profesor</button>
+                </div>
+                
+                <!-- Table -->
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>URL Sala</th>
+                                <th>Tipo</th>
+                                <th>Suscripción</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teachers-table-body">
+                            <tr><td colspan="6" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ==================== ALUMNOS ==================== -->
+            <div id="module-students" class="module-view">
+                <!-- Stats -->
+                <div class="dashboard-grid">
+                    <div class="stat-card accent-blue">
+                        <div class="stat-icon">👨‍🎓</div>
+                        <div class="stat-value" id="stat-students-total">0</div>
+                        <div class="stat-label">Total Alumnos</div>
+                    </div>
+                    <div class="stat-card accent-green">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-value" id="stat-students-active">0</div>
+                        <div class="stat-label">Suscripciones Activas</div>
+                    </div>
+                    <div class="stat-card accent-yellow">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-value" id="stat-students-pending">0</div>
+                        <div class="stat-label">Pendientes</div>
+                    </div>
+                    <div class="stat-card accent-red">
+                        <div class="stat-icon">⚠️</div>
+                        <div class="stat-value" id="stat-students-expired">0</div>
+                        <div class="stat-label">Expiradas</div>
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="filters-bar">
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all" onclick="filterStudents('all')">Todos</button>
+                        <button class="filter-btn" data-filter="active" onclick="filterStudents('active')">Activos</button>
+                        <button class="filter-btn" data-filter="pending" onclick="filterStudents('pending')">Pendientes</button>
+                        <button class="filter-btn" data-filter="expired" onclick="filterStudents('expired')">Expirados</button>
+                        <button class="filter-btn" data-filter="no-subscription" onclick="filterStudents('no-subscription')">Sin Suscripción</button>
+                    </div>
+                    <div class="search-box">
+                        <span>🔍</span>
+                        <input type="text" id="search-students" placeholder="Buscar alumno..." oninput="searchStudents()">
+                    </div>
+                    <button class="btn btn-primary" onclick="openCreateStudentModal()">➕ Nuevo Alumno</button>
+                </div>
+                
+                <!-- Table -->
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Profesor</th>
+                                <th>Sala</th>
+                                <th>Suscripción</th>
+                                <th>Expira</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-table-body">
+                            <tr><td colspan="7" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ==================== PAGOS ==================== -->
+            <div id="module-payments" class="module-view">
+                <!-- Stats -->
+                <div class="dashboard-grid">
+                    <div class="stat-card accent-green">
+                        <div class="stat-icon">💵</div>
+                        <div class="stat-value" id="stat-revenue-month">$0</div>
+                        <div class="stat-label">Ingresos Este Mes</div>
+                    </div>
+                    <div class="stat-card accent-blue">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-value" id="stat-transactions-month">0</div>
+                        <div class="stat-label">Transacciones</div>
+                    </div>
+                    <div class="stat-card accent-purple">
+                        <div class="stat-icon">🔄</div>
+                        <div class="stat-value" id="stat-active-subs">0</div>
+                        <div class="stat-label">Suscripciones Activas</div>
+                    </div>
+                    <div class="stat-card accent-yellow">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-value" id="stat-products-count">0</div>
+                        <div class="stat-label">Productos</div>
+                    </div>
+                </div>
+                
+                <!-- Tabs -->
+                <div class="tabs-container" data-tab-group="payments">
+                    <div class="tabs-header">
+                        <button class="tab-btn active" data-tab="transactions" onclick="switchPaymentTab('transactions')">💳 Transacciones</button>
+                        <button class="tab-btn" data-tab="subscriptions" onclick="switchPaymentTab('subscriptions')">🔄 Suscripciones</button>
+                        <button class="tab-btn" data-tab="products" onclick="switchPaymentTab('products')">📦 Productos</button>
+                        <button class="tab-btn" data-tab="webhooks" onclick="switchPaymentTab('webhooks')">🔗 Webhooks</button>
+                    </div>
+                    
+                    <!-- Transactions Tab -->
+                    <div id="tab-transactions" class="tab-content active">
+                        <div class="filters-bar" style="margin-top:20px;">
+                            <div class="filter-group">
+                                <select id="filter-payment-status" onchange="filterPayments()">
+                                    <option value="">Todos los estados</option>
+                                    <option value="approved">Aprobados</option>
+                                    <option value="pending">Pendientes</option>
+                                    <option value="rejected">Rechazados</option>
+                                </select>
+                                <select id="filter-payment-provider" onchange="filterPayments()">
+                                    <option value="">Todos los proveedores</option>
+                                    <option value="paypal">PayPal</option>
+                                    <option value="mercadopago">MercadoPago</option>
+                                    <option value="manual">Manual</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-secondary" onclick="loadPayments()">🔄 Actualizar</button>
+                        </div>
+                        
+                        <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; overflow:hidden; margin-top:15px;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Alumno</th>
+                                        <th>Profesor</th>
+                                        <th>Monto</th>
+                                        <th>Proveedor</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payments-table-body">
+                                    <tr><td colspan="6" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Subscriptions Tab -->
+                    <div id="tab-subscriptions" class="tab-content">
+                        <div class="filters-bar" style="margin-top:20px;">
+                            <div class="filter-group">
+                                <select id="filter-sub-status" onchange="filterSubscriptions()">
+                                    <option value="">Todos los estados</option>
+                                    <option value="active">Activas</option>
+                                    <option value="pending">Pendientes</option>
+                                    <option value="expired">Expiradas</option>
+                                    <option value="cancelled">Canceladas</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-secondary" onclick="loadSubscriptions()">🔄 Actualizar</button>
+                        </div>
+                        
+                        <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; overflow:hidden; margin-top:15px;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Alumno</th>
+                                        <th>Profesor</th>
+                                        <th>Monto</th>
+                                        <th>Proveedor</th>
+                                        <th>Estado</th>
+                                        <th>Expira</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="subscriptions-table-body">
+                                    <tr><td colspan="7" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Products Tab -->
+                    <div id="tab-products" class="tab-content">
+                        <div class="filters-bar" style="margin-top:20px;">
+                            <div class="filter-group">
+                                <select id="filter-product-type" onchange="filterProducts()">
+                                    <option value="">Todos los tipos</option>
+                                    <option value="subscription">Suscripción</option>
+                                    <option value="one-time">Pago único</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="openCreateProductModal()">➕ Nuevo Producto</button>
+                        </div>
+                        
+                        <div id="products-grid" class="products-grid" style="margin-top:20px;">
+                            <div style="text-align:center; padding:40px; color:#666;">Cargando productos...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Webhooks Tab -->
+                    <div id="tab-webhooks" class="tab-content">
+                        <div class="filters-bar" style="margin-top:20px;">
+                            <div class="filter-group">
+                                <select id="filter-webhook-provider" onchange="filterWebhooks()">
+                                    <option value="">Todos los proveedores</option>
+                                    <option value="paypal">PayPal</option>
+                                    <option value="mercadopago">MercadoPago</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-secondary" onclick="loadWebhooks()">🔄 Actualizar</button>
+                        </div>
+                        
+                        <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; overflow:hidden; margin-top:15px;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Proveedor</th>
+                                        <th>Evento</th>
+                                        <th>Firma</th>
+                                        <th>Resultado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="webhooks-table-body">
+                                    <tr><td colspan="5" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ==================== MODALES ==================== -->
+
+<!-- Ver Lead -->
+<div id="view-lead-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📋 Postulación</h3>
+            <button class="modal-close" onclick="closeModal('view-lead-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Nombre</label>
+                <div id="view-lead-name" style="color:var(--text-primary); font-weight:bold;"></div>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <div id="view-lead-email" style="color:var(--text-secondary);"></div>
+            </div>
+            <div class="form-group">
+                <label>WhatsApp</label>
+                <div id="view-lead-whatsapp" style="color:var(--text-secondary);"></div>
+            </div>
+            <div class="form-group">
+                <label>Estado</label>
+                <div id="view-lead-status"></div>
+            </div>
+            <div class="form-group">
+                <label>¿Por qué quiere ser Profesor Fundador?</label>
+                <div id="view-lead-background" style="color:var(--text-secondary); background:var(--bg-dark); padding:15px; border-radius:6px; white-space:pre-wrap;"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('view-lead-modal')">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Notas -->
+<div id="notes-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📝 Notas - <span id="notes-lead-name"></span></h3>
+            <button class="modal-close" onclick="closeModal('notes-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <textarea id="lead-notes" rows="8" placeholder="Escribe notas sobre este lead..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('notes-modal')">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveLeadNotes()">💾 Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Cambiar Estado -->
+<div id="status-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🔄 Cambiar Estado - <span id="status-lead-name"></span></h3>
+            <button class="modal-close" onclick="closeModal('status-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button class="btn btn-secondary" onclick="changeLeadStatus('new')" style="justify-content:flex-start;">
+                    <span class="status-badge status-new">Nuevo</span>
+                </button>
+                <button class="btn btn-secondary" onclick="changeLeadStatus('contacted')" style="justify-content:flex-start;">
+                    <span class="status-badge status-contacted">Contactado</span>
+                </button>
+                <button class="btn btn-secondary" onclick="changeLeadStatus('qualified')" style="justify-content:flex-start;">
+                    <span class="status-badge status-qualified">Calificado</span>
+                </button>
+                <button class="btn btn-secondary" onclick="changeLeadStatus('converted')" style="justify-content:flex-start;">
+                    <span class="status-badge status-converted">Convertido</span>
+                </button>
+                <button class="btn btn-secondary" onclick="changeLeadStatus('rejected')" style="justify-content:flex-start;">
+                    <span class="status-badge status-rejected">Rechazado</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Crear Lead -->
+<div id="create-lead-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:550px;">
+        <div class="modal-header">
+            <h3>➕ Nuevo Lead</h3>
+            <button class="modal-close" onclick="closeModal('create-lead-modal')">×</button>
+        </div>
+        <form id="create-lead-form" onsubmit="createLead(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nombre *</label>
+                    <input type="text" id="new-lead-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="new-lead-email" required>
+                </div>
+                <div class="form-group">
+                    <label>WhatsApp *</label>
+                    <input type="text" id="new-lead-whatsapp" placeholder="+56912345678" required>
+                </div>
+                <div class="form-group">
+                    <label>Estado inicial</label>
+                    <select id="new-lead-status">
+                        <option value="new">Nuevo</option>
+                        <option value="contacted">Contactado</option>
+                        <option value="qualified">Calificado</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Información adicional</label>
+                    <textarea id="new-lead-background" rows="4" placeholder="¿Por qué quiere ser Profesor Fundador?"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('create-lead-modal')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">➕ Crear Lead</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Agendar Demo -->
+<div id="demo-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📅 Agendar Demo</h3>
+            <button class="modal-close" onclick="closeModal('demo-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:20px;">
+                <div style="font-weight:bold; color:var(--text-primary);" id="demo-lead-name"></div>
+                <div style="font-size:12px; color:var(--text-muted);" id="demo-lead-email"></div>
+            </div>
+            
+            <div class="form-group">
+                <label>Fecha y Hora</label>
+                <input type="datetime-local" id="demo-datetime">
+            </div>
+            
+            <div class="form-group">
+                <label>Duración</label>
+                <select id="demo-duration">
+                    <option value="30">30 minutos</option>
+                    <option value="45">45 minutos</option>
+                    <option value="60">1 hora</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('demo-modal')">Cancelar</button>
+            <button class="btn btn-primary" onclick="scheduleDemo()">📅 Agendar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Crear/Editar Profesor -->
+<div id="create-teacher-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:500px;">
+        <div class="modal-header">
+            <h3 id="teacher-modal-title">➕ Nuevo Profesor</h3>
+            <button class="modal-close" onclick="closeModal('create-teacher-modal')">×</button>
+        </div>
+        <form id="create-teacher-form" onsubmit="createTeacher(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nombre completo *</label>
+                    <input type="text" id="teacher-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="teacher-email" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña (dejar vacío para mantener actual)</label>
+                    <input type="password" id="teacher-password" placeholder="Mínimo 6 caracteres">
+                </div>
+                <div class="form-group">
+                    <label>URL personalizada (slug)</label>
+                    <input type="text" id="teacher-slug" placeholder="ej: juan-piano">
+                    <p style="font-size:11px; color:var(--text-muted); margin-top:5px;">
+                        Se usará para: pianolink.com/?sala=<strong>slug</strong>
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" id="teacher-founder" style="width:auto;">
+                        <span style="background:linear-gradient(135deg,#bf953f,#fcf6ba,#b38728);color:#3e2723;padding:4px 12px;border-radius:4px;font-weight:bold;font-size:12px;">
+                            ★ Profesor Fundador
+                        </span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('create-teacher-modal')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">💾 Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Enviar Mensaje a Profesor -->
+<div id="message-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✉️ Enviar Mensaje</h3>
+            <button class="modal-close" onclick="closeModal('message-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="background:var(--bg-dark); padding:10px 15px; border-radius:6px; margin-bottom:15px;">
+                <span style="color:var(--text-muted);">Para:</span>
+                <strong id="message-recipient" style="color:var(--text-primary); margin-left:5px;"></strong>
+            </div>
+            <div class="form-group">
+                <label>Mensaje</label>
+                <textarea id="teacher-message" rows="5" placeholder="Escribe tu mensaje..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('message-modal')">Cancelar</button>
+            <button class="btn btn-primary" onclick="sendTeacherMessage()">📤 Enviar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Crear/Editar Alumno -->
+<div id="create-student-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:500px;">
+        <div class="modal-header">
+            <h3 id="student-modal-title">➕ Nuevo Alumno</h3>
+            <button class="modal-close" onclick="closeModal('create-student-modal')">×</button>
+        </div>
+        <form id="create-student-form" onsubmit="createStudent(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nombre completo *</label>
+                    <input type="text" id="student-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="student-email" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña (dejar vacío para mantener actual)</label>
+                    <input type="password" id="student-password" placeholder="Mínimo 6 caracteres">
+                </div>
+                <div class="form-group">
+                    <label>Asignar a Profesor</label>
+                    <select id="student-teacher">
+                        <option value="">Sin asignar</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('create-student-modal')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">💾 Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Ver Detalles Alumno -->
+<div id="view-student-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:550px;">
+        <div class="modal-header">
+            <h3>📋 Detalles del Alumno</h3>
+            <button class="modal-close" onclick="closeModal('view-student-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:grid; gap:15px;">
+                <div style="background:var(--bg-dark); padding:15px; border-radius:8px;">
+                    <div style="font-weight:bold; font-size:18px; color:var(--text-primary);" id="view-student-name"></div>
+                    <div style="font-size:13px; color:var(--text-muted);" id="view-student-email"></div>
+                </div>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div style="background:var(--bg-dark); padding:12px; border-radius:8px;">
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">Profesor</div>
+                        <div id="view-student-teacher" style="color:var(--text-primary); font-weight:500;">-</div>
+                    </div>
+                    <div style="background:var(--bg-dark); padding:12px; border-radius:8px;">
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">Sala</div>
+                        <div id="view-student-room" style="color:var(--text-primary); font-weight:500;">-</div>
+                    </div>
+                </div>
+                
+                <div style="background:var(--bg-dark); padding:15px; border-radius:8px;">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">SUSCRIPCIÓN</div>
+                    <div id="view-student-subscription" style="color:var(--text-primary);"></div>
+                </div>
+                
+                <div style="background:var(--bg-dark); padding:12px; border-radius:8px;">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">Registrado</div>
+                    <div id="view-student-created" style="color:var(--text-secondary);"></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('view-student-modal')">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Asignar Profesor -->
+<div id="assign-teacher-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:450px;">
+        <div class="modal-header">
+            <h3>👨‍🏫 Asignar Profesor</h3>
+            <button class="modal-close" onclick="closeModal('assign-teacher-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="background:var(--bg-dark); padding:12px; border-radius:6px; margin-bottom:15px;">
+                <span style="color:var(--text-muted);">Alumno:</span>
+                <strong id="assign-student-name" style="color:var(--text-primary); margin-left:5px;"></strong>
+            </div>
+            <div class="form-group">
+                <label>Seleccionar Profesor</label>
+                <select id="assign-teacher-select">
+                    <option value="">Seleccionar...</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('assign-teacher-modal')">Cancelar</button>
+            <button class="btn btn-primary" onclick="assignTeacherToStudent()">✅ Asignar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Enviar Mensaje a Alumno -->
+<div id="student-message-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✉️ Enviar Mensaje</h3>
+            <button class="modal-close" onclick="closeModal('student-message-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="background:var(--bg-dark); padding:10px 15px; border-radius:6px; margin-bottom:15px;">
+                <span style="color:var(--text-muted);">Para:</span>
+                <strong id="student-message-recipient" style="color:var(--text-primary); margin-left:5px;"></strong>
+            </div>
+            <div class="form-group">
+                <label>Mensaje</label>
+                <textarea id="student-message-content" rows="5" placeholder="Escribe tu mensaje..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('student-message-modal')">Cancelar</button>
+            <button class="btn btn-primary" onclick="sendStudentMessage()">📤 Enviar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Crear/Editar Producto -->
+<div id="create-product-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:550px;">
+        <div class="modal-header">
+            <h3 id="product-modal-title">➕ Nuevo Producto</h3>
+            <button class="modal-close" onclick="closeModal('create-product-modal')">×</button>
+        </div>
+        <form id="create-product-form" onsubmit="createProduct(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nombre *</label>
+                    <input type="text" id="product-name" required placeholder="Ej: Suscripción Mensual Alumno">
+                </div>
+                <div class="form-group">
+                    <label>Slug (URL) *</label>
+                    <input type="text" id="product-slug" required placeholder="ej: sub-alumno-mensual">
+                </div>
+                <div class="form-group">
+                    <label>Descripción</label>
+                    <textarea id="product-description" rows="2" placeholder="Descripción del producto"></textarea>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>Tipo *</label>
+                        <select id="product-type" required>
+                            <option value="subscription">Suscripción</option>
+                            <option value="one-time">Pago único</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Dirigido a *</label>
+                        <select id="product-target" required>
+                            <option value="student">Alumno</option>
+                            <option value="teacher">Profesor</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:2fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>Precio *</label>
+                        <input type="number" id="product-price" required min="0" step="0.01" placeholder="29.99">
+                    </div>
+                    <div class="form-group">
+                        <label>Moneda</label>
+                        <select id="product-currency">
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="ARS">ARS</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="billing-interval-group" style="display:grid; grid-template-columns:2fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>Intervalo de facturación</label>
+                        <select id="product-billing-interval">
+                            <option value="month">Mensual</option>
+                            <option value="year">Anual</option>
+                            <option value="week">Semanal</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Cada</label>
+                        <input type="number" id="product-billing-count" value="1" min="1" max="12">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" id="product-create-paypal" style="width:auto;" checked>
+                        <span>Crear también en PayPal</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('create-product-modal')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">💾 Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Cancelar Suscripción -->
+<div id="cancel-subscription-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:450px;">
+        <div class="modal-header">
+            <h3>⚠️ Cancelar Suscripción</h3>
+            <button class="modal-close" onclick="closeModal('cancel-subscription-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="background:rgba(255,82,82,0.1); border:1px solid rgba(255,82,82,0.3); padding:15px; border-radius:8px; margin-bottom:15px;">
+                <p style="color:#ff5252; margin:0;">Esta acción cancelará la suscripción y el acceso del alumno.</p>
+            </div>
+            <div style="background:var(--bg-dark); padding:12px; border-radius:6px; margin-bottom:15px;">
+                <div style="color:var(--text-muted); font-size:12px;">Alumno:</div>
+                <strong id="cancel-sub-student" style="color:var(--text-primary);"></strong>
+            </div>
+            <div class="form-group">
+                <label>Motivo de cancelación</label>
+                <textarea id="cancel-reason" rows="3" placeholder="Opcional..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('cancel-subscription-modal')">Cancelar</button>
+            <button class="btn" style="background:#ff5252; color:white;" onclick="confirmCancelSubscription()">⚠️ Confirmar Cancelación</button>
+        </div>
+    </div>
+</div>
+
+<script src="/js/admin.js"></script>
+</body>
+</html>

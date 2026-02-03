@@ -248,7 +248,50 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
-// 5. DELETE
+// 5. GET STUDENTS (for admin)
+exports.getStudents = async (req, res) => {
+    try {
+        const Enrollment = require('../models/Enrollment');
+        const Subscription = require('../models/Subscription');
+        
+        // Get all students
+        const students = await User.find({ role: 'student' }).select('-password');
+        
+        // Enrich with enrollment and subscription data
+        const enrichedStudents = await Promise.all(students.map(async (student) => {
+            const enrollment = await Enrollment.findOne({ studentId: student._id, status: 'active' })
+                .populate('teacherId', 'name email')
+                .populate('roomId', 'code name');
+            
+            const subscription = await Subscription.findOne({ studentId: student._id })
+                .sort({ createdAt: -1 });
+            
+            return {
+                _id: student._id,
+                name: student.name,
+                email: student.email,
+                createdAt: student.createdAt,
+                teacher: enrollment?.teacherId || null,
+                room: enrollment?.roomId || null,
+                enrollmentStatus: enrollment?.status || null,
+                subscription: subscription ? {
+                    status: subscription.status,
+                    expiresAt: subscription.expiresAt,
+                    amount: subscription.amount,
+                    currency: subscription.currency,
+                    paymentProvider: subscription.paymentProvider
+                } : null
+            };
+        }));
+        
+        res.json(enrichedStudents);
+    } catch (e) {
+        console.error('Error obteniendo estudiantes:', e);
+        res.status(500).json({ message: 'Error obteniendo estudiantes' });
+    }
+};
+
+// 6. DELETE
 exports.deleteUser = async (req, res) => {
     try {
         await User.findByIdAndDelete(req.params.id);
