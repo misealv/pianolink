@@ -7,11 +7,11 @@ const globalConfigSchema = new mongoose.Schema({
     
     // Tracking Pixels (Facebook Pixel & Google Analytics)
     trackingScripts: {
-        facebookPixel: { type: String, default: "" }, // Script completo de Facebook Pixel
-        googleAnalytics: { type: String, default: "" } // Script completo de Google Analytics
+        facebookPixel: { type: String, default: "" },
+        googleAnalytics: { type: String, default: "" }
     },
     
-    // Google Calendar API (Para programar demos automáticamente)
+    // Google Calendar API
     googleCalendar: {
         clientId: { type: String, default: "" },
         clientSecret: { type: String, default: "" },
@@ -19,8 +19,77 @@ const globalConfigSchema = new mongoose.Schema({
         refreshToken: { type: String, default: "" }
     },
     
-    // Configuración extra (por si quieres agregar más cosas luego)
+    // ==================== PRECIOS REGIONALES ====================
+    regionalPricing: {
+        // Precio del Welcome Kit por región
+        welcomeKit: [{
+            regionCode: { type: String },  // 'CL', 'AR', 'ES', 'MX', 'US', 'DEFAULT'
+            price: { type: Number },
+            currency: { type: String },
+            includesShipping: { type: Boolean, default: true },
+            shippingDays: { type: String }  // '3-5 días hábiles'
+        }],
+        
+        // Membresía mensual del ALUMNO (4 clases)
+        studentMembership: [{
+            regionCode: { type: String },
+            price: { type: Number },
+            currency: { type: String },
+            classesIncluded: { type: Number, default: 4 }
+        }],
+        
+        // Suscripción del PROFESOR
+        teacherSubscription: {
+            regular: { type: Number, default: 20 },       // USD
+            founder: { type: Number, default: 10 },       // USD (programa fundadores)
+            currency: { type: String, default: 'USD' }
+        },
+        
+        // Comisiones
+        platformCommission: { type: Number, default: 20 },  // % que retiene PianoLink
+        teacherCommission: { type: Number, default: 80 }    // % que gana el profesor
+    },
+    
+    // ==================== POLÍTICAS ====================
+    policies: {
+        // Cancelación de clase
+        cancellation: {
+            freeHoursBefore: { type: Number, default: 24 },  // Cancelar gratis hasta 24h antes
+            lateCancelPenalty: { type: Number, default: 50 } // % de penalización si cancela tarde
+        },
+        
+        // No-show
+        noShow: {
+            studentPenalty: { type: String, default: 'lose_class' },  // Pierde la clase
+            teacherPenalty: { type: String, default: 'free_class' },  // Clase gratis para alumno
+            teacherStrikesBeforeSuspension: { type: Number, default: 3 }
+        },
+        
+        // Retiros
+        withdrawal: {
+            minimumAmount: { type: Number, default: 10 },  // USD mínimo para retirar
+            processingDays: { type: Number, default: 5 }   // Días para procesar
+        }
+    },
+    
+    // Configuración extra
     maintenanceMode: { type: Boolean, default: false }
 }, { timestamps: true });
+
+// Método: Obtener precio para una región
+globalConfigSchema.methods.getPriceForRegion = function(priceType, regionCode) {
+    const pricing = this.regionalPricing[priceType];
+    if (!pricing || !Array.isArray(pricing)) return null;
+    
+    // Buscar precio específico de la región
+    let price = pricing.find(p => p.regionCode === regionCode);
+    
+    // Si no existe, buscar DEFAULT
+    if (!price) {
+        price = pricing.find(p => p.regionCode === 'DEFAULT');
+    }
+    
+    return price || null;
+};
 
 module.exports = mongoose.model('GlobalConfig', globalConfigSchema);
