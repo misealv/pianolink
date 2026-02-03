@@ -1,0 +1,361 @@
+/**
+ * routes/payment.js
+ * Rutas para generar links de pago de PayPal
+ */
+
+const express = require('express');
+const router = express.Router();
+const fetch = require('node-fetch');
+const User = require('../models/User');
+const { protect } = require('../middleware/authMiddleware');
+
+// Obtener access token de PayPal
+async function getPayPalAccessToken() {
+    const auth = Buffer.from(
+        `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+    ).toString('base64');
+
+    const baseUrl = process.env.PAYPAL_MODE === 'live'
+        ? 'https://api-m.paypal.com'
+        : 'https://api-m.sandbox.paypal.com';
+
+    const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'grant_type=client_credentials'
+    });
+
+    const data = await response.json();
+    return data.access_token;
+}
+
+// ============================================
+// 1. KIT DE BIENVENIDA (Pago único)
+// ============================================
+router.post('/create-kit-payment', async (req, res) => {
+    try {
+        const { email, name } = req.body;
+
+        if (!email || !name) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Email y nombre son requeridos' 
+            });
+        }
+
+        const accessToken = await getPayPalAccessToken();
+        const baseUrl = process.env.PAYPAL_MODE === 'live'
+            ? 'https://api-m.paypal.com'
+            : 'https://api-m.sandbox.paypal.com';
+
+        // Crear orden de pago único
+        const orderData = {
+            intent: 'CAPTURE',
+            purchase_units: [{
+                reference_id: `kit_${Date.now()}`,
+                description: 'Kit de Bienvenida PianoLink - Cable MIDI + Setup + Clase prueba',
+                custom_id: email, // Para identificar al usuario
+                amount: {
+                    currency_code: 'USD',
+                    value: '15.00',
+                    breakdown: {
+                        item_total: {
+                            currency_code: 'USD',
+                            value: '15.00'
+                        }
+                    }
+                },
+                items: [{
+                    name: 'Kit de Bienvenida PianoLink',
+                    description: 'Cable MIDI + Sesión setup + Clase prueba 30min',
+                    unit_amount: {
+                        currency_code: 'USD',
+                        value: '15.00'
+                    },
+                    quantity: '1',
+                    category: 'DIGITAL_GOODS'
+                }]
+            }],
+            application_context: {
+                brand_name: 'PianoLink',
+                locale: 'es-AR',
+                user_action: 'PAY_NOW',
+                return_url: `${process.env.FRONTEND_URL}/kit-success?email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
+                cancel_url: `${process.env.FRONTEND_URL}/kit-bienvenida`
+            }
+        };
+
+        const response = await fetch(`${baseUrl}/v2/checkout/orders`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+
+        const order = await response.json();
+
+        if (order.id) {
+            const approveLink = order.links?.find(link => link.rel === 'approve')?.href;
+            res.json({
+                success: true,
+                orderId: order.id,
+                approveLink: approveLink
+            });
+        } else {
+            console.error('[PayPal] Error creando orden:', order);
+            res.status(500).json({ 
+                success: false, 
+                error: 'Error creando orden de pago' 
+            });
+        }
+    } catch (error) {
+        console.error('[PayPal] Error en create-kit-payment:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Verificar pago del kit y crear usuario
+router.post('/verify-kit-payment', async (req, res) => {
+    try {
+        const { orderId, email, name } = req.body;
+
+        if (!orderId || !email || !name) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Datos incompletos' 
+            });
+        }
+
+        const accessToken = await getPayPalAccessToken();
+        const baseUrl = process.env.PAYPAL_MODE === 'live'
+            ? 'https://api-m.paypal.com'
+            : 'https://api-m.sandbox.paypal.com';
+
+        // Verificar la orden en PayPal
+        const response = await fetch(`${baseUrl}/v2/checkout/orders/${orderId}`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        const order = await response.json();
+
+        if (order.status === 'COMPLETED') {
+            // Verificar si el usuario ya existe
+            let user = await User.findOne({ email });
+
+            if (!user) {
+                // Crear nuevo usuario
+                const [firstName, ...lastNameParts] = name.split(' ');
+                const lastName = lastNameParts.join(' ') || firstName;
+
+                user = await User.create({
+                    name: firstName,
+                    lastName: lastName,
+                    email: email,
+                    password: Math.random().toString(36).slice(-8), // Password temporal
+                    role: 'student',
+                    kitPurchased: true,
+                    kitPurchaseDate: new Date(),
+                    paypalOrderId: orderId
+                });
+
+                // TODO: Enviar email con instrucciones y password temporal
+                console.log(`[Kit] Usuario creado: ${user.email}`);
+            } else {
+                // Usuario ya existe, actualizar flag de kit
+                user.kitPurchased = true;
+                user.kitPurchaseDate = new Date();
+                user.paypalOrderId = orderId;
+                await user.save();
+            }
+
+            res.json({
+                success: true,
+                user: {
+                    id: user._id,
+                    email: user.email,
+                    name: `${user.name} ${user.lastName}`,
+                    kitPurchased: true
+                }
+            });
+        } else {
+            res.status(400).json({ 
+                success: false, 
+                error: 'Pago no completado' 
+            });
+        }
+    } catch (error) {
+        console.error('[PayPal] Error en verify-kit-payment:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// ============================================
+// 2. MEMBRESÍA PROFESOR FUNDADOR
+// ============================================
+router.post('/create-teacher-subscription', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo profesores pueden acceder' 
+            });
+        }
+
+        // Verificar si es profesor fundador
+        if (!user.isFounder) {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo profesores fundadores pueden acceder a esta membresía' 
+            });
+        }
+
+        const accessToken = await getPayPalAccessToken();
+        const baseUrl = process.env.PAYPAL_MODE === 'live'
+            ? 'https://api-m.paypal.com'
+            : 'https://api-m.sandbox.paypal.com';
+
+        const subscriptionData = {
+            plan_id: process.env.PAYPAL_PLAN_TEACHER,
+            subscriber: {
+                email_address: user.email,
+                name: {
+                    given_name: user.name,
+                    surname: user.lastName
+                }
+            },
+            application_context: {
+                brand_name: 'PianoLink',
+                locale: 'es-AR',
+                shipping_preference: 'NO_SHIPPING',
+                user_action: 'SUBSCRIBE_NOW',
+                return_url: `${process.env.FRONTEND_URL}/teacher-dashboard?subscription=success`,
+                cancel_url: `${process.env.FRONTEND_URL}/teacher-dashboard?subscription=cancelled`
+            },
+            custom_id: `teacher_${userId}`
+        };
+
+        const response = await fetch(`${baseUrl}/v1/billing/subscriptions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(subscriptionData)
+        });
+
+        const subscription = await response.json();
+
+        if (subscription.id) {
+            const approveLink = subscription.links?.find(link => link.rel === 'approve')?.href;
+            res.json({
+                success: true,
+                subscriptionId: subscription.id,
+                approveLink: approveLink
+            });
+        } else {
+            console.error('[PayPal] Error creando suscripción profesor:', subscription);
+            res.status(500).json({ 
+                success: false, 
+                error: 'Error creando suscripción' 
+            });
+        }
+    } catch (error) {
+        console.error('[PayPal] Error en create-teacher-subscription:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// ============================================
+// 3. MEMBRESÍA CLASES DE PIANO (Alumno)
+// ============================================
+router.post('/create-student-subscription', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'student') {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo alumnos pueden acceder' 
+            });
+        }
+
+        const accessToken = await getPayPalAccessToken();
+        const baseUrl = process.env.PAYPAL_MODE === 'live'
+            ? 'https://api-m.paypal.com'
+            : 'https://api-m.sandbox.paypal.com';
+
+        const subscriptionData = {
+            plan_id: process.env.PAYPAL_PLAN_STUDENT,
+            subscriber: {
+                email_address: user.email,
+                name: {
+                    given_name: user.name,
+                    surname: user.lastName
+                }
+            },
+            application_context: {
+                brand_name: 'PianoLink',
+                locale: 'es-AR',
+                shipping_preference: 'NO_SHIPPING',
+                user_action: 'SUBSCRIBE_NOW',
+                return_url: `${process.env.FRONTEND_URL}/student-dashboard?subscription=success`,
+                cancel_url: `${process.env.FRONTEND_URL}/student-dashboard?subscription=cancelled`
+            },
+            custom_id: `student_${userId}`
+        };
+
+        const response = await fetch(`${baseUrl}/v1/billing/subscriptions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(subscriptionData)
+        });
+
+        const subscription = await response.json();
+
+        if (subscription.id) {
+            const approveLink = subscription.links?.find(link => link.rel === 'approve')?.href;
+            res.json({
+                success: true,
+                subscriptionId: subscription.id,
+                approveLink: approveLink
+            });
+        } else {
+            console.error('[PayPal] Error creando suscripción alumno:', subscription);
+            res.status(500).json({ 
+                success: false, 
+                error: 'Error creando suscripción' 
+            });
+        }
+    } catch (error) {
+        console.error('[PayPal] Error en create-student-subscription:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+module.exports = router;

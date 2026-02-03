@@ -20,11 +20,28 @@ const userSchema = mongoose.Schema({
     default: false 
   },
 
+  // Profesor fundador
+  isFounder: {
+    type: Boolean,
+    default: false
+  },
+
+  // Kit de bienvenida
+  kitPurchased: {
+    type: Boolean,
+    default: false
+  },
+  kitPurchaseDate: {
+    type: Date
+  },
+  paypalOrderId: {
+    type: String
+  },
+
   slug: { type: String, unique: true, sparse: true },
 
   // Marca personal
   branding: {
-    // ✅ PÉGALA AQUÍ ADENTRO:
     country: { type: String, default: '🏳️ Internacional' },
     
     logoUrl: { type: String, default: '' },
@@ -36,6 +53,7 @@ const userSchema = mongoose.Schema({
       panel: { type: String, default: '#262626' }
     }
   },
+  lastName: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
 
