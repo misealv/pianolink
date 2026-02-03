@@ -6,14 +6,98 @@ const userSchema = mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  whatsapp: { type: String, default: '' },
+  country: { type: String, default: '' },
+  timezone: { type: String, default: 'America/Santiago' },
+  
   role: { 
     type: String, 
-    enum: ['admin', 'teacher', 'student'], 
+    enum: ['admin', 'teacher', 'student', 'client'], 
     default: 'teacher' 
   },
   
-  // ❌ BORRA ESTA LÍNEA DE AQUÍ (Línea 14):
-  // country: { type: String, default: '🏳️ Internacional' },
+  // ==================== DATOS DE PROFESOR ====================
+  teacherData: {
+    // Estado de suscripción
+    subscriptionStatus: {
+      type: String,
+      enum: ['trial', 'active', 'expired', 'cancelled'],
+      default: 'trial'
+    },
+    subscriptionExpiresAt: { type: Date },
+    
+    // Ganancias (por clases a alumnos de plataforma)
+    earnings: {
+      pending: { type: Number, default: 0 },    // Por cobrar
+      paid: { type: Number, default: 0 },        // Ya pagado
+      totalClasses: { type: Number, default: 0 } // Clases completadas
+    },
+    
+    // Comisión que gana (default 80%)
+    commissionPercent: { type: Number, default: 80 },
+    
+    // PayPal para recibir pagos
+    paypalEmail: { type: String, default: '' }
+  },
+  
+  // ==================== DATOS DE CLIENTE ====================
+  clientData: {
+    // Tipo de cliente
+    accountType: {
+      type: String,
+      enum: ['individual', 'guardian', 'organization'],
+      default: 'individual'
+    },
+    
+    // Estudiantes que gestiona (hijos/dependientes)
+    managedStudents: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }],
+    
+    // Info de facturación
+    billingEmail: { type: String, default: '' }
+  },
+  
+  // ==================== DATOS DE ALUMNO ====================
+  studentData: {
+    // De dónde viene el alumno
+    source: {
+      type: String,
+      enum: ['platform', 'invited'],  // plataforma o invitado por profesor
+      default: 'platform'
+    },
+    
+    // Quien paga por este alumno (puede ser él mismo o un apoderado)
+    accountHolder: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    
+    // Profesor asignado
+    assignedTeacher: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    
+    // Nivel e instrumento
+    level: {
+      type: String,
+      enum: ['beginner', 'intermediate', 'advanced'],
+      default: 'beginner'
+    },
+    instrument: { type: String, default: 'piano' },
+    age: { type: Number }
+  },
+  
+  // ==================== LEAD DE ORIGEN ====================
+  convertedFromLead: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Lead',
+    default: null
+  },
 
   isFoundingMember: { 
     type: Boolean, 

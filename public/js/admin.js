@@ -107,6 +107,9 @@ async function loadDashboard() {
 }
 
 // ==================== LEADS ====================
+let currentTypeFilter = 'all';
+let currentStatusFilter = 'all';
+
 async function loadLeads() {
     try {
         const res = await fetch('/api/leads/export');
@@ -127,19 +130,63 @@ async function loadLeads() {
             badge.style.display = newCount > 0 ? 'block' : 'none';
         }
         
-        renderLeadsTable(allLeadsData);
+        applyLeadFilters();
     } catch (error) {
         console.error('Error loading leads:', error);
         document.getElementById('leads-table-body').innerHTML = 
-            '<tr><td colspan="8" style="text-align:center; padding:40px; color:#ff4444;">Error al cargar leads</td></tr>';
+            '<tr><td colspan="9" style="text-align:center; padding:40px; color:#ff4444;">Error al cargar leads</td></tr>';
     }
+}
+
+function applyLeadFilters() {
+    let filtered = [...allLeadsData];
+    
+    // Filtrar por tipo
+    if (currentTypeFilter !== 'all') {
+        filtered = filtered.filter(l => (l.type || 'teacher') === currentTypeFilter);
+    }
+    
+    // Filtrar por estado
+    if (currentStatusFilter !== 'all') {
+        filtered = filtered.filter(l => l.status === currentStatusFilter);
+    }
+    
+    // Filtrar por búsqueda
+    const query = document.getElementById('search-leads')?.value?.toLowerCase() || '';
+    if (query) {
+        filtered = filtered.filter(l => 
+            l.name.toLowerCase().includes(query) ||
+            l.email.toLowerCase().includes(query) ||
+            l.whatsapp.includes(query)
+        );
+    }
+    
+    renderLeadsTable(filtered);
+}
+
+function filterLeads() {
+    currentTypeFilter = document.getElementById('filter-lead-type')?.value || 'all';
+    applyLeadFilters();
+}
+
+function filterLeadsByStatus(status) {
+    currentStatusFilter = status;
+    
+    document.querySelectorAll('#module-leads .filter-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`#module-leads [data-filter="${status}"]`)?.classList.add('active');
+    
+    applyLeadFilters();
+}
+
+function searchLeads() {
+    applyLeadFilters();
 }
 
 function renderLeadsTable(leads) {
     const tbody = document.getElementById('leads-table-body');
     
     if (!leads || leads.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:#666;">No hay leads registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:40px; color:#666;">No hay leads registrados</td></tr>';
         return;
     }
     
@@ -153,6 +200,20 @@ function renderLeadsTable(leads) {
             'rejected': 'Rechazado'
         }[lead.status] || lead.status;
         
+        const leadType = lead.type || 'teacher';
+        const typeIcon = leadType === 'teacher' ? '👨‍🏫' : '👤';
+        const typeLabel = leadType === 'teacher' ? 'Profesor' : 'Cliente';
+        const typeClass = leadType === 'teacher' ? 'type-teacher' : 'type-client';
+        
+        // Info adicional para clientes
+        let clientInfo = '';
+        if (leadType === 'client' && lead.clientType) {
+            const benefCount = lead.beneficiaries?.length || 0;
+            if (lead.clientType === 'guardian' && benefCount > 0) {
+                clientInfo = `<span style="color:#888;font-size:11px;display:block;">👶 ${benefCount} beneficiario${benefCount > 1 ? 's' : ''}</span>`;
+            }
+        }
+        
         const source = lead.utmSource || lead.source || 'landing';
         const date = new Date(lead.createdAt).toLocaleDateString('es-ES');
         
@@ -162,7 +223,15 @@ function renderLeadsTable(leads) {
         
         return `
             <tr>
-                <td><strong style="color:#fff;">${lead.name}</strong></td>
+                <td>
+                    <span class="lead-type-badge ${typeClass}" title="${typeLabel}">
+                        ${typeIcon}
+                    </span>
+                </td>
+                <td>
+                    <strong style="color:#fff;">${lead.name}</strong>
+                    ${clientInfo}
+                </td>
                 <td style="color:#aaa;">${lead.email}</td>
                 <td>
                     <a href="${whatsappLink}" target="_blank" class="whatsapp-link">
@@ -346,12 +415,121 @@ async function deleteLead(leadId, leadName) {
 
 // ==================== CREAR LEAD ====================
 function openCreateLeadModal() {
-    document.getElementById('create-lead-form').reset();
+    const form = document.getElementById('create-lead-form');
+    if (form) form.reset();
+    
+    // Resetear a profesor por defecto
+    const teacherRadio = document.querySelector('input[name="lead-type"][value="teacher"]');
+    if (teacherRadio) teacherRadio.checked = true;
+    
+    // Resetear tipo de cliente a adulto
+    const adultRadio = document.querySelector('input[name="client-type"][value="adult_learner"]');
+    if (adultRadio) adultRadio.checked = true;
+    
+    // Mostrar campos de profesor
+    toggleLeadTypeFields();
+    
     openModal('create-lead-modal');
+}
+
+// ==================== LEAD TYPE HANDLING ====================
+function toggleLeadTypeFields() {
+    const leadType = document.querySelector('input[name="lead-type"]:checked')?.value || 'teacher';
+    const clientFields = document.getElementById('client-fields');
+    const teacherFields = document.getElementById('teacher-fields');
+    
+    if (leadType === 'teacher') {
+        if (clientFields) clientFields.style.display = 'none';
+        if (teacherFields) teacherFields.style.display = 'block';
+    } else {
+        if (clientFields) clientFields.style.display = 'block';
+        if (teacherFields) teacherFields.style.display = 'none';
+    }
+}
+
+function toggleClientType() {
+    const clientType = document.querySelector('input[name="client-type"]:checked')?.value;
+    const beneficiariesSection = document.getElementById('beneficiaries-section');
+    
+    if (clientType === 'guardian' && beneficiariesSection) {
+        beneficiariesSection.style.display = 'block';
+    } else if (beneficiariesSection) {
+        beneficiariesSection.style.display = 'none';
+    }
+}
+
+function addBeneficiary() {
+    const container = document.getElementById('beneficiaries-container');
+    if (!container) return;
+    
+    const newRow = document.createElement('div');
+    newRow.className = 'beneficiary-row';
+    newRow.style.cssText = 'display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:10px;';
+    newRow.innerHTML = `
+        <div>
+            <label style="font-size:11px; color:var(--text-muted);">Nombre</label>
+            <input type="text" class="beneficiary-name" placeholder="Nombre del alumno">
+        </div>
+        <div>
+            <label style="font-size:11px; color:var(--text-muted);">Edad</label>
+            <input type="number" class="beneficiary-age" placeholder="Edad" min="3" max="99">
+        </div>
+        <div>
+            <label style="font-size:11px; color:var(--text-muted);">Nivel</label>
+            <select class="beneficiary-level">
+                <option value="beginner">Principiante</option>
+                <option value="intermediate">Intermedio</option>
+                <option value="advanced">Avanzado</option>
+            </select>
+        </div>
+        <button type="button" class="btn btn-small" onclick="removeBeneficiary(this)" style="padding:8px; background:rgba(255,82,82,0.2); color:#ff5252;">✕</button>
+    `;
+    container.appendChild(newRow);
+}
+
+function removeBeneficiary(btn) {
+    const row = btn.closest('.beneficiary-row');
+    const container = document.getElementById('beneficiaries-container');
+    // No eliminar si es el único
+    if (container && container.querySelectorAll('.beneficiary-row').length > 1) {
+        row.remove();
+    } else {
+        showNotification('Debe haber al menos un beneficiario', 'warning');
+    }
+}
+
+function collectBeneficiaries() {
+    const container = document.getElementById('beneficiaries-container');
+    if (!container) return [];
+    
+    const rows = container.querySelectorAll('.beneficiary-row');
+    const beneficiaries = [];
+    
+    rows.forEach((row) => {
+        const name = row.querySelector('.beneficiary-name')?.value?.trim();
+        const age = row.querySelector('.beneficiary-age')?.value;
+        const level = row.querySelector('.beneficiary-level')?.value;
+        
+        if (name) {
+            beneficiaries.push({
+                name,
+                age: age ? parseInt(age) : null,
+                relationship: 'child',
+                level: level || 'beginner',
+                instrument: 'piano'
+            });
+        }
+    });
+    
+    return beneficiaries;
 }
 
 async function createLead(e) {
     e.preventDefault();
+    
+    const leadType = document.querySelector('input[name="lead-type"]:checked')?.value || 'teacher';
+    const clientType = leadType === 'client' ? 
+        (document.querySelector('input[name="client-type"]:checked')?.value || 'adult_learner') : null;
     
     const formData = {
         name: document.getElementById('new-lead-name').value.trim(),
@@ -359,9 +537,16 @@ async function createLead(e) {
         whatsapp: document.getElementById('new-lead-whatsapp').value.trim(),
         background: document.getElementById('new-lead-background').value.trim(),
         status: document.getElementById('new-lead-status').value,
+        type: leadType,
+        clientType: clientType,
         utmSource: 'manual',
         isManual: true
     };
+    
+    // Agregar beneficiarios si es apoderado
+    if (leadType === 'client' && clientType === 'guardian') {
+        formData.beneficiaries = collectBeneficiaries();
+    }
     
     try {
         const res = await fetch('/api/leads', {
@@ -372,6 +557,7 @@ async function createLead(e) {
         
         if (res.ok) {
             closeModal('create-lead-modal');
+            document.getElementById('create-lead-form')?.reset();
             loadLeads();
             showNotification('Lead creado exitosamente', 'success');
         } else {

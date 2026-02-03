@@ -1,6 +1,6 @@
 {
   "name": "pianolink",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "description": "Plataforma de enseñanza musical en tiempo real con MIDI sobre WebSockets",
   "main": "server.js",
   "engines": {

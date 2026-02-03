@@ -1,6 +1,10 @@
 /**
  * models/Lead.js
- * Modelo para captura de leads (profesores interesados)
+ * Modelo para captura de leads (profesores y clientes)
+ * 
+ * Tipos de Lead:
+ * - teacher: Profesor que quiere usar la plataforma (paga suscripción)
+ * - client: Cliente que quiere clases (paga por clases)
  * 
  * Pipeline de conversión:
  * new → contacted → qualified → converted → user
@@ -8,7 +12,38 @@
 const mongoose = require('mongoose');
 
 const leadSchema = mongoose.Schema({
-    // Datos de contacto
+    // ==================== TIPO DE LEAD ====================
+    type: {
+        type: String,
+        enum: ['teacher', 'client'],
+        default: 'teacher'
+    },
+    
+    // Si es cliente, qué tipo
+    clientType: {
+        type: String,
+        enum: ['adult_learner', 'guardian', null],  // adulto que estudia | apoderado
+        default: null
+    },
+    
+    // Beneficiarios (quiénes tomarán las clases)
+    beneficiaries: [{
+        name: { type: String, required: true },
+        age: { type: Number },
+        relationship: {
+            type: String,
+            enum: ['self', 'child', 'other'],
+            default: 'self'
+        },
+        level: {
+            type: String,
+            enum: ['beginner', 'intermediate', 'advanced'],
+            default: 'beginner'
+        },
+        instrument: { type: String, default: 'piano' }
+    }],
+    
+    // ==================== DATOS DE CONTACTO ====================
     name: { 
         type: String, 
         required: [true, 'El nombre es requerido'],

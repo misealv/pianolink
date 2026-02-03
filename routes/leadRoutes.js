@@ -14,7 +14,12 @@ const { detectCountryFromPhone } = require('../utils/timezoneHelper');
  */
 router.post('/', async (req, res) => {
     try {
-        const { name, email, whatsapp, background, utmSource, utmMedium, utmCampaign, notes, isManual, trackingData, country, timezone, status } = req.body;
+        const { 
+            name, email, whatsapp, background, 
+            utmSource, utmMedium, utmCampaign, notes, 
+            isManual, trackingData, country, timezone, status,
+            type, clientType, beneficiaries // Nuevos campos
+        } = req.body;
         
         // Validación básica
         if (!name || !email || !whatsapp) {
@@ -35,6 +40,9 @@ router.post('/', async (req, res) => {
             if (country) existingLead.country = country;
             if (timezone) existingLead.timezone = timezone;
             if (status) existingLead.status = status;
+            if (type) existingLead.type = type;
+            if (clientType) existingLead.clientType = clientType;
+            if (beneficiaries) existingLead.beneficiaries = beneficiaries;
             
             // Actualizar tracking data si se proporciona
             if (trackingData) {
@@ -47,7 +55,7 @@ router.post('/', async (req, res) => {
             
             await existingLead.save();
             
-            console.log(`[Lead] 📧 Lead existente actualizado: ${email}`);
+            console.log(`[Lead] 📧 Lead existente actualizado: ${email} (type: ${type || 'teacher'})`);
             
             return res.status(200).json({
                 success: true,
@@ -84,7 +92,10 @@ router.post('/', async (req, res) => {
             utmSource: utmSource || '',
             utmMedium: utmMedium || '',
             utmCampaign: utmCampaign || '',
-            notes: notes ? notes.trim() : ''
+            notes: notes ? notes.trim() : '',
+            type: type || 'teacher',
+            clientType: type === 'client' ? (clientType || 'adult_learner') : null,
+            beneficiaries: type === 'client' && beneficiaries ? beneficiaries : []
         };
         
         // Si se proporciona país y timezone desde el formulario (manual), usarlos
@@ -127,13 +138,16 @@ router.post('/', async (req, res) => {
         
         const lead = await Lead.create(leadData);
         
-        console.log(`[Lead] ✅ Nuevo lead registrado${isManual ? ' (manual)' : ''}: ${name} (${email})`);
+        const leadTypeLabel = leadData.type === 'teacher' ? '👨‍🏫 Profesor' : '👤 Cliente';
+        console.log(`[Lead] ✅ Nuevo lead ${leadTypeLabel}${isManual ? ' (manual)' : ''}: ${name} (${email})`);
         
         res.status(201).json({
             success: true,
             message: isManual 
                 ? 'Lead registrado exitosamente.' 
-                : 'Postulación recibida. Revisaremos tu perfil y te contactaremos en 48 horas.',
+                : leadData.type === 'teacher' 
+                    ? 'Postulación recibida. Revisaremos tu perfil y te contactaremos en 48 horas.'
+                    : '¡Gracias por tu interés! Te contactaremos pronto para agendar tu primera clase.',
             leadId: lead._id
         });
         

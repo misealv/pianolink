@@ -6,8 +6,8 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>PianoLink | Admin Panel v4.1</title>
-    <link rel="stylesheet" href="/css/admin.css?v=4.1">
+    <title>PianoLink | Admin Panel v4.2</title>
+    <link rel="stylesheet" href="/css/admin.css?v=4.2">
 </head>
 <body>
 <div class="admin-layout">
@@ -139,11 +139,18 @@
                 <!-- Filters -->
                 <div class="filters-bar">
                     <div class="filter-group">
-                        <button class="filter-btn active" data-filter="all" onclick="filterLeads('all')">Todos</button>
-                        <button class="filter-btn" data-filter="new" onclick="filterLeads('new')">Nuevos</button>
-                        <button class="filter-btn" data-filter="contacted" onclick="filterLeads('contacted')">Contactados</button>
-                        <button class="filter-btn" data-filter="qualified" onclick="filterLeads('qualified')">Calificados</button>
-                        <button class="filter-btn" data-filter="converted" onclick="filterLeads('converted')">Convertidos</button>
+                        <!-- Filtro por TIPO de lead -->
+                        <select id="filter-lead-type" onchange="filterLeads()" style="padding:8px 12px; border-radius:6px; background:var(--bg-dark); border:1px solid var(--border-color); color:var(--text-primary);">
+                            <option value="all">📋 Todos los tipos</option>
+                            <option value="teacher">👨‍🏫 Profesores</option>
+                            <option value="client">👤 Clientes</option>
+                        </select>
+                        <!-- Filtro por ESTADO -->
+                        <button class="filter-btn active" data-filter="all" onclick="filterLeadsByStatus('all')">Todos</button>
+                        <button class="filter-btn" data-filter="new" onclick="filterLeadsByStatus('new')">Nuevos</button>
+                        <button class="filter-btn" data-filter="contacted" onclick="filterLeadsByStatus('contacted')">Contactados</button>
+                        <button class="filter-btn" data-filter="qualified" onclick="filterLeadsByStatus('qualified')">Calificados</button>
+                        <button class="filter-btn" data-filter="converted" onclick="filterLeadsByStatus('converted')">Convertidos</button>
                     </div>
                     <div class="search-box">
                         <span>🔍</span>
@@ -157,6 +164,7 @@
                     <table class="data-table">
                         <thead>
                             <tr>
+                                <th>Tipo</th>
                                 <th>Nombre</th>
                                 <th>Email</th>
                                 <th>WhatsApp</th>
@@ -168,7 +176,7 @@
                             </tr>
                         </thead>
                         <tbody id="leads-table-body">
-                            <tr><td colspan="8" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
+                            <tr><td colspan="9" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -615,36 +623,112 @@
 
 <!-- Crear Lead -->
 <div id="create-lead-modal" class="modal-overlay">
-    <div class="modal-content" style="max-width:550px;">
+    <div class="modal-content" style="max-width:600px;">
         <div class="modal-header">
-            <h3>➕ Nuevo Lead</h3>
+            <h3 id="create-lead-title">➕ Nuevo Lead</h3>
             <button class="modal-close" onclick="closeModal('create-lead-modal')">×</button>
         </div>
         <form id="create-lead-form" onsubmit="createLead(event)">
             <div class="modal-body">
+                <!-- Tipo de Lead -->
                 <div class="form-group">
-                    <label>Nombre *</label>
-                    <input type="text" id="new-lead-name" required>
+                    <label>Tipo de Lead *</label>
+                    <div style="display:flex; gap:10px;">
+                        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:12px; background:var(--bg-dark); border-radius:8px; cursor:pointer; border:2px solid var(--border-color);" id="lead-type-teacher-label">
+                            <input type="radio" name="lead-type" value="teacher" checked onchange="toggleLeadTypeFields()">
+                            <span>👨‍🏫 Profesor</span>
+                        </label>
+                        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:12px; background:var(--bg-dark); border-radius:8px; cursor:pointer; border:2px solid var(--border-color);" id="lead-type-client-label">
+                            <input type="radio" name="lead-type" value="client" onchange="toggleLeadTypeFields()">
+                            <span>👤 Cliente</span>
+                        </label>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Email *</label>
-                    <input type="email" id="new-lead-email" required>
+                
+                <!-- Datos básicos -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>Nombre *</label>
+                        <input type="text" id="new-lead-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" id="new-lead-email" required>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>WhatsApp *</label>
-                    <input type="text" id="new-lead-whatsapp" placeholder="+56912345678" required>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>WhatsApp *</label>
+                        <input type="text" id="new-lead-whatsapp" placeholder="+56912345678" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado inicial</label>
+                        <select id="new-lead-status">
+                            <option value="new">Nuevo</option>
+                            <option value="contacted">Contactado</option>
+                            <option value="qualified">Calificado</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Estado inicial</label>
-                    <select id="new-lead-status">
-                        <option value="new">Nuevo</option>
-                        <option value="contacted">Contactado</option>
-                        <option value="qualified">Calificado</option>
-                    </select>
+                
+                <!-- Campos específicos de PROFESOR -->
+                <div id="teacher-fields">
+                    <div class="form-group">
+                        <label>Trayectoria / ¿Por qué quiere ser Profesor?</label>
+                        <textarea id="new-lead-background" rows="3" placeholder="Experiencia como profesor de piano, motivación..."></textarea>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Información adicional</label>
-                    <textarea id="new-lead-background" rows="4" placeholder="¿Por qué quiere ser Profesor Fundador?"></textarea>
+                
+                <!-- Campos específicos de CLIENTE -->
+                <div id="client-fields" style="display:none;">
+                    <div class="form-group">
+                        <label>Tipo de Cliente *</label>
+                        <div style="display:flex; gap:10px;">
+                            <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px; background:var(--bg-dark); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="client-type" value="adult_learner" checked>
+                                <span>🎹 Adulto que estudia</span>
+                            </label>
+                            <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px; background:var(--bg-dark); border-radius:6px; cursor:pointer;">
+                                <input type="radio" name="client-type" value="guardian">
+                                <span>👨‍👧 Apoderado</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Beneficiarios -->
+                    <div class="form-group">
+                        <label>¿Quién tomará las clases?</label>
+                        <div id="beneficiaries-container">
+                            <div class="beneficiary-row" style="display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:10px;">
+                                <div>
+                                    <label style="font-size:11px; color:var(--text-muted);">Nombre</label>
+                                    <input type="text" class="beneficiary-name" placeholder="Nombre del alumno">
+                                </div>
+                                <div>
+                                    <label style="font-size:11px; color:var(--text-muted);">Edad</label>
+                                    <input type="number" class="beneficiary-age" placeholder="Edad" min="3" max="99">
+                                </div>
+                                <div>
+                                    <label style="font-size:11px; color:var(--text-muted);">Nivel</label>
+                                    <select class="beneficiary-level">
+                                        <option value="beginner">Principiante</option>
+                                        <option value="intermediate">Intermedio</option>
+                                        <option value="advanced">Avanzado</option>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn btn-small" onclick="removeBeneficiary(this)" style="padding:8px; background:rgba(255,82,82,0.2); color:#ff5252;">✕</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="addBeneficiary()" style="width:100%; margin-top:5px;">
+                            ➕ Agregar otro alumno
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Notas / Interés</label>
+                        <textarea id="new-lead-client-notes" rows="2" placeholder="¿Qué busca? ¿Horarios preferidos?"></textarea>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
