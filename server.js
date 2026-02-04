@@ -407,6 +407,12 @@ function encodeMidiBundle(messages) {
 
 io.on("connection", (socket) => {
     // console.log(`🔌 Cliente conectado: ${socket.id}`);
+    
+    // 📊 TELEMETRÍA: Detectar reconexión
+    if (socket.handshake.query.reconnect === 'true') {
+        performanceMetrics.reconnections++;
+        console.log(`[Telemetry] 🔄 Reconexión detectada: ${socket.id}`);
+    }
 
     // --- GESTIÓN DE SALAS ---
     
@@ -502,6 +508,9 @@ io.on("connection", (socket) => {
     socket.on("midi-binary", (buffer) => {
         const roomCode = socket.roomCode;
         if (!roomCode || !rooms[roomCode]) return;
+        
+        // 📊 TELEMETRÍA: Contar mensajes MIDI
+        performanceMetrics.midiMessagesTotal++;
         
         // VALIDACIÓN DE SEGURIDAD
         if (!validateUserInRoom(socket, roomCode)) {
@@ -1454,11 +1463,30 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 // Capturar errores no manejados (última defensa)
 process.on('uncaughtException', (error) => {
     console.error('[Critical Error] Excepción no capturada:', error);
+    // 📊 TELEMETRÍA: Registrar error
+    if (typeof performanceMetrics !== 'undefined') {
+        performanceMetrics.errors.push({
+            type: 'uncaughtException',
+            message: error.message,
+            stack: error.stack?.substring(0, 500),
+            timestamp: Date.now()
+        });
+        if (performanceMetrics.errors.length > 50) performanceMetrics.errors.shift();
+    }
     gracefulShutdown('uncaughtException');
 });
 
 process.on('unhandledRejection', (reason, promise) => {
     console.error('[Critical Error] Promesa rechazada no manejada:', reason);
+    // 📊 TELEMETRÍA: Registrar error
+    if (typeof performanceMetrics !== 'undefined') {
+        performanceMetrics.errors.push({
+            type: 'unhandledRejection',
+            message: String(reason),
+            timestamp: Date.now()
+        });
+        if (performanceMetrics.errors.length > 50) performanceMetrics.errors.shift();
+    }
     // No cerramos aquí, solo logueamos - para evitar crasheos innecesarios
 });
 
@@ -1476,6 +1504,118 @@ app.get('/health', (req, res) => {
         memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB'
     });
 });
+
+// ==================================================
+// 7b. DIAGNÓSTICO DETALLADO - Para debug de problemas de conexión
+// ==================================================
+// Métricas globales de performance
+const performanceMetrics = {
+    midiMessagesTotal: 0,
+    midiMessagesPerMinute: [],
+    peakConnections: 0,
+    reconnections: 0,
+    errors: [],
+    lastHourSnapshots: [],
+    startTime: Date.now()
+};
+
+// Guardar snapshot cada minuto (para detectar picos)
+setInterval(() => {
+    const snapshot = {
+        timestamp: Date.now(),
+        connections: io.engine?.clientsCount || 0,
+        rooms: Object.keys(rooms).length,
+        memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        cpu: process.cpuUsage(),
+        midiPerMinute: performanceMetrics.midiMessagesPerMinute.length > 0 
+            ? performanceMetrics.midiMessagesPerMinute[performanceMetrics.midiMessagesPerMinute.length - 1] 
+            : 0
+    };
+    
+    performanceMetrics.lastHourSnapshots.push(snapshot);
+    
+    // Mantener solo última hora (60 snapshots)
+    if (performanceMetrics.lastHourSnapshots.length > 60) {
+        performanceMetrics.lastHourSnapshots.shift();
+    }
+    
+    // Reset contador de MIDI por minuto
+    performanceMetrics.midiMessagesPerMinute.push(performanceMetrics.midiMessagesTotal);
+    if (performanceMetrics.midiMessagesPerMinute.length > 60) {
+        performanceMetrics.midiMessagesPerMinute.shift();
+    }
+    performanceMetrics.midiMessagesTotal = 0;
+    
+    // Actualizar peak
+    const currentConnections = io.engine?.clientsCount || 0;
+    if (currentConnections > performanceMetrics.peakConnections) {
+        performanceMetrics.peakConnections = currentConnections;
+    }
+}, 60000);
+
+app.get('/api/diagnostics', (req, res) => {
+    const mongoose = require('mongoose');
+    const os = require('os');
+    
+    // Calcular usuarios por sala
+    const roomDetails = {};
+    for (const [code, room] of Object.entries(rooms)) {
+        roomDetails[code] = {
+            users: Object.keys(room.users || {}).length,
+            isActive: room.isActive,
+            hasTeacher: Object.values(room.users || {}).some(u => u.role === 'teacher')
+        };
+    }
+    
+    res.json({
+        server: {
+            status: 'ok',
+            uptime: Math.round(process.uptime()),
+            uptimeFormatted: formatUptime(process.uptime()),
+            startedAt: new Date(performanceMetrics.startTime).toISOString(),
+            nodeVersion: process.version,
+            platform: process.platform
+        },
+        connections: {
+            current: io.engine?.clientsCount || 0,
+            peak: performanceMetrics.peakConnections,
+            reconnections: performanceMetrics.reconnections
+        },
+        rooms: {
+            total: Object.keys(rooms).length,
+            active: Object.values(rooms).filter(r => r.isActive).length,
+            details: roomDetails
+        },
+        memory: {
+            heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+            heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+            rss: Math.round(process.memoryUsage().rss / 1024 / 1024),
+            systemFree: Math.round(os.freemem() / 1024 / 1024),
+            systemTotal: Math.round(os.totalmem() / 1024 / 1024)
+        },
+        performance: {
+            midiMessagesLastHour: performanceMetrics.midiMessagesPerMinute.reduce((a, b) => a + b, 0),
+            avgMidiPerMinute: performanceMetrics.midiMessagesPerMinute.length > 0
+                ? Math.round(performanceMetrics.midiMessagesPerMinute.reduce((a, b) => a + b, 0) / performanceMetrics.midiMessagesPerMinute.length)
+                : 0,
+            snapshots: performanceMetrics.lastHourSnapshots.slice(-10) // Últimos 10 minutos
+        },
+        database: {
+            status: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+            host: mongoose.connection.host || 'N/A'
+        },
+        errors: performanceMetrics.errors.slice(-10), // Últimos 10 errores
+        timestamp: Date.now()
+    });
+});
+
+// Helper para formatear uptime
+function formatUptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${days}d ${hours}h ${mins}m`;
+}
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

@@ -14,6 +14,7 @@ import { DiagnosticSidebar } from './modules/DiagnosticSidebar.js';
 import { DraggableToolbar } from './modules/DraggableToolbar.js';
 import { PLBTranscriber } from './modules/PLBTranscriber.js';
 import { PLBHud } from './modules/PLBHud.js';
+import { ConnectionQualityMonitor } from './modules/ConnectionQualityMonitor.js';
 
 console.log('📦 [Main.js] Todos los imports completados');
 
@@ -66,6 +67,8 @@ const checkTeacherRole = function() {
 
 // 2.6. DIAGNOSTIC SIDEBAR (Fase 4.5) - CON GRACEFUL DEGRADATION
 let diagnosticSidebar = null;
+let connectionQualityMonitor = null; // Monitor de calidad de conexión
+
 const initDiagnosticSidebar = function() {
     try {
         if (checkTeacherRole()) {
@@ -76,6 +79,17 @@ const initDiagnosticSidebar = function() {
         }
     } catch (error) {
         console.error('[Main] ⚠️ Error inicializando Diagnostic Sidebar (no crítico):', error);
+    }
+};
+
+// 2.6b. CONNECTION QUALITY MONITOR - Para detectar problemas de red en tiempo real
+const initConnectionQualityMonitor = function() {
+    try {
+        // Disponible para todos los usuarios (profesor y alumno)
+        connectionQualityMonitor = new ConnectionQualityMonitor(bus, socketManager);
+        console.log('📶 [Main] Connection Quality Monitor inicializado.');
+    } catch (error) {
+        console.error('[Main] ⚠️ Error inicializando Connection Quality Monitor (no crítico):', error);
     }
 };
 
@@ -557,6 +571,13 @@ async function bootstrap() {
         console.warn('[Main] ⚠️ DiagnosticSidebar no disponible:', error);
     }
     
+    // Init monitor de calidad de conexión
+    try {
+        initConnectionQualityMonitor();
+    } catch (error) {
+        console.warn('[Main] ⚠️ ConnectionQualityMonitor no disponible:', error);
+    }
+    
     // ==================================================
     // PLB (PIANO LINK BRAIN) - INICIALIZACIÓN INMEDIATA
     // ==================================================
@@ -658,6 +679,7 @@ window.addEventListener('beforeunload', function() {
     if (audio) audio.dispose();
     if (socketManager) socketManager.dispose();
     if (diagnosticSidebar) diagnosticSidebar.dispose();
+    if (connectionQualityMonitor) connectionQualityMonitor.dispose();
 });
 
 /**
