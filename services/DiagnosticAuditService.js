@@ -151,6 +151,7 @@ class DiagnosticAuditService {
             avgLatencyMs: this._calculateAvgLatency(),
             maxLatencyMs: Math.max(...this._metrics.latencies, 0),
             midiMessagesTotal: this._metrics.midiCount,
+            midiBytesTotal: this._metrics.midiBytes || 0,
             reconnections: this._metrics.reconnections,
             peakConnections: this._metrics.peakConnections
         };
@@ -247,6 +248,16 @@ class DiagnosticAuditService {
     logMidi(type, data, meta = {}) {
         this.logEvent('midi', type, data, 'debug', meta);
         this._metrics.midiCount++;
+    }
+    
+    /**
+     * Incrementar contador MIDI (ultra-optimizado, solo estadísticas)
+     * Usado en el hot path de MIDI para no afectar latencia
+     */
+    incrementMidiCount(sizeBytes = 0) {
+        if (!this._isActive) return;
+        this._metrics.midiCount++;
+        this._metrics.midiBytes = (this._metrics.midiBytes || 0) + sizeBytes;
     }
     
     /**

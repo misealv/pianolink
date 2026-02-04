@@ -542,15 +542,9 @@ io.on("connection", (socket) => {
         // 📊 TELEMETRÍA: Contar mensajes MIDI
         performanceMetrics.midiMessagesTotal++;
         
-        // 🔍 AUDIT: Log MIDI (solo si auditoría activa - optimizado para no afectar latencia)
+        // 🔍 AUDIT: Solo incrementar contador MIDI (optimizado - no loguear cada mensaje)
         if (DiagnosticAuditService.isActive()) {
-            DiagnosticAuditService.logMidi('midi_message', {
-                bufferSize: buffer.byteLength || buffer.length
-            }, { 
-                socketId: socket.id, 
-                roomCode,
-                sizeBytes: buffer.byteLength || buffer.length
-            });
+            DiagnosticAuditService.incrementMidiCount(buffer.byteLength || buffer.length);
         }
         
         // VALIDACIÓN DE SEGURIDAD
