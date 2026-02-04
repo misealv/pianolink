@@ -141,8 +141,17 @@ router.get('/orders', protect, async (req, res) => {
             // Determinar productos incluidos
             const products = [];
             
-            // Cable MIDI
-            if (kit.cable && kit.cable.type !== 'NONE' && !kit.cable.alreadyHasCable) {
+            // Productos del kit (nuevo sistema)
+            if (kit.products?.length > 0) {
+                kit.products.forEach(p => {
+                    products.push({
+                        name: p.name,
+                        type: 'physical',
+                        priceAtPurchase: p.priceAtPurchase
+                    });
+                });
+            } else if (kit.cable && kit.cable.type !== 'NONE' && !kit.cable.alreadyHasCable) {
+                // Fallback: Cable MIDI legacy (solo si no hay productos nuevos)
                 const cableNames = {
                     'USB_B': 'Cable USB Tipo B (estándar)',
                     'MIDI_5PIN': 'Interfaz MIDI 5 pines',
@@ -153,17 +162,6 @@ router.get('/orders', protect, async (req, res) => {
                     name: cableNames[kit.cable.type] || 'Cable MIDI',
                     type: 'physical',
                     keyboardModel: kit.cable.keyboardModel
-                });
-            }
-            
-            // Productos adicionales del kit
-            if (kit.products?.length > 0) {
-                kit.products.forEach(p => {
-                    products.push({
-                        name: p.name,
-                        type: 'physical',
-                        priceAtPurchase: p.priceAtPurchase
-                    });
                 });
             }
             
