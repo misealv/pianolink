@@ -123,6 +123,8 @@ app.use('/api/admin/payments', require('./routes/adminPayments')); // Admin paym
 app.use('/api/welcome-kit', require('./routes/welcomeKitRoutes')); // Welcome Kit checkout
 app.use('/api/kit-products', require('./routes/kitProductRoutes')); // Productos del Welcome Kit
 app.use('/api/client', require('./routes/clientRoutes')); // Panel del cliente
+app.use('/api/availability', require('./routes/availabilityRoutes')); // Calendario disponibilidad
+app.use('/api/bookings', require('./routes/bookingRoutes')); // Reservas de clases
 
 // Ruta para página de éxito del Welcome Kit (sin .html)
 app.get('/welcome-kit/success', (req, res) => {
