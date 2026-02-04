@@ -38,6 +38,52 @@ class DiagnosticAuditService {
         };
         
         console.log('[DiagnosticAudit] 📊 Servicio inicializado');
+        
+        // Intentar recuperar auditoría activa al iniciar
+        this._recoverActiveAudit();
+    }
+    
+    /**
+     * Recupera una auditoría activa si el servidor reinició
+     */
+    async _recoverActiveAudit() {
+        try {
+            const activeAudit = await DiagnosticAudit.findOne({ status: 'active' }).sort({ startedAt: -1 });
+            
+            if (activeAudit) {
+                this._currentAudit = activeAudit;
+                this._isActive = true;
+                this._eventBuffer = [];
+                this._resetMetrics();
+                
+                // Recalcular métricas desde eventos existentes
+                if (activeAudit.events && activeAudit.events.length > 0) {
+                    this._metrics.eventCount = activeAudit.events.length;
+                    activeAudit.events.forEach(e => {
+                        if (e.userId) this._metrics.uniqueUsers.add(e.userId);
+                        if (e.roomCode) this._metrics.uniqueRooms.add(e.roomCode);
+                        if (e.category === 'midi') this._metrics.midiCount++;
+                        if (e.category === 'error') this._metrics.errorCount++;
+                    });
+                }
+                
+                // Reiniciar flush periódico
+                this._bufferFlushInterval = setInterval(() => {
+                    this._flushBuffer();
+                }, this._config.bufferFlushMs);
+                
+                // Registrar evento de recuperación
+                this.logEvent('system', 'audit_recovered', {
+                    auditId: activeAudit.auditId,
+                    previousEvents: activeAudit.events?.length || 0,
+                    serverRestarted: true
+                }, 'warning');
+                
+                console.log(`[DiagnosticAudit] 🔄 Auditoría recuperada: ${activeAudit.auditId} (${activeAudit.events?.length || 0} eventos previos)`);
+            }
+        } catch (err) {
+            console.error('[DiagnosticAudit] Error recuperando auditoría:', err.message);
+        }
     }
     
     /**
