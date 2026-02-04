@@ -850,6 +850,20 @@ router.post('/verify', async (req, res) => {
                 
             } else {
                 // El comprador es un apoderado (guardian)
+                // Obtener beneficiarios
+                const allBeneficiaries = checkoutData.beneficiaries || 
+                    (checkoutData.beneficiaryName ? [{ name: checkoutData.beneficiaryName, age: checkoutData.beneficiaryAge }] : []);
+                
+                // Crear array de estudiantes embebidos (SIMPLE - sin cuentas separadas)
+                const managedStudents = allBeneficiaries
+                    .filter(b => b.name)
+                    .map(b => ({
+                        name: b.name,
+                        age: b.age || null,
+                        classesRemaining: 1,  // 1 clase incluida en el kit
+                        classesUsed: 0
+                    }));
+                
                 user = await User.create({
                     name: payerName || 'Apoderado',
                     email: payerEmail.toLowerCase(),
@@ -859,55 +873,15 @@ router.post('/verify', async (req, res) => {
                     role: 'client',
                     clientData: {
                         accountType: 'guardian',
-                        managedStudents: []
+                        managedStudents: managedStudents
                     },
                     kitPurchased: true,
                     kitPurchaseDate: new Date(),
                     paypalOrderId: orderId
                 });
                 
-                console.log(`[WelcomeKit] 👤 Apoderado creado: ${user.email}`);
-                
-                // Crear cuentas para todos los beneficiarios (hijos)
-                const allBeneficiaries = checkoutData.beneficiaries || 
-                    (checkoutData.beneficiaryName ? [{ name: checkoutData.beneficiaryName, age: checkoutData.beneficiaryAge }] : []);
-                
-                const createdStudents = [];
-                for (let i = 0; i < allBeneficiaries.length; i++) {
-                    const beneficiary = allBeneficiaries[i];
-                    if (!beneficiary.name) continue;
-                    
-                    const studentPassword = Math.random().toString(36).slice(-8);
-                    const studentEmail = `student_${user._id.toString().slice(-6)}_${Date.now()}_${i}@pianolink.student`;
-                    
-                    const newStudent = await User.create({
-                        name: beneficiary.name,
-                        email: studentEmail,
-                        password: studentPassword,
-                        role: 'student',
-                        country: user.country,
-                        studentData: {
-                            source: 'platform',
-                            accountHolder: user._id,
-                            age: beneficiary.age || null,
-                            level: 'beginner'
-                        }
-                    });
-                    
-                    createdStudents.push(newStudent);
-                    user.clientData.managedStudents.push(newStudent._id);
-                    console.log(`[WelcomeKit] 👶 Estudiante creado: ${beneficiary.name}`);
-                }
-                
-                await user.save();
-                
-                // Guardar el primer estudiante como beneficiario principal
-                if (createdStudents.length > 0) {
-                    student = createdStudents[0];
-                    welcomeKit.beneficiaryId = student._id;
-                    // Guardar todos los IDs de estudiantes
-                    welcomeKit.set('_allBeneficiaryIds', createdStudents.map(s => s._id), { strict: false });
-                }
+                console.log(`[WelcomeKit] 👤 Apoderado creado: ${user.email} con ${managedStudents.length} estudiante(s)`);
+                managedStudents.forEach(s => console.log(`[WelcomeKit] 👶 Estudiante: ${s.name}`));
             }
             
             // TODO: Enviar email con credenciales al usuario
@@ -926,38 +900,18 @@ router.post('/verify', async (req, res) => {
                 user.clientData.accountType = 'guardian';
                 user.clientData.managedStudents = user.clientData.managedStudents || [];
                 
-                const createdStudents = [];
-                for (let i = 0; i < allBeneficiaries.length; i++) {
-                    const beneficiary = allBeneficiaries[i];
-                    if (!beneficiary.name) continue;
-                    
-                    const studentPassword = Math.random().toString(36).slice(-8);
-                    const studentEmail = `student_${user._id.toString().slice(-6)}_${Date.now()}_${i}@pianolink.student`;
-                    
-                    const newStudent = await User.create({
-                        name: beneficiary.name,
-                        email: studentEmail,
-                        password: studentPassword,
-                        role: 'student',
-                        country: user.country,
-                        studentData: {
-                            source: 'platform',
-                            accountHolder: user._id,
-                            age: beneficiary.age || null,
-                            level: 'beginner'
-                        }
-                    });
-                    
-                    createdStudents.push(newStudent);
-                    user.clientData.managedStudents.push(newStudent._id);
-                    console.log(`[WelcomeKit] 👶 Estudiante creado para usuario existente: ${beneficiary.name}`);
-                }
-                
-                if (createdStudents.length > 0) {
-                    student = createdStudents[0];
-                    welcomeKit.beneficiaryId = student._id;
-                    welcomeKit.set('_allBeneficiaryIds', createdStudents.map(s => s._id), { strict: false });
-                }
+                // Agregar nuevos estudiantes como subdocumentos (SIMPLE)
+                allBeneficiaries.forEach(b => {
+                    if (b.name) {
+                        user.clientData.managedStudents.push({
+                            name: b.name,
+                            age: b.age || null,
+                            classesRemaining: 1,
+                            classesUsed: 0
+                        });
+                        console.log(`[WelcomeKit] 👶 Estudiante agregado: ${b.name}`);
+                    }
+                });
             }
             
             await user.save();
@@ -1032,14 +986,13 @@ router.post('/verify', async (req, res) => {
                 'Te contactaremos por WhatsApp para coordinar'
             ];
         
-        // Obtener todos los estudiantes creados
+        // Obtener todos los estudiantes (ahora son subdocumentos embebidos)
         let allStudents = [];
         if (user && user.clientData?.managedStudents?.length > 0) {
-            const managedStudents = await User.find({ _id: { $in: user.clientData.managedStudents } });
-            allStudents = managedStudents.map(s => ({
-                id: s._id,
+            allStudents = user.clientData.managedStudents.map(s => ({
                 name: s.name,
-                email: s.email
+                age: s.age,
+                classesRemaining: s.classesRemaining || 1
             }));
         } else if (student) {
             allStudents = [{

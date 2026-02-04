@@ -49,10 +49,12 @@ const userSchema = mongoose.Schema({
       default: 'individual'
     },
     
-    // Estudiantes que gestiona (hijos/dependientes)
+    // Estudiantes que gestiona (hijos/dependientes) - embebidos, no cuentas separadas
     managedStudents: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      name: { type: String, required: true },
+      age: { type: Number },
+      classesRemaining: { type: Number, default: 1 },  // Clases disponibles
+      classesUsed: { type: Number, default: 0 }        // Clases tomadas
     }],
     
     // Info de facturación
