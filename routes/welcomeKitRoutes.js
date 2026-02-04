@@ -1080,7 +1080,8 @@ router.post('/verify', async (req, res) => {
                 status: welcomeKit.overallStatus,
                 kitType: welcomeKit.kitType,
                 products: welcomeKit.products || [],
-                shipping: hasPhysicalProducts ? welcomeKit.shipping?.address : null
+                shipping: hasPhysicalProducts ? welcomeKit.shipping?.address : null,
+                payment: welcomeKit.payment || null
             },
             user: user ? {
                 id: user._id,

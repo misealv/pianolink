@@ -291,6 +291,18 @@
                     </div>
                 </div>
                 
+                <!-- Productos del kit -->
+                <div id="products-section" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                    <h3 style="color: var(--text); margin: 0 0 15px 0; font-size: 16px;">🎁 Productos incluidos</h3>
+                    <div id="products-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                </div>
+                
+                <!-- Total pagado -->
+                <div id="total-section" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-secondary); font-size: 14px;">Total pagado</span>
+                    <strong id="total-paid" style="color: var(--success); font-size: 20px;">-</strong>
+                </div>
+                
                 <div class="whatsapp-note">
                     📱 Te contactaremos por <strong>WhatsApp</strong> cuando despachemos tu cable con el número de tracking.
                 </div>
@@ -468,6 +480,46 @@
                         // Actualizar nota de WhatsApp
                         document.querySelector('.whatsapp-note').innerHTML = 
                             '📱 Te contactaremos por <strong>WhatsApp</strong> para agendar tu sesión de Setup + Clase de prueba.';
+                    }
+                    
+                    // Mostrar productos del kit
+                    if (hasProducts && data.welcomeKit.products) {
+                        const productsSection = document.getElementById('products-section');
+                        const productsList = document.getElementById('products-list');
+                        
+                        if (productsSection && productsList) {
+                            productsSection.style.display = 'block';
+                            
+                            data.welcomeKit.products.forEach(product => {
+                                const productItem = document.createElement('div');
+                                productItem.style.cssText = 'display: flex; align-items: center; gap: 12px; background: rgba(99, 102, 241, 0.05); border-radius: 10px; padding: 12px;';
+                                
+                                // Imagen del producto (si existe)
+                                const imgHtml = product.image 
+                                    ? `<img src="${product.image}" alt="${product.name}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; background: #1a1a2e;">`
+                                    : `<div style="width: 50px; height: 50px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🔌</div>`;
+                                
+                                productItem.innerHTML = `
+                                    ${imgHtml}
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="color: var(--text); font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${product.name}</div>
+                                        <div style="color: var(--text-secondary); font-size: 12px;">Cantidad: ${product.quantity || 1}</div>
+                                    </div>
+                                    <div style="color: var(--success); font-weight: 600;">$${(product.priceAtPurchase || 0).toFixed(2)}</div>
+                                `;
+                                productsList.appendChild(productItem);
+                            });
+                        }
+                    }
+                    
+                    // Mostrar total pagado
+                    if (data.welcomeKit.payment) {
+                        const totalSection = document.getElementById('total-paid');
+                        if (totalSection) {
+                            const total = data.welcomeKit.payment.amount || data.welcomeKit.payment.total || 0;
+                            const currency = data.welcomeKit.payment.currency || 'USD';
+                            totalSection.textContent = `$${total.toFixed(2)} ${currency}`;
+                        }
                     }
                     
                     // Mostrar Magic Link si está disponible (usuarios nuevos)
