@@ -104,6 +104,11 @@ app.get('/welcome-kit/success', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'welcome-kit', 'success.html'));
 });
 
+// Ruta para Mi Kit (dashboard del cliente)
+app.get('/mi-kit', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'mi-kit.html'));
+});
+
 // ==================================================
 // TRACKING SCRIPTS ENDPOINT - Servir scripts dinámicamente
 // ==================================================
