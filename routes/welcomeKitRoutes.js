@@ -23,6 +23,7 @@ const CJConfig = require('../models/CJConfig');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const EmailService = require('../services/EmailService');
 const CJDropshipping = require('../services/CJDropshippingService');
+const { generateWelcomeKitEmail } = require('../templates/welcomeKitEmail');
 
 // ==================== HELPERS ====================
 
@@ -885,7 +886,27 @@ router.post('/verify', async (req, res) => {
                 managedStudents.forEach(s => console.log(`[WelcomeKit] 👶 Estudiante: ${s.name}`));
             }
             
-            // TODO: Enviar email con credenciales al usuario
+            // Enviar email de bienvenida
+            try {
+                const emailHtml = generateWelcomeKitEmail({
+                    clientName: user.name,
+                    clientEmail: user.email,
+                    students: user.clientData?.managedStudents || [],
+                    kitType: welcomeKit.kitType,
+                    totalPaid: welcomeKit.payment?.amount,
+                    currency: welcomeKit.payment?.currency || 'USD',
+                    orderId: orderId
+                });
+                
+                await EmailService.sendSafe({
+                    to: user.email,
+                    subject: '🎹 ¡Bienvenido a PianoLink! Tu kit está listo',
+                    html: emailHtml
+                });
+                console.log(`[WelcomeKit] 📧 Email de bienvenida enviado a: ${user.email}`);
+            } catch (emailError) {
+                console.error('[WelcomeKit] ⚠️ Error enviando email:', emailError.message);
+            }
             
         } else if (user) {
             // Usuario existente - actualizar
@@ -916,6 +937,28 @@ router.post('/verify', async (req, res) => {
             }
             
             await user.save();
+            
+            // Enviar email de bienvenida (usuario existente)
+            try {
+                const emailHtml = generateWelcomeKitEmail({
+                    clientName: user.name,
+                    clientEmail: user.email,
+                    students: user.clientData?.managedStudents || [],
+                    kitType: welcomeKit.kitType,
+                    totalPaid: welcomeKit.payment?.amount,
+                    currency: welcomeKit.payment?.currency || 'USD',
+                    orderId: orderId
+                });
+                
+                await EmailService.sendSafe({
+                    to: user.email,
+                    subject: '🎹 ¡Bienvenido a PianoLink! Tu kit está listo',
+                    html: emailHtml
+                });
+                console.log(`[WelcomeKit] 📧 Email de bienvenida enviado a: ${user.email}`);
+            } catch (emailError) {
+                console.error('[WelcomeKit] ⚠️ Error enviando email:', emailError.message);
+            }
         }
         
         // Vincular usuario al WelcomeKit
