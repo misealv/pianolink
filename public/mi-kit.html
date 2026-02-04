@@ -65,6 +65,52 @@
         }
         .status-active { background: #dcfce7; color: #166534; }
         .status-pending { background: #fef3c7; color: #92400e; }
+        
+        /* Estilos para slots de reserva */
+        .slots-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .day-group {
+            margin-bottom: 1.5rem;
+        }
+        .day-header {
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+        }
+        .slot-btn {
+            background: white;
+            border: 2px solid #e0e7ff;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .slot-btn:hover {
+            border-color: var(--primary);
+            background: #f8f9ff;
+        }
+        .slot-btn.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .booking-card {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border: 2px solid #10b981;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .modal-backdrop.show {
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
@@ -153,12 +199,75 @@
                         </a>
                     </div>
 
+                    <!-- Próximas Clases Reservadas -->
+                    <div id="upcomingBookings" class="dashboard-card d-none">
+                        <h5 class="mb-3"><i class="bi bi-calendar-check me-2"></i>Mis Clases Agendadas</h5>
+                        <div id="bookingsList"></div>
+                    </div>
+
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Modal para Agendar Clase -->
+    <div class="modal fade" id="scheduleModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--primary); color: white;">
+                    <h5 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Agendar Clase</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="selectedStudentId">
+                    <p class="text-muted mb-3">Selecciona un horario disponible para <strong id="bookingForName">tu clase</strong></p>
+                    
+                    <!-- Loading -->
+                    <div id="slotsLoading" class="text-center py-4">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2 mb-0">Cargando horarios disponibles...</p>
+                    </div>
+                    
+                    <!-- No slots -->
+                    <div id="noSlots" class="text-center py-4 d-none">
+                        <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+                        <p class="mt-2 mb-0">No hay horarios disponibles esta semana</p>
+                        <button class="btn btn-outline-primary mt-3" onclick="loadNextWeek()">
+                            Ver próxima semana
+                        </button>
+                    </div>
+                    
+                    <!-- Slots Grid -->
+                    <div id="slotsContainer" class="slots-container d-none"></div>
+                    
+                    <!-- Confirmación -->
+                    <div id="confirmSection" class="d-none mt-4 p-3 rounded" style="background: #f0f9ff; border: 2px solid var(--primary);">
+                        <h6 class="mb-2"><i class="bi bi-check-circle me-2"></i>Horario seleccionado</h6>
+                        <p id="selectedSlotInfo" class="mb-3" style="font-size: 1.1rem; font-weight: 600;"></p>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="confirmMidi">
+                            <label class="form-check-label" for="confirmMidi">
+                                Tengo mi piano/teclado MIDI listo para la clase
+                            </label>
+                        </div>
+                        
+                        <button class="btn btn-primary btn-lg w-100" id="confirmBookingBtn" onclick="confirmBooking()" disabled>
+                            <i class="bi bi-calendar-check me-2"></i>Confirmar Reserva
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let selectedSlot = null;
+        let currentTeacherId = null;
+        let currentStudentName = null;
+        let scheduleModal = null;
+        
         // Obtener datos del usuario desde localStorage o URL params
         async function loadDashboard() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -176,6 +285,7 @@
                 
                 if (userData.user) {
                     document.getElementById('userName').textContent = userData.user.name || 'Usuario';
+                    currentTeacherId = userData.teacherId || null;
                     
                     // Mostrar estudiantes si es guardian
                     if (userData.students && userData.students.length > 0) {
@@ -193,8 +303,8 @@
                                     </div>
                                     <div class="text-end">
                                         <span class="classes-badge">${student.classesRemaining || 1} clase${(student.classesRemaining || 1) > 1 ? 's' : ''}</span>
-                                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="scheduleClass('${student.name}')">
-                                            Agendar
+                                        <button class="btn btn-sm btn-primary ms-2" onclick="openScheduleModal('${student.name}', '${student._id || ''}')">
+                                            <i class="bi bi-calendar-plus"></i> Agendar
                                         </button>
                                     </div>
                                 </div>
@@ -204,7 +314,11 @@
                     } else {
                         // Es estudiante individual
                         document.getElementById('selfSection').classList.remove('d-none');
+                        document.getElementById('selfClasses').textContent = userData.user.classesRemaining || 1;
                     }
+                    
+                    // Cargar reservas existentes
+                    loadUpcomingBookings();
                     
                     document.getElementById('loading').classList.add('d-none');
                     document.getElementById('dashboardContent').classList.remove('d-none');
@@ -224,16 +338,236 @@
             document.getElementById('errorMessage').textContent = message;
         }
 
-        function scheduleClass(studentName = null) {
-            const message = studentName 
-                ? `Hola! Quiero agendar la clase de prueba para ${studentName}`
-                : 'Hola! Quiero agendar mi clase de prueba';
+        // Abrir modal de agendar
+        function openScheduleModal(studentName = null, studentId = null) {
+            currentStudentName = studentName;
+            document.getElementById('bookingForName').textContent = studentName || 'tu clase';
+            document.getElementById('selectedStudentId').value = studentId || '';
             
-            window.open(`https://wa.me/56912345678?text=${encodeURIComponent(message)}`, '_blank');
+            // Reset modal state
+            document.getElementById('slotsLoading').classList.remove('d-none');
+            document.getElementById('slotsContainer').classList.add('d-none');
+            document.getElementById('noSlots').classList.add('d-none');
+            document.getElementById('confirmSection').classList.add('d-none');
+            selectedSlot = null;
+            
+            scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+            scheduleModal.show();
+            
+            // Cargar slots disponibles
+            loadAvailableSlots();
         }
 
-        // Cargar al iniciar
-        loadDashboard();
+        // Cargar slots disponibles
+        async function loadAvailableSlots() {
+            try {
+                const today = new Date();
+                const twoWeeksLater = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+                
+                // Por ahora usar un teacherId fijo o el del kit
+                const teacherId = currentTeacherId || '507f1f77bcf86cd799439011'; // Placeholder
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                
+                const response = await fetch(`/api/availability/teacher/${teacherId}?from=${today.toISOString()}&to=${twoWeeksLater.toISOString()}&timezone=${timezone}`);
+                const slots = await response.json();
+                
+                document.getElementById('slotsLoading').classList.add('d-none');
+                
+                if (!slots || slots.length === 0) {
+                    document.getElementById('noSlots').classList.remove('d-none');
+                    return;
+                }
+                
+                renderSlots(slots);
+                
+            } catch (error) {
+                console.error('Error cargando slots:', error);
+                document.getElementById('slotsLoading').innerHTML = `
+                    <i class="bi bi-exclamation-circle text-danger" style="font-size: 2rem;"></i>
+                    <p class="mt-2 mb-0 text-danger">Error cargando horarios</p>
+                `;
+            }
+        }
+
+        // Renderizar slots agrupados por día
+        function renderSlots(slots) {
+            const container = document.getElementById('slotsContainer');
+            container.innerHTML = '';
+            
+            // Agrupar por fecha
+            const grouped = {};
+            slots.forEach(slot => {
+                const dateKey = slot.displayDate || new Date(slot.startTime).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+                if (!grouped[dateKey]) grouped[dateKey] = [];
+                grouped[dateKey].push(slot);
+            });
+            
+            // Renderizar grupos
+            Object.entries(grouped).forEach(([date, daySlots]) => {
+                const dayGroup = document.createElement('div');
+                dayGroup.className = 'day-group';
+                dayGroup.innerHTML = `
+                    <div class="day-header">
+                        <i class="bi bi-calendar3 me-2"></i>${date.charAt(0).toUpperCase() + date.slice(1)}
+                    </div>
+                    <div class="d-flex flex-wrap">
+                        ${daySlots.map(slot => `
+                            <button class="slot-btn" 
+                                    onclick="selectSlot('${slot._id}', '${slot.displayStart || new Date(slot.startTime).toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'})}', '${date}')"
+                                    data-slot-id="${slot._id}">
+                                ${slot.displayStart || new Date(slot.startTime).toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'})}
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(dayGroup);
+            });
+            
+            container.classList.remove('d-none');
+        }
+
+        // Seleccionar slot
+        function selectSlot(slotId, time, date) {
+            // Quitar selección anterior
+            document.querySelectorAll('.slot-btn').forEach(btn => btn.classList.remove('selected'));
+            
+            // Marcar nuevo
+            document.querySelector(`[data-slot-id="${slotId}"]`).classList.add('selected');
+            
+            selectedSlot = slotId;
+            document.getElementById('selectedSlotInfo').textContent = `${date} a las ${time}`;
+            document.getElementById('confirmSection').classList.remove('d-none');
+            
+            // Scroll al confirm
+            document.getElementById('confirmSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Checkbox de confirmación MIDI
+        document.getElementById('confirmMidi')?.addEventListener('change', function() {
+            document.getElementById('confirmBookingBtn').disabled = !this.checked;
+        });
+
+        // Confirmar reserva
+        async function confirmBooking() {
+            if (!selectedSlot) return;
+            
+            const btn = document.getElementById('confirmBookingBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Reservando...';
+            
+            try {
+                const token = localStorage.getItem('token');
+                const studentId = document.getElementById('selectedStudentId').value || null;
+                
+                const response = await fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        slotId: selectedSlot,
+                        studentId: studentId,
+                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    // Éxito
+                    scheduleModal.hide();
+                    showBookingSuccess(result);
+                } else {
+                    alert(result.message || 'Error al reservar');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-calendar-check me-2"></i>Confirmar Reserva';
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-calendar-check me-2"></i>Confirmar Reserva';
+            }
+        }
+
+        // Mostrar éxito de reserva
+        function showBookingSuccess(result) {
+            const container = document.querySelector('.dashboard-card:first-of-type');
+            const successAlert = document.createElement('div');
+            successAlert.className = 'alert alert-success d-flex align-items-center mb-3';
+            successAlert.innerHTML = `
+                <i class="bi bi-check-circle-fill me-2" style="font-size: 1.5rem;"></i>
+                <div>
+                    <strong>¡Clase agendada!</strong><br>
+                    Te enviamos un recordatorio antes de la clase.
+                </div>
+            `;
+            container.parentNode.insertBefore(successAlert, container);
+            
+            // Recargar reservas
+            loadUpcomingBookings();
+            
+            // Quitar alerta después de 5 seg
+            setTimeout(() => successAlert.remove(), 5000);
+        }
+
+        // Cargar próximas reservas
+        async function loadUpcomingBookings() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                
+                const response = await fetch('/api/bookings/my', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) return;
+                
+                const bookings = await response.json();
+                
+                if (bookings && bookings.length > 0) {
+                    const section = document.getElementById('upcomingBookings');
+                    const list = document.getElementById('bookingsList');
+                    
+                    list.innerHTML = bookings.map(b => `
+                        <div class="booking-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-bold">
+                                        <i class="bi bi-calendar-event me-2"></i>
+                                        ${new Date(b.scheduledStart).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                    </div>
+                                    <div class="text-muted">
+                                        <i class="bi bi-clock me-2"></i>
+                                        ${new Date(b.scheduledStart).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - 
+                                        ${new Date(b.scheduledEnd).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                </div>
+                                <span class="badge bg-success">Confirmada</span>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    section.classList.remove('d-none');
+                }
+                
+            } catch (error) {
+                console.error('Error cargando reservas:', error);
+            }
+        }
+
+        // Función legacy para compatibilidad
+        function scheduleClass(studentName = null) {
+            openScheduleModal(studentName);
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            scheduleModal = null;
+            loadDashboard();
+        });
     </script>
 </body>
 </html>
