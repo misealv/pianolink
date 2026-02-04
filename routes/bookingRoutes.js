@@ -139,7 +139,7 @@ router.get('/:id', protect, async (req, res) => {
 
 /**
  * DELETE /api/bookings/:id
- * Cancelar una reserva
+ * Cancelar una reserva (estudiante/cliente - requiere 24h anticipación)
  */
 router.delete('/:id', protect, async (req, res) => {
     try {
@@ -159,7 +159,74 @@ router.delete('/:id', protect, async (req, res) => {
             return res.status(404).json({ message: 'Reserva no encontrada' });
         }
         if (error.message === 'CANNOT_CANCEL') {
-            return res.status(400).json({ message: 'No puedes cancelar esta reserva (menos de 24h)' });
+            return res.status(400).json({ message: 'No puedes cancelar con menos de 24 horas de anticipación' });
+        }
+        
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
+ * DELETE /api/bookings/:id/teacher
+ * Cancelar una reserva (profesor - sin restricción de tiempo)
+ */
+router.delete('/:id/teacher', protect, async (req, res) => {
+    try {
+        const { reason } = req.body;
+        
+        // Verificar que es profesor
+        if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Solo profesores pueden usar esta ruta' });
+        }
+        
+        const result = await BookingService.cancelByTeacher(
+            req.params.id,
+            req.user._id,
+            reason || ''
+        );
+        
+        res.json(result);
+    } catch (error) {
+        console.error('Error cancelando reserva (profesor):', error);
+        
+        if (error.message === 'BOOKING_NOT_FOUND') {
+            return res.status(404).json({ message: 'Reserva no encontrada o no te pertenece' });
+        }
+        
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
+ * PUT /api/bookings/:id/reschedule
+ * Reagendar una reserva a otro horario (requiere 24h anticipación)
+ */
+router.put('/:id/reschedule', protect, async (req, res) => {
+    try {
+        const { newSlotId } = req.body;
+        
+        if (!newSlotId) {
+            return res.status(400).json({ message: 'Debes seleccionar un nuevo horario' });
+        }
+        
+        const result = await BookingService.rescheduleBooking(
+            req.params.id,
+            newSlotId,
+            req.user._id
+        );
+        
+        res.json(result);
+    } catch (error) {
+        console.error('Error reagendando reserva:', error);
+        
+        if (error.message === 'BOOKING_NOT_FOUND') {
+            return res.status(404).json({ message: 'Reserva no encontrada' });
+        }
+        if (error.message === 'CANNOT_RESCHEDULE_LESS_THAN_24H') {
+            return res.status(400).json({ message: 'No puedes reagendar con menos de 24 horas de anticipación' });
+        }
+        if (error.message === 'NEW_SLOT_UNAVAILABLE') {
+            return res.status(409).json({ message: 'El nuevo horario ya no está disponible' });
         }
         
         res.status(500).json({ message: error.message });

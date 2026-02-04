@@ -531,9 +531,13 @@
                     const section = document.getElementById('upcomingBookings');
                     const list = document.getElementById('bookingsList');
                     
-                    list.innerHTML = bookings.map(b => `
-                        <div class="booking-card">
-                            <div class="d-flex justify-content-between align-items-center">
+                    list.innerHTML = bookings.map(b => {
+                        const hoursUntil = (new Date(b.scheduledStart) - new Date()) / (1000 * 60 * 60);
+                        const canModify = hoursUntil >= 24;
+                        
+                        return `
+                        <div class="booking-card" data-booking-id="${b._id}">
+                            <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <div class="fw-bold">
                                         <i class="bi bi-calendar-event me-2"></i>
@@ -544,17 +548,143 @@
                                         ${new Date(b.scheduledStart).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - 
                                         ${new Date(b.scheduledEnd).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                                     </div>
+                                    ${canModify ? `
+                                        <div class="mt-2">
+                                            <button class="btn btn-sm btn-outline-warning me-1" onclick="openRescheduleModal('${b._id}', '${b.teacherId}')">
+                                                <i class="bi bi-arrow-repeat"></i> Reagendar
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="cancelBooking('${b._id}')">
+                                                <i class="bi bi-x-circle"></i> Cancelar
+                                            </button>
+                                        </div>
+                                    ` : `
+                                        <div class="mt-2">
+                                            <small class="text-muted"><i class="bi bi-info-circle"></i> No modificable (menos de 24h)</small>
+                                        </div>
+                                    `}
                                 </div>
                                 <span class="badge bg-success">Confirmada</span>
                             </div>
                         </div>
-                    `).join('');
+                    `}).join('');
                     
                     section.classList.remove('d-none');
                 }
                 
             } catch (error) {
                 console.error('Error cargando reservas:', error);
+            }
+        }
+
+        // Cancelar reserva
+        async function cancelBooking(bookingId) {
+            if (!confirm('¿Estás seguro de cancelar esta clase? Se te devolverá 1 clase a tu saldo.')) {
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/bookings/${bookingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ reason: 'Cancelado por el estudiante' })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('✅ Clase cancelada. Se ha devuelto 1 clase a tu saldo.');
+                    loadDashboard(); // Recargar todo
+                } else {
+                    alert('❌ ' + (result.message || 'Error al cancelar'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            }
+        }
+
+        // Abrir modal para reagendar
+        let rescheduleBookingId = null;
+        
+        async function openRescheduleModal(bookingId, teacherId) {
+            rescheduleBookingId = bookingId;
+            selectedSlot = null;
+            
+            // Crear modal de reagendamiento
+            const existingModal = document.getElementById('rescheduleModal');
+            if (existingModal) existingModal.remove();
+            
+            const modalHtml = `
+                <div class="modal fade" id="rescheduleModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content bg-dark text-light">
+                            <div class="modal-header border-secondary">
+                                <h5 class="modal-title"><i class="bi bi-arrow-repeat me-2"></i>Reagendar Clase</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="text-muted mb-3">Selecciona un nuevo horario disponible:</p>
+                                <div id="rescheduleSlots" class="slots-container">
+                                    <div class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status"></div>
+                                        <p class="mt-2 text-muted">Cargando horarios...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-secondary">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="button" class="btn btn-warning" id="confirmRescheduleBtn" onclick="confirmReschedule()" disabled>
+                                    <i class="bi bi-arrow-repeat me-1"></i> Confirmar Reagendamiento
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            const modal = new bootstrap.Modal(document.getElementById('rescheduleModal'));
+            modal.show();
+            
+            // Cargar slots disponibles
+            loadAvailableSlots(teacherId, 'rescheduleSlots');
+        }
+
+        // Confirmar reagendamiento
+        async function confirmReschedule() {
+            if (!selectedSlot || !rescheduleBookingId) {
+                alert('Selecciona un horario');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/bookings/${rescheduleBookingId}/reschedule`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ newSlotId: selectedSlot })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('rescheduleModal')).hide();
+                    alert('✅ Clase reagendada exitosamente');
+                    loadDashboard();
+                } else {
+                    alert('❌ ' + (result.message || 'Error al reagendar'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión');
             }
         }
 

@@ -661,7 +661,7 @@
                 container.innerHTML = bookings.map(b => {
                     const date = new Date(b.scheduledStart);
                     return `
-                        <div class="booking-item">
+                        <div class="booking-item" data-booking-id="${b._id}">
                             <div class="booking-info">
                                 <h4>${b.studentId?.name || 'Estudiante'}</h4>
                                 <span>
@@ -669,7 +669,11 @@
                                     • ⏰ ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
-                            <div class="booking-actions">
+                            <div class="booking-actions" style="display: flex; gap: 8px; align-items: center;">
+                                <button class="btn btn-sm" onclick="cancelBookingTeacher('${b._id}', '${b.studentId?.name || 'Estudiante'}')" 
+                                        style="background: #ef4444; color: white; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 11px;">
+                                    ✕ Cancelar
+                                </button>
                                 <span style="background: var(--accent-green); color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px;">
                                     ${b.status === 'confirmed' ? 'Confirmada' : b.status}
                                 </span>
@@ -680,6 +684,36 @@
 
             } catch (error) {
                 console.error('Error cargando reservas:', error);
+            }
+        }
+
+        // Cancelar reserva (profesor - sin restricción de tiempo)
+        async function cancelBookingTeacher(bookingId, studentName) {
+            const reason = prompt(`¿Por qué deseas cancelar la clase con ${studentName}?\n(El estudiante recibirá la clase de vuelta)`);
+            
+            if (reason === null) return; // Usuario canceló el prompt
+            
+            try {
+                const res = await fetch(`/api/bookings/${bookingId}/teacher`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ reason: reason || 'Cancelado por el profesor' })
+                });
+                
+                const result = await res.json();
+                
+                if (res.ok) {
+                    showToast('✓ Clase cancelada. Se devolvió 1 clase al estudiante.');
+                    loadBookings(); // Recargar lista
+                } else {
+                    showToast(result.message || 'Error al cancelar', true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error de conexión', true);
             }
         }
 
