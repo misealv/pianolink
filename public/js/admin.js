@@ -1118,28 +1118,32 @@ function toggleKitMenu(kitId) {
 
 function openShippingModal(kitId) {
     const kit = allKitsData.find(k => k._id === kitId);
-    if (!kit) return;
+    if (!kit) {
+        console.error('Kit no encontrado:', kitId);
+        showNotification('Error: Orden no encontrada', 'error');
+        return;
+    }
     
     // Guardar país para auto-complete
-    window.currentShippingCountry = kit.shipping?.address?.country || kit.country || 'CL';
+    window.currentShippingCountry = kit.country || 'CL';
     
     document.getElementById('shipping-kit-id').value = kitId;
-    document.getElementById('shipping-client-name').textContent = kit.clientId?.name || 'Cliente';
+    document.getElementById('shipping-client-name').textContent = kit.customerName || 'Cliente';
     document.getElementById('shipping-client-address').textContent = 
-        `${kit.shipping?.address?.street || ''}, ${kit.shipping?.address?.city || ''}, ${kit.shipping?.address?.country || ''}`;
+        `${kit.address || ''}, ${kit.city || ''}, ${kit.country || ''}`;
     
-    document.getElementById('shipping-status').value = kit.shipping?.status || 'processing';
-    document.getElementById('shipping-carrier').value = kit.shipping?.carrier || '';
-    document.getElementById('shipping-tracking').value = kit.shipping?.trackingNumber || '';
-    document.getElementById('shipping-url').value = kit.shipping?.trackingUrl || '';
+    document.getElementById('shipping-status').value = kit.shippingStatus || 'processing';
+    document.getElementById('shipping-carrier').value = kit.carrier || '';
+    document.getElementById('shipping-tracking').value = kit.trackingNumber || '';
+    document.getElementById('shipping-url').value = kit.trackingUrl || '';
     
     // Limpiar detección previa
     document.getElementById('tracking-detected').style.display = 'none';
     document.getElementById('delivery-range').textContent = '';
     
-    if (kit.shipping?.estimatedDelivery) {
+    if (kit.estimatedDelivery) {
         document.getElementById('shipping-estimated').value = 
-            new Date(kit.shipping.estimatedDelivery).toISOString().split('T')[0];
+            new Date(kit.estimatedDelivery).toISOString().split('T')[0];
     } else {
         document.getElementById('shipping-estimated').value = '';
     }
@@ -1256,13 +1260,13 @@ function viewKitDetails(kitId) {
     
     alert(`
 Welcome Kit: ${kitId}
-Cliente: ${kit.clientId?.name || 'N/A'}
-Email: ${kit.clientId?.email || 'N/A'}
-País: ${kit.shipping?.address?.country || 'N/A'}
-Estado: ${kit.overallStatus}
-Carrier: ${kit.shipping?.carrier || 'N/A'}
-Tracking: ${kit.shipping?.trackingNumber || 'N/A'}
-Pagado: ${kit.payment?.amount} ${kit.payment?.currency}
+Cliente: ${kit.customerName || 'N/A'}
+Email: ${kit.email || 'N/A'}
+País: ${kit.country || 'N/A'}
+Estado: ${kit.shippingStatus}
+Carrier: ${kit.carrier || 'N/A'}
+Tracking: ${kit.trackingNumber || 'N/A'}
+Pagado: $${kit.total}
     `);
 }
 
@@ -3733,8 +3737,12 @@ async function loadKitOrdersList() {
                 </div>
             `;
             if (statsContainer) statsContainer.innerHTML = '';
+            allKitsData = [];
             return;
         }
+        
+        // Guardar datos para uso en modales
+        allKitsData = data.orders;
         
         // Calcular estadísticas
         const stats = {

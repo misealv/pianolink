@@ -677,7 +677,7 @@ router.post('/checkout', async (req, res) => {
             products: selectedProducts.map(p => ({
                 productId: p._id,
                 name: p.name,
-                image: p.images?.[0] || null,
+                image: p.imageUrl || p.images?.[0] || null,
                 priceAtPurchase: p.pricing?.find(pr => pr.regionCode === country)?.price || p.defaultPrice || 0
             })),
             payment: {
