@@ -76,6 +76,11 @@ app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
+// Panel de Diagnóstico del Sistema (solo admin - verificación en frontend)
+app.get('/diagnostics', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'diagnostics.html'));
+});
+
 // Ruta para Login
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
