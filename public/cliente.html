@@ -354,6 +354,272 @@
             color: var(--text-muted);
         }
 
+        /* Orders/Tracking Section */
+        .orders-section {
+            margin-bottom: 32px;
+        }
+
+        .order-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .order-info h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .order-date {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .shipping-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .shipping-status.pending_payment {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .shipping-status.processing {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .shipping-status.shipped {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .shipping-status.delivered {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        /* Products List */
+        .products-list {
+            margin-bottom: 20px;
+        }
+
+        .product-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .product-item:last-child {
+            border-bottom: none;
+        }
+
+        .product-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .product-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .product-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .product-detail {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .product-type {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            background: var(--border);
+            color: var(--text-muted);
+        }
+
+        .product-type.physical {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .product-type.service {
+            background: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+        }
+
+        /* Tracking Section */
+        .tracking-box {
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .tracking-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #3b82f6;
+        }
+
+        .tracking-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .tracking-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .tracking-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tracking-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .tracking-link {
+            color: #3b82f6;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+        }
+
+        .tracking-link:hover {
+            text-decoration: underline;
+        }
+
+        .btn-confirm-receipt {
+            margin-top: 16px;
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .btn-confirm-receipt:hover {
+            background: #16a34a;
+            transform: translateY(-1px);
+        }
+
+        .btn-confirm-receipt:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Timeline (Shipping Progress) */
+        .shipping-timeline {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .shipping-timeline::before {
+            content: '';
+            position: absolute;
+            top: 14px;
+            left: 15%;
+            right: 15%;
+            height: 3px;
+            background: var(--border);
+        }
+
+        .timeline-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            z-index: 1;
+            flex: 1;
+        }
+
+        .timeline-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .timeline-dot.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .timeline-dot.completed {
+            background: var(--success);
+            color: white;
+        }
+
+        .timeline-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .timeline-step.active .timeline-label,
+        .timeline-step.completed .timeline-label {
+            color: var(--text);
+            font-weight: 500;
+        }
+
         /* Responsive */
         @media (max-width: 600px) {
             .header {
@@ -421,10 +687,11 @@
         // Cargar datos del usuario
         async function loadDashboard() {
             try {
-                const [userRes, paymentsRes, subscriptionRes] = await Promise.all([
+                const [userRes, paymentsRes, subscriptionRes, ordersRes] = await Promise.all([
                     fetch('/api/client/me', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/client/payments', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('/api/client/subscription', { headers: { 'Authorization': `Bearer ${token}` } })
+                    fetch('/api/client/subscription', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/client/orders', { headers: { 'Authorization': `Bearer ${token}` } })
                 ]);
 
                 if (!userRes.ok) {
@@ -434,8 +701,9 @@
                 const user = await userRes.json();
                 const paymentsData = await paymentsRes.json();
                 const subscription = await subscriptionRes.json();
+                const ordersData = await ordersRes.json();
 
-                renderDashboard(user, paymentsData.payments, subscription);
+                renderDashboard(user, paymentsData.payments, subscription, ordersData.orders);
             } catch (error) {
                 console.error('Error cargando dashboard:', error);
                 if (error.message === 'No autorizado') {
@@ -445,7 +713,7 @@
             }
         }
 
-        function renderDashboard(user, payments, subscription) {
+        function renderDashboard(user, payments, subscription, orders) {
             // Actualizar nombre en header
             document.getElementById('userName').textContent = user.name;
 
@@ -510,6 +778,14 @@
                             </div>
                         `).join('')}
                     </div>
+                </section>
+                ` : ''}
+
+                <!-- Orders & Tracking -->
+                ${orders && orders.length > 0 ? `
+                <section class="orders-section">
+                    <h2 class="section-title">📦 Mis pedidos</h2>
+                    ${orders.map(order => renderOrder(order)).join('')}
                 </section>
                 ` : ''}
 
@@ -579,6 +855,180 @@
                 'COMPLETED': 'Completado'
             };
             return statusMap[status] || status;
+        }
+
+        function renderOrder(order) {
+            const statusLabels = {
+                'pending_payment': 'Pago pendiente',
+                'processing': 'Preparando envío',
+                'shipped': 'En camino',
+                'delivered': 'Entregado'
+            };
+
+            const statusIcons = {
+                'pending_payment': '⏳',
+                'processing': '📦',
+                'shipped': '🚚',
+                'delivered': '✅'
+            };
+
+            const shippingStatus = order.shipping?.status || 'processing';
+            const physicalProducts = order.products.filter(p => p.type === 'physical');
+            const serviceProducts = order.products.filter(p => p.type === 'service');
+
+            return `
+                <div class="order-card">
+                    <div class="order-header">
+                        <div class="order-info">
+                            <h3>Pedido #${order.id.slice(-8).toUpperCase()}</h3>
+                            <div class="order-date">
+                                ${new Date(order.orderDate).toLocaleDateString('es-CL', { 
+                                    day: 'numeric', 
+                                    month: 'long', 
+                                    year: 'numeric' 
+                                })}
+                            </div>
+                        </div>
+                        <div class="shipping-status ${shippingStatus}">
+                            ${statusIcons[shippingStatus]} ${statusLabels[shippingStatus]}
+                        </div>
+                    </div>
+
+                    <!-- Shipping Timeline -->
+                    ${physicalProducts.length > 0 ? `
+                    <div class="shipping-timeline">
+                        <div class="timeline-step ${getTimelineClass('processing', shippingStatus)}">
+                            <div class="timeline-dot ${getTimelineClass('processing', shippingStatus)}">📦</div>
+                            <div class="timeline-label">Preparando</div>
+                        </div>
+                        <div class="timeline-step ${getTimelineClass('shipped', shippingStatus)}">
+                            <div class="timeline-dot ${getTimelineClass('shipped', shippingStatus)}">🚚</div>
+                            <div class="timeline-label">En camino</div>
+                        </div>
+                        <div class="timeline-step ${getTimelineClass('delivered', shippingStatus)}">
+                            <div class="timeline-dot ${getTimelineClass('delivered', shippingStatus)}">🏠</div>
+                            <div class="timeline-label">Entregado</div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- Products -->
+                    <div class="products-list">
+                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">
+                            Productos del pedido
+                        </div>
+                        ${physicalProducts.map(p => `
+                            <div class="product-item">
+                                <div class="product-info">
+                                    <div class="product-icon">🎹</div>
+                                    <div>
+                                        <div class="product-name">${p.name}</div>
+                                        ${p.keyboardModel ? `<div class="product-detail">Para: ${p.keyboardModel}</div>` : ''}
+                                    </div>
+                                </div>
+                                <span class="product-type physical">Físico</span>
+                            </div>
+                        `).join('')}
+                        ${serviceProducts.map(p => `
+                            <div class="product-item">
+                                <div class="product-info">
+                                    <div class="product-icon">${p.name.includes('Setup') ? '🔧' : '🎓'}</div>
+                                    <div>
+                                        <div class="product-name">${p.name}</div>
+                                        ${p.scheduledAt ? `<div class="product-detail">Programado: ${new Date(p.scheduledAt).toLocaleDateString('es-CL')}</div>` : ''}
+                                    </div>
+                                </div>
+                                <span class="product-type service">Servicio</span>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- Tracking Info (si hay envío) -->
+                    ${order.shipping && order.shipping.trackingNumber ? `
+                    <div class="tracking-box">
+                        <div class="tracking-header">
+                            📍 Información de seguimiento
+                        </div>
+                        <div class="tracking-details">
+                            <div class="tracking-item">
+                                <div class="tracking-label">Número de tracking</div>
+                                <div class="tracking-value">${order.shipping.trackingNumber}</div>
+                            </div>
+                            ${order.shipping.carrier ? `
+                            <div class="tracking-item">
+                                <div class="tracking-label">Courier</div>
+                                <div class="tracking-value">${order.shipping.carrier}</div>
+                            </div>
+                            ` : ''}
+                            ${order.shipping.estimatedDelivery ? `
+                            <div class="tracking-item">
+                                <div class="tracking-label">Entrega estimada</div>
+                                <div class="tracking-value">${new Date(order.shipping.estimatedDelivery).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                            </div>
+                            ` : ''}
+                            ${order.shipping.trackingUrl ? `
+                            <div class="tracking-item">
+                                <div class="tracking-label">Seguir envío</div>
+                                <a href="${order.shipping.trackingUrl}" target="_blank" class="tracking-link">
+                                    Ver en ${order.shipping.carrier || 'courier'} →
+                                </a>
+                            </div>
+                            ` : ''}
+                        </div>
+                        ${shippingStatus === 'shipped' ? `
+                        <button class="btn-confirm-receipt" onclick="confirmReceipt('${order.id}')">
+                            ✓ Confirmar que recibí mi pedido
+                        </button>
+                        ` : ''}
+                        ${order.shipping.deliveredAt ? `
+                        <div style="margin-top: 12px; font-size: 13px; color: var(--success);">
+                            ✓ Entregado el ${new Date(order.shipping.deliveredAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </div>
+                        ` : ''}
+                    </div>
+                    ` : physicalProducts.length > 0 && shippingStatus === 'processing' ? `
+                    <div class="tracking-box" style="background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.2);">
+                        <div class="tracking-header" style="color: var(--warning);">
+                            📦 Tu pedido está siendo preparado
+                        </div>
+                        <p style="font-size: 14px; color: var(--text-muted);">
+                            Te enviaremos el número de seguimiento por email cuando tu pedido sea despachado.
+                        </p>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function getTimelineClass(step, currentStatus) {
+            const order = ['pending_payment', 'processing', 'shipped', 'delivered'];
+            const stepIndex = order.indexOf(step);
+            const currentIndex = order.indexOf(currentStatus);
+            
+            if (currentIndex > stepIndex) return 'completed';
+            if (currentIndex === stepIndex) return 'active';
+            return '';
+        }
+
+        async function confirmReceipt(orderId) {
+            if (!confirm('¿Confirmas que recibiste tu pedido?')) return;
+            
+            try {
+                const res = await fetch(`/api/client/orders/${orderId}/confirm-receipt`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    alert('¡Gracias por confirmar! Disfruta tu equipo 🎹');
+                    loadDashboard(); // Recargar datos
+                } else {
+                    alert('Error al confirmar. Intenta de nuevo.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            }
         }
 
         function scheduleClass() {
