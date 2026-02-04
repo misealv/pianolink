@@ -26,12 +26,43 @@ router.get('/templates', protect, async (req, res) => {
 });
 
 /**
+ * Valida que los horarios de inicio sean menores que los de término
+ */
+function validateWeeklySlots(weeklySlots) {
+    if (!weeklySlots || !Array.isArray(weeklySlots)) return { valid: true };
+    
+    for (const slot of weeklySlots) {
+        if (slot.startTime && slot.endTime) {
+            const [startH, startM] = slot.startTime.split(':').map(Number);
+            const [endH, endM] = slot.endTime.split(':').map(Number);
+            const startMinutes = startH * 60 + startM;
+            const endMinutes = endH * 60 + endM;
+            
+            if (startMinutes >= endMinutes) {
+                const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                return {
+                    valid: false,
+                    message: `${dayNames[slot.dayOfWeek]}: El horario de inicio (${slot.startTime}) debe ser menor que el de término (${slot.endTime})`
+                };
+            }
+        }
+    }
+    return { valid: true };
+}
+
+/**
  * POST /api/availability/templates
  * Crear nueva plantilla de disponibilidad
  */
 router.post('/templates', protect, async (req, res) => {
     try {
         const { name, timezone, bufferMinutes, defaultDuration, weeklySlots } = req.body;
+        
+        // Validar horarios
+        const validation = validateWeeklySlots(weeklySlots);
+        if (!validation.valid) {
+            return res.status(400).json({ message: validation.message });
+        }
         
         // Desactivar plantillas anteriores si esta es la principal
         if (req.body.isActive) {
@@ -64,6 +95,14 @@ router.post('/templates', protect, async (req, res) => {
  */
 router.put('/templates/:id', protect, async (req, res) => {
     try {
+        // Validar horarios si se envían
+        if (req.body.weeklySlots) {
+            const validation = validateWeeklySlots(req.body.weeklySlots);
+            if (!validation.valid) {
+                return res.status(400).json({ message: validation.message });
+            }
+        }
+        
         const template = await AvailabilityTemplate.findOne({
             _id: req.params.id,
             teacherId: req.user._id

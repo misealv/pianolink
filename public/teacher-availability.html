@@ -519,11 +519,23 @@
         // Guardar plantilla
         async function saveTemplate() {
             const weeklySlots = [];
+            const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
             
+            // Recolectar y validar horarios
+            let validationError = null;
             document.querySelectorAll('.day-column.active').forEach(col => {
                 const day = parseInt(col.dataset.day);
                 const startTime = col.querySelector('.start-time').value;
                 const endTime = col.querySelector('.end-time').value;
+                
+                // Validar que inicio < fin
+                if (startTime >= endTime) {
+                    validationError = `${dayNames[day]}: El horario de inicio (${startTime}) debe ser menor que el de término (${endTime})`;
+                    col.style.border = '2px solid #ef4444';
+                    return;
+                } else {
+                    col.style.border = '';
+                }
                 
                 weeklySlots.push({
                     dayOfWeek: day,
@@ -532,6 +544,11 @@
                     maxStudents: 1
                 });
             });
+            
+            if (validationError) {
+                showToast(validationError, true);
+                return false;
+            }
 
             const data = {
                 name: 'Mi Horario',
@@ -557,22 +574,33 @@
                     body: JSON.stringify(data)
                 });
 
+                const result = await res.json();
+                
                 if (res.ok) {
-                    currentTemplate = await res.json();
+                    currentTemplate = result;
                     showToast('✓ Plantilla guardada');
+                    return true;
                 } else {
-                    showToast('Error al guardar', true);
+                    showToast(result.message || 'Error al guardar', true);
+                    return false;
                 }
             } catch (error) {
                 console.error(error);
                 showToast('Error de conexión', true);
+                return false;
             }
         }
 
         // Generar slots concretos
         async function generateSlots() {
             if (!currentTemplate) {
-                await saveTemplate();
+                const saved = await saveTemplate();
+                if (!saved) return; // Validación falló
+            }
+            
+            if (!currentTemplate) {
+                showToast('Primero guarda tu disponibilidad', true);
+                return;
             }
 
             const fromDate = new Date();
