@@ -108,6 +108,61 @@
             padding: 1.5rem;
             margin-bottom: 1rem;
         }
+        .teacher-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .teacher-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+        }
+        .teacher-card.selected {
+            border-color: var(--primary);
+            background: #f0f9ff;
+        }
+        .teacher-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), #818cf8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .teacher-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .teacher-info h6 {
+            margin: 0;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .teacher-info small {
+            color: #64748b;
+        }
+        .teacher-slots-badge {
+            background: #dcfce7;
+            color: #166534;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
         .modal-backdrop.show {
             opacity: 0.7;
         }
@@ -220,25 +275,54 @@
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="selectedStudentId">
-                    <p class="text-muted mb-3">Selecciona un horario disponible para <strong id="bookingForName">tu clase</strong></p>
+                    <input type="hidden" id="selectedTeacherId">
+                    <p class="text-muted mb-3">Agendar clase para <strong id="bookingForName">tu clase</strong></p>
                     
-                    <!-- Loading -->
-                    <div id="slotsLoading" class="text-center py-4">
-                        <div class="spinner-border text-primary"></div>
-                        <p class="mt-2 mb-0">Cargando horarios disponibles...</p>
+                    <!-- Step 1: Seleccionar Profesor -->
+                    <div id="teacherSelection">
+                        <h6 class="mb-3"><i class="bi bi-person-badge me-2"></i>Paso 1: Selecciona un profesor</h6>
+                        
+                        <div id="teachersLoading" class="text-center py-4">
+                            <div class="spinner-border text-primary"></div>
+                            <p class="mt-2 mb-0">Buscando profesores disponibles...</p>
+                        </div>
+                        
+                        <div id="noTeachers" class="text-center py-4 d-none">
+                            <i class="bi bi-person-x text-muted" style="font-size: 3rem;"></i>
+                            <p class="mt-2 mb-0">No hay profesores con disponibilidad en este momento</p>
+                        </div>
+                        
+                        <div id="teachersList" class="d-none"></div>
                     </div>
                     
-                    <!-- No slots -->
-                    <div id="noSlots" class="text-center py-4 d-none">
-                        <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
-                        <p class="mt-2 mb-0">No hay horarios disponibles esta semana</p>
-                        <button class="btn btn-outline-primary mt-3" onclick="loadNextWeek()">
-                            Ver próxima semana
-                        </button>
+                    <!-- Step 2: Seleccionar Horario -->
+                    <div id="slotSelection" class="d-none">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0"><i class="bi bi-clock me-2"></i>Paso 2: Selecciona un horario</h6>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="backToTeachers()">
+                                <i class="bi bi-arrow-left me-1"></i>Cambiar profesor
+                            </button>
+                        </div>
+                        <p id="selectedTeacherName" class="text-muted mb-3"></p>
+                        
+                        <!-- Loading -->
+                        <div id="slotsLoading" class="text-center py-4">
+                            <div class="spinner-border text-primary"></div>
+                            <p class="mt-2 mb-0">Cargando horarios disponibles...</p>
+                        </div>
+                        
+                        <!-- No slots -->
+                        <div id="noSlots" class="text-center py-4 d-none">
+                            <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+                            <p class="mt-2 mb-0">No hay horarios disponibles esta semana</p>
+                            <button class="btn btn-outline-primary mt-3" onclick="loadNextWeek()">
+                                Ver próxima semana
+                            </button>
+                        </div>
+                        
+                        <!-- Slots Grid -->
+                        <div id="slotsContainer" class="slots-container d-none"></div>
                     </div>
-                    
-                    <!-- Slots Grid -->
-                    <div id="slotsContainer" class="slots-container d-none"></div>
                     
                     <!-- Confirmación -->
                     <div id="confirmSection" class="d-none mt-4 p-3 rounded" style="background: #f0f9ff; border: 2px solid var(--primary);">
@@ -266,8 +350,9 @@
         let selectedSlot = null;
         let currentTeacherId = null;
         let currentStudentName = null;
+        let currentStudentId = null;
         let scheduleModal = null;
-        
+        let isGuardian = false;
         // Obtener datos del usuario desde localStorage o URL params
         async function loadDashboard() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -287,8 +372,11 @@
                     document.getElementById('userName').textContent = userData.user.name || 'Usuario';
                     currentTeacherId = userData.teacherId || null;
                     
+                    // Detectar si es guardian
+                    isGuardian = userData.students && userData.students.length > 0;
+                    
                     // Mostrar estudiantes si es guardian
-                    if (userData.students && userData.students.length > 0) {
+                    if (isGuardian) {
                         document.getElementById('studentsSection').classList.remove('d-none');
                         const studentsList = document.getElementById('studentsList');
                         
@@ -303,7 +391,7 @@
                                     </div>
                                     <div class="text-end">
                                         <span class="classes-badge">${student.classesRemaining || 1} clase${(student.classesRemaining || 1) > 1 ? 's' : ''}</span>
-                                        <button class="btn btn-sm btn-primary ms-2" onclick="openScheduleModal('${student.name}', '${student._id || ''}')">
+                                        <button class="btn btn-sm btn-primary ms-2" onclick="openScheduleModal('${student.name}', '${student._id || ''}')" ${(student.classesRemaining || 0) < 1 ? 'disabled' : ''}>
                                             <i class="bi bi-calendar-plus"></i> Agendar
                                         </button>
                                     </div>
@@ -341,57 +429,171 @@
         // Abrir modal de agendar
         function openScheduleModal(studentName = null, studentId = null) {
             currentStudentName = studentName;
+            currentStudentId = studentId;
             document.getElementById('bookingForName').textContent = studentName || 'tu clase';
             document.getElementById('selectedStudentId').value = studentId || '';
             
             // Reset modal state
-            document.getElementById('slotsLoading').classList.remove('d-none');
-            document.getElementById('slotsContainer').classList.add('d-none');
-            document.getElementById('noSlots').classList.add('d-none');
             document.getElementById('confirmSection').classList.add('d-none');
             selectedSlot = null;
+            currentTeacherId = null;
             
             scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
             scheduleModal.show();
             
-            // Cargar slots disponibles
-            loadAvailableSlots();
+            // Si es guardian, mostrar selección de profesores
+            // Si tiene teacherId fijo (vino de WelcomeKit), ir directo a slots
+            const userData = JSON.parse(localStorage.getItem('welcomeKitData') || '{}');
+            
+            if (isGuardian || !userData.teacherId) {
+                // Mostrar lista de profesores disponibles
+                document.getElementById('teacherSelection').classList.remove('d-none');
+                document.getElementById('slotSelection').classList.add('d-none');
+                loadAvailableTeachers();
+            } else {
+                // Ir directo a slots del profesor del kit
+                currentTeacherId = userData.teacherId;
+                document.getElementById('teacherSelection').classList.add('d-none');
+                document.getElementById('slotSelection').classList.remove('d-none');
+                loadAvailableSlots(currentTeacherId);
+            }
         }
 
-        // Cargar slots disponibles
-        async function loadAvailableSlots() {
+        // Cargar profesores con disponibilidad
+        async function loadAvailableTeachers() {
+            document.getElementById('teachersLoading').classList.remove('d-none');
+            document.getElementById('teachersList').classList.add('d-none');
+            document.getElementById('noTeachers').classList.add('d-none');
+            
             try {
-                const today = new Date();
-                const twoWeeksLater = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+                const response = await fetch('/api/availability/teachers');
+                const teachers = await response.json();
                 
-                // Por ahora usar un teacherId fijo o el del kit
-                const teacherId = currentTeacherId || '507f1f77bcf86cd799439011'; // Placeholder
-                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                document.getElementById('teachersLoading').classList.add('d-none');
                 
-                const response = await fetch(`/api/availability/teacher/${teacherId}?from=${today.toISOString()}&to=${twoWeeksLater.toISOString()}&timezone=${timezone}`);
-                const slots = await response.json();
-                
-                document.getElementById('slotsLoading').classList.add('d-none');
-                
-                if (!slots || slots.length === 0) {
-                    document.getElementById('noSlots').classList.remove('d-none');
+                if (!teachers || teachers.length === 0) {
+                    document.getElementById('noTeachers').classList.remove('d-none');
                     return;
                 }
                 
-                renderSlots(slots);
+                renderTeachers(teachers);
                 
             } catch (error) {
-                console.error('Error cargando slots:', error);
-                document.getElementById('slotsLoading').innerHTML = `
+                console.error('Error cargando profesores:', error);
+                document.getElementById('teachersLoading').innerHTML = `
                     <i class="bi bi-exclamation-circle text-danger" style="font-size: 2rem;"></i>
-                    <p class="mt-2 mb-0 text-danger">Error cargando horarios</p>
+                    <p class="mt-2 mb-0 text-danger">Error cargando profesores</p>
                 `;
             }
         }
 
+        // Renderizar lista de profesores
+        function renderTeachers(teachers) {
+            const container = document.getElementById('teachersList');
+            container.innerHTML = '';
+            
+            teachers.forEach(teacher => {
+                const initials = teacher.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                const nextDate = teacher.nextAvailable 
+                    ? new Date(teacher.nextAvailable).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+                    : '';
+                
+                const card = document.createElement('div');
+                card.className = 'teacher-card';
+                card.onclick = () => selectTeacher(teacher._id, teacher.name);
+                card.innerHTML = `
+                    <div class="teacher-avatar">
+                        ${teacher.photoUrl ? `<img src="${teacher.photoUrl}" alt="${teacher.name}">` : initials}
+                    </div>
+                    <div class="teacher-info flex-grow-1">
+                        <h6>${teacher.brandName || teacher.name}</h6>
+                        <small><i class="bi bi-calendar-event me-1"></i>Próximo: ${nextDate}</small>
+                    </div>
+                    <span class="teacher-slots-badge">
+                        ${teacher.slotsAvailable} horarios
+                    </span>
+                `;
+                container.appendChild(card);
+            });
+            
+            container.classList.remove('d-none');
+        }
+
+        // Seleccionar profesor
+        function selectTeacher(teacherId, teacherName) {
+            currentTeacherId = teacherId;
+            document.getElementById('selectedTeacherId').value = teacherId;
+            document.getElementById('selectedTeacherName').innerHTML = `<i class="bi bi-person-check me-1"></i>Profesor: <strong>${teacherName}</strong>`;
+            
+            // Pasar a selección de slots
+            document.getElementById('teacherSelection').classList.add('d-none');
+            document.getElementById('slotSelection').classList.remove('d-none');
+            
+            loadAvailableSlots(teacherId);
+        }
+
+        // Volver a selección de profesores
+        function backToTeachers() {
+            document.getElementById('teacherSelection').classList.remove('d-none');
+            document.getElementById('slotSelection').classList.add('d-none');
+            document.getElementById('confirmSection').classList.add('d-none');
+            currentTeacherId = null;
+            selectedSlot = null;
+        }
+
+        // Cargar slots disponibles
+        async function loadAvailableSlots(teacherId = null, containerId = 'slotsContainer') {
+            const loadingEl = containerId === 'slotsContainer' ? document.getElementById('slotsLoading') : null;
+            const containerEl = document.getElementById(containerId);
+            const noSlotsEl = containerId === 'slotsContainer' ? document.getElementById('noSlots') : null;
+            
+            if (loadingEl) loadingEl.classList.remove('d-none');
+            if (containerEl) containerEl.classList.add('d-none');
+            if (noSlotsEl) noSlotsEl.classList.add('d-none');
+            
+            try {
+                const today = new Date();
+                const twoWeeksLater = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+                
+                const targetTeacherId = teacherId || currentTeacherId;
+                if (!targetTeacherId) {
+                    if (loadingEl) loadingEl.classList.add('d-none');
+                    if (noSlotsEl) noSlotsEl.classList.remove('d-none');
+                    return;
+                }
+                
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                
+                const response = await fetch(`/api/availability/teacher/${targetTeacherId}?from=${today.toISOString()}&to=${twoWeeksLater.toISOString()}&timezone=${timezone}`);
+                const slots = await response.json();
+                
+                if (loadingEl) loadingEl.classList.add('d-none');
+                
+                if (!slots || slots.length === 0) {
+                    if (noSlotsEl) noSlotsEl.classList.remove('d-none');
+                    if (containerEl && containerId !== 'slotsContainer') {
+                        containerEl.innerHTML = '<p class="text-center text-muted py-3">No hay horarios disponibles</p>';
+                        containerEl.classList.remove('d-none');
+                    }
+                    return;
+                }
+                
+                renderSlots(slots, containerId);
+                
+            } catch (error) {
+                console.error('Error cargando slots:', error);
+                if (loadingEl) {
+                    loadingEl.innerHTML = `
+                        <i class="bi bi-exclamation-circle text-danger" style="font-size: 2rem;"></i>
+                        <p class="mt-2 mb-0 text-danger">Error cargando horarios</p>
+                    `;
+                }
+            }
+        }
+
         // Renderizar slots agrupados por día
-        function renderSlots(slots) {
-            const container = document.getElementById('slotsContainer');
+        function renderSlots(slots, containerId = 'slotsContainer') {
+            const container = document.getElementById(containerId);
             container.innerHTML = '';
             
             // Agrupar por fecha

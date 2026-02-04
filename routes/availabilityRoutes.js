@@ -272,6 +272,69 @@ router.delete('/slots/:id', protect, async (req, res) => {
 // ==================== DISPONIBILIDAD PÚBLICA (ESTUDIANTES) ====================
 
 /**
+ * GET /api/availability/teachers
+ * Obtener lista de profesores con disponibilidad (para que guardian elija)
+ */
+router.get('/teachers', async (req, res) => {
+    try {
+        const User = require('../models/User');
+        
+        // Buscar profesores que tengan slots disponibles próximamente
+        const fromDate = new Date();
+        const toDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+        
+        // Obtener slots disponibles agrupados por profesor
+        const availableSlots = await TimeSlot.aggregate([
+            {
+                $match: {
+                    status: 'available',
+                    startTime: { $gte: fromDate, $lte: toDate }
+                }
+            },
+            {
+                $group: {
+                    _id: '$teacherId',
+                    slotsCount: { $sum: 1 },
+                    nextSlot: { $min: '$startTime' }
+                }
+            }
+        ]);
+        
+        if (availableSlots.length === 0) {
+            return res.json([]);
+        }
+        
+        // Obtener info de los profesores
+        const teacherIds = availableSlots.map(s => s._id);
+        const teachers = await User.find({
+            _id: { $in: teacherIds },
+            role: 'teacher'
+        }).select('name branding.profilePhotoUrl branding.brandName timezone');
+        
+        // Combinar info
+        const result = teachers.map(teacher => {
+            const slotInfo = availableSlots.find(s => s._id.toString() === teacher._id.toString());
+            return {
+                _id: teacher._id,
+                name: teacher.name,
+                brandName: teacher.branding?.brandName || teacher.name,
+                photoUrl: teacher.branding?.profilePhotoUrl,
+                slotsAvailable: slotInfo?.slotsCount || 0,
+                nextAvailable: slotInfo?.nextSlot
+            };
+        });
+        
+        // Ordenar por próxima disponibilidad
+        result.sort((a, b) => new Date(a.nextAvailable) - new Date(b.nextAvailable));
+        
+        res.json(result);
+    } catch (error) {
+        console.error('Error obteniendo profesores:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
  * GET /api/availability/teacher/:teacherId
  * Obtener disponibilidad de un profesor (para estudiantes)
  */
