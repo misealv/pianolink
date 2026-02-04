@@ -977,12 +977,16 @@
                             </div>
                             ` : ''}
                         </div>
-                        ${shippingStatus === 'shipped' ? `
+                        ${shippingStatus === 'shipped' && !order.shipping.clientConfirmedReceipt ? `
                         <button class="btn-confirm-receipt" onclick="confirmReceipt('${order.id}')">
-                            ✓ Confirmar que recibí mi pedido
+                            ✅ Confirmar que recibí mi pedido
                         </button>
                         ` : ''}
-                        ${order.shipping.deliveredAt ? `
+                        ${order.shipping.clientConfirmedReceipt ? `
+                        <div style="margin-top: 12px; padding: 10px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; font-size: 13px; color: var(--success);">
+                            ✓ Confirmaste la recepción el ${order.shipping.deliveredAt ? new Date(order.shipping.deliveredAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }) : 'recientemente'}
+                        </div>
+                        ` : order.shipping.deliveredAt ? `
                         <div style="margin-top: 12px; font-size: 13px; color: var(--success);">
                             ✓ Entregado el ${new Date(order.shipping.deliveredAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </div>

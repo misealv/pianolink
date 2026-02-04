@@ -136,11 +136,11 @@ router.get('/subscription', protect, async (req, res) => {
  */
 router.get('/orders', protect, async (req, res) => {
     try {
-        // Buscar kits por clientId o por paypalOrderId del usuario
+        // Buscar kits por clientId o por email del usuario
         const kits = await WelcomeKit.find({
             $or: [
                 { clientId: req.user._id },
-                { 'payment.externalOrderId': req.user.paypalOrderId }
+                { clientEmail: req.user.email?.toLowerCase() }
             ]
         })
         .select('kitType products cable shipping setupSession payment createdAt')
@@ -157,6 +157,7 @@ router.get('/orders', protect, async (req, res) => {
                     products.push({
                         name: p.name,
                         type: 'physical',
+                        image: p.image,
                         priceAtPurchase: p.priceAtPurchase
                     });
                 });
@@ -202,6 +203,7 @@ router.get('/orders', protect, async (req, res) => {
                     shippedAt: kit.shipping.shippedAt,
                     estimatedDelivery: kit.shipping.estimatedDelivery,
                     deliveredAt: kit.shipping.deliveredAt,
+                    clientConfirmedReceipt: kit.shipping.clientConfirmedReceipt || false,
                     address: kit.shipping.address ? {
                         city: kit.shipping.address.city,
                         country: kit.shipping.address.country
@@ -235,7 +237,7 @@ router.post('/orders/:orderId/confirm-receipt', protect, async (req, res) => {
             _id: req.params.orderId,
             $or: [
                 { clientId: req.user._id },
-                { 'payment.externalOrderId': req.user.paypalOrderId }
+                { clientEmail: req.user.email?.toLowerCase() }
             ]
         });
 
@@ -243,11 +245,39 @@ router.post('/orders/:orderId/confirm-receipt', protect, async (req, res) => {
             return res.status(404).json({ message: 'Pedido no encontrado' });
         }
 
+        // Actualizar estado
         kit.shipping.status = 'delivered';
         kit.shipping.clientConfirmedReceipt = true;
         kit.shipping.clientConfirmedAt = new Date();
         kit.shipping.deliveredAt = kit.shipping.deliveredAt || new Date();
+        kit.overallStatus = 'delivered';
         await kit.save();
+
+        // Notificar al admin por consola (se puede expandir a email/webhook)
+        console.log(`[CLIENT] ✅ Cliente confirmó recepción: ${kit.clientName || req.user.name} - Pedido ${kit._id}`);
+
+        // Opcional: Enviar email al admin
+        try {
+            const { Resend } = require('resend');
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            
+            await resend.emails.send({
+                from: process.env.EMAIL_FROM || 'PianoLink <onboarding@resend.dev>',
+                to: 'admin@pianolink.cl', // Cambiar por email real del admin
+                subject: `✅ Pedido entregado - ${kit.clientName || 'Cliente'}`,
+                html: `
+                    <h2>📦 El cliente confirmó que recibió su pedido</h2>
+                    <p><strong>Cliente:</strong> ${kit.clientName || req.user.name}</p>
+                    <p><strong>Email:</strong> ${kit.clientEmail || req.user.email}</p>
+                    <p><strong>Pedido ID:</strong> ${kit._id}</p>
+                    <p><strong>Fecha confirmación:</strong> ${new Date().toLocaleString('es-CL')}</p>
+                    <hr>
+                    <p style="color: #22c55e;">✓ El estado del pedido ha sido actualizado a "Entregado"</p>
+                `
+            });
+        } catch (emailError) {
+            console.error('[CLIENT] Error enviando email de notificación:', emailError.message);
+        }
 
         res.json({
             success: true,
