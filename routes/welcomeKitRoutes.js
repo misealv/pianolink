@@ -1218,10 +1218,19 @@ router.get('/admin/orders', protect, adminOnly, async (req, res) => {
             customerName: order.clientId?.name || order.clientName || 'Cliente',
             email: order.clientId?.email || order.clientEmail || '',
             country: order.shipping?.address?.country || order.country || '',
+            city: order.shipping?.address?.city || '',
             total: order.payment?.total || order.total || 0,
             shippingStatus: order.shipping?.status || order.overallStatus || 'pending',
             paymentStatus: order.payment?.status || 'pending',
             trackingNumber: order.shipping?.trackingNumber || null,
+            trackingUrl: order.shipping?.trackingUrl || null,
+            carrier: order.shipping?.carrier || null,
+            estimatedDelivery: order.shipping?.estimatedDelivery || null,
+            shippedAt: order.shipping?.shippedAt || null,
+            deliveredAt: order.shipping?.deliveredAt || null,
+            // Confirmación del cliente
+            clientConfirmedReceipt: order.shipping?.clientConfirmedReceipt || false,
+            clientConfirmedAt: order.shipping?.clientConfirmedAt || null,
             createdAt: order.createdAt
         }));
         
