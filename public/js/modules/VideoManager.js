@@ -456,6 +456,19 @@
     };
 
     /**
+     * Envía evento de Agora al servidor para auditoría
+     * @private
+     */
+    VideoManager.prototype._sendAuditEvent = function(type, data) {
+        // Usar el bus para emitir al socket (Main.js maneja la conexión)
+        this.bus.emit('agora-audit-event', {
+            type: type,
+            data: data || {},
+            timestamp: Date.now()
+        });
+    };
+
+    /**
      * Configura event listeners del cliente Agora
      * @private
      */
@@ -467,11 +480,13 @@
             console.log('[VideoManager] 👤 Usuario remoto se unió. UID:', user.uid);
             self._updateRemoteStatus('connecting');
             self.bus.emit('video-user-joined', { uid: user.uid });
+            self._sendAuditEvent('user_joined', { remoteUid: user.uid });
         });
         
         // Usuario remoto publicó tracks
         self.client.on('user-published', async function(user, mediaType) {
             console.log('[VideoManager] 📡 Usuario remoto publicó:', mediaType, 'UID:', user.uid);
+            self._sendAuditEvent('user_published', { remoteUid: user.uid, mediaType: mediaType });
             
             // Retry logic para suscripción
             var maxRetries = 3;
@@ -482,6 +497,7 @@
                     // Suscribirse al track
                     await self.client.subscribe(user, mediaType);
                     console.log('[VideoManager] ✅ Suscrito a', mediaType, 'de UID:', user.uid, '(intento', attempt + ')');
+                    self._sendAuditEvent('subscribe_success', { remoteUid: user.uid, mediaType: mediaType, attempt: attempt });
                     
                     // Guardar usuario
                     if (!self.remoteUsers[user.uid]) {
@@ -571,6 +587,7 @@
         // Usuario remoto se fue
         self.client.on('user-left', function(user) {
             console.log('[VideoManager] 👋 Usuario remoto se fue. UID:', user.uid);
+            self._sendAuditEvent('user_left', { remoteUid: user.uid });
             delete self.remoteUsers[user.uid];
             
             var container = document.getElementById('remote-video-container');
@@ -584,6 +601,7 @@
         self.client.on('connection-state-change', function(curState, prevState) {
             console.log('[VideoManager] 🔌 Estado conexión:', prevState, '→', curState);
             self.bus.emit('video-connection-state', { current: curState, previous: prevState });
+            self._sendAuditEvent('connection_state_change', { current: curState, previous: prevState });
             
             // ====== NUEVO: Manejar reconexión ======
             if (curState === 'DISCONNECTED') {
@@ -602,6 +620,7 @@
         // ====== NUEVO: Listener de excepciones de Agora ======
         self.client.on('exception', function(event) {
             console.error('[VideoManager] ⚠️ Excepción Agora:', event.code, event.msg);
+            self._sendAuditEvent('exception', { code: event.code, message: event.msg });
             
             // Códigos específicos de audio
             var audioErrorCodes = [
@@ -625,6 +644,10 @@
             // Solo loguear si la calidad es mala
             if (stats.uplinkNetworkQuality >= 4 || stats.downlinkNetworkQuality >= 4) {
                 console.warn('[VideoManager] ⚠️ Calidad de red baja - Uplink:', stats.uplinkNetworkQuality, 'Downlink:', stats.downlinkNetworkQuality);
+                self._sendAuditEvent('network_quality_warning', {
+                    uplink: stats.uplinkNetworkQuality,
+                    downlink: stats.downlinkNetworkQuality
+                });
                 self.bus.emit('video-network-quality', {
                     uplink: stats.uplinkNetworkQuality,
                     downlink: stats.downlinkNetworkQuality,

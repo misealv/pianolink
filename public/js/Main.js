@@ -937,6 +937,13 @@ function setupEventHandlers() {
     // --- MONITOR DE LATENCIA ---
     setupLatencyMonitor();
     
+    // --- AGORA AUDIT EVENTS (enviar al servidor via socket) ---
+    bus.on("agora-audit-event", function(data) {
+        if (socket && socket.connected) {
+            socket.emit("agora-event", data);
+        }
+    });
+    
     // --- VIDEO ERROR HANDLING (Silent) ---
     bus.on("video-error", function(data) {
         console.error('[Main] Video error:', data.type, data.message);

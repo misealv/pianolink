@@ -206,6 +206,15 @@ app.get('/api/agora/credentials', (req, res) => {
         console.warn('[Agora] ⚠️ AGORA_APP_CERTIFICATE no configurado en .env');
     }
     
+    // 🔍 AUDIT: Log solicitud de credenciales Agora
+    if (DiagnosticAuditService.isActive()) {
+        DiagnosticAuditService.logEvent('audio', 'agora_credentials_request', {
+            hasAppId: !!appId,
+            hasToken: !!appCertificate,
+            ip: req.ip
+        }, 'info');
+    }
+    
     // SIEMPRE responde 200 OK, nunca 500
     res.status(200).json({
         success: !!appId, // true si existe AppId
@@ -1257,6 +1266,25 @@ io.on("connection", (socket) => {
             console.error('[PLB] Error guardando mejora:', error);
             socket.emit('plb-improve-result', { success: false, error: error.message });
         }
+    });
+
+    // =====================================================
+    // 🔍 AUDIT: Eventos de Agora desde el cliente
+    // =====================================================
+    socket.on("agora-event", (payload) => {
+        if (!DiagnosticAuditService.isActive()) return;
+        
+        const { type, data } = payload;
+        const severity = type.includes('error') || type.includes('fail') ? 'warning' : 'info';
+        
+        DiagnosticAuditService.logEvent('audio', `agora_${type}`, {
+            ...data,
+            clientTimestamp: payload.timestamp
+        }, severity, {
+            socketId: socket.id,
+            roomCode: socket.roomCode,
+            userId: socket.userId
+        });
     });
 
     // Desconexión
