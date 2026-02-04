@@ -820,7 +820,9 @@ router.post('/verify', async (req, res) => {
         
         // Obtener datos del checkout
         const checkoutData = welcomeKit.get('_checkoutData') || {};
-        const payerEmail = captureData.payer?.email_address || checkoutData.email;
+        // IMPORTANTE: Priorizar email del formulario sobre el de PayPal
+        // En sandbox, PayPal devuelve siempre el email del buyer sandbox, no el real
+        const payerEmail = checkoutData.email || captureData.payer?.email_address;
         // Priorizar nombre del formulario sobre el de PayPal (sandbox siempre devuelve "John Doe")
         const payerName = checkoutData.name || captureData.payer?.name?.given_name;
         const studentType = checkoutData.studentType || 'self'; // 'self' o 'child'
