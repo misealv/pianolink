@@ -214,5 +214,24 @@ router.get('/conversation/:userId', adminController.getConversationWithUser);
 
 router.put('/users/:id', adminController.updateTeacherByAdmin);
 
+/* -------------------------------------------------------------------------- */
+/* RUTAS DE CLIENTES / APODERADOS                                             */
+/* -------------------------------------------------------------------------- */
+
+// Obtener todos los clientes
+router.get('/clients', adminController.getClients);
+
+// Crear nuevo cliente (individual o apoderado con hijos)
+router.post('/clients', adminController.createClient);
+
+// Actualizar cliente
+router.put('/clients/:id', adminController.updateClient);
+
+// Eliminar cliente
+router.delete('/clients/:id', adminController.deleteClient);
+
+// Agregar clases a un cliente (pago manual)
+router.post('/clients/:id/add-classes', adminController.addClassesToClient);
+
 
 module.exports = router;

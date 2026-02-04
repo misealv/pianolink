@@ -43,6 +43,7 @@ function updateContentTitle(moduleName) {
         'calendar': { icon: '📅', text: 'Google Calendar' },
         'teachers': { icon: '👨‍🏫', text: 'Profesores' },
         'students': { icon: '👨‍🎓', text: 'Alumnos' },
+        'clients': { icon: '👨‍👧‍👦', text: 'Clientes / Apoderados' },
         'payments': { icon: '💰', text: 'Pagos' },
         'welcome-kits': { icon: '📦', text: 'Welcome Kits' }
     };
@@ -61,6 +62,7 @@ function loadModuleData(moduleName) {
         case 'calendar': loadCalendarConfig(); break;
         case 'teachers': loadTeachers(); break;
         case 'students': loadStudents(); break;
+        case 'clients': loadClients(); break;
         case 'payments': loadPaymentsDashboard(); break;
         case 'welcome-kits': loadWelcomeKits(); break;
     }
@@ -4654,15 +4656,557 @@ async function importTrackings() {
     }
 }
 
-// ==================== CERRAR MODALES CON ESC ====================
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
-    }
-});
+// ==================== MÓDULO DE CLIENTES / APODERADOS ====================
+let allClientsData = [];
+let currentClientFilter = 'all';
+let currentClientId = null;
 
-// ==================== INICIALIZAR ====================
-document.addEventListener('DOMContentLoaded', () => {
-    // Cargar dashboard por defecto
-    switchModule('dashboard');
-});
+async function loadClients() {
+    try {
+        const res = await fetch('/admin/clients', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        
+        if (!res.ok) throw new Error('Error cargando clientes');
+        
+        allClientsData = await res.json();
+        
+        // Calcular stats
+        const guardians = allClientsData.filter(c => c.clientData?.accountType === 'guardian');
+        const activeClients = allClientsData.filter(c => {
+            if (c.clientData?.accountType === 'guardian') {
+                return (c.clientData.managedStudents || []).some(s => s.classesRemaining > 0);
+            }
+            return c.classesRemaining > 0;
+        });
+        const totalChildren = allClientsData.reduce((sum, c) => {
+            return sum + (c.clientData?.managedStudents?.length || 0);
+        }, 0);
+        
+        document.getElementById('stat-clients-total').textContent = allClientsData.length;
+        document.getElementById('stat-clients-guardians').textContent = guardians.length;
+        document.getElementById('stat-clients-active').textContent = activeClients.length;
+        document.getElementById('stat-clients-children').textContent = totalChildren;
+        
+        renderClientsTable(allClientsData);
+    } catch (error) {
+        console.error('Error loading clients:', error);
+        showNotification('Error cargando clientes', 'error');
+    }
+}
+
+function renderClientsTable(clients) {
+    const tbody = document.getElementById('clients-table-body');
+    
+    if (!clients.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align:center; padding:40px; color:#666;">
+                    <div style="font-size:32px; margin-bottom:10px;">👨‍👧‍👦</div>
+                    No hay clientes registrados aún
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = clients.map(client => {
+        const isGuardian = client.clientData?.accountType === 'guardian';
+        const students = client.clientData?.managedStudents || [];
+        
+        // Calcular clases totales
+        let totalClasses = 0;
+        if (isGuardian) {
+            totalClasses = students.reduce((sum, s) => sum + (s.classesRemaining || 0), 0);
+        } else {
+            totalClasses = client.classesRemaining || 0;
+        }
+        
+        const hasClasses = totalClasses > 0;
+        const typeBadge = isGuardian 
+            ? '<span style="background:#a855f7; color:white; padding:2px 8px; border-radius:4px; font-size:11px;">👨‍👧 Apoderado</span>'
+            : '<span style="background:#3b82f6; color:white; padding:2px 8px; border-radius:4px; font-size:11px;">🎹 Individual</span>';
+        
+        const statusBadge = hasClasses
+            ? '<span style="background:rgba(34,197,94,0.2); color:#22c55e; padding:2px 8px; border-radius:4px; font-size:11px;">✅ Activo</span>'
+            : '<span style="background:rgba(239,68,68,0.2); color:#ef4444; padding:2px 8px; border-radius:4px; font-size:11px;">⚠️ Sin clases</span>';
+        
+        const studentsInfo = isGuardian
+            ? students.map(s => `${s.name} (${s.classesRemaining || 0})`).join(', ') || 'Sin hijos'
+            : 'Él mismo';
+        
+        return `
+            <tr>
+                <td>${typeBadge}</td>
+                <td><strong>${client.name}</strong></td>
+                <td style="color:#888;">${client.email}</td>
+                <td>${client.whatsapp || '-'}</td>
+                <td style="font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis;">${studentsInfo}</td>
+                <td style="text-align:center; font-weight:bold; color:${hasClasses ? '#22c55e' : '#ef4444'};">${totalClasses}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                        <button class="btn btn-small" onclick="viewClientDetails('${client._id}')" title="Ver detalles">👁️</button>
+                        <button class="btn btn-small" onclick="editClient('${client._id}')" title="Editar">✏️</button>
+                        <button class="btn btn-small" onclick="quickAddClasses('${client._id}')" title="Agregar clases" style="background:rgba(34,197,94,0.2); color:#22c55e;">➕</button>
+                        <button class="btn btn-small" onclick="deleteClient('${client._id}')" title="Eliminar" style="background:rgba(239,68,68,0.2); color:#ef4444;">🗑️</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function filterClients(filter) {
+    currentClientFilter = filter;
+    
+    document.querySelectorAll('#module-clients .filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+    
+    let filtered = [...allClientsData];
+    
+    switch(filter) {
+        case 'guardian':
+            filtered = filtered.filter(c => c.clientData?.accountType === 'guardian');
+            break;
+        case 'individual':
+            filtered = filtered.filter(c => c.clientData?.accountType !== 'guardian');
+            break;
+        case 'active':
+            filtered = filtered.filter(c => {
+                if (c.clientData?.accountType === 'guardian') {
+                    return (c.clientData.managedStudents || []).some(s => s.classesRemaining > 0);
+                }
+                return c.classesRemaining > 0;
+            });
+            break;
+        case 'inactive':
+            filtered = filtered.filter(c => {
+                if (c.clientData?.accountType === 'guardian') {
+                    return !(c.clientData.managedStudents || []).some(s => s.classesRemaining > 0);
+                }
+                return (c.classesRemaining || 0) <= 0;
+            });
+            break;
+    }
+    
+    renderClientsTable(filtered);
+}
+
+function searchClients() {
+    const query = document.getElementById('search-clients').value.toLowerCase();
+    
+    let filtered = allClientsData.filter(c => 
+        c.name.toLowerCase().includes(query) || 
+        c.email.toLowerCase().includes(query) ||
+        (c.whatsapp || '').includes(query) ||
+        (c.clientData?.managedStudents || []).some(s => s.name.toLowerCase().includes(query))
+    );
+    
+    if (currentClientFilter !== 'all') {
+        filterClients(currentClientFilter);
+        return;
+    }
+    
+    renderClientsTable(filtered);
+}
+
+function openCreateClientModal() {
+    currentClientId = null;
+    document.getElementById('client-modal-title').textContent = '➕ Nuevo Cliente';
+    document.getElementById('create-client-form').reset();
+    document.getElementById('client-id').value = '';
+    
+    // Reset type selection
+    document.querySelector('input[name="client-account-type"][value="individual"]').checked = true;
+    toggleClientTypeFields();
+    
+    // Clear children container
+    document.getElementById('children-container').innerHTML = '';
+    addChildRow(); // Add one empty row by default
+    
+    // Load teachers dropdown
+    loadTeachersDropdown('client-teacher');
+    
+    openModal('create-client-modal');
+}
+
+function toggleClientTypeFields() {
+    const isGuardian = document.querySelector('input[name="client-account-type"]:checked')?.value === 'guardian';
+    
+    document.getElementById('client-individual-section').style.display = isGuardian ? 'none' : 'block';
+    document.getElementById('client-guardian-section').style.display = isGuardian ? 'block' : 'none';
+    
+    // Update label styles
+    document.getElementById('client-type-individual-label').style.borderColor = !isGuardian ? '#3b82f6' : 'var(--border-color)';
+    document.getElementById('client-type-guardian-label').style.borderColor = isGuardian ? '#a855f7' : 'var(--border-color)';
+}
+
+function addChildRow(childData = null) {
+    const container = document.getElementById('children-container');
+    const index = container.children.length;
+    
+    const row = document.createElement('div');
+    row.className = 'child-row';
+    row.style.cssText = 'display:grid; grid-template-columns:2fr 1fr 1fr 1fr auto; gap:8px; align-items:end; margin-bottom:10px; padding:10px; background:rgba(168,85,247,0.1); border-radius:6px;';
+    
+    row.innerHTML = `
+        <div>
+            <label style="font-size:10px; color:#888;">Nombre del hijo *</label>
+            <input type="text" class="child-name" value="${childData?.name || ''}" placeholder="María" required>
+        </div>
+        <div>
+            <label style="font-size:10px; color:#888;">Edad</label>
+            <input type="number" class="child-age" value="${childData?.age || ''}" min="3" max="18" placeholder="8">
+        </div>
+        <div>
+            <label style="font-size:10px; color:#888;">Nivel</label>
+            <select class="child-level">
+                <option value="beginner" ${childData?.level === 'beginner' ? 'selected' : ''}>Principiante</option>
+                <option value="intermediate" ${childData?.level === 'intermediate' ? 'selected' : ''}>Intermedio</option>
+                <option value="advanced" ${childData?.level === 'advanced' ? 'selected' : ''}>Avanzado</option>
+            </select>
+        </div>
+        <div>
+            <label style="font-size:10px; color:#888;">Clases</label>
+            <input type="number" class="child-classes" value="${childData?.classesRemaining || 1}" min="0" placeholder="4">
+        </div>
+        <button type="button" onclick="removeChildRow(this)" style="padding:6px 10px; background:rgba(239,68,68,0.2); color:#ef4444; border:none; border-radius:4px; cursor:pointer;">✕</button>
+    `;
+    
+    container.appendChild(row);
+}
+
+function removeChildRow(btn) {
+    const container = document.getElementById('children-container');
+    if (container.children.length > 1) {
+        btn.closest('.child-row').remove();
+    } else {
+        showNotification('Debe haber al menos un hijo', 'warning');
+    }
+}
+
+async function createClient(event) {
+    event.preventDefault();
+    
+    const isGuardian = document.querySelector('input[name="client-account-type"]:checked')?.value === 'guardian';
+    const name = document.getElementById('client-name').value.trim();
+    const email = document.getElementById('client-email').value.trim();
+    const password = document.getElementById('client-password').value;
+    const whatsapp = document.getElementById('client-whatsapp').value.trim();
+    const country = document.getElementById('client-country').value.trim();
+    const teacherId = document.getElementById('client-teacher').value;
+    
+    // Payment info
+    const paymentAmount = document.getElementById('client-payment-amount').value;
+    const paymentMethod = document.getElementById('client-payment-method').value;
+    const paymentNotes = document.getElementById('client-payment-notes').value.trim();
+    
+    if (!name || !email) {
+        showNotification('Nombre y email son requeridos', 'error');
+        return;
+    }
+    
+    // Build client data
+    const clientPayload = {
+        name,
+        email,
+        password: password || undefined,
+        whatsapp,
+        country,
+        role: 'client',
+        assignedTeacher: teacherId || undefined,
+        clientData: {
+            accountType: isGuardian ? 'guardian' : 'individual',
+            managedStudents: []
+        },
+        paymentInfo: paymentAmount ? {
+            amount: parseFloat(paymentAmount),
+            method: paymentMethod,
+            notes: paymentNotes,
+            date: new Date()
+        } : undefined
+    };
+    
+    if (isGuardian) {
+        // Get children data
+        const childRows = document.querySelectorAll('#children-container .child-row');
+        const children = [];
+        
+        for (const row of childRows) {
+            const childName = row.querySelector('.child-name').value.trim();
+            if (!childName) continue;
+            
+            children.push({
+                name: childName,
+                age: parseInt(row.querySelector('.child-age').value) || null,
+                level: row.querySelector('.child-level').value,
+                classesRemaining: parseInt(row.querySelector('.child-classes').value) || 0,
+                classesUsed: 0
+            });
+        }
+        
+        if (children.length === 0) {
+            showNotification('Agrega al menos un hijo para el apoderado', 'error');
+            return;
+        }
+        
+        clientPayload.clientData.managedStudents = children;
+    } else {
+        // Individual - use self data
+        clientPayload.classesRemaining = parseInt(document.getElementById('client-self-classes').value) || 0;
+        clientPayload.studentData = {
+            age: parseInt(document.getElementById('client-self-age').value) || null,
+            level: document.getElementById('client-self-level').value,
+            source: 'platform'
+        };
+    }
+    
+    try {
+        const url = currentClientId 
+            ? `/admin/clients/${currentClientId}` 
+            : '/admin/clients';
+        const method = currentClientId ? 'PUT' : 'POST';
+        
+        const res = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userSession.token}`
+            },
+            body: JSON.stringify(clientPayload)
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            closeModal('create-client-modal');
+            loadClients();
+            showNotification(currentClientId ? 'Cliente actualizado' : 'Cliente creado exitosamente', 'success');
+        } else {
+            showNotification(data.message || 'Error guardando cliente', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+function viewClientDetails(clientId) {
+    const client = allClientsData.find(c => c._id === clientId);
+    if (!client) return;
+    
+    document.getElementById('view-client-id').value = clientId;
+    document.getElementById('view-client-name').textContent = client.name;
+    document.getElementById('view-client-email').textContent = client.email;
+    document.getElementById('view-client-whatsapp').textContent = client.whatsapp || '-';
+    document.getElementById('view-client-country').textContent = client.country || '-';
+    
+    const isGuardian = client.clientData?.accountType === 'guardian';
+    document.getElementById('view-client-type-badge').innerHTML = isGuardian
+        ? '<span style="background:#a855f7; color:white; padding:4px 12px; border-radius:6px; font-size:12px;">👨‍👧 Apoderado</span>'
+        : '<span style="background:#3b82f6; color:white; padding:4px 12px; border-radius:6px; font-size:12px;">🎹 Individual</span>';
+    
+    // Render students/children
+    const studentsDiv = document.getElementById('view-client-students');
+    
+    if (isGuardian) {
+        const students = client.clientData?.managedStudents || [];
+        if (students.length === 0) {
+            studentsDiv.innerHTML = '<div style="color:#666; text-align:center; padding:20px;">Sin hijos registrados</div>';
+        } else {
+            studentsDiv.innerHTML = students.map((s, idx) => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:rgba(168,85,247,0.1); border-radius:6px; margin-bottom:8px;">
+                    <div>
+                        <div style="font-weight:bold; color:#fff;">${s.name}</div>
+                        <div style="font-size:11px; color:#888;">
+                            ${s.age ? s.age + ' años • ' : ''}${s.level === 'beginner' ? 'Principiante' : s.level === 'intermediate' ? 'Intermedio' : 'Avanzado'}
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:20px; font-weight:bold; color:${s.classesRemaining > 0 ? '#22c55e' : '#ef4444'};">${s.classesRemaining || 0}</div>
+                        <div style="font-size:10px; color:#888;">clases disp.</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } else {
+        studentsDiv.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:rgba(59,130,246,0.1); border-radius:6px;">
+                <div>
+                    <div style="font-weight:bold; color:#fff;">${client.name} (él mismo)</div>
+                    <div style="font-size:11px; color:#888;">
+                        ${client.studentData?.age ? client.studentData.age + ' años • ' : ''}
+                        ${client.studentData?.level === 'beginner' ? 'Principiante' : client.studentData?.level === 'intermediate' ? 'Intermedio' : 'Avanzado'}
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:24px; font-weight:bold; color:${(client.classesRemaining || 0) > 0 ? '#22c55e' : '#ef4444'};">${client.classesRemaining || 0}</div>
+                    <div style="font-size:10px; color:#888;">clases disponibles</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Render payment history (placeholder for now)
+    const paymentsDiv = document.getElementById('view-client-payments');
+    paymentsDiv.innerHTML = '<div style="text-align:center; color:#666; font-size:13px; padding:20px;">Sin pagos registrados</div>';
+    
+    openModal('view-client-modal');
+}
+
+function editClient(clientId) {
+    const client = allClientsData.find(c => c._id === clientId);
+    if (!client) return;
+    
+    currentClientId = clientId;
+    document.getElementById('client-modal-title').textContent = '✏️ Editar Cliente';
+    document.getElementById('client-id').value = clientId;
+    
+    // Fill basic data
+    document.getElementById('client-name').value = client.name;
+    document.getElementById('client-email').value = client.email;
+    document.getElementById('client-password').value = '';
+    document.getElementById('client-whatsapp').value = client.whatsapp || '';
+    document.getElementById('client-country').value = client.country || '';
+    
+    // Set type
+    const isGuardian = client.clientData?.accountType === 'guardian';
+    document.querySelector(`input[name="client-account-type"][value="${isGuardian ? 'guardian' : 'individual'}"]`).checked = true;
+    toggleClientTypeFields();
+    
+    if (isGuardian) {
+        // Fill children
+        const container = document.getElementById('children-container');
+        container.innerHTML = '';
+        (client.clientData?.managedStudents || []).forEach(child => {
+            addChildRow(child);
+        });
+        if (container.children.length === 0) addChildRow();
+    } else {
+        // Fill individual data
+        document.getElementById('client-self-age').value = client.studentData?.age || '';
+        document.getElementById('client-self-level').value = client.studentData?.level || 'beginner';
+        document.getElementById('client-self-classes').value = client.classesRemaining || 0;
+    }
+    
+    // Load teachers dropdown
+    loadTeachersDropdown('client-teacher').then(() => {
+        if (client.studentData?.assignedTeacher) {
+            document.getElementById('client-teacher').value = client.studentData.assignedTeacher;
+        }
+    });
+    
+    openModal('create-client-modal');
+}
+
+function editClientFromView() {
+    const clientId = document.getElementById('view-client-id').value;
+    closeModal('view-client-modal');
+    editClient(clientId);
+}
+
+function quickAddClasses(clientId) {
+    const client = allClientsData.find(c => c._id === clientId);
+    if (!client) return;
+    
+    document.getElementById('add-classes-client-id').value = clientId;
+    document.getElementById('add-classes-client-name').textContent = client.name;
+    document.getElementById('add-classes-amount').value = 4;
+    document.getElementById('add-classes-payment').value = '';
+    document.getElementById('add-classes-method').value = '';
+    document.getElementById('add-classes-notes').value = '';
+    
+    // Fill student select
+    const select = document.getElementById('add-classes-student-select');
+    const isGuardian = client.clientData?.accountType === 'guardian';
+    
+    if (isGuardian) {
+        const students = client.clientData?.managedStudents || [];
+        select.innerHTML = students.map((s, idx) => 
+            `<option value="${idx}">${s.name} (${s.classesRemaining || 0} clases)</option>`
+        ).join('');
+    } else {
+        select.innerHTML = `<option value="self">${client.name} (${client.classesRemaining || 0} clases)</option>`;
+    }
+    
+    openModal('add-classes-modal');
+}
+
+function openAddClassesModal() {
+    const clientId = document.getElementById('view-client-id').value;
+    closeModal('view-client-modal');
+    quickAddClasses(clientId);
+}
+
+async function confirmAddClasses() {
+    const clientId = document.getElementById('add-classes-client-id').value;
+    const studentIndex = document.getElementById('add-classes-student-select').value;
+    const classesToAdd = parseInt(document.getElementById('add-classes-amount').value) || 0;
+    const paymentAmount = document.getElementById('add-classes-payment').value;
+    const paymentMethod = document.getElementById('add-classes-method').value;
+    const notes = document.getElementById('add-classes-notes').value;
+    
+    if (classesToAdd <= 0) {
+        showNotification('Ingresa una cantidad válida de clases', 'error');
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/admin/clients/${clientId}/add-classes`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userSession.token}`
+            },
+            body: JSON.stringify({
+                studentIndex: studentIndex === 'self' ? null : parseInt(studentIndex),
+                classesToAdd,
+                payment: paymentAmount ? {
+                    amount: parseFloat(paymentAmount),
+                    method: paymentMethod,
+                    notes
+                } : null
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            closeModal('add-classes-modal');
+            loadClients();
+            showNotification(`${classesToAdd} clases agregadas exitosamente`, 'success');
+        } else {
+            showNotification(data.message || 'Error agregando clases', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+async function deleteClient(clientId) {
+    if (!confirm('¿Estás seguro de eliminar este cliente? Esta acción no se puede deshacer.')) {
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/admin/clients/${clientId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        
+        if (res.ok) {
+            loadClients();
+            showNotification('Cliente eliminado', 'success');
+        } else {
+            const data = await res.json();
+            showNotification(data.message || 'Error eliminando cliente', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
