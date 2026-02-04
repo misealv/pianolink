@@ -413,8 +413,18 @@
                     // Mostrar dirección si hay productos físicos
                     if (hasProducts && data.welcomeKit.shipping) {
                         const addr = data.welcomeKit.shipping;
+                        // Construir dirección completa
+                        const addressParts = [
+                            addr.street || addr.address1 || addr.line1,
+                            addr.apartment || addr.address2 || addr.line2,
+                            addr.city,
+                            addr.state || addr.region,
+                            addr.postalCode || addr.zipCode || addr.zip,
+                            addr.country
+                        ].filter(part => part && part.trim());
+                        
                         document.getElementById('shipping-address').textContent = 
-                            `${addr.city || ''}, ${addr.country || ''}`.replace(/^, |, $/g, '').trim() || 'No requiere envío';
+                            addressParts.join(', ') || 'No requiere envío';
                     } else {
                         document.getElementById('shipping-address').textContent = 'Solo servicio digital';
                         document.getElementById('shipping-time').textContent = 'N/A';

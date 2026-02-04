@@ -851,6 +851,8 @@ router.post('/verify', async (req, res) => {
                     whatsapp: checkoutData.whatsapp || '',
                     country: welcomeKit.shipping?.address?.country || 'N/A',
                     role: 'student',
+                    classesRemaining: 1,  // 1 clase incluida en el kit
+                    classesCompleted: 0,
                     studentData: {
                         source: 'platform',
                         level: 'beginner',
