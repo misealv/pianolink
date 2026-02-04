@@ -296,8 +296,32 @@
                 </div>
             </div>
             
-            <div>
-                <a href="/login" class="btn btn-primary" id="btn-panel">Iniciar sesión</a>
+            <!-- Sección de estudiantes -->
+            <div class="card" id="students-card" style="display: none;">
+                <h2>👨‍👧‍👦 Estudiantes registrados</h2>
+                <div id="students-list" style="margin-top: 15px;"></div>
+            </div>
+            
+            <!-- Mensaje de email y próximos pasos -->
+            <div class="card">
+                <h2>📧 Revisa tu correo</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Te hemos enviado un email de bienvenida con los detalles de tu compra y los próximos pasos.
+                </p>
+                
+                <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                    <h3 style="color: var(--primary); margin: 0 0 10px 0; font-size: 16px;">🔐 Tu cuenta está lista</h3>
+                    <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">
+                        Inicia sesión con el email que usaste para la compra. Tu contraseña temporal está en el correo de bienvenida.
+                    </p>
+                </div>
+                
+                <a href="/login" class="btn btn-primary" style="width: 100%; padding: 16px; font-size: 18px;">
+                    🚀 Iniciar sesión en mi panel
+                </a>
+            </div>
+            
+            <div style="margin-top: 20px;">
                 <a href="/" class="btn btn-secondary">Volver al inicio</a>
             </div>
         </div>
@@ -364,6 +388,26 @@
                             <strong>${studentNames}</strong>
                         `;
                         document.querySelector('.order-info').appendChild(studentInfo);
+                        
+                        // Mostrar tarjeta de estudiantes
+                        const studentsCard = document.getElementById('students-card');
+                        const studentsList = document.getElementById('students-list');
+                        studentsCard.style.display = 'block';
+                        
+                        data.students.forEach(s => {
+                            const studentItem = document.createElement('div');
+                            studentItem.style.cssText = 'background: rgba(99, 102, 241, 0.1); border-radius: 8px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;';
+                            studentItem.innerHTML = `
+                                <div>
+                                    <strong style="color: var(--text);">${s.name}</strong>
+                                    ${s.age ? '<br><span style="color: var(--text-secondary); font-size: 14px;">' + s.age + ' años</span>' : ''}
+                                </div>
+                                <div style="background: var(--primary); color: white; padding: 6px 14px; border-radius: 20px; font-weight: 600;">
+                                    ${s.classesRemaining || 1} clase${(s.classesRemaining || 1) > 1 ? 's' : ''}
+                                </div>
+                            `;
+                            studentsList.appendChild(studentItem);
+                        });
                     } else if (data.student) {
                         const studentInfo = document.createElement('div');
                         studentInfo.className = 'info-item';
