@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu Sueño de Tocar Piano Comienza Hoy | PianoLink</title>
+    <meta name="description" content="Cumple tu sueño de tocar piano. Kit completo con cable MIDI, clase personalizada y método probado. Empieza hoy, sin importar tu edad.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/logoclaropianolink.jpg">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Tu Sueño de Tocar Piano Comienza Hoy">
+    <meta property="og:description" content="El kit completo para empezar a tocar piano desde casa. Incluye todo lo que necesitas.">
+    <meta property="og:image" content="/images/og-welcome-kit.jpg">
+    <meta property="og:type" content="website">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #e94560;
+            --accent-light: #ff6b6b;
+            --gold: #d4af37;
+            --gold-light: #f4d03f;
+            --text: #1a1a1a;
+            --text-light: #6b7280;
+            --bg: #fefefe;
+            --bg-warm: #faf8f5;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        .font-display {
+            font-family: 'Playfair Display', Georgia, serif;
+        }
+        
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            position: relative;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+        
+        @media (max-width: 1024px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 40px;
+                padding: 100px 24px 60px;
+            }
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(212, 175, 55, 0.15);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            color: var(--gold-light);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.6s ease;
+        }
+        
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 600;
+            color: white;
+            line-height: 1.15;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.6s ease 0.1s both;
+        }
+        
+        .hero h1 span {
+            color: var(--gold-light);
+            font-style: italic;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 32px;
+            max-width: 500px;
+            animation: fadeInUp 0.6s ease 0.2s both;
+        }
+        
+        @media (max-width: 1024px) {
+            .hero-subtitle {
+                margin: 0 auto 32px;
+            }
+        }
+        
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.6s ease 0.3s both;
+        }
+        
+        @media (max-width: 1024px) {
+            .hero-cta {
+                justify-content: center;
+            }
+        }
+        
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            color: var(--primary);
+            padding: 18px 36px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(212, 175, 55, 0.5);
+        }
+        
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: transparent;
+            color: white;
+            padding: 18px 36px;
+            border-radius: 100px;
+            font-weight: 500;
+            font-size: 16px;
+            text-decoration: none;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .hero-visual {
+            position: relative;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+        
+        .hero-image-wrapper {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4);
+        }
+        
+        .hero-image-wrapper img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .hero-image-wrapper::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(26, 26, 46, 0.3), transparent 50%);
+        }
+        
+        .floating-card {
+            position: absolute;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .floating-card.card-1 {
+            top: 20%;
+            left: -40px;
+            animation-delay: 0s;
+        }
+        
+        .floating-card.card-2 {
+            bottom: 20%;
+            right: -40px;
+            animation-delay: 1.5s;
+        }
+        
+        @media (max-width: 1024px) {
+            .floating-card {
+                display: none;
+            }
+        }
+        
+        .floating-card-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .floating-card-text {
+            font-size: 14px;
+        }
+        
+        .floating-card-text strong {
+            display: block;
+            font-size: 16px;
+            color: var(--primary);
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Social Proof Bar */
+        .social-proof-bar {
+            background: var(--bg-warm);
+            padding: 24px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .social-proof-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 48px;
+            flex-wrap: wrap;
+        }
+        
+        .proof-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        
+        .proof-item strong {
+            color: var(--text);
+            font-size: 20px;
+        }
+        
+        .proof-item .icon {
+            font-size: 24px;
+        }
+        
+        /* Problem Section */
+        .problem-section {
+            padding: 100px 24px;
+            background: white;
+        }
+        
+        .section-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 60px;
+        }
+        
+        .section-label {
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent);
+            margin-bottom: 16px;
+        }
+        
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        
+        .section-subtitle {
+            font-size: 1.125rem;
+            color: var(--text-light);
+        }
+        
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+        
+        .problem-card {
+            background: var(--bg-warm);
+            padding: 32px;
+            border-radius: 20px;
+            border: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+        
+        .problem-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        }
+        
+        .problem-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(233, 69, 96, 0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        
+        .problem-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+        
+        .problem-card p {
+            color: var(--text-light);
+            font-size: 15px;
+        }
+        
+        /* Transformation Section */
+        .transformation-section {
+            padding: 100px 24px;
+            background: linear-gradient(180deg, var(--bg-warm) 0%, white 100%);
+        }
+        
+        .transformation-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+        
+        @media (max-width: 900px) {
+            .transformation-content {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+        }
+        
+        .transformation-image {
+            position: relative;
+        }
+        
+        .transformation-image img {
+            width: 100%;
+            border-radius: 24px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+        }
+        
+        .transformation-quote {
+            position: absolute;
+            bottom: -30px;
+            right: -30px;
+            background: white;
+            padding: 24px 28px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 300px;
+        }
+        
+        @media (max-width: 900px) {
+            .transformation-quote {
+                position: relative;
+                bottom: auto;
+                right: auto;
+                margin-top: 20px;
+                max-width: 100%;
+            }
+        }
+        
+        .transformation-quote p {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+        
+        .transformation-quote .author {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        
+        .transformation-text h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            color: var(--primary);
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+        
+        .transformation-text h2 span {
+            color: var(--gold);
+        }
+        
+        .transformation-text > p {
+            font-size: 1.125rem;
+            color: var(--text-light);
+            margin-bottom: 32px;
+        }
+        
+        .benefit-list {
+            list-style: none;
+            margin-bottom: 32px;
+        }
+        
+        .benefit-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        
+        .benefit-list .check {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .benefit-list strong {
+            color: var(--primary);
+        }
+        
+        /* Kit Section */
+        .kit-section {
+            padding: 100px 24px;
+            background: var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kit-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 50%, rgba(233, 69, 96, 0.1) 0%, transparent 50%);
+        }
+        
+        .kit-content {
+            position: relative;
+            z-index: 10;
+        }
+        
+        .kit-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .kit-header .section-label {
+            color: var(--gold-light);
+        }
+        
+        .kit-header .section-title {
+            color: white;
+        }
+        
+        .kit-header .section-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .kit-showcase {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+        
+        @media (max-width: 900px) {
+            .kit-showcase {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+        }
+        
+        .kit-image {
+            position: relative;
+        }
+        
+        .kit-image img {
+            width: 100%;
+            border-radius: 24px;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.3);
+        }
+        
+        .kit-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--accent);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .kit-details {
+            color: white;
+        }
+        
+        .kit-details h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            margin-bottom: 24px;
+        }
+        
+        .kit-includes {
+            list-style: none;
+            margin-bottom: 32px;
+        }
+        
+        .kit-includes li {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .kit-includes li:last-child {
+            border-bottom: none;
+        }
+        
+        .kit-includes .item-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(212, 175, 55, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+        
+        .kit-includes .item-info h4 {
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+        
+        .kit-includes .item-info p {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .kit-includes .item-value {
+            font-size: 14px;
+            color: var(--gold-light);
+            margin-left: auto;
+            white-space: nowrap;
+        }
+        
+        .kit-pricing {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 32px;
+            margin-top: 32px;
+        }
+        
+        .kit-pricing .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .kit-pricing .original-price {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: line-through;
+        }
+        
+        .kit-pricing .current-price {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--gold-light);
+        }
+        
+        .kit-pricing .current-price small {
+            font-size: 1rem;
+            font-weight: 400;
+            opacity: 0.7;
+        }
+        
+        .kit-pricing .savings {
+            background: var(--accent);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .kit-cta {
+            width: 100%;
+            padding: 20px 32px;
+            font-size: 18px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        
+        .kit-guarantee {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        /* Testimonials */
+        .testimonials-section {
+            padding: 100px 24px;
+            background: white;
+        }
+        
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 32px;
+            margin-top: 60px;
+        }
+        
+        @media (max-width: 400px) {
+            .testimonials-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .testimonial-card {
+            background: var(--bg-warm);
+            padding: 32px;
+            border-radius: 24px;
+            border: 1px solid #eee;
+            position: relative;
+        }
+        
+        .testimonial-card::before {
+            content: '"';
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 80px;
+            font-family: 'Playfair Display', serif;
+            color: var(--gold);
+            opacity: 0.2;
+            line-height: 1;
+        }
+        
+        .testimonial-stars {
+            color: var(--gold);
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+        
+        .testimonial-text {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            color: var(--text);
+            margin-bottom: 24px;
+            font-style: italic;
+        }
+        
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .testimonial-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .testimonial-info h4 {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+        
+        .testimonial-info p {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        
+        /* How it Works */
+        .how-section {
+            padding: 100px 24px;
+            background: var(--bg-warm);
+        }
+        
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 32px;
+            margin-top: 60px;
+        }
+        
+        @media (max-width: 900px) {
+            .steps-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .steps-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .step-card {
+            text-align: center;
+            position: relative;
+        }
+        
+        .step-card::after {
+            content: '→';
+            position: absolute;
+            right: -20px;
+            top: 40px;
+            font-size: 24px;
+            color: var(--gold);
+        }
+        
+        .step-card:last-child::after {
+            display: none;
+        }
+        
+        @media (max-width: 900px) {
+            .step-card::after {
+                display: none;
+            }
+        }
+        
+        .step-number {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border: 3px solid var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            color: var(--gold);
+            margin: 0 auto 24px;
+        }
+        
+        .step-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+        
+        .step-card p {
+            font-size: 15px;
+            color: var(--text-light);
+        }
+        
+        /* FAQ */
+        .faq-section {
+            padding: 100px 24px;
+            background: white;
+        }
+        
+        .faq-grid {
+            max-width: 800px;
+            margin: 60px auto 0;
+        }
+        
+        .faq-item {
+            border-bottom: 1px solid #eee;
+        }
+        
+        .faq-question {
+            width: 100%;
+            padding: 24px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .faq-question:hover {
+            color: var(--gold);
+        }
+        
+        .faq-question .icon {
+            font-size: 24px;
+            color: var(--gold);
+            transition: transform 0.3s ease;
+        }
+        
+        .faq-item.open .faq-question .icon {
+            transform: rotate(45deg);
+        }
+        
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .faq-item.open .faq-answer {
+            max-height: 500px;
+        }
+        
+        .faq-answer p {
+            padding-bottom: 24px;
+            color: var(--text-light);
+            line-height: 1.7;
+        }
+        
+        /* Final CTA */
+        .final-cta-section {
+            padding: 120px 24px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .final-cta-section::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .final-cta-content {
+            position: relative;
+            z-index: 10;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .final-cta-content h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            color: white;
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+        
+        .final-cta-content h2 span {
+            color: var(--gold-light);
+            font-style: italic;
+        }
+        
+        .final-cta-content p {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 40px;
+        }
+        
+        .final-cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .urgency-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid rgba(233, 69, 96, 0.4);
+            color: #ff8a8a;
+            padding: 12px 24px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 32px;
+        }
+        
+        /* Footer */
+        footer {
+            background: #0d0d15;
+            padding: 60px 24px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .footer-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 16px;
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 32px;
+            justify-content: center;
+            margin: 24px 0;
+            flex-wrap: wrap;
+        }
+        
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-links a:hover {
+            color: var(--gold);
+        }
+        
+        .footer-copy {
+            font-size: 13px;
+            margin-top: 24px;
+        }
+        
+        /* Sticky CTA Mobile */
+        .sticky-cta {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 16px 24px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+        
+        @media (max-width: 768px) {
+            .sticky-cta {
+                display: block;
+            }
+            
+            .final-cta-section {
+                padding-bottom: 160px;
+            }
+        }
+        
+        .sticky-cta .btn-primary {
+            width: 100%;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <div class="hero-badge">
+                    <span>🎹</span>
+                    <span>+500 adultos ya están tocando</span>
+                </div>
+                <h1>El sueño de tocar piano que siempre <span>postergaste</span></h1>
+                <p class="hero-subtitle">No importa tu edad ni tu experiencia previa. Con nuestro método y kit completo, estarás tocando tu primera melodía en menos de una semana.</p>
+                <div class="hero-cta">
+                    <a href="/kit-bienvenida-v2.html" class="btn-primary">
+                        <span>Comenzar mi viaje musical</span>
+                        <span>→</span>
+                    </a>
+                    <a href="#como-funciona" class="btn-secondary">
+                        <span>▶</span>
+                        <span>Ver cómo funciona</span>
+                    </a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-image-wrapper">
+                    <img src="https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=600&h=700&fit=crop" alt="Persona adulta tocando piano">
+                </div>
+                <div class="floating-card card-1">
+                    <div class="floating-card-icon">🎯</div>
+                    <div class="floating-card-text">
+                        <strong>Primera melodía</strong>
+                        <span>en 7 días o menos</span>
+                    </div>
+                </div>
+                <div class="floating-card card-2">
+                    <div class="floating-card-icon">⭐</div>
+                    <div class="floating-card-text">
+                        <strong>4.9/5 estrellas</strong>
+                        <span>de nuestros estudiantes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Social Proof Bar -->
+    <div class="social-proof-bar">
+        <div class="social-proof-content">
+            <div class="proof-item">
+                <span class="icon">👥</span>
+                <div><strong>500+</strong> estudiantes activos</div>
+            </div>
+            <div class="proof-item">
+                <span class="icon">🌎</span>
+                <div><strong>15</strong> países</div>
+            </div>
+            <div class="proof-item">
+                <span class="icon">⭐</span>
+                <div><strong>4.9</strong> valoración promedio</div>
+            </div>
+            <div class="proof-item">
+                <span class="icon">🎓</span>
+                <div><strong>95%</strong> tasa de satisfacción</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Problem Section -->
+    <section class="problem-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">El problema</span>
+                <h2 class="section-title">¿Te suena familiar alguno de estos pensamientos?</h2>
+                <p class="section-subtitle">No estás solo. Miles de adultos han sentido exactamente lo mismo antes de dar el primer paso.</p>
+            </div>
+            
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <div class="problem-icon">⏰</div>
+                    <h3>"No tengo tiempo para clases presenciales"</h3>
+                    <p>Entre el trabajo, la familia y las responsabilidades, encontrar tiempo para ir a una academia parece imposible.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">😰</div>
+                    <h3>"Soy demasiado viejo para aprender"</h3>
+                    <p>Crees que el piano es solo para niños y que ya perdiste tu oportunidad. Pero la ciencia dice lo contrario.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">💸</div>
+                    <h3>"Tengo miedo de gastar y no ver resultados"</h3>
+                    <p>Ya probaste otras cosas que no funcionaron. No quieres que esto sea una inversión más sin retorno.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">🤷</div>
+                    <h3>"No sé por dónde empezar"</h3>
+                    <p>Hay tanta información en internet que es abrumador. Necesitas un camino claro y estructurado.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Transformation Section -->
+    <section class="transformation-section">
+        <div class="section-container">
+            <div class="transformation-content">
+                <div class="transformation-image">
+                    <img src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=600&h=500&fit=crop" alt="Momento de satisfacción tocando piano">
+                    <div class="transformation-quote">
+                        <p>"A los 42 años pensé que era muy tarde. Hoy, 3 meses después, toco para mis hijos todas las noches."</p>
+                        <span class="author">— María González, Chile</span>
+                    </div>
+                </div>
+                <div class="transformation-text">
+                    <h2>Imagina la satisfacción de tocar tu canción favorita <span>con tus propias manos</span></h2>
+                    <p>No es un sueño. Es exactamente lo que cientos de adultos como tú han logrado con nuestro método. Y tú puedes ser el siguiente.</p>
+                    
+                    <ul class="benefit-list">
+                        <li>
+                            <span class="check">✓</span>
+                            <div><strong>Clases desde tu casa</strong> — Aprende a tu ritmo, sin desplazamientos ni horarios rígidos</div>
+                        </li>
+                        <li>
+                            <span class="check">✓</span>
+                            <div><strong>Profesor real, no videos</strong> — Interacción en tiempo real con retroalimentación personalizada</div>
+                        </li>
+                        <li>
+                            <span class="check">✓</span>
+                            <div><strong>Método para adultos</strong> — Diseñado para cómo aprende tu cerebro hoy, no como el de un niño</div>
+                        </li>
+                        <li>
+                            <span class="check">✓</span>
+                            <div><strong>Resultados desde la semana 1</strong> — Tocarás una melodía completa en tu primera sesión</div>
+                        </li>
+                    </ul>
+                    
+                    <a href="/kit-bienvenida-v2.html" class="btn-primary">
+                        <span>Quiero empezar ahora</span>
+                        <span>→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Kit Section -->
+    <section class="kit-section" id="kit">
+        <div class="section-container kit-content">
+            <div class="kit-header">
+                <span class="section-label">Todo incluido</span>
+                <h2 class="section-title">El Kit de Bienvenida PianoLink</h2>
+                <p class="section-subtitle">Todo lo que necesitas para empezar a tocar hoy mismo, en una sola compra.</p>
+            </div>
+            
+            <div class="kit-showcase">
+                <div class="kit-image">
+                    <img src="https://images.unsplash.com/photo-1552422535-c45813c61732?w=600&h=500&fit=crop" alt="Kit de Bienvenida PianoLink">
+                    <span class="kit-badge">🔥 Más vendido</span>
+                </div>
+                
+                <div class="kit-details">
+                    <h3>Todo lo necesario para comenzar</h3>
+                    
+                    <ul class="kit-includes">
+                        <li>
+                            <div class="item-icon">🔌</div>
+                            <div class="item-info">
+                                <h4>Cable MIDI Premium</h4>
+                                <p>Conecta tu teclado a la computadora para clases interactivas</p>
+                            </div>
+                            <span class="item-value">Valor $15</span>
+                        </li>
+                        <li>
+                            <div class="item-icon">🎓</div>
+                            <div class="item-info">
+                                <h4>Clase de Prueba Personalizada</h4>
+                                <p>30 minutos con un profesor real, adaptada a tu nivel</p>
+                            </div>
+                            <span class="item-value">Valor $25</span>
+                        </li>
+                        <li>
+                            <div class="item-icon">🔧</div>
+                            <div class="item-info">
+                                <h4>Sesión de Configuración</h4>
+                                <p>Te ayudamos a conectar todo y dejarlo listo para aprender</p>
+                            </div>
+                            <span class="item-value">Valor $20</span>
+                        </li>
+                        <li>
+                            <div class="item-icon">📚</div>
+                            <div class="item-info">
+                                <h4>Guía de Inicio Rápido</h4>
+                                <p>PDF con ejercicios para practicar desde el día 1</p>
+                            </div>
+                            <span class="item-value">Valor $10</span>
+                        </li>
+                    </ul>
+                    
+                    <div class="kit-pricing">
+                        <div class="price-row">
+                            <div>
+                                <span class="original-price">$70 USD</span>
+                                <div class="current-price">$15.60 <small>USD</small></div>
+                            </div>
+                            <span class="savings">Ahorras 78%</span>
+                        </div>
+                        <a href="/kit-bienvenida-v2.html" class="btn-primary kit-cta">
+                            <span>🎹 Obtener mi Kit de Bienvenida</span>
+                        </a>
+                        <div class="kit-guarantee">
+                            <span>🛡️</span>
+                            <span>Garantía de satisfacción de 30 días</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Testimonials -->
+    <section class="testimonials-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">Testimonios</span>
+                <h2 class="section-title">Adultos como tú que cumplieron su sueño</h2>
+                <p class="section-subtitle">Historias reales de personas que dieron el primer paso</p>
+            </div>
+            
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">"Tenía 52 años y pensé que era imposible. Tres meses después, sorprendí a mi esposa tocando 'Happy Birthday' en su cumpleaños. No tiene precio."</p>
+                    <div class="testimonial-author">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Roberto" class="testimonial-avatar">
+                        <div class="testimonial-info">
+                            <h4>Roberto Méndez</h4>
+                            <p>52 años, Ingeniero — México</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">"El trabajo remoto me dio tiempo para cumplir este sueño postergado. La conexión MIDI hace que las clases sean increíblemente interactivas."</p>
+                    <div class="testimonial-author">
+                        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Carolina" class="testimonial-avatar">
+                        <div class="testimonial-info">
+                            <h4>Carolina Vega</h4>
+                            <p>38 años, Marketing — Chile</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">"Me regalé el kit para mi cumpleaños 40. Fue la mejor decisión. Ahora tengo un hobby que me desconecta del estrés laboral."</p>
+                    <div class="testimonial-author">
+                        <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Patricia" class="testimonial-avatar">
+                        <div class="testimonial-info">
+                            <h4>Patricia Rojas</h4>
+                            <p>41 años, Abogada — Colombia</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- How it Works -->
+    <section class="how-section" id="como-funciona">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">Cómo funciona</span>
+                <h2 class="section-title">De soñar a tocar en 4 simples pasos</h2>
+                <p class="section-subtitle">Un proceso diseñado para que cualquier adulto pueda comenzar sin estrés</p>
+            </div>
+            
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3>Obtén tu Kit</h3>
+                    <p>Recibe el cable MIDI y acceso a tu clase de prueba personalizada</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3>Conecta todo</h3>
+                    <p>Con nuestra sesión de setup, te ayudamos a configurar tu teclado en minutos</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3>Tu primera clase</h3>
+                    <p>Conoce a tu profesor y toca tu primera melodía en la primera sesión</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h3>Sigue creciendo</h3>
+                    <p>Continúa con clases regulares y ve tu progreso semana a semana</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- FAQ -->
+    <section class="faq-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">Preguntas frecuentes</span>
+                <h2 class="section-title">Resolvemos tus dudas</h2>
+            </div>
+            
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>¿Es muy tarde para aprender piano a mi edad?</span>
+                        <span class="icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>¡Para nada! Estudios neurocientíficos demuestran que el cerebro adulto tiene ventajas para aprender música: mejor concentración, mayor disciplina y capacidad de entender conceptos complejos. Tenemos estudiantes de 28 a 72 años con excelentes resultados. Tu edad es una fortaleza, no una limitación.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>¿Necesito un piano profesional para empezar?</span>
+                        <span class="icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>No necesitas un piano de cola. Un teclado electrónico básico con al menos 61 teclas es suficiente para comenzar. Lo importante es que tenga conexión USB o MIDI para las clases interactivas. Te orientamos sobre opciones accesibles según tu presupuesto.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>¿Cuánto tiempo debo practicar diariamente?</span>
+                        <span class="icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Con solo 15-20 minutos diarios verás progreso real. Nuestro método está diseñado para adultos ocupados. Es mejor practicar poco tiempo todos los días que muchas horas de forma irregular. La consistencia es la clave.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>¿Qué pasa si no me gusta la clase de prueba?</span>
+                        <span class="icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Tienes 30 días de garantía. Si después de tu clase de prueba sientes que no es para ti, te devolvemos el 100% de tu dinero sin preguntas. Queremos que te sientas completamente seguro/a de tu decisión.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>¿Las clases son en vivo o pregrabadas?</span>
+                        <span class="icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Todas nuestras clases son 100% en vivo con un profesor real. Gracias a la tecnología MIDI, tu profesor puede ver exactamente qué notas tocas en tiempo real y darte retroalimentación instantánea. Es como tenerlo sentado a tu lado.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>¿Cuánto cuestan las clases después del kit?</span>
+                        <span class="icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Ofrecemos planes flexibles desde $49 USD mensuales por 4 clases. Pero no hay compromiso: con el kit obtienes una clase de prueba completa para que decidas si quieres continuar. Sin presión ni permanencia mínima.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Final CTA -->
+    <section class="final-cta-section">
+        <div class="final-cta-content">
+            <h2>Tu futuro yo musical te está <span>esperando</span></h2>
+            <p>Dentro de 3 meses podrías estar tocando tu canción favorita. O podrías seguir pensando "algún día". La única diferencia es dar el primer paso hoy.</p>
+            
+            <div class="final-cta-buttons">
+                <a href="/kit-bienvenida-v2.html" class="btn-primary">
+                    <span>🎹 Obtener mi Kit de Bienvenida — $15.60</span>
+                </a>
+            </div>
+            
+            <div class="urgency-badge">
+                <span>⚡</span>
+                <span>Precio especial de lanzamiento — Por tiempo limitado</span>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer>
+        <div class="footer-logo">PianoLink</div>
+        <p>La plataforma de clases de piano online para adultos</p>
+        <div class="footer-links">
+            <a href="/terminos">Términos de servicio</a>
+            <a href="/privacidad">Política de privacidad</a>
+            <a href="mailto:hola@pianolink.cl">Contacto</a>
+        </div>
+        <p class="footer-copy">© 2026 PianoLink. Todos los derechos reservados.</p>
+    </footer>
+    
+    <!-- Sticky CTA Mobile -->
+    <div class="sticky-cta">
+        <a href="/kit-bienvenida-v2.html" class="btn-primary">
+            <span>🎹 Obtener Kit — $15.60</span>
+        </a>
+    </div>
+    
+    <script>
+        // FAQ Accordion
+        document.querySelectorAll('.faq-question').forEach(button => {
+            button.addEventListener('click', () => {
+                const item = button.parentElement;
+                const isOpen = item.classList.contains('open');
+                
+                // Close all
+                document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+                
+                // Open clicked if wasn't open
+                if (!isOpen) {
+                    item.classList.add('open');
+                }
+            });
+        });
+        
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+        
+        // Hide sticky CTA when near footer
+        const stickyCta = document.querySelector('.sticky-cta');
+        const footer = document.querySelector('footer');
+        
+        if (stickyCta && footer) {
+            window.addEventListener('scroll', () => {
+                const footerRect = footer.getBoundingClientRect();
+                if (footerRect.top < window.innerHeight) {
+                    stickyCta.style.opacity = '0';
+                    stickyCta.style.pointerEvents = 'none';
+                } else {
+                    stickyCta.style.opacity = '1';
+                    stickyCta.style.pointerEvents = 'auto';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

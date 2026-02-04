@@ -94,7 +94,12 @@ app.get('/recuperar/:token', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'recuperar-password.html'));
 });
 
-// Ruta limpia para Welcome Kit
+// Landing de ventas del Welcome Kit (para buyer persona Elena)
+app.get(['/comenzar', '/empezar', '/tu-sueno-piano'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'welcome-kit-landing.html'));
+});
+
+// Ruta limpia para Welcome Kit (checkout)
 app.get(['/kit', '/welcome-kit', '/kit-bienvenida'], (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'kit-bienvenida.html'));
 });
