@@ -16,6 +16,10 @@ const userSchema = mongoose.Schema({
     default: 'teacher' 
   },
   
+  // ==================== CLASES (para estudiantes) ====================
+  classesRemaining: { type: Number, default: 0 },  // Clases disponibles
+  classesCompleted: { type: Number, default: 0 },  // Clases realizadas
+  
   // ==================== DATOS DE PROFESOR ====================
   teacherData: {
     // Estado de suscripción

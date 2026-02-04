@@ -27,7 +27,12 @@ router.get('/me', protect, async (req, res) => {
         let totalClassesRemaining = 0;
         let totalClassesUsed = 0;
 
-        if (user.clientData?.managedStudents?.length > 0) {
+        if (user.role === 'student') {
+            // El usuario es estudiante directo
+            totalClassesRemaining = user.classesRemaining || 0;
+            totalClassesUsed = user.classesCompleted || 0;
+        } else if (user.clientData?.managedStudents?.length > 0) {
+            // El usuario es guardian/client con estudiantes gestionados
             user.clientData.managedStudents.forEach(student => {
                 totalClassesRemaining += student.classesRemaining || 0;
                 totalClassesUsed += student.classesUsed || 0;

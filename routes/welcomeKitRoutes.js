@@ -1071,7 +1071,9 @@ router.post('/verify', async (req, res) => {
             allStudents = [{
                 id: student._id,
                 name: student.name,
-                email: student.email
+                email: student.email,
+                classesRemaining: student.classesRemaining || 1,
+                classesCompleted: student.classesCompleted || 0
             }];
         }
         
