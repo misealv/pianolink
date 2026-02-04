@@ -28,6 +28,12 @@ const bookingSchema = mongoose.Schema({
         default: null  // Apoderado si aplica
     },
     
+    // Nombre del estudiante (útil cuando es un managedStudent embebido)
+    studentName: {
+        type: String,
+        default: ''
+    },
+    
     // ==================== SNAPSHOT DE TIEMPO ====================
     // Guardamos copia porque el slot puede ser reutilizado
     scheduledStart: {

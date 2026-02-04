@@ -279,6 +279,165 @@
             animation: slideIn 0.3s ease;
         }
 
+        /* Calendario Semanal del Profesor */
+        .week-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .week-nav-btn {
+            background: #252530;
+            border: 1px solid var(--border);
+            color: #c0c0c8;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .week-nav-btn:hover {
+            background: #2d2d38;
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .week-nav-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .week-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .teacher-calendar {
+            display: grid;
+            grid-template-columns: 65px repeat(7, 1fr);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #1a1a22;
+            border: 1px solid var(--border);
+        }
+
+        .cal-header {
+            background: #252530;
+            padding: 12px 6px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .cal-header.time-col {
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cal-header .day-name {
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 10px;
+        }
+
+        .cal-header .day-number {
+            font-size: 18px;
+            font-weight: 800;
+            color: #e0e0e8;
+            margin-top: 3px;
+        }
+
+        .cal-header.today {
+            background: rgba(255, 118, 77, 0.15);
+            border-bottom-color: var(--accent);
+        }
+
+        .cal-header.today .day-name,
+        .cal-header.today .day-number {
+            color: var(--accent);
+        }
+
+        .cal-time {
+            background: #1e1e26;
+            padding: 8px 4px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: #606068;
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid #252530;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 54px;
+        }
+
+        .cal-cell {
+            border-right: 1px solid #252530;
+            border-bottom: 1px solid #252530;
+            min-height: 54px;
+            padding: 4px;
+            background: #1a1a22;
+        }
+
+        .cal-cell:last-child {
+            border-right: none;
+        }
+
+        .cal-slot {
+            padding: 6px 4px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 2px;
+        }
+
+        .cal-slot.available {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px dashed rgba(34, 197, 94, 0.4);
+        }
+
+        .cal-slot.booked {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .cal-slot.booked:hover {
+            transform: scale(1.02);
+        }
+
+        .cal-slot .student-name {
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .cal-slot .slot-time {
+            font-size: 9px;
+            opacity: 0.8;
+        }
+
+        .no-classes-msg {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
         @keyframes slideIn {
             from { transform: translateX(100px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -485,12 +644,25 @@
             </div>
         </div>
 
-        <!-- Próximas Reservas -->
+        <!-- Próximas Reservas - Vista Calendario Semanal -->
         <div class="card">
-            <h2>📋 Próximas Clases Agendadas</h2>
-            <div id="bookingsList">
+            <h2>📅 Mi Calendario de Clases</h2>
+            
+            <!-- Navegación de semanas -->
+            <div class="week-navigation">
+                <button class="week-nav-btn" id="prevWeekBtn" onclick="changeCalendarWeek(-1)">
+                    ← Anterior
+                </button>
+                <span class="week-title" id="calendarWeekTitle">Semana actual</span>
+                <button class="week-nav-btn" id="nextWeekBtn" onclick="changeCalendarWeek(1)">
+                    Siguiente →
+                </button>
+            </div>
+            
+            <!-- Calendario -->
+            <div id="teacherCalendar">
                 <p style="color: var(--text-muted); text-align: center; padding: 30px;">
-                    Cargando reservas...
+                    Cargando calendario...
                 </p>
             </div>
         </div>
@@ -668,51 +840,195 @@
             }
         }
 
-        // Cargar próximas reservas
-        async function loadBookings() {
+        // Variables para calendario del profesor
+        const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        let calendarWeekStart = null;
+        let allBookings = [];
+        let allSlots = [];
+
+        function getWeekStart(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            d.setDate(d.getDate() - day);
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+
+        function changeCalendarWeek(direction) {
+            const newStart = new Date(calendarWeekStart);
+            newStart.setDate(newStart.getDate() + (direction * 7));
+            
+            const today = getWeekStart(new Date());
+            if (newStart < today) return;
+            
+            const maxWeek = new Date(today);
+            maxWeek.setDate(maxWeek.getDate() + 21);
+            if (newStart > maxWeek) return;
+            
+            calendarWeekStart = newStart;
+            renderTeacherCalendar();
+        }
+
+        // Cargar datos del calendario
+        async function loadCalendarData() {
             try {
-                const res = await fetch('/api/bookings/teacher', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                // Cargar bookings y calendario del profesor (slots disponibles y reservados)
+                const [bookingsRes, calendarRes] = await Promise.all([
+                    fetch('/api/bookings/teacher', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch('/api/availability/my-calendar', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                ]);
 
-                const bookings = await res.json();
-                const container = document.getElementById('bookingsList');
-
-                if (!bookings || bookings.length === 0) {
-                    container.innerHTML = `
-                        <p style="color: var(--text-muted); text-align: center; padding: 30px;">
-                            No tienes clases agendadas próximamente
-                        </p>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = bookings.map(b => {
-                    const date = new Date(b.scheduledStart);
-                    return `
-                        <div class="booking-item" data-booking-id="${b._id}">
-                            <div class="booking-info">
-                                <h4>${b.studentId?.name || 'Estudiante'}</h4>
-                                <span>
-                                    📅 ${date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-                                    • ⏰ ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            </div>
-                            <div class="booking-actions" style="display: flex; gap: 8px; align-items: center;">
-                                <button class="btn btn-sm" onclick="cancelBookingTeacher('${b._id}', '${b.studentId?.name || 'Estudiante'}')" 
-                                        style="background: #ef4444; color: white; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 11px;">
-                                    ✕ Cancelar
-                                </button>
-                                <span style="background: var(--accent-green); color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px;">
-                                    ${b.status === 'confirmed' ? 'Confirmada' : b.status}
-                                </span>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                allBookings = await bookingsRes.json();
+                const calendarData = await calendarRes.json();
+                // my-calendar devuelve un array de slots directamente
+                allSlots = Array.isArray(calendarData) ? calendarData : [];
+                
+                // Iniciar en la semana actual
+                calendarWeekStart = getWeekStart(new Date());
+                renderTeacherCalendar();
 
             } catch (error) {
-                console.error('Error cargando reservas:', error);
+                console.error('Error cargando calendario:', error);
+                document.getElementById('teacherCalendar').innerHTML = `
+                    <p style="color: #ef4444; text-align: center; padding: 30px;">
+                        Error al cargar el calendario
+                    </p>
+                `;
+            }
+        }
+
+        function renderTeacherCalendar() {
+            const container = document.getElementById('teacherCalendar');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Actualizar título
+            const weekEnd = new Date(calendarWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            document.getElementById('calendarWeekTitle').textContent = 
+                `${calendarWeekStart.getDate()} ${MESES[calendarWeekStart.getMonth()]} - ${weekEnd.getDate()} ${MESES[weekEnd.getMonth()]}`;
+            
+            // Controles de navegación
+            const todayWeek = getWeekStart(new Date());
+            const maxWeek = new Date(todayWeek);
+            maxWeek.setDate(maxWeek.getDate() + 21);
+            document.getElementById('prevWeekBtn').disabled = calendarWeekStart <= todayWeek;
+            document.getElementById('nextWeekBtn').disabled = calendarWeekStart >= maxWeek;
+            
+            // Filtrar items de esta semana
+            const weekEndDate = new Date(calendarWeekStart);
+            weekEndDate.setDate(weekEndDate.getDate() + 7);
+            
+            const weekBookings = (allBookings || []).filter(b => {
+                const d = new Date(b.scheduledStart);
+                return d >= calendarWeekStart && d < weekEndDate;
+            });
+            
+            const weekSlots = (allSlots || []).filter(s => {
+                const d = new Date(s.startTime);
+                return d >= calendarWeekStart && d < weekEndDate && s.status === 'available';
+            });
+            
+            // Obtener todas las horas únicas
+            const allHours = new Set();
+            weekBookings.forEach(b => allHours.add(new Date(b.scheduledStart).getHours()));
+            weekSlots.forEach(s => allHours.add(new Date(s.startTime).getHours()));
+            
+            const hours = [...allHours].sort((a, b) => a - b);
+            
+            if (hours.length === 0) {
+                container.innerHTML = `
+                    <div class="no-classes-msg">
+                        <p>📅 No hay clases ni horarios disponibles esta semana</p>
+                        <p style="font-size: 12px; margin-top: 8px;">Genera horarios en la sección de plantilla o navega a otra semana</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Construir grid
+            let html = '<div class="teacher-calendar">';
+            
+            // Headers
+            html += '<div class="cal-header time-col">Hora</div>';
+            for (let i = 0; i < 7; i++) {
+                const dayDate = new Date(calendarWeekStart);
+                dayDate.setDate(dayDate.getDate() + i);
+                const isToday = dayDate.toDateString() === today.toDateString();
+                
+                html += `
+                    <div class="cal-header ${isToday ? 'today' : ''}">
+                        <div class="day-name">${DIAS_SEMANA[i]}</div>
+                        <div class="day-number">${dayDate.getDate()}</div>
+                    </div>
+                `;
+            }
+            
+            // Filas por hora
+            for (const hour of hours) {
+                html += `<div class="cal-time">${hour.toString().padStart(2, '0')}:00</div>`;
+                
+                for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+                    const dayDate = new Date(calendarWeekStart);
+                    dayDate.setDate(dayDate.getDate() + dayIdx);
+                    
+                    // Buscar bookings en esta hora
+                    const dayBookings = weekBookings.filter(b => {
+                        const bd = new Date(b.scheduledStart);
+                        return bd.getHours() === hour && 
+                               bd.getDate() === dayDate.getDate() &&
+                               bd.getMonth() === dayDate.getMonth();
+                    });
+                    
+                    // Buscar slots disponibles en esta hora
+                    const daySlots = weekSlots.filter(s => {
+                        const sd = new Date(s.startTime);
+                        return sd.getHours() === hour && 
+                               sd.getDate() === dayDate.getDate() &&
+                               sd.getMonth() === dayDate.getMonth();
+                    });
+                    
+                    html += '<div class="cal-cell">';
+                    
+                    // Mostrar bookings primero
+                    for (const booking of dayBookings) {
+                        const time = new Date(booking.scheduledStart).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                        const studentName = booking.studentName || booking.studentId?.name || 'Estudiante';
+                        html += `
+                            <div class="cal-slot booked" onclick="showBookingDetails('${booking._id}', '${studentName}')">
+                                <div class="student-name">${studentName}</div>
+                                <div class="slot-time">${time}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Mostrar slots disponibles
+                    for (const slot of daySlots) {
+                        const time = new Date(slot.startTime).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                        html += `
+                            <div class="cal-slot available">
+                                <div class="slot-time">${time}</div>
+                                <div style="font-size: 9px;">Disponible</div>
+                            </div>
+                        `;
+                    }
+                    
+                    html += '</div>';
+                }
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function showBookingDetails(bookingId, studentName) {
+            if (confirm(`Clase con ${studentName}\n\n¿Deseas cancelar esta clase?`)) {
+                cancelBookingTeacher(bookingId, studentName);
             }
         }
 
@@ -720,7 +1036,7 @@
         async function cancelBookingTeacher(bookingId, studentName) {
             const reason = prompt(`¿Por qué deseas cancelar la clase con ${studentName}?\n(El estudiante recibirá la clase de vuelta)`);
             
-            if (reason === null) return; // Usuario canceló el prompt
+            if (reason === null) return;
             
             try {
                 const res = await fetch(`/api/bookings/${bookingId}/teacher`, {
@@ -736,7 +1052,7 @@
                 
                 if (res.ok) {
                     showToast('✓ Clase cancelada. Se devolvió 1 clase al estudiante.');
-                    loadBookings(); // Recargar lista
+                    loadCalendarData(); // Recargar calendario
                 } else {
                     showToast(result.message || 'Error al cancelar', true);
                 }
@@ -761,7 +1077,7 @@
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
             loadTemplate();
-            loadBookings();
+            loadCalendarData();
         });
     </script>
 </body>

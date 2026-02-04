@@ -24,6 +24,8 @@ class BookingService {
         const session = await mongoose.startSession();
         session.startTransaction();
         
+        let transactionCommitted = false;
+        
         try {
             // 1. Obtener el slot de forma atómica
             const slot = await TimeSlot.findOneAndUpdate(
@@ -44,76 +46,84 @@ class BookingService {
             ).populate('teacherId', 'name timezone');
             
             if (!slot) {
-                await session.abortTransaction();
                 throw new Error('SLOT_UNAVAILABLE');
             }
             
             // 2. Verificar saldo de clases
+            // El pagador siempre es el usuario autenticado (clientId si es guardian, studentId si es estudiante directo)
             const payerId = clientId || studentId;
             const payer = await User.findById(payerId).session(session);
             
             if (!payer) {
-                await session.abortTransaction();
                 throw new Error('USER_NOT_FOUND');
             }
             
             // Calcular clases disponibles (del pagador)
             let availableClasses = 0;
+            let managedStudentIndex = -1;
+            let studentName = '';
+            
             if (payer.role === 'client' && payer.clientData?.accountType === 'guardian') {
-                // Buscar clases del estudiante específico en managedStudents
-                const student = await User.findById(studentId);
-                const managedStudent = payer.clientData.managedStudents?.find(
-                    s => s.name.toLowerCase() === student?.name?.toLowerCase()
+                // Para guardians, studentId puede ser:
+                // 1. El _id del subdocumento managedStudent
+                // 2. El nombre del estudiante
+                const managedStudents = payer.clientData.managedStudents || [];
+                
+                // Buscar por _id del subdocumento primero
+                managedStudentIndex = managedStudents.findIndex(
+                    s => s._id && s._id.toString() === studentId?.toString()
                 );
-                availableClasses = managedStudent?.classesRemaining || 0;
+                
+                // Si no encontró por ID, buscar por nombre
+                if (managedStudentIndex === -1 && studentId) {
+                    managedStudentIndex = managedStudents.findIndex(
+                        s => s.name?.toLowerCase() === studentId?.toLowerCase()
+                    );
+                }
+                
+                // Si todavía no encontró y solo hay un estudiante, usar ese
+                if (managedStudentIndex === -1 && managedStudents.length === 1) {
+                    managedStudentIndex = 0;
+                }
+                
+                if (managedStudentIndex >= 0) {
+                    availableClasses = managedStudents[managedStudentIndex].classesRemaining || 0;
+                    studentName = managedStudents[managedStudentIndex].name;
+                }
             } else {
                 availableClasses = payer.classesRemaining || 0;
+                studentName = payer.name;
             }
             
             if (availableClasses <= 0) {
-                // Revertir el slot a disponible
-                await TimeSlot.findByIdAndUpdate(slotId, {
-                    status: 'available',
-                    $unset: { booking: 1 }
-                }, { session });
-                
-                await session.abortTransaction();
                 throw new Error('INSUFFICIENT_CLASSES');
             }
             
             // 3. Descontar clase del saldo
-            if (payer.role === 'client' && payer.clientData?.accountType === 'guardian') {
-                // Descontar del estudiante específico
-                const student = await User.findById(studentId).select('name');
-                const studentName = student?.name?.toLowerCase() || '';
-                const studentIndex = payer.clientData.managedStudents.findIndex(
-                    s => s.name.toLowerCase() === studentName
-                );
-                if (studentIndex >= 0) {
-                    payer.clientData.managedStudents[studentIndex].classesRemaining--;
-                    payer.markModified('clientData.managedStudents');
-                }
+            if (payer.role === 'client' && payer.clientData?.accountType === 'guardian' && managedStudentIndex >= 0) {
+                payer.clientData.managedStudents[managedStudentIndex].classesRemaining--;
+                payer.clientData.managedStudents[managedStudentIndex].classesUsed = 
+                    (payer.clientData.managedStudents[managedStudentIndex].classesUsed || 0) + 1;
+                payer.markModified('clientData.managedStudents');
             } else {
                 payer.classesRemaining--;
             }
             await payer.save({ session });
             
-            // 4. Obtener info del estudiante
-            const student = await User.findById(studentId).select('name timezone');
-            
-            // 5. Actualizar slot a booked y generar sesión MIDI
+            // 4. Actualizar slot a booked y generar sesión MIDI
             slot.status = 'booked';
-            slot.booking.studentName = student.name;
+            slot.booking.studentName = studentName;
             slot.booking.confirmedAt = new Date();
             slot.generateMidiSession();
             await slot.save({ session });
             
-            // 6. Crear registro de Booking
+            // 5. Crear registro de Booking
             const booking = await Booking.create([{
                 slotId: slot._id,
                 teacherId: slot.teacherId._id,
-                studentId,
+                studentId: payerId, // Guardar el ID del pagador como referencia
                 clientId,
+                studentName, // Guardar el nombre del estudiante
                 scheduledStart: slot.startTime,
                 scheduledEnd: slot.endTime,
                 duration: slot.duration,
@@ -128,11 +138,12 @@ class BookingService {
                 }]
             }], { session });
             
-            // 7. Commit
+            // 6. Commit
             await session.commitTransaction();
+            transactionCommitted = true;
             
-            // 8. Enviar notificaciones (async, fuera de transacción)
-            this._sendBookingNotifications(booking[0], slot, student);
+            // 7. Enviar notificaciones (async, fuera de transacción)
+            this._sendBookingNotifications(booking[0], slot, { name: studentName });
             
             return {
                 success: true,
@@ -142,7 +153,9 @@ class BookingService {
             };
             
         } catch (error) {
-            await session.abortTransaction();
+            if (!transactionCommitted) {
+                await session.abortTransaction();
+            }
             throw error;
         } finally {
             session.endSession();

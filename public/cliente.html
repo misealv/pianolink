@@ -658,61 +658,81 @@
         }
 
         .modal-content {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 85vh;
+            background: #1e1e24;
+            border: 1px solid #2d2d35;
+            border-radius: 20px;
+            width: 95%;
+            max-width: 950px;
+            max-height: 90vh;
             overflow-y: auto;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
         }
 
         .modal-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
+            padding: 24px 28px;
+            border-bottom: 1px solid #2d2d35;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: linear-gradient(180deg, #252530 0%, #1e1e24 100%);
         }
 
         .modal-header h2 {
-            font-size: 18px;
+            font-size: 20px;
+            font-weight: 700;
             margin: 0;
+            color: #f0f0f5;
         }
 
         .modal-close {
-            background: none;
+            background: #2d2d38;
             border: none;
-            font-size: 24px;
-            color: var(--text-muted);
+            font-size: 20px;
+            color: #888;
             cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #3d2d2d;
+            color: #ff6b6b;
         }
 
         .modal-body {
-            padding: 24px;
+            padding: 28px;
+            background: #1a1a20;
         }
 
         .teacher-card {
-            background: var(--bg);
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
+            background: linear-gradient(135deg, #252530 0%, #1e1e26 100%);
+            border: 1px solid #3d3d48;
+            border-radius: 14px;
+            padding: 18px;
             margin-bottom: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 16px;
-            transition: all 0.2s;
+            transition: all 0.25s;
         }
 
         .teacher-card:hover {
             border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255, 118, 77, 0.2);
+            background: linear-gradient(135deg, #2a2a35 0%, #22222a 100%);
         }
 
         .teacher-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
             background: linear-gradient(135deg, var(--accent), #ff9a7c);
             display: flex;
             align-items: center;
@@ -720,6 +740,7 @@
             color: white;
             font-weight: 700;
             font-size: 18px;
+            box-shadow: 0 4px 15px rgba(255, 118, 77, 0.35);
         }
 
         .teacher-info {
@@ -727,79 +748,224 @@
         }
 
         .teacher-info h4 {
-            margin: 0 0 4px 0;
-            font-size: 15px;
+            margin: 0 0 6px 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: #f0f0f5;
         }
 
         .teacher-info small {
-            color: var(--text-muted);
+            color: #888;
             font-size: 13px;
         }
 
         .slots-badge {
             background: rgba(34, 197, 94, 0.15);
-            color: var(--success);
-            padding: 6px 12px;
+            color: #4ade80;
+            padding: 8px 14px;
             border-radius: 20px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 700;
+            border: 1px solid rgba(34, 197, 94, 0.3);
         }
 
-        .day-group {
-            margin-bottom: 20px;
-        }
-
-        .day-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--accent);
-            margin-bottom: 10px;
-            text-transform: capitalize;
-        }
-
-        .slots-row {
+        /* Vista Calendario Semanal */
+        .week-navigation {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 0 4px;
         }
 
-        .slot-btn {
-            background: var(--bg);
-            border: 2px solid var(--border);
-            color: var(--text);
-            padding: 10px 16px;
-            border-radius: 8px;
+        .week-nav-btn {
+            background: #252530;
+            border: 1px solid #3d3d48;
+            color: #c0c0c8;
+            padding: 10px 20px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             transition: all 0.2s;
         }
 
-        .slot-btn:hover {
+        .week-nav-btn:hover {
+            background: #2d2d38;
             border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-1px);
         }
 
-        .slot-btn.selected {
-            background: var(--accent);
-            border-color: var(--accent);
+        .week-nav-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .week-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 65px repeat(7, 1fr);
+            border-radius: 14px;
+            overflow: hidden;
+            background: #1a1a22;
+            border: 1px solid #2d2d38;
+        }
+
+        .calendar-header {
+            background: #252530;
+            padding: 14px 6px;
+            text-align: center;
+            border-bottom: 1px solid #3d3d48;
+            font-size: 12px;
+        }
+
+        .calendar-header.time-col {
+            font-weight: 600;
+            color: #888;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-header .day-name {
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .calendar-header .day-number {
+            font-size: 20px;
+            font-weight: 800;
+            color: #e0e0e8;
+            margin-top: 4px;
+        }
+
+        .calendar-header.today {
+            background: linear-gradient(180deg, rgba(255, 118, 77, 0.2) 0%, rgba(255, 118, 77, 0.1) 100%);
+            border-bottom-color: var(--accent);
+        }
+
+        .calendar-header.today .day-name {
+            color: var(--accent);
+        }
+
+        .calendar-header.today .day-number {
+            color: var(--accent);
+        }
+
+        .time-label {
+            background: #1e1e26;
+            padding: 10px 6px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #707078;
+            border-right: 1px solid #2d2d38;
+            border-bottom: 1px solid #252530;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 56px;
+        }
+
+        .calendar-cell {
+            border-right: 1px solid #252530;
+            border-bottom: 1px solid #252530;
+            min-height: 56px;
+            padding: 5px;
+            position: relative;
+            background: #1a1a22;
+            transition: background 0.2s;
+        }
+
+        .calendar-cell:hover {
+            background: #1e1e28;
+        }
+
+        .calendar-cell:last-child {
+            border-right: none;
+        }
+
+        .calendar-slot {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
             color: white;
+            padding: 8px 6px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(34, 197, 94, 0.25);
+        }
+
+        .calendar-slot:hover {
+            transform: scale(1.08) translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+        }
+
+        .calendar-slot.selected {
+            background: linear-gradient(135deg, var(--accent), #ff9a7c);
+            box-shadow: 0 4px 16px rgba(255, 118, 77, 0.4);
+            animation: pulse-selected 2s infinite;
+        }
+
+        @keyframes pulse-selected {
+            0%, 100% { box-shadow: 0 4px 16px rgba(255, 118, 77, 0.4); }
+            50% { box-shadow: 0 4px 24px rgba(255, 118, 77, 0.6); }
+        }
+
+        .no-slots-msg {
+            text-align: center;
+            padding: 50px 20px;
+            color: #707078;
+            background: #1e1e26;
+            border-radius: 14px;
+            border: 1px solid #2d2d38;
+        }
+
+        .no-slots-msg .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .no-slots-msg p {
+            font-size: 14px;
+            line-height: 1.6;
         }
 
         .confirm-box {
-            background: rgba(34, 197, 94, 0.1);
-            border: 2px solid var(--success);
-            border-radius: 12px;
+            background: rgba(34, 197, 94, 0.08);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 14px;
             padding: 20px;
             margin-top: 20px;
         }
 
         .confirm-box h4 {
-            margin: 0 0 8px 0;
-            color: var(--success);
+            margin: 0 0 12px 0;
+            color: #4ade80;
         }
 
         .confirm-box p {
             margin: 0 0 16px 0;
-            font-size: 16px;
+            font-size: 15px;
+            color: #c0c0c8;
         }
 
         .checkbox-row {
@@ -808,53 +974,107 @@
             gap: 10px;
             margin-bottom: 16px;
             font-size: 14px;
+            color: #a0a0a8;
         }
 
         .checkbox-row input {
             width: 18px;
             height: 18px;
+            accent-color: var(--accent);
         }
 
         .btn-confirm {
             width: 100%;
-            background: var(--success);
+            background: linear-gradient(135deg, #22c55e, #16a34a);
             border: none;
             color: white;
-            padding: 14px;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
         }
 
         .btn-confirm:hover:not(:disabled) {
-            background: #1ea550;
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
         }
 
         .btn-confirm:disabled {
-            opacity: 0.5;
+            opacity: 0.35;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         .btn-back {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 13px;
+            background: #252530;
+            border: 1px solid #3d3d48;
+            color: #a0a0a8;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+        }
+
+        .btn-back:hover {
+            background: #2d2d38;
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
         .loading-spinner {
             text-align: center;
-            padding: 40px;
-            color: var(--text-muted);
+            padding: 50px;
+            color: #707078;
+        }
+
+        .loading-spinner .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #2d2d38;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         /* Responsive */
+        @media (max-width: 900px) {
+            .calendar-grid {
+                grid-template-columns: 50px repeat(7, 1fr);
+                font-size: 11px;
+            }
+            
+            .calendar-header .day-number {
+                font-size: 16px;
+            }
+            
+            .calendar-slot {
+                padding: 4px 2px;
+                font-size: 10px;
+            }
+            
+            .week-nav-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+            
+            .week-title {
+                font-size: 14px;
+            }
+        }
+
         @media (max-width: 600px) {
             .header {
                 flex-direction: column;
@@ -889,6 +1109,46 @@
             .billing-table th,
             .billing-table td {
                 padding: 10px 8px;
+            }
+            
+            .modal-content {
+                width: 100%;
+                max-width: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+            
+            .modal-body {
+                padding: 16px;
+            }
+            
+            .calendar-grid {
+                grid-template-columns: 45px repeat(7, 1fr);
+                overflow-x: auto;
+            }
+            
+            .calendar-header .day-name {
+                font-size: 9px;
+            }
+            
+            .calendar-header .day-number {
+                font-size: 14px;
+            }
+            
+            .time-label {
+                font-size: 11px;
+                min-height: 50px;
+            }
+            
+            .calendar-cell {
+                min-height: 50px;
+                padding: 2px;
+            }
+            
+            .calendar-slot {
+                padding: 3px 1px;
+                font-size: 9px;
+                border-radius: 4px;
             }
         }
     </style>
@@ -936,14 +1196,27 @@
                     </div>
                 </div>
                 
-                <!-- Step 2: Horarios -->
+                <!-- Paso 2: Horarios - Vista Calendario Semanal -->
                 <div id="slotStep" style="display: none;">
                     <button class="btn-back" onclick="backToTeachers()">← Cambiar profesor</button>
-                    <h4 style="margin-bottom: 16px; font-size: 14px; color: var(--text-muted);">
-                        Paso 2: Elige un horario
+                    <h4 style="margin-bottom: 8px; font-size: 14px; color: var(--text-muted);">
+                        Paso 2: Elige un horario disponible
                     </h4>
                     <p id="selectedTeacherText" style="margin-bottom: 16px;"></p>
-                    <div id="slotsList">
+                    
+                    <!-- Navegación de semanas -->
+                    <div class="week-navigation">
+                        <button class="week-nav-btn" id="prevWeekBtn" onclick="changeWeek(-1)">
+                            ← Anterior
+                        </button>
+                        <span class="week-title" id="weekTitle">Semana actual</span>
+                        <button class="week-nav-btn" id="nextWeekBtn" onclick="changeWeek(1)">
+                            Siguiente →
+                        </button>
+                    </div>
+                    
+                    <!-- Calendario semanal -->
+                    <div id="calendarContainer">
                         <div class="loading-spinner">
                             <div class="spinner"></div>
                             <p>Cargando horarios...</p>
@@ -982,6 +1255,13 @@
         let bookingStudentId = null;
         let bookingStudentName = null;
         let currentUserData = null;
+        
+        // Variables para calendario semanal
+        let currentWeekStart = null;
+        let allSlots = [];
+        const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const DIAS_COMPLETOS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
         // Cargar datos del usuario
         async function loadDashboard() {
@@ -1511,7 +1791,7 @@
         }
 
         async function loadAvailableSlots(teacherId) {
-            const container = document.getElementById('slotsList');
+            const container = document.getElementById('calendarContainer');
             container.innerHTML = `
                 <div class="loading-spinner">
                     <div class="spinner"></div>
@@ -1520,63 +1800,174 @@
             `;
             
             try {
+                // Cargar 4 semanas de slots
                 const today = new Date();
-                const twoWeeks = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+                const fourWeeks = new Date(today.getTime() + 28 * 24 * 60 * 60 * 1000);
                 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 
-                const res = await fetch(`/api/availability/teacher/${teacherId}?from=${today.toISOString()}&to=${twoWeeks.toISOString()}&timezone=${timezone}`);
-                const slots = await res.json();
+                const res = await fetch(`/api/availability/teacher/${teacherId}?from=${today.toISOString()}&to=${fourWeeks.toISOString()}&timezone=${timezone}`);
+                allSlots = await res.json();
                 
-                if (!slots || slots.length === 0) {
+                if (!allSlots || allSlots.length === 0) {
                     container.innerHTML = `
-                        <p style="text-align: center; color: var(--text-muted); padding: 20px;">
-                            No hay horarios disponibles con este profesor.
-                        </p>
+                        <div class="no-slots-msg">
+                            <div class="icon">📅</div>
+                            <p>No hay horarios disponibles con este profesor en las próximas semanas.</p>
+                        </div>
                     `;
+                    document.getElementById('prevWeekBtn').style.display = 'none';
+                    document.getElementById('nextWeekBtn').style.display = 'none';
                     return;
                 }
                 
-                // Agrupar por día
-                const grouped = {};
-                slots.forEach(slot => {
-                    const dateKey = slot.displayDate || new Date(slot.startTime).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
-                    if (!grouped[dateKey]) grouped[dateKey] = [];
-                    grouped[dateKey].push(slot);
-                });
-                
-                container.innerHTML = Object.entries(grouped).map(([date, daySlots]) => `
-                    <div class="day-group">
-                        <div class="day-title">${date}</div>
-                        <div class="slots-row">
-                            ${daySlots.map(slot => {
-                                const time = slot.displayStart || new Date(slot.startTime).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-                                return `
-                                    <button class="slot-btn" data-slot-id="${slot._id}" onclick="selectSlot('${slot._id}', '${time}', '${date}')">
-                                        ${time}
-                                    </button>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                `).join('');
+                // Iniciar en la semana actual
+                currentWeekStart = getWeekStart(today);
+                renderWeekCalendar();
                 
             } catch (error) {
                 console.error('Error cargando slots:', error);
                 container.innerHTML = `
-                    <p style="text-align: center; color: var(--danger); padding: 20px;">
-                        Error al cargar horarios. Intenta de nuevo.
-                    </p>
+                    <div class="no-slots-msg">
+                        <div class="icon">❌</div>
+                        <p style="color: var(--danger);">Error al cargar horarios. Intenta de nuevo.</p>
+                    </div>
                 `;
             }
+        }
+
+        function getWeekStart(date) {
+            const d = new Date(date);
+            const day = d.getDay(); // 0 = domingo
+            d.setDate(d.getDate() - day);
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+
+        function changeWeek(direction) {
+            const newStart = new Date(currentWeekStart);
+            newStart.setDate(newStart.getDate() + (direction * 7));
+            
+            // No permitir ir antes de hoy
+            const today = getWeekStart(new Date());
+            if (newStart < today) return;
+            
+            // No ir más allá de 4 semanas
+            const maxWeek = new Date(today);
+            maxWeek.setDate(maxWeek.getDate() + 21);
+            if (newStart > maxWeek) return;
+            
+            currentWeekStart = newStart;
+            renderWeekCalendar();
+        }
+
+        function renderWeekCalendar() {
+            const container = document.getElementById('calendarContainer');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Actualizar título de la semana
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            document.getElementById('weekTitle').textContent = 
+                `${currentWeekStart.getDate()} ${MESES[currentWeekStart.getMonth()]} - ${weekEnd.getDate()} ${MESES[weekEnd.getMonth()]}`;
+            
+            // Deshabilitar navegación según límites
+            const todayWeek = getWeekStart(new Date());
+            const maxWeek = new Date(todayWeek);
+            maxWeek.setDate(maxWeek.getDate() + 21);
+            document.getElementById('prevWeekBtn').disabled = currentWeekStart <= todayWeek;
+            document.getElementById('nextWeekBtn').disabled = currentWeekStart >= maxWeek;
+            
+            // Obtener slots de esta semana
+            const weekSlots = allSlots.filter(slot => {
+                const slotDate = new Date(slot.startTime);
+                const weekEnd = new Date(currentWeekStart);
+                weekEnd.setDate(weekEnd.getDate() + 7);
+                return slotDate >= currentWeekStart && slotDate < weekEnd;
+            });
+            
+            // Obtener horas únicas (ordenadas)
+            const hours = [...new Set(weekSlots.map(s => {
+                const d = new Date(s.startTime);
+                return d.getHours();
+            }))].sort((a, b) => a - b);
+            
+            if (hours.length === 0) {
+                container.innerHTML = `
+                    <div class="no-slots-msg">
+                        <div class="icon">📅</div>
+                        <p>No hay horarios disponibles esta semana.<br>Prueba navegando a otra semana.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Crear grid del calendario
+            let html = '<div class="calendar-grid">';
+            
+            // Fila de encabezados (días)
+            html += '<div class="calendar-header time-col">Hora</div>';
+            for (let i = 0; i < 7; i++) {
+                const dayDate = new Date(currentWeekStart);
+                dayDate.setDate(dayDate.getDate() + i);
+                const isToday = dayDate.toDateString() === today.toDateString();
+                const isPast = dayDate < today;
+                
+                html += `
+                    <div class="calendar-header ${isToday ? 'today' : ''}" style="${isPast && !isToday ? 'opacity: 0.5' : ''}">
+                        <div class="day-name">${DIAS_SEMANA[i]}</div>
+                        <div class="day-number">${dayDate.getDate()}</div>
+                    </div>
+                `;
+            }
+            
+            // Filas por cada hora
+            for (const hour of hours) {
+                const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+                html += `<div class="time-label">${timeStr}</div>`;
+                
+                for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+                    const dayDate = new Date(currentWeekStart);
+                    dayDate.setDate(dayDate.getDate() + dayIdx);
+                    
+                    // Buscar slots en esta hora y día
+                    const daySlots = weekSlots.filter(s => {
+                        const sd = new Date(s.startTime);
+                        return sd.getHours() === hour && 
+                               sd.getDate() === dayDate.getDate() &&
+                               sd.getMonth() === dayDate.getMonth();
+                    });
+                    
+                    html += '<div class="calendar-cell">';
+                    for (const slot of daySlots) {
+                        const slotTime = new Date(slot.startTime);
+                        const timeDisplay = slotTime.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                        const dateDisplay = `${DIAS_COMPLETOS[dayIdx]} ${dayDate.getDate()} de ${MESES[dayDate.getMonth()]}`;
+                        
+                        html += `
+                            <div class="calendar-slot" 
+                                 data-slot-id="${slot._id}" 
+                                 onclick="selectSlot('${slot._id}', '${timeDisplay}', '${dateDisplay}')">
+                                ${timeDisplay}
+                            </div>
+                        `;
+                    }
+                    html += '</div>';
+                }
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
         }
 
         function selectSlot(slotId, time, date) {
             selectedSlotId = slotId;
             
             // Quitar selección anterior
-            document.querySelectorAll('.slot-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelectorAll('.calendar-slot').forEach(el => el.classList.remove('selected'));
             // Marcar nuevo
-            document.querySelector(`[data-slot-id="${slotId}"]`).classList.add('selected');
+            const selected = document.querySelector(`[data-slot-id="${slotId}"]`);
+            if (selected) selected.classList.add('selected');
             
             // Mostrar confirmación
             document.getElementById('selectedSlotText').innerHTML = 
