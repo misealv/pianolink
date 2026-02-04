@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Kit | PianoLink - Tu puerta al piano online</title>
+    <meta name="description" content="Recibe tu cable MIDI, configura tu setup y agenda tu primera clase de piano online con PianoLink.">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #ff764d;
+            --primary-dark: #e5603a;
+            --bg-dark: #0a0a0a;
+            --bg-card: #141414;
+            --bg-input: #1a1a1a;
+            --border: #2a2a2a;
+            --text: #ffffff;
+            --text-secondary: #888888;
+            --success: #00d26a;
+            --warning: #ffa500;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .logo span {
+            color: var(--text);
+        }
+        
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: 40px 0 60px;
+        }
+        
+        .hero h1 {
+            font-size: clamp(32px, 5vw, 48px);
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--primary), #ff9a7a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: rgba(255, 118, 77, 0.1);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        /* Main Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+        
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Kit Contents */
+        .kit-contents {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+        }
+        
+        .kit-contents h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .kit-item {
+            display: flex;
+            gap: 20px;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .kit-item:last-child {
+            border-bottom: none;
+        }
+        
+        .kit-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 118, 77, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+        
+        .kit-info h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        
+        .kit-info p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        /* Checkout Form */
+        .checkout-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .checkout-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .price-display {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .price-currency {
+            font-size: 24px;
+            color: var(--text-secondary);
+        }
+        
+        .price-note {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        /* Form Steps */
+        .form-steps {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-input);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .step.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .step.completed {
+            background: var(--success);
+            border-color: var(--success);
+        }
+        
+        .step-connector {
+            width: 40px;
+            height: 2px;
+            background: var(--border);
+            align-self: center;
+        }
+        
+        /* Form */
+        .form-section {
+            display: none;
+        }
+        
+        .form-section.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 15px;
+            transition: border-color 0.2s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .form-group input::placeholder {
+            color: var(--text-secondary);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        /* Country Selector */
+        .country-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .country-option {
+            padding: 15px 10px;
+            background: var(--bg-input);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .country-option:hover {
+            border-color: var(--primary);
+        }
+        
+        .country-option.selected {
+            border-color: var(--primary);
+            background: rgba(255, 118, 77, 0.1);
+        }
+        
+        .country-option .flag {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .country-option .name {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-primary:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            margin-top: 10px;
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--text-secondary);
+        }
+        
+        /* Beneficiary Toggle */
+        .beneficiary-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: var(--bg-input);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        
+        .beneficiary-toggle input {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+        }
+        
+        .beneficiary-fields {
+            display: none;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+            margin-top: 15px;
+        }
+        
+        .beneficiary-fields.show {
+            display: block;
+        }
+        
+        /* Security Note */
+        .security-note {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 20px;
+            justify-content: center;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Shipping Info */
+        .shipping-info {
+            background: rgba(0, 210, 106, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Cable Selection */
+        .cable-choice {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .cable-option {
+            display: block;
+            cursor: pointer;
+        }
+        
+        .cable-option input {
+            display: none;
+        }
+        
+        .cable-option-content {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background: var(--bg-input);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        
+        .cable-option input:checked + .cable-option-content {
+            border-color: var(--primary);
+            background: rgba(255, 118, 77, 0.1);
+        }
+        
+        .cable-option-content:hover {
+            border-color: var(--primary);
+        }
+        
+        .cable-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .cable-option-content strong {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        
+        .cable-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        /* Cable Types Grid */
+        .cable-types-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .cable-type-option {
+            padding: 15px;
+            background: var(--bg-input);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .cable-type-option:hover {
+            border-color: var(--primary);
+        }
+        
+        .cable-type-option.selected {
+            border-color: var(--primary);
+            background: rgba(255, 118, 77, 0.1);
+        }
+        
+        .cable-type-option .cable-type-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .cable-type-option .cable-type-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .cable-type-option .cable-type-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🎹 Piano<span>Link</span></div>
+            <a href="/login" style="color: var(--text-secondary); text-decoration: none;">¿Ya tienes cuenta?</a>
+        </header>
+        
+        <section class="hero">
+            <span class="badge">🚀 OFERTA DE LANZAMIENTO</span>
+            <h1>Tu Welcome Kit de Piano Online</h1>
+            <p>Todo lo que necesitas para empezar tus clases de piano con tecnología MIDI de última generación</p>
+        </section>
+        
+        <div class="main-grid">
+            <!-- Kit Contents -->
+            <div class="kit-contents">
+                <h2>🎁 ¿Qué incluye tu Kit?</h2>
+                
+                <div class="kit-item">
+                    <div class="kit-icon">🔌</div>
+                    <div class="kit-info">
+                        <h3>Cable MIDI USB Premium</h3>
+                        <p>Cable de alta calidad con baja latencia, compatible con cualquier teclado MIDI. Te lo enviamos a la puerta de tu casa.</p>
+                    </div>
+                </div>
+                
+                <div class="kit-item">
+                    <div class="kit-icon">🔧</div>
+                    <div class="kit-info">
+                        <h3>Sesión de Setup Técnico</h3>
+                        <p>Un experto te guiará paso a paso para configurar tu teclado, conexión de audio y verificar que todo funcione perfectamente.</p>
+                    </div>
+                </div>
+                
+                <div class="kit-item">
+                    <div class="kit-icon">🎹</div>
+                    <div class="kit-info">
+                        <h3>Clase de Prueba (30 min)</h3>
+                        <p>Una clase real con un profesor certificado para que experimentes la magia de aprender piano online con tecnología MIDI.</p>
+                    </div>
+                </div>
+                
+                <div class="kit-item">
+                    <div class="kit-icon">🎓</div>
+                    <div class="kit-info">
+                        <h3>Acceso a la Plataforma</h3>
+                        <p>Tu cuenta personal donde podrás ver el tracking de tu envío, agendar sesiones y acceder a recursos exclusivos.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Checkout Card -->
+            <div class="checkout-card">
+                <div class="checkout-header">
+                    <div class="price-display">
+                        <span class="price-currency" id="currency">USD</span>
+                        <span id="price">55</span>
+                    </div>
+                    <p class="price-note" id="shipping-note">Envío incluido</p>
+                    <div id="price-breakdown" style="font-size: 12px; color: var(--text-secondary); margin-top: 10px; display: none;">
+                        <div>Cable MIDI: <span id="cable-price">$0</span></div>
+                        <div>Setup + Clase: <span id="service-price">$0</span></div>
+                        <div>Envío: <span id="shipping-price">$0</span></div>
+                    </div>
+                </div>
+                
+                <!-- Form Steps -->
+                <div class="form-steps">
+                    <div class="step active" data-step="1">1</div>
+                    <div class="step-connector"></div>
+                    <div class="step" data-step="2">2</div>
+                    <div class="step-connector"></div>
+                    <div class="step" data-step="3">3</div>
+                    <div class="step-connector"></div>
+                    <div class="step" data-step="4">4</div>
+                </div>
+                
+                <form id="checkout-form">
+                    <!-- Step 1: Country -->
+                    <div class="form-section active" id="step-1">
+                        <h3 style="margin-bottom: 15px;">¿Desde dónde nos escribes?</h3>
+                        <div class="country-grid" id="country-grid">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="goToStep(2)" id="btn-step1">
+                            Continuar →
+                        </button>
+                    </div>
+                    
+                    <!-- Step 2: Cable Selection -->
+                    <div class="form-section" id="step-2">
+                        <h3 style="margin-bottom: 15px;">🔌 ¿Tienes cable MIDI?</h3>
+                        
+                        <div class="cable-choice">
+                            <label class="cable-option" onclick="selectCableChoice('need')">
+                                <input type="radio" name="cable-choice" value="need" checked>
+                                <div class="cable-option-content">
+                                    <span class="cable-icon">📦</span>
+                                    <strong>Necesito el cable</strong>
+                                    <span class="cable-desc">Te enviamos el cable correcto para tu teclado</span>
+                                </div>
+                            </label>
+                            
+                            <label class="cable-option" onclick="selectCableChoice('have')">
+                                <input type="radio" name="cable-choice" value="have">
+                                <div class="cable-option-content">
+                                    <span class="cable-icon">✅</span>
+                                    <strong>Ya tengo el cable</strong>
+                                    <span class="cable-desc">Solo quiero Setup técnico + Clase de prueba</span>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <!-- Cable Type Selection (only if needs cable) -->
+                        <div id="cable-type-section" style="margin-top: 20px;">
+                            <h4 style="margin-bottom: 10px; color: var(--text-secondary);">¿Qué tipo de conexión tiene tu teclado?</h4>
+                            <div class="cable-types-grid" id="cable-types-grid">
+                                <!-- Se llena dinámicamente -->
+                            </div>
+                            
+                            <div class="form-group" style="margin-top: 15px;">
+                                <label>Modelo de tu teclado (opcional)</label>
+                                <input type="text" id="keyboard-model" placeholder="Ej: Yamaha P-125, Casio CDP-S100...">
+                                <small style="color: var(--text-secondary);">Nos ayuda a verificar que enviaremos el cable correcto</small>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary" onclick="goToStep(3)" style="margin-top: 20px;">
+                            Continuar →
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="goToStep(1)">
+                            ← Volver
+                        </button>
+                    </div>
+                    
+                    <!-- Step 3: Personal Data + Address -->
+                    <div class="form-section" id="step-3">
+                        <h3 style="margin-bottom: 15px;">Tus datos</h3>
+                        
+                        <div class="form-group">
+                            <label>Nombre completo *</label>
+                            <input type="text" id="name" placeholder="Tu nombre" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Email *</label>
+                                <input type="email" id="email" placeholder="tu@email.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label>WhatsApp *</label>
+                                <input type="tel" id="whatsapp" placeholder="+56 9 1234 5678" required>
+                            </div>
+                        </div>
+                        
+                        <h3 style="margin: 25px 0 15px;">Dirección de envío</h3>
+                        
+                        <div class="form-group">
+                            <label>Calle y número *</label>
+                            <input type="text" id="street" placeholder="Av. Principal 123, Depto 4B" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Ciudad *</label>
+                                <input type="text" id="city" placeholder="Santiago" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Región/Estado</label>
+                                <input type="text" id="state" placeholder="Región Metropolitana">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Código Postal</label>
+                            <input type="text" id="postalCode" placeholder="7500000">
+                        </div>
+                        
+                        <!-- Beneficiary -->
+                        <label class="beneficiary-toggle">
+                            <input type="checkbox" id="is-guardian" onchange="toggleBeneficiary()">
+                            <span>Las clases son para mi hijo/a u otra persona</span>
+                        </label>
+                        
+                        <div class="beneficiary-fields" id="beneficiary-fields">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nombre del alumno</label>
+                                    <input type="text" id="beneficiary-name" placeholder="Nombre del alumno">
+                                </div>
+                                <div class="form-group">
+                                    <label>Edad</label>
+                                    <input type="number" id="beneficiary-age" placeholder="12" min="3" max="99">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary" onclick="goToStep(4)">
+                            Continuar al pago →
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="goToStep(2)">
+                            ← Volver
+                        </button>
+                    </div>
+                    
+                    <!-- Step 4: Review & Pay -->
+                    <div class="form-section" id="step-4">
+                        <h3 style="margin-bottom: 15px;">Confirmar y pagar</h3>
+                        
+                        <div style="background: var(--bg-input); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                            <!-- Kit Type -->
+                            <div id="review-kit-type" style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border);">
+                                <span id="review-kit-label">📦 Welcome Kit Completo</span>
+                            </div>
+                            
+                            <!-- Cable (if needed) -->
+                            <div id="review-cable-row" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span>🔌 Cable MIDI <span id="review-cable-type">(USB-B)</span></span>
+                                <span id="review-cable-price">Incluido</span>
+                            </div>
+                            
+                            <!-- Setup + Class -->
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span>🔧 Setup técnico + 🎹 Clase de prueba</span>
+                                <span>Incluido</span>
+                            </div>
+                            
+                            <!-- Shipping -->
+                            <div id="review-shipping-row" style="display: flex; justify-content: space-between; color: var(--text-secondary); font-size: 14px;">
+                                <span>📍 Envío a <span id="review-country">Chile</span></span>
+                                <span id="review-shipping">Incluido</span>
+                            </div>
+                            
+                            <hr style="border: none; border-top: 1px solid var(--border); margin: 15px 0;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <strong>Total</strong>
+                                <strong style="color: var(--primary); font-size: 20px;" id="review-total">USD 55</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="shipping-info" id="shipping-info">
+                            📦 <span id="shipping-days">Envío: 3-5 días hábiles</span>
+                        </div>
+                        
+                        <div id="paypal-button-container"></div>
+                        
+                        <button type="button" class="btn btn-secondary" onclick="goToStep(3)">
+                            ← Modificar datos
+                        </button>
+                        
+                        <div class="security-note">
+                            🔒 Pago seguro procesado por PayPal
+                        </div>
+                    </div>
+                    
+                    <!-- Loading -->
+                    <div class="loading" id="loading">
+                        <div class="spinner"></div>
+                        <p>Procesando tu pago...</p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2026 PianoLink. <a href="/terms">Términos</a> · <a href="/privacy">Privacidad</a></p>
+        </footer>
+    </div>
+    
+    <!-- PayPal SDK -->
+    <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"></script>
+    
+    <script>
+        // State
+        let selectedCountry = null;
+        let countries = [];
+        let currentPricing = null;
+        let needsCable = true;
+        let selectedCableType = 'USB_B';
+        
+        // Cable catalog
+        const cableTypes = [
+            { 
+                code: 'USB_B', 
+                name: 'USB-B', 
+                desc: 'Tipo impresora',
+                icon: '🖨️',
+                examples: 'Yamaha, Roland, Casio modernos'
+            },
+            { 
+                code: 'MIDI_5PIN', 
+                name: 'MIDI 5-pin', 
+                desc: 'Conector circular DIN',
+                icon: '🎛️',
+                examples: 'Teclados vintage/profesionales'
+            },
+            { 
+                code: 'MICRO_USB', 
+                name: 'Micro USB', 
+                desc: 'Conector pequeño',
+                icon: '📱',
+                examples: 'Teclados económicos antiguos'
+            },
+            { 
+                code: 'USB_C', 
+                name: 'USB-C', 
+                desc: 'Conector reversible',
+                icon: '⚡',
+                examples: 'Teclados nuevos 2023+'
+            }
+        ];
+        
+        // Load countries on init
+        async function loadCountries() {
+            try {
+                const res = await fetch('/api/welcome-kit/countries');
+                const data = await res.json();
+                
+                if (data.success) {
+                    countries = data.countries;
+                    renderCountries();
+                    
+                    // Auto-detect country
+                    const pricingRes = await fetch('/api/welcome-kit/pricing');
+                    const pricingData = await pricingRes.json();
+                    
+                    if (pricingData.success && pricingData.country) {
+                        selectCountry(pricingData.country);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading countries:', error);
+                // Fallback
+                countries = [
+                    { code: 'CL', name: 'Chile', flag: '🇨🇱', price: 45, setupOnlyPrice: 25, currency: 'USD', includesShipping: true, shippingDays: '3-5 días' },
+                    { code: 'AR', name: 'Argentina', flag: '🇦🇷', price: 35, setupOnlyPrice: 20, currency: 'USD', includesShipping: true, shippingDays: '5-10 días' },
+                    { code: 'ES', name: 'España', flag: '🇪🇸', price: 55, setupOnlyPrice: 30, currency: 'EUR', includesShipping: true, shippingDays: '2-4 días' },
+                    { code: 'MX', name: 'México', flag: '🇲🇽', price: 40, setupOnlyPrice: 22, currency: 'USD', includesShipping: true, shippingDays: '5-7 días' },
+                    { code: 'US', name: 'Estados Unidos', flag: '🇺🇸', price: 50, setupOnlyPrice: 28, currency: 'USD', includesShipping: true, shippingDays: '3-5 días' },
+                    { code: 'DEFAULT', name: 'Otro país', flag: '🌎', price: 55, setupOnlyPrice: 30, currency: 'USD', includesShipping: false, shippingDays: '7-15 días' }
+                ];
+                renderCountries();
+            }
+            
+            // Render cable types
+            renderCableTypes();
+        }
+        
+        function renderCountries() {
+            const grid = document.getElementById('country-grid');
+            grid.innerHTML = countries.map(c => `
+                <div class="country-option" data-code="${c.code}" onclick="selectCountry('${c.code}')">
+                    <div class="flag">${c.flag}</div>
+                    <div class="name">${c.name}</div>
+                </div>
+            `).join('');
+        }
+        
+        function renderCableTypes() {
+            const grid = document.getElementById('cable-types-grid');
+            grid.innerHTML = cableTypes.map(c => `
+                <div class="cable-type-option ${c.code === selectedCableType ? 'selected' : ''}" 
+                     data-code="${c.code}" onclick="selectCableType('${c.code}')">
+                    <div class="cable-type-icon">${c.icon}</div>
+                    <div class="cable-type-name">${c.name}</div>
+                    <div class="cable-type-desc">${c.desc}</div>
+                </div>
+            `).join('');
+        }
+        
+        function selectCountry(code) {
+            selectedCountry = code;
+            currentPricing = countries.find(c => c.code === code);
+            
+            // Update UI
+            document.querySelectorAll('.country-option').forEach(el => {
+                el.classList.toggle('selected', el.dataset.code === code);
+            });
+            
+            // Update price display
+            updatePriceDisplay();
+        }
+        
+        function selectCableChoice(choice) {
+            needsCable = (choice === 'need');
+            
+            // Update radio buttons
+            document.querySelector('input[name="cable-choice"][value="need"]').checked = needsCable;
+            document.querySelector('input[name="cable-choice"][value="have"]').checked = !needsCable;
+            
+            // Show/hide cable type section
+            document.getElementById('cable-type-section').style.display = needsCable ? 'block' : 'none';
+            
+            // Update price
+            updatePriceDisplay();
+        }
+        
+        function selectCableType(code) {
+            selectedCableType = code;
+            
+            // Update UI
+            document.querySelectorAll('.cable-type-option').forEach(el => {
+                el.classList.toggle('selected', el.dataset.code === code);
+            });
+        }
+        
+        function updatePriceDisplay() {
+            if (!currentPricing) return;
+            
+            // Get the right price based on cable choice
+            const price = needsCable ? currentPricing.price : (currentPricing.setupOnlyPrice || Math.floor(currentPricing.price * 0.5));
+            
+            document.getElementById('price').textContent = price;
+            document.getElementById('currency').textContent = currentPricing.currency;
+            
+            if (needsCable) {
+                document.getElementById('shipping-note').textContent = 
+                    currentPricing.includesShipping ? '✓ Envío incluido' : '+ Envío (ver detalles)';
+            } else {
+                document.getElementById('shipping-note').textContent = '✓ Solo Setup + Clase';
+            }
+        }
+        
+        // Step Navigation
+        function goToStep(step) {
+            // Validate step 1 -> 2
+            if (step === 2 && !selectedCountry) {
+                alert('Por favor selecciona tu país');
+                return;
+            }
+            
+            // Validate step 2 -> 3
+            if (step === 3 && needsCable && !selectedCableType) {
+                alert('Por favor selecciona el tipo de cable');
+                return;
+            }
+            
+            // Validate step 3 -> 4
+            if (step === 4) {
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const whatsapp = document.getElementById('whatsapp').value;
+                const street = document.getElementById('street').value;
+                const city = document.getElementById('city').value;
+                
+                // If needs cable, require address
+                if (needsCable && (!name || !email || !whatsapp || !street || !city)) {
+                    alert('Por favor completa todos los campos requeridos');
+                    return;
+                }
+                
+                // If no cable, at least need name, email, whatsapp
+                if (!needsCable && (!name || !email || !whatsapp)) {
+                    alert('Por favor completa tu nombre, email y WhatsApp');
+                    return;
+                }
+                
+                // Update review
+                updateReview();
+                
+                // Initialize PayPal
+                initPayPal();
+            }
+            
+            // Update UI
+            document.querySelectorAll('.form-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step-${step}`).classList.add('active');
+            
+            document.querySelectorAll('.step').forEach(el => {
+                const stepNum = parseInt(el.dataset.step);
+                el.classList.remove('active', 'completed');
+                if (stepNum < step) el.classList.add('completed');
+                if (stepNum === step) el.classList.add('active');
+            });
+        }
+        
+        function updateReview() {
+            const country = countries.find(c => c.code === selectedCountry);
+            const price = needsCable ? country.price : (country.setupOnlyPrice || Math.floor(country.price * 0.5));
+            
+            // Kit type
+            const kitLabel = document.getElementById('review-kit-label');
+            kitLabel.textContent = needsCable ? '📦 Welcome Kit Completo' : '🎓 Setup + Clase de Prueba';
+            
+            // Cable row
+            const cableRow = document.getElementById('review-cable-row');
+            if (needsCable) {
+                cableRow.style.display = 'flex';
+                const cable = cableTypes.find(c => c.code === selectedCableType);
+                document.getElementById('review-cable-type').textContent = `(${cable.name})`;
+            } else {
+                cableRow.style.display = 'none';
+            }
+            
+            // Shipping row
+            const shippingRow = document.getElementById('review-shipping-row');
+            if (needsCable) {
+                shippingRow.style.display = 'flex';
+                document.getElementById('review-country').textContent = country.name;
+                document.getElementById('review-shipping').textContent = country.includesShipping ? 'Incluido' : 'Por calcular';
+                document.getElementById('shipping-info').style.display = 'flex';
+                document.getElementById('shipping-days').textContent = `Envío: ${country.shippingDays}`;
+            } else {
+                shippingRow.style.display = 'none';
+                document.getElementById('shipping-info').style.display = 'none';
+            }
+            
+            // Total
+            document.getElementById('review-total').textContent = `${country.currency} ${price}`;
+        }
+        
+        function toggleBeneficiary() {
+            const isGuardian = document.getElementById('is-guardian').checked;
+            document.getElementById('beneficiary-fields').classList.toggle('show', isGuardian);
+        }
+        
+        // PayPal Integration
+        let paypalInitialized = false;
+        
+        function initPayPal() {
+            if (paypalInitialized) return;
+            paypalInitialized = true;
+            
+            const container = document.getElementById('paypal-button-container');
+            container.innerHTML = ''; // Clear
+            
+            paypal.Buttons({
+                style: {
+                    layout: 'vertical',
+                    color: 'gold',
+                    shape: 'rect',
+                    label: 'pay'
+                },
+                
+                createOrder: async function() {
+                    const country = countries.find(c => c.code === selectedCountry);
+                    
+                    const formData = {
+                        name: document.getElementById('name').value,
+                        email: document.getElementById('email').value,
+                        whatsapp: document.getElementById('whatsapp').value,
+                        country: selectedCountry,
+                        kitType: needsCable ? 'full' : 'setup_only',
+                        cableType: needsCable ? selectedCableType : 'NONE',
+                        keyboardModel: document.getElementById('keyboard-model')?.value || ''
+                    };
+                    
+                    // Address (only if needs cable)
+                    if (needsCable) {
+                        formData.street = document.getElementById('street').value;
+                        formData.city = document.getElementById('city').value;
+                        formData.state = document.getElementById('state').value;
+                        formData.postalCode = document.getElementById('postalCode').value;
+                    }
+                    
+                    // Beneficiary
+                    if (document.getElementById('is-guardian').checked) {
+                        formData.beneficiaryName = document.getElementById('beneficiary-name').value;
+                        formData.beneficiaryAge = document.getElementById('beneficiary-age').value;
+                    }
+                    
+                    const res = await fetch('/api/welcome-kit/checkout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+                    
+                    const data = await res.json();
+                    
+                    if (!data.success) {
+                        throw new Error(data.error || 'Error creando orden');
+                    }
+                    
+                    // Save for later
+                    window.welcomeKitId = data.welcomeKitId;
+                    
+                    return data.orderId;
+                },
+                
+                onApprove: async function(data) {
+                    showLoading(true);
+                    
+                    try {
+                        const res = await fetch('/api/welcome-kit/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                orderId: data.orderID,
+                                welcomeKitId: window.welcomeKitId
+                            })
+                        });
+                        
+                        const result = await res.json();
+                        
+                        if (result.success) {
+                            // Redirect to success page
+                            window.location.href = `/welcome-kit/success?id=${result.welcomeKit.id}`;
+                        } else {
+                            throw new Error(result.error || 'Error verificando pago');
+                        }
+                    } catch (error) {
+                        alert('Error: ' + error.message);
+                        showLoading(false);
+                    }
+                },
+                
+                onError: function(err) {
+                    console.error('PayPal error:', err);
+                    alert('Error procesando el pago. Por favor intenta de nuevo.');
+                },
+                
+                onCancel: function() {
+                    console.log('Pago cancelado');
+                }
+            }).render('#paypal-button-container');
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('show', show);
+            document.getElementById('step-4').style.display = show ? 'none' : 'block';
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadCountries);
+    </script>
+</body>
+</html>

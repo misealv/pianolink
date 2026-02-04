@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Gracias por tu compra! | PianoLink</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #ff764d;
+            --bg-dark: #0a0a0a;
+            --bg-card: #141414;
+            --border: #2a2a2a;
+            --text: #ffffff;
+            --text-secondary: #888888;
+            --success: #00d26a;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: rgba(0, 210, 106, 0.1);
+            border: 3px solid var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            margin: 0 auto 30px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin-bottom: 15px;
+            color: var(--success);
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+        
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 5px;
+            bottom: 5px;
+            width: 2px;
+            background: var(--border);
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 25px;
+        }
+        
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--border);
+        }
+        
+        .timeline-item.active::before {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+        
+        .timeline-item.pending::before {
+            background: var(--text-secondary);
+        }
+        
+        .timeline-item h3 {
+            font-size: 15px;
+            margin-bottom: 5px;
+        }
+        
+        .timeline-item p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .order-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .info-item {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+        
+        .info-item label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .info-item strong {
+            font-size: 14px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 14px 30px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            margin-left: 10px;
+        }
+        
+        .whatsapp-note {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(37, 211, 102, 0.1);
+            border: 1px solid #25d366;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        
+        .loading {
+            padding: 60px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        #content {
+            display: none;
+        }
+        
+        #content.loaded {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="color: var(--text-secondary);">Cargando tu información...</p>
+        </div>
+        
+        <div id="content">
+            <div class="success-icon">🎉</div>
+            
+            <h1>¡Compra Exitosa!</h1>
+            <p class="subtitle">Tu Welcome Kit está en camino a ser preparado</p>
+            
+            <div class="card">
+                <h2>📦 Estado de tu Kit</h2>
+                
+                <div class="timeline">
+                    <div class="timeline-item active">
+                        <h3>Pago recibido</h3>
+                        <p>Tu pago fue procesado correctamente</p>
+                    </div>
+                    <div class="timeline-item pending">
+                        <h3>Preparando envío</h3>
+                        <p>Estamos preparando tu cable MIDI</p>
+                    </div>
+                    <div class="timeline-item pending">
+                        <h3>En camino</h3>
+                        <p>Te notificaremos cuando despachemos</p>
+                    </div>
+                    <div class="timeline-item pending">
+                        <h3>Sesión de Setup</h3>
+                        <p>Agendarás cuando recibas tu cable</p>
+                    </div>
+                    <div class="timeline-item pending">
+                        <h3>¡Tu clase de prueba!</h3>
+                        <p>30 minutos con un profesor certificado</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>📋 Resumen de tu orden</h2>
+                
+                <div class="order-info">
+                    <div class="info-item">
+                        <label>Número de orden</label>
+                        <strong id="order-id">-</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Estado</label>
+                        <strong style="color: var(--success);" id="status">💳 Pagado</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Envío a</label>
+                        <strong id="shipping-address">-</strong>
+                    </div>
+                    <div class="info-item">
+                        <label>Tiempo estimado</label>
+                        <strong id="shipping-time">3-5 días hábiles</strong>
+                    </div>
+                </div>
+                
+                <div class="whatsapp-note">
+                    📱 Te contactaremos por <strong>WhatsApp</strong> cuando despachemos tu cable con el número de tracking.
+                </div>
+            </div>
+            
+            <div>
+                <a href="/mi-kit" class="btn btn-primary" id="btn-panel">Ver mi panel</a>
+                <a href="/" class="btn btn-secondary">Volver al inicio</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function verifyPayment() {
+            const params = new URLSearchParams(window.location.search);
+            // PayPal envía 'token' como orderId y también tenemos nuestro 'ref'
+            const orderId = params.get('token');
+            const ref = params.get('ref');
+            
+            const loadingEl = document.getElementById('loading');
+            const contentEl = document.getElementById('content');
+            
+            if (!orderId) {
+                loadingEl.innerHTML = `
+                    <p style="color: var(--text-secondary);">
+                        ¡Gracias por tu compra! 🎉<br><br>
+                        Estamos procesando tu orden.<br>
+                        Te contactaremos pronto por WhatsApp.
+                    </p>
+                    <br>
+                    <a href="/" style="color: var(--primary);">Volver al inicio</a>
+                `;
+                return;
+            }
+            
+            try {
+                // Verificar el pago en el backend
+                const res = await fetch('/api/welcome-kit/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Actualizar UI con los datos
+                    document.getElementById('order-id').textContent = 
+                        data.welcomeKit.id.substring(0, 8).toUpperCase();
+                    
+                    // Verificar si tiene productos físicos o es solo servicio
+                    const hasProducts = data.welcomeKit.products && data.welcomeKit.products.length > 0;
+                    
+                    // Mostrar dirección si hay productos físicos
+                    if (hasProducts && data.welcomeKit.shipping) {
+                        const addr = data.welcomeKit.shipping;
+                        document.getElementById('shipping-address').textContent = 
+                            `${addr.city || ''}, ${addr.country || ''}`.replace(/^, |, $/g, '').trim() || 'No requiere envío';
+                    } else {
+                        document.getElementById('shipping-address').textContent = 'Solo servicio digital';
+                        document.getElementById('shipping-time').textContent = 'N/A';
+                    }
+                    
+                    // Mostrar info del estudiante si se creó
+                    if (data.student) {
+                        const studentInfo = document.createElement('div');
+                        studentInfo.className = 'info-item';
+                        studentInfo.innerHTML = `
+                            <label>Estudiante</label>
+                            <strong>${data.student.name}</strong>
+                        `;
+                        document.querySelector('.order-info').appendChild(studentInfo);
+                    }
+                    
+                    // Actualizar timeline según tipo de kit
+                    if (!hasProducts) {
+                        // Solo servicio - simplificar timeline
+                        document.querySelector('.timeline').innerHTML = `
+                            <div class="timeline-item active">
+                                <h3>Pago recibido</h3>
+                                <p>Tu pago fue procesado correctamente</p>
+                            </div>
+                            <div class="timeline-item pending">
+                                <h3>Sesión de Setup + Clase</h3>
+                                <p>Te contactaremos para agendar tu sesión de 30 minutos</p>
+                            </div>
+                            <div class="timeline-item pending">
+                                <h3>¡A tocar piano!</h3>
+                                <p>Estarás listo para empezar tu viaje musical</p>
+                            </div>
+                        `;
+                        // Actualizar nota de WhatsApp
+                        document.querySelector('.whatsapp-note').innerHTML = 
+                            '📱 Te contactaremos por <strong>WhatsApp</strong> para agendar tu sesión de Setup + Clase de prueba.';
+                    }
+                    
+                    // Mostrar contenido
+                    loadingEl.style.display = 'none';
+                    contentEl.classList.add('loaded');
+                    
+                    updateTimeline(data.welcomeKit.status);
+                    
+                } else {
+                    throw new Error(data.error || 'Error verificando pago');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                loadingEl.innerHTML = `
+                    <p style="color: var(--text-secondary);">
+                        ¡Tu compra fue exitosa! 🎉<br><br>
+                        Estamos preparando tu kit.<br>
+                        Te contactaremos pronto por WhatsApp.
+                    </p>
+                    <br>
+                    <a href="/" style="color: var(--primary);">Volver al inicio</a>
+                `;
+            }
+        }
+        
+        function updateTimeline(status) {
+            const items = document.querySelectorAll('.timeline-item');
+            const statusIndex = {
+                'pending_payment': -1,
+                'paid': 0,
+                'processing': 1,
+                'shipping': 2,
+                'shipped': 2,
+                'delivered': 3,
+                'setup_pending': 3,
+                'setup_scheduled': 3,
+                'trial_available': 4,
+                'trial_scheduled': 4,
+                'completed': 4
+            };
+            
+            const activeIndex = statusIndex[status] ?? 0;
+            
+            items.forEach((item, index) => {
+                item.classList.remove('active', 'pending');
+                if (index <= activeIndex) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.add('pending');
+                }
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', verifyPayment);
+    </script>
+</body>
+</html>

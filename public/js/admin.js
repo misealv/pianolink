@@ -43,7 +43,8 @@ function updateContentTitle(moduleName) {
         'calendar': { icon: '📅', text: 'Google Calendar' },
         'teachers': { icon: '👨‍🏫', text: 'Profesores' },
         'students': { icon: '👨‍🎓', text: 'Alumnos' },
-        'payments': { icon: '💰', text: 'Pagos' }
+        'payments': { icon: '💰', text: 'Pagos' },
+        'welcome-kits': { icon: '📦', text: 'Welcome Kits' }
     };
     
     const titleEl = document.getElementById('content-title');
@@ -61,6 +62,7 @@ function loadModuleData(moduleName) {
         case 'teachers': loadTeachers(); break;
         case 'students': loadStudents(); break;
         case 'payments': loadPaymentsDashboard(); break;
+        case 'welcome-kits': loadWelcomeKits(); break;
     }
 }
 
@@ -992,6 +994,516 @@ function viewTeacherStats(teacherId) {
     showNotification('Estadísticas próximamente', 'info');
 }
 
+// ==================== WELCOME KITS ====================
+let allKitsData = [];
+let currentKitFilter = 'all';
+
+async function loadWelcomeKits() {
+    // Cargar el nuevo módulo rediseñado
+    loadWelcomeKitsModule();
+}
+
+function filterKits(status) {
+    currentKitFilter = status;
+    
+    document.querySelectorAll('#module-welcome-kits .filter-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`#module-welcome-kits [data-filter="${status}"]`)?.classList.add('active');
+    
+    let filtered = [...allKitsData];
+    
+    if (status !== 'all') {
+        filtered = filtered.filter(k => k.overallStatus === status);
+    }
+    
+    renderKitsTable(filtered);
+}
+
+function searchKits() {
+    const query = document.getElementById('search-kits')?.value?.toLowerCase() || '';
+    
+    let filtered = [...allKitsData];
+    
+    if (currentKitFilter !== 'all') {
+        filtered = filtered.filter(k => k.overallStatus === currentKitFilter);
+    }
+    
+    if (query) {
+        filtered = filtered.filter(k => 
+            k.clientId?.name?.toLowerCase().includes(query) ||
+            k.clientId?.email?.toLowerCase().includes(query) ||
+            k.shipping?.trackingNumber?.toLowerCase().includes(query)
+        );
+    }
+    
+    renderKitsTable(filtered);
+}
+
+function renderKitsTable(kits) {
+    const tbody = document.getElementById('kits-table-body');
+    
+    if (!kits || kits.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:#666;">No hay Welcome Kits</td></tr>';
+        return;
+    }
+    
+    const statusLabels = {
+        'paid': { text: '💳 Pagado', class: 'status-new' },
+        'shipping': { text: '📦 Enviado', class: 'status-contacted' },
+        'delivered': { text: '✅ Entregado', class: 'status-qualified' },
+        'setup_pending': { text: '🔧 Setup', class: 'status-qualified' },
+        'setup_scheduled': { text: '📅 Setup', class: 'status-contacted' },
+        'trial_available': { text: '🎹 Prueba', class: 'status-contacted' },
+        'trial_scheduled': { text: '📅 Prueba', class: 'status-contacted' },
+        'completed': { text: '🎉 Completado', class: 'status-converted' },
+        'refunded': { text: '↩️ Reembolsado', class: 'status-rejected' }
+    };
+    
+    const countryFlags = {
+        'CL': '🇨🇱', 'AR': '🇦🇷', 'ES': '🇪🇸', 'MX': '🇲🇽', 'US': '🇺🇸'
+    };
+    
+    tbody.innerHTML = kits.map(kit => {
+        const client = kit.clientId || {};
+        const shipping = kit.shipping || {};
+        const address = shipping.address || {};
+        const status = statusLabels[kit.overallStatus] || { text: kit.overallStatus, class: '' };
+        const date = new Date(kit.createdAt).toLocaleDateString('es-ES');
+        const flag = countryFlags[address.country] || '🌎';
+        
+        const addressText = `${address.street || ''}, ${address.city || ''}`.substring(0, 30);
+        const trackingText = shipping.trackingNumber 
+            ? `<a href="${shipping.trackingUrl || '#'}" target="_blank" style="color:var(--accent-orange);">${shipping.trackingNumber}</a>`
+            : '<span style="color:#666;">Sin tracking</span>';
+        
+        return `
+            <tr>
+                <td>
+                    <strong style="color:#fff;">${client.name || 'N/A'}</strong>
+                    <div style="font-size:11px; color:#888;">${client.email || ''}</div>
+                    ${client.whatsapp ? `<div style="font-size:11px; color:#888;">📱 ${client.whatsapp}</div>` : ''}
+                </td>
+                <td style="font-size:20px; text-align:center;">${flag}</td>
+                <td style="color:#aaa; font-size:12px;">${addressText}...</td>
+                <td><span class="status-badge ${status.class}">${status.text}</span></td>
+                <td>${trackingText}</td>
+                <td style="color:#666;">${date}</td>
+                <td>
+                    <div class="actions-menu">
+                        <button class="actions-btn" onclick="toggleKitMenu('${kit._id}')">⋮</button>
+                        <div class="actions-dropdown" id="kit-menu-${kit._id}">
+                            <div class="action-item" onclick="openShippingModal('${kit._id}')">
+                                <span>📦</span> Actualizar envío
+                            </div>
+                            <div class="action-item" onclick="viewKitDetails('${kit._id}')">
+                                <span>📋</span> Ver detalles
+                            </div>
+                            <div class="action-item" onclick="contactKitClient('${client.whatsapp}', '${client.name}')">
+                                <span>📱</span> WhatsApp
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function toggleKitMenu(kitId) {
+    const menu = document.getElementById(`kit-menu-${kitId}`);
+    document.querySelectorAll('.actions-dropdown').forEach(m => {
+        if (m.id !== `kit-menu-${kitId}`) m.style.display = 'none';
+    });
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
+function openShippingModal(kitId) {
+    const kit = allKitsData.find(k => k._id === kitId);
+    if (!kit) return;
+    
+    document.getElementById('shipping-kit-id').value = kitId;
+    document.getElementById('shipping-client-name').textContent = kit.clientId?.name || 'Cliente';
+    document.getElementById('shipping-client-address').textContent = 
+        `${kit.shipping?.address?.street || ''}, ${kit.shipping?.address?.city || ''}, ${kit.shipping?.address?.country || ''}`;
+    
+    document.getElementById('shipping-status').value = kit.shipping?.status || 'processing';
+    document.getElementById('shipping-carrier').value = kit.shipping?.carrier || '';
+    document.getElementById('shipping-tracking').value = kit.shipping?.trackingNumber || '';
+    document.getElementById('shipping-url').value = kit.shipping?.trackingUrl || '';
+    
+    if (kit.shipping?.estimatedDelivery) {
+        document.getElementById('shipping-estimated').value = 
+            new Date(kit.shipping.estimatedDelivery).toISOString().split('T')[0];
+    }
+    
+    document.querySelectorAll('.actions-dropdown').forEach(m => m.style.display = 'none');
+    openModal('shipping-modal');
+}
+
+async function saveShipping() {
+    const kitId = document.getElementById('shipping-kit-id').value;
+    
+    const data = {
+        status: document.getElementById('shipping-status').value,
+        carrier: document.getElementById('shipping-carrier').value,
+        trackingNumber: document.getElementById('shipping-tracking').value,
+        trackingUrl: document.getElementById('shipping-url').value,
+        estimatedDelivery: document.getElementById('shipping-estimated').value
+    };
+    
+    try {
+        const res = await fetch(`/api/welcome-kit/admin/${kitId}/shipping`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userSession.token}`
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+            closeModal('shipping-modal');
+            loadWelcomeKits();
+            showNotification('Envío actualizado correctamente', 'success');
+        } else {
+            showNotification(result.error || 'Error actualizando envío', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+function viewKitDetails(kitId) {
+    const kit = allKitsData.find(k => k._id === kitId);
+    if (!kit) return;
+    
+    alert(`
+Welcome Kit: ${kitId}
+Cliente: ${kit.clientId?.name || 'N/A'}
+Email: ${kit.clientId?.email || 'N/A'}
+País: ${kit.shipping?.address?.country || 'N/A'}
+Estado: ${kit.overallStatus}
+Carrier: ${kit.shipping?.carrier || 'N/A'}
+Tracking: ${kit.shipping?.trackingNumber || 'N/A'}
+Pagado: ${kit.payment?.amount} ${kit.payment?.currency}
+    `);
+}
+
+function contactKitClient(whatsapp, name) {
+    if (!whatsapp) {
+        showNotification('Sin número de WhatsApp', 'warning');
+        return;
+    }
+    const clean = whatsapp.replace(/[^\d]/g, '');
+    const msg = encodeURIComponent(`Hola ${name}, te escribimos desde PianoLink respecto a tu Welcome Kit.`);
+    window.open(`https://wa.me/${clean}?text=${msg}`, '_blank');
+}
+
+// ==================== PRECIOS REGIONALES ====================
+let regionalPricing = [];
+let kitProducts = [];
+let currentProductFilter = 'all';
+
+function switchKitsTab(tabName) {
+    document.querySelectorAll('[data-tab-group="welcome-kits"] .tab-btn').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('[data-tab-group="welcome-kits"] .tab-content').forEach(c => c.classList.remove('active'));
+    
+    document.querySelector(`[data-tab-group="welcome-kits"] [data-tab="${tabName}"]`)?.classList.add('active');
+    document.getElementById(`tab-${tabName}`)?.classList.add('active');
+    
+    if (tabName === 'kits-pricing') {
+        loadPricing();
+    } else if (tabName === 'kits-fulfillment') {
+        loadCJDashboard();
+    } else if (tabName === 'kits-products') {
+        loadKitProducts();
+    } else if (tabName === 'kits-dsers') {
+        loadDSersTab();
+    }
+}
+
+async function loadPricing() {
+    try {
+        // Cargar precios regionales desde GlobalConfig
+        const res = await fetch('/api/welcome-kit/admin/pricing', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success && data.setupOnlyPricing) {
+            // Usar setupOnly pricing (Sesión Setup + Clase)
+            regionalPricing = data.setupOnlyPricing.map(p => ({
+                regionCode: p.regionCode,
+                regionName: getCountryName(p.regionCode),
+                flag: getCountryFlag(p.regionCode),
+                price: p.price || 10,
+                currency: p.currency || 'USD'
+            }));
+            
+            renderPricingGrid();
+        } else {
+            // Defaults: $10 USD por defecto
+            regionalPricing = [
+                { regionCode: 'DEFAULT', regionName: 'Por Defecto', flag: '🌍', price: 10, currency: 'USD' },
+                { regionCode: 'CL', regionName: 'Chile', flag: '🇨🇱', price: 8, currency: 'USD' },
+                { regionCode: 'US', regionName: 'Estados Unidos', flag: '🇺🇸', price: 15, currency: 'USD' },
+                { regionCode: 'MX', regionName: 'México', flag: '🇲🇽', price: 8, currency: 'USD' },
+                { regionCode: 'AR', regionName: 'Argentina', flag: '🇦🇷', price: 6, currency: 'USD' },
+                { regionCode: 'CO', regionName: 'Colombia', flag: '🇨🇴', price: 8, currency: 'USD' },
+                { regionCode: 'ES', regionName: 'España', flag: '🇪🇸', price: 12, currency: 'EUR' }
+            ];
+            renderPricingGrid();
+        }
+    } catch (error) {
+        console.error('Error loading pricing:', error);
+        showNotification('Error cargando precios', 'error');
+    }
+}
+
+function getCountryName(code) {
+    const names = {
+        'default': 'Por Defecto',
+        'CL': 'Chile',
+        'US': 'Estados Unidos',
+        'MX': 'México',
+        'AR': 'Argentina',
+        'CO': 'Colombia',
+        'ES': 'España',
+        'PE': 'Perú',
+        'BR': 'Brasil',
+        'UY': 'Uruguay'
+    };
+    return names[code] || code;
+}
+
+function getCountryFlag(code) {
+    const flags = {
+        'default': '🌍',
+        'CL': '🇨🇱',
+        'US': '🇺🇸',
+        'MX': '🇲🇽',
+        'AR': '🇦🇷',
+        'CO': '🇨🇴',
+        'ES': '🇪🇸',
+        'PE': '🇵🇪',
+        'BR': '🇧🇷',
+        'UY': '🇺🇾'
+    };
+    return flags[code] || '🌍';
+}
+
+// Variable global para setup only pricing
+let setupOnlyPricing = [];
+
+function renderPricingGrid() {
+    const grid = document.getElementById('pricing-grid');
+    
+    if (!regionalPricing || regionalPricing.length === 0) {
+        grid.innerHTML = '<p style="color:#888; text-align:center; padding:40px;">No hay precios configurados</p>';
+        return;
+    }
+    
+    grid.innerHTML = regionalPricing.map((p, idx) => {
+        return `
+        <div class="pricing-card" data-index="${idx}">
+            <div class="pricing-header">
+                <span class="pricing-flag">${p.flag || '🌍'}</span>
+                <span class="pricing-country">${p.regionName || p.regionCode}</span>
+                ${p.regionCode !== 'DEFAULT' ? `<button class="btn-delete" onclick="removeServiceCountry(${idx})" title="Eliminar">✕</button>` : ''}
+            </div>
+            <div class="pricing-body">
+                <div style="padding:15px; background:linear-gradient(135deg, rgba(59,130,246,0.1), rgba(34,197,94,0.1)); border-radius:8px;">
+                    <div style="font-size:12px; color:#888; margin-bottom:10px; text-align:center;">
+                        🎓 SESIÓN SETUP + CLASE DE PRUEBA
+                    </div>
+                    <div style="font-size:11px; color:#666; margin-bottom:12px; text-align:center;">
+                        30 minutos • Configuración técnica + Clase demo
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
+                        <input type="number" value="${p.price}" 
+                               onchange="updateServicePricing(${idx}, 'price', this.value)" 
+                               style="width:80px; padding:10px; font-size:20px; font-weight:700; text-align:center; border-radius:8px; border:2px solid #333;" 
+                               min="0" step="0.5">
+                        <select onchange="updateServicePricing(${idx}, 'currency', this.value)" 
+                                style="padding:10px; font-size:14px; border-radius:8px; background:#1a1a2e; color:white; border:2px solid #333;">
+                            <option value="USD" ${p.currency === 'USD' ? 'selected' : ''}>USD</option>
+                            <option value="EUR" ${p.currency === 'EUR' ? 'selected' : ''}>EUR</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top:12px; padding:8px; background:rgba(255,255,255,0.03); border-radius:4px; font-size:10px; color:#666; text-align:center;">
+                    💡 Precio del servicio sin productos físicos
+                </div>
+            </div>
+        </div>
+    `}).join('');
+}
+
+function updateServicePricing(index, field, value) {
+    if (field === 'price') {
+        regionalPricing[index].price = parseFloat(value) || 0;
+    } else if (field === 'currency') {
+        regionalPricing[index].currency = value;
+    }
+}
+
+function removeServiceCountry(index) {
+    if (confirm('¿Eliminar este país de la configuración?')) {
+        regionalPricing.splice(index, 1);
+        renderPricingGrid();
+    }
+}
+
+function addNewServiceCountry() {
+    const code = document.getElementById('new-country-code')?.value?.trim().toUpperCase();
+    const name = document.getElementById('new-country-name')?.value?.trim();
+    const price = parseFloat(document.getElementById('new-country-price')?.value) || 10;
+    const currency = document.getElementById('new-country-currency')?.value || 'USD';
+    
+    if (!code || !name) {
+        showNotification('⚠️ Completa código y nombre del país', 'error');
+        return;
+    }
+    
+    // Verificar que no exista ya
+    if (regionalPricing.find(p => p.regionCode === code)) {
+        showNotification(`⚠️ El código ${code} ya existe`, 'error');
+        return;
+    }
+    
+    regionalPricing.push({
+        regionCode: code,
+        regionName: name,
+        flag: getCountryFlag(code),
+        price,
+        currency
+    });
+    
+    // Limpiar inputs
+    if (document.getElementById('new-country-code')) document.getElementById('new-country-code').value = '';
+    if (document.getElementById('new-country-name')) document.getElementById('new-country-name').value = '';
+    if (document.getElementById('new-country-price')) document.getElementById('new-country-price').value = '';
+    
+    renderPricingGrid();
+    showNotification(`✅ País ${name} agregado`, 'success');
+}
+
+async function saveServicePricing() {
+    try {
+        // Convertir regionalPricing a formato setupOnly
+        const setupOnlyData = regionalPricing.map(p => ({
+            regionCode: p.regionCode,
+            price: p.price,
+            currency: p.currency,
+            description: 'Setup técnico + Clase de prueba 30min'
+        }));
+        
+        showNotification('Guardando...', 'info');
+        
+        const res = await fetch('/api/welcome-kit/admin/pricing', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                setupOnlyPricing: setupOnlyData
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('✅ Precios guardados correctamente', 'success');
+        } else {
+            showNotification(`❌ Error: ${data.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error saving service pricing:', error);
+        showNotification('❌ Error al guardar', 'error');
+    }
+}
+
+function addNewCountry() {
+    const code = document.getElementById('new-country-code').value.toUpperCase().trim();
+    const name = document.getElementById('new-country-name').value.trim();
+    const price = parseFloat(document.getElementById('new-country-price').value);
+    const currency = document.getElementById('new-country-currency').value;
+    const days = document.getElementById('new-country-days').value.trim();
+    const shipping = document.getElementById('new-country-shipping').value === 'true';
+    
+    if (!code || !name || !price) {
+        showNotification('Código, nombre y precio son requeridos', 'error');
+        return;
+    }
+    
+    // Verificar que no exista
+    if (regionalPricing.find(p => p.regionCode === code)) {
+        showNotification('Este código de país ya existe', 'error');
+        return;
+    }
+    
+    const flags = { 'PE': '🇵🇪', 'CO': '🇨🇴', 'BR': '🇧🇷', 'UY': '🇺🇾', 'EC': '🇪🇨', 'BO': '🇧🇴', 'PY': '🇵🇾', 'VE': '🇻🇪', 'CR': '🇨🇷', 'PA': '🇵🇦', 'GT': '🇬🇹', 'HN': '🇭🇳', 'NI': '🇳🇮', 'SV': '🇸🇻', 'DO': '🇩🇴', 'CU': '🇨🇺', 'PR': '🇵🇷', 'UK': '🇬🇧', 'CA': '🇨🇦', 'FR': '🇫🇷', 'DE': '🇩🇪', 'IT': '🇮🇹', 'PT': '🇵🇹' };
+    
+    // Agregar precio kit completo
+    regionalPricing.push({
+        regionCode: code,
+        regionName: name,
+        flag: flags[code] || '🏳️',
+        price: price,
+        currency: currency,
+        shippingDays: days || '7-15 días',
+        includesShipping: shipping
+    });
+    
+    // Agregar también precio setup only (50% del precio completo como default)
+    setupOnlyPricing.push({
+        regionCode: code,
+        regionName: name,
+        flag: flags[code] || '🏳️',
+        price: Math.round(price * 0.5),
+        currency: currency
+    });
+    
+    // Limpiar form
+    document.getElementById('new-country-code').value = '';
+    document.getElementById('new-country-name').value = '';
+    document.getElementById('new-country-price').value = '';
+    document.getElementById('new-country-days').value = '';
+    
+    renderPricingGrid();
+    showNotification(`País ${name} agregado`, 'success');
+}
+
+async function savePricing() {
+    try {
+        const res = await fetch('/api/welcome-kit/admin/pricing', {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userSession.token}`
+            },
+            body: JSON.stringify({ 
+                pricing: regionalPricing,
+                setupOnlyPricing: setupOnlyPricing
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('✅ Precios guardados correctamente', 'success');
+        } else {
+            showNotification(data.error || 'Error guardando precios', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving pricing:', error);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
 // ==================== ALUMNOS ====================
 let allStudentsData = [];
 let currentStudentFilter = 'all';
@@ -1878,6 +2390,1896 @@ function showNotification(message, type = 'info') {
 function logout() {
     localStorage.removeItem('pianoUser');
     window.location.href = 'login.html';
+}
+
+// ==================== KIT PRODUCTS ====================
+
+async function loadKitProducts() {
+    const grid = document.getElementById('kit-products-grid');
+    if (!grid) return;
+    
+    try {
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:#666;">Cargando...</div>';
+        
+        const res = await fetch('/api/kit-products/admin/all', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            kitProducts = data.products || [];
+            renderKitProducts();
+        } else {
+            grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#ef4444;">Error: ${data.error}</div>`;
+        }
+    } catch (err) {
+        console.error('Error loading kit products:', err);
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:#ef4444;">Error al cargar productos</div>';
+    }
+}
+
+function renderKitProducts() {
+    const grid = document.getElementById('kit-products-grid');
+    if (!grid) return;
+    
+    let filtered = kitProducts;
+    if (currentProductFilter !== 'all') {
+        filtered = kitProducts.filter(p => p.category === currentProductFilter);
+    }
+    
+    if (filtered.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column:1/-1; text-align:center; padding:60px; color:#666;">
+                <div style="font-size:48px; margin-bottom:15px;">📦</div>
+                <div style="font-size:16px; margin-bottom:10px;">No hay productos</div>
+                <div style="font-size:13px;">Haz clic en "Cargar Ejemplos" para agregar productos de muestra<br>o "Nuevo Producto" para crear uno.</div>
+            </div>
+        `;
+        return;
+    }
+    
+    grid.innerHTML = filtered.map(product => {
+        const categoryIcons = {
+            keyboard: '🎹',
+            stand: '🪜',
+            pedal: '🦶',
+            cable: '🔌',
+            accessory: '🎧',
+            bundle: '📦'
+        };
+        const categoryNames = {
+            keyboard: 'Teclado',
+            stand: 'Soporte',
+            pedal: 'Pedal',
+            cable: 'Cable',
+            accessory: 'Accesorio',
+            bundle: 'Bundle'
+        };
+        
+        const icon = categoryIcons[product.category] || '📦';
+        const categoryName = categoryNames[product.category] || product.category;
+        const imageUrl = product.images?.[0]?.url || '';
+        const costPrice = product.fulfillment?.costPrice || 0;
+        const margin = product.defaultPrice - costPrice;
+        const marginPercent = costPrice > 0 ? Math.round((margin / product.defaultPrice) * 100) : 0;
+        
+        return `
+            <div class="product-card ${!product.isActive ? 'inactive' : ''}" data-id="${product._id}">
+                <div class="product-card-image">
+                    ${imageUrl 
+                        ? `<img src="${imageUrl}" alt="${product.name}" onerror="this.parentElement.innerHTML='${icon}'">`
+                        : icon
+                    }
+                    <div class="product-card-badges">
+                        ${product.isFeatured ? '<span class="product-badge featured">⭐ Destacado</span>' : ''}
+                        ${!product.isActive ? '<span class="product-badge inactive">Inactivo</span>' : ''}
+                    </div>
+                </div>
+                <div class="product-card-body">
+                    <div class="product-card-category">${icon} ${categoryName}</div>
+                    <div class="product-card-title">${product.name}</div>
+                    <div class="product-card-desc">${product.shortDescription || product.description || ''}</div>
+                    <div class="product-card-price">
+                        $${product.defaultPrice} USD
+                        ${costPrice > 0 ? `<span class="cost">Costo: $${costPrice} (${marginPercent}% margen)</span>` : ''}
+                    </div>
+                    <div class="product-card-actions">
+                        <button class="btn-edit" onclick="editKitProduct('${product._id}')">✏️ Editar</button>
+                        <button class="btn-toggle" onclick="toggleKitProduct('${product._id}')">${product.isActive ? '⏸️' : '▶️'}</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function filterKitProducts(category) {
+    currentProductFilter = category;
+    
+    // Update filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.category === category);
+    });
+    
+    renderKitProducts();
+}
+
+function openProductModal(productId = null) {
+    const modal = document.getElementById('kit-product-modal');
+    const title = document.getElementById('kit-product-modal-title');
+    const form = document.getElementById('kit-product-form');
+    
+    // Reset form
+    form.reset();
+    document.getElementById('kit-product-id').value = '';
+    document.getElementById('kit-product-active').checked = true;
+    document.getElementById('keyboard-specs').style.display = 'none';
+    
+    if (productId) {
+        title.textContent = '✏️ Editar Producto';
+        const product = kitProducts.find(p => p._id === productId);
+        if (product) {
+            fillProductForm(product);
+        }
+    } else {
+        title.textContent = '➕ Nuevo Producto';
+    }
+    
+    modal.classList.add('active');
+    
+    // Listen for category change to show/hide keyboard specs
+    document.getElementById('kit-product-category').addEventListener('change', function() {
+        document.getElementById('keyboard-specs').style.display = 
+            this.value === 'keyboard' ? 'block' : 'none';
+    });
+}
+
+function fillProductForm(product) {
+    document.getElementById('kit-product-id').value = product._id;
+    document.getElementById('kit-product-name').value = product.name || '';
+    document.getElementById('kit-product-category').value = product.category || '';
+    document.getElementById('kit-product-short-desc').value = product.shortDescription || '';
+    document.getElementById('kit-product-description').value = product.description || '';
+    document.getElementById('kit-product-default-price').value = product.defaultPrice || '';
+    document.getElementById('kit-product-cost').value = product.fulfillment?.costPrice || '';
+    document.getElementById('kit-product-weight').value = product.fulfillment?.weight || '';
+    document.getElementById('kit-product-provider').value = product.fulfillment?.provider || 'cjdropshipping';
+    document.getElementById('kit-product-sku').value = product.fulfillment?.cjSku || product.fulfillment?.affiliateUrl || '';
+    document.getElementById('kit-product-image').value = product.images?.[0]?.url || '';
+    document.getElementById('kit-product-tags').value = (product.tags || []).join(', ');
+    document.getElementById('kit-product-active').checked = product.isActive;
+    document.getElementById('kit-product-featured').checked = product.isFeatured;
+    
+    // Keyboard specs
+    if (product.category === 'keyboard') {
+        document.getElementById('keyboard-specs').style.display = 'block';
+        document.getElementById('kit-product-brand').value = product.specs?.brand || '';
+        document.getElementById('kit-product-model').value = product.specs?.model || '';
+        document.getElementById('kit-product-keys').value = product.specs?.keys || '';
+        document.getElementById('kit-product-sounds').value = product.specs?.sounds || '';
+        document.getElementById('kit-product-weighted').checked = product.specs?.weighted || false;
+        document.getElementById('kit-product-touch-sensitive').checked = product.specs?.touchSensitive || false;
+    }
+}
+
+function editKitProduct(productId) {
+    openProductModal(productId);
+}
+
+async function saveKitProduct(event) {
+    event.preventDefault();
+    
+    const productId = document.getElementById('kit-product-id').value;
+    const category = document.getElementById('kit-product-category').value;
+    
+    const productData = {
+        name: document.getElementById('kit-product-name').value.trim(),
+        category: category,
+        shortDescription: document.getElementById('kit-product-short-desc').value.trim(),
+        description: document.getElementById('kit-product-description').value.trim(),
+        defaultPrice: parseFloat(document.getElementById('kit-product-default-price').value) || 0,
+        fulfillment: {
+            provider: document.getElementById('kit-product-provider').value,
+            costPrice: parseFloat(document.getElementById('kit-product-cost').value) || 0,
+            weight: parseFloat(document.getElementById('kit-product-weight').value) || 0
+        },
+        isActive: document.getElementById('kit-product-active').checked,
+        isFeatured: document.getElementById('kit-product-featured').checked,
+        tags: document.getElementById('kit-product-tags').value.split(',').map(t => t.trim()).filter(Boolean)
+    };
+    
+    // SKU or affiliate URL
+    const skuValue = document.getElementById('kit-product-sku').value.trim();
+    if (productData.fulfillment.provider === 'affiliate') {
+        productData.fulfillment.affiliateUrl = skuValue;
+    } else {
+        productData.fulfillment.cjSku = skuValue;
+    }
+    
+    // Image
+    const imageUrl = document.getElementById('kit-product-image').value.trim();
+    if (imageUrl) {
+        productData.images = [{ url: imageUrl, isPrimary: true }];
+    }
+    
+    // Keyboard specs
+    if (category === 'keyboard') {
+        productData.specs = {
+            brand: document.getElementById('kit-product-brand').value.trim(),
+            model: document.getElementById('kit-product-model').value.trim(),
+            keys: parseInt(document.getElementById('kit-product-keys').value) || null,
+            sounds: parseInt(document.getElementById('kit-product-sounds').value) || null,
+            weighted: document.getElementById('kit-product-weighted').checked,
+            touchSensitive: document.getElementById('kit-product-touch-sensitive').checked
+        };
+    }
+    
+    try {
+        showNotification('Guardando...', 'info');
+        
+        const url = productId 
+            ? `/api/kit-products/admin/${productId}` 
+            : '/api/kit-products/admin';
+        const method = productId ? 'PUT' : 'POST';
+        
+        const res = await fetch(url, {
+            method,
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(productData)
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification(productId ? '✅ Producto actualizado' : '✅ Producto creado', 'success');
+            closeModal('kit-product-modal');
+            loadKitProducts();
+        } else {
+            showNotification(`Error: ${data.error}`, 'error');
+        }
+    } catch (err) {
+        console.error('Error saving product:', err);
+        showNotification('Error al guardar', 'error');
+    }
+}
+
+async function toggleKitProduct(productId) {
+    try {
+        const res = await fetch(`/api/kit-products/admin/${productId}/toggle`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification(data.message, 'success');
+            loadKitProducts();
+        } else {
+            showNotification(`Error: ${data.error}`, 'error');
+        }
+    } catch (err) {
+        console.error('Error toggling product:', err);
+        showNotification('Error al cambiar estado', 'error');
+    }
+}
+
+async function seedKitProducts() {
+    if (!confirm('¿Cargar productos de ejemplo? (Yamaha PSR-E373, P-45, soportes, pedales, etc.)')) {
+        return;
+    }
+    
+    try {
+        showNotification('Cargando productos de ejemplo...', 'info');
+        
+        const res = await fetch('/api/kit-products/admin/seed', {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ force: false })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification(`✅ ${data.products?.length || 0} productos creados`, 'success');
+            loadKitProducts();
+        } else {
+            if (data.existingCount > 0) {
+                showNotification(`Ya existen ${data.existingCount} productos`, 'warning');
+            } else {
+                showNotification(`Error: ${data.error}`, 'error');
+            }
+        }
+    } catch (err) {
+        console.error('Error seeding products:', err);
+        showNotification('Error al cargar ejemplos', 'error');
+    }
+}
+
+// ==================== CJDROPSHIPPING FULFILLMENT ====================
+
+// Variable global para almacenar la configuración completa
+let cjConfigCache = null;
+
+async function loadCJDashboard() {
+    loadCJConfig();
+    loadCJStats();
+    loadCJPendingReview();
+}
+
+async function loadCJConfig() {
+    try {
+        const res = await fetch('/api/welcome-kit/admin/cj/config', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            const config = data.config;
+            
+            // Estado del servicio
+            const enabledToggle = document.getElementById('cj-enabled-toggle');
+            const serviceStatus = document.getElementById('cj-service-status');
+            const apiPreview = document.getElementById('cj-api-preview');
+            const statusCard = document.getElementById('cj-status-card');
+            
+            if (enabledToggle) enabledToggle.checked = config.enabled;
+            
+            if (serviceStatus) {
+                if (config.enabled && data.apiKeyConfigured) {
+                    serviceStatus.textContent = '✅ Activo';
+                    serviceStatus.style.color = '#10b981';
+                    statusCard.style.borderColor = '#10b981';
+                } else if (!data.apiKeyConfigured) {
+                    serviceStatus.textContent = '⚠️ Sin API Key';
+                    serviceStatus.style.color = '#f59e0b';
+                    statusCard.style.borderColor = '#f59e0b';
+                } else {
+                    serviceStatus.textContent = '⏸️ Desactivado';
+                    serviceStatus.style.color = '#888';
+                    statusCard.style.borderColor = '#333';
+                }
+            }
+            
+            if (apiPreview) {
+                apiPreview.textContent = data.apiKeyPreview || 'No configurada';
+                apiPreview.style.color = data.apiKeyConfigured ? '#10b981' : '#ef4444';
+            }
+            
+            // SKUs
+            const skuUsbB = document.getElementById('cj-sku-usb-b');
+            const skuMidi5pin = document.getElementById('cj-sku-midi-5pin');
+            const skuMicroUsb = document.getElementById('cj-sku-micro-usb');
+            const skuUsbC = document.getElementById('cj-sku-usb-c');
+            
+            if (skuUsbB) skuUsbB.value = config.skus?.USB_B || '';
+            if (skuMidi5pin) skuMidi5pin.value = config.skus?.MIDI_5PIN || '';
+            if (skuMicroUsb) skuMicroUsb.value = config.skus?.MICRO_USB || '';
+            if (skuUsbC) skuUsbC.value = config.skus?.USB_C || '';
+            
+            // Configuración de Pricing
+            const pricing = config.pricing || {};
+            const dynamicPricingToggle = document.getElementById('cj-dynamic-pricing');
+            if (dynamicPricingToggle) {
+                dynamicPricingToggle.checked = pricing.useDynamicPricing !== false;
+            }
+            
+            // Guardar config completo en cache
+            cjConfigCache = config;
+            
+            // Cargar precios del país por defecto
+            const countrySelector = document.getElementById('cj-country-selector');
+            if (countrySelector) {
+                countrySelector.value = 'default';
+                loadCountryPricing();
+            }
+            
+            // Márgenes por categoría
+            const margins = pricing.marginByCategory || {};
+            document.getElementById('cj-margin-cable')?.setAttribute('value', margins.cable ?? 40);
+            document.getElementById('cj-margin-keyboard')?.setAttribute('value', margins.keyboard ?? 25);
+            document.getElementById('cj-margin-stand')?.setAttribute('value', margins.stand ?? 35);
+            document.getElementById('cj-margin-pedal')?.setAttribute('value', margins.pedal ?? 40);
+            document.getElementById('cj-margin-accessory')?.setAttribute('value', margins.accessory ?? 35);
+            document.getElementById('cj-margin-bundle')?.setAttribute('value', margins.bundle ?? 20);
+            
+            // También establecer el value directamente
+            if (document.getElementById('cj-margin-cable')) document.getElementById('cj-margin-cable').value = margins.cable ?? 40;
+            if (document.getElementById('cj-margin-keyboard')) document.getElementById('cj-margin-keyboard').value = margins.keyboard ?? 25;
+            if (document.getElementById('cj-margin-stand')) document.getElementById('cj-margin-stand').value = margins.stand ?? 35;
+            if (document.getElementById('cj-margin-pedal')) document.getElementById('cj-margin-pedal').value = margins.pedal ?? 40;
+            if (document.getElementById('cj-margin-accessory')) document.getElementById('cj-margin-accessory').value = margins.accessory ?? 35;
+            if (document.getElementById('cj-margin-bundle')) document.getElementById('cj-margin-bundle').value = margins.bundle ?? 20;
+            
+            // Balance (si está configurado)
+            if (data.apiKeyConfigured && config.enabled) {
+                loadCJBalance();
+            } else {
+                const balanceAmount = document.getElementById('cj-balance-amount');
+                if (balanceAmount) balanceAmount.textContent = '-';
+            }
+        }
+    } catch (err) {
+        console.error('Error loading CJ config:', err);
+    }
+}
+
+function toggleDynamicPricing() {
+    const dynamicToggle = document.getElementById('cj-dynamic-pricing');
+    const marginsSection = document.querySelectorAll('[id^="cj-margin-"]');
+    
+    // Visual feedback para indicar si márgenes están activos
+    marginsSection.forEach(input => {
+        if (dynamicToggle?.checked) {
+            input.style.opacity = '1';
+            input.disabled = false;
+        } else {
+            input.style.opacity = '0.5';
+            input.disabled = true;
+        }
+    });
+}
+
+function loadCountryPricing() {
+    if (!cjConfigCache || !cjConfigCache.pricing || !cjConfigCache.pricing.servicePricesByCountry) {
+        return;
+    }
+    
+    const countrySelector = document.getElementById('cj-country-selector');
+    const selectedCountry = countrySelector?.value || 'default';
+    
+    const prices = cjConfigCache.pricing.servicePricesByCountry[selectedCountry] || 
+                   cjConfigCache.pricing.servicePricesByCountry['default'] || 
+                   { setupSession: 15, trialClass: 10 };
+    
+    const priceSetup = document.getElementById('cj-price-setup');
+    const priceTrial = document.getElementById('cj-price-trial');
+    
+    if (priceSetup) priceSetup.value = prices.setupSession;
+    if (priceTrial) priceTrial.value = prices.trialClass;
+}
+
+function loadCountryPricing() {
+    if (!cjConfigCache) return;
+    
+    const countrySelector = document.getElementById('cj-country-selector');
+    const selectedCountry = countrySelector?.value || 'default';
+    
+    const priceSetup = document.getElementById('cj-price-setup');
+    const priceTrial = document.getElementById('cj-price-trial');
+    
+    // servicePricesByCountry es un objeto, no un Map cuando viene del servidor
+    const servicePrices = cjConfigCache.pricing?.servicePricesByCountry?.[selectedCountry] || 
+                          cjConfigCache.pricing?.servicePricesByCountry?.['default'] || 
+                          { setupSession: 15, trialClass: 10 };
+    
+    if (priceSetup) priceSetup.value = servicePrices.setupSession ?? 15;
+    if (priceTrial) priceTrial.value = servicePrices.trialClass ?? 10;
+}
+
+async function loadCJBalance() {
+    const balanceCard = document.getElementById('cj-balance-card');
+    const balanceAmount = document.getElementById('cj-balance-amount');
+    
+    if (!balanceAmount) return;
+    
+    try {
+        balanceAmount.textContent = '...';
+        
+        const res = await fetch('/api/welcome-kit/admin/cj/balance', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            balanceAmount.textContent = `$${data.balance.toFixed(2)} USD`;
+            
+            // Color según balance
+            if (balanceCard) {
+                if (data.balance < 50) {
+                    balanceCard.style.borderColor = '#ef4444';
+                } else if (data.balance < 200) {
+                    balanceCard.style.borderColor = '#f59e0b';
+                } else {
+                    balanceCard.style.borderColor = '#10b981';
+                }
+            }
+        } else {
+            balanceAmount.textContent = 'Error';
+        }
+    } catch (err) {
+        console.error('Error loading CJ balance:', err);
+        balanceAmount.textContent = 'Error';
+    }
+}
+
+async function toggleCJService() {
+    const enabledToggle = document.getElementById('cj-enabled-toggle');
+    if (!enabledToggle) return;
+    
+    const enabled = enabledToggle.checked;
+    
+    try {
+        const res = await fetch('/api/welcome-kit/admin/cj/config', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification(enabled ? '✅ CJDropshipping activado' : '⏸️ CJDropshipping desactivado', 'success');
+            loadCJConfig();
+        } else {
+            showNotification(`Error: ${data.error}`, 'error');
+            enabledToggle.checked = !enabled; // Revertir
+        }
+    } catch (err) {
+        console.error('Error toggling CJ service:', err);
+        showNotification('Error al cambiar estado', 'error');
+        enabledToggle.checked = !enabled;
+    }
+}
+
+async function saveCJConfig() {
+    const skus = {
+        USB_B: document.getElementById('cj-sku-usb-b')?.value?.trim() || '',
+        MIDI_5PIN: document.getElementById('cj-sku-midi-5pin')?.value?.trim() || '',
+        MICRO_USB: document.getElementById('cj-sku-micro-usb')?.value?.trim() || '',
+        USB_C: document.getElementById('cj-sku-usb-c')?.value?.trim() || ''
+    };
+    
+    // Actualizar precios del país seleccionado en el cache
+    const countrySelector = document.getElementById('cj-country-selector');
+    const selectedCountry = countrySelector?.value || 'default';
+    
+    const setupPrice = parseFloat(document.getElementById('cj-price-setup')?.value) || 15;
+    const trialPrice = parseFloat(document.getElementById('cj-price-trial')?.value) || 10;
+    
+    // Inicializar servicePricesByCountry si no existe
+    if (!cjConfigCache) cjConfigCache = { pricing: {} };
+    if (!cjConfigCache.pricing) cjConfigCache.pricing = {};
+    if (!cjConfigCache.pricing.servicePricesByCountry) {
+        cjConfigCache.pricing.servicePricesByCountry = {
+            'default': { setupSession: 15, trialClass: 10 }
+        };
+    }
+    
+    // Actualizar el país actual
+    cjConfigCache.pricing.servicePricesByCountry[selectedCountry] = {
+        setupSession: setupPrice,
+        trialClass: trialPrice
+    };
+    
+    // Configuración de pricing
+    const pricing = {
+        useDynamicPricing: document.getElementById('cj-dynamic-pricing')?.checked ?? true,
+        servicePricesByCountry: cjConfigCache.pricing.servicePricesByCountry,
+        marginByCategory: {
+            cable: parseFloat(document.getElementById('cj-margin-cable')?.value) || 40,
+            keyboard: parseFloat(document.getElementById('cj-margin-keyboard')?.value) || 25,
+            stand: parseFloat(document.getElementById('cj-margin-stand')?.value) || 35,
+            pedal: parseFloat(document.getElementById('cj-margin-pedal')?.value) || 40,
+            accessory: parseFloat(document.getElementById('cj-margin-accessory')?.value) || 35,
+            bundle: parseFloat(document.getElementById('cj-margin-bundle')?.value) || 20
+        }
+    };
+    
+    try {
+        showNotification('Guardando...', 'info');
+        
+        const res = await fetch('/api/welcome-kit/admin/cj/config', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ skus, pricing })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification(`✅ Configuración guardada (${selectedCountry})`, 'success');
+        } else {
+            showNotification(`Error: ${data.error}`, 'error');
+        }
+    } catch (err) {
+        console.error('Error saving CJ config:', err);
+        showNotification('Error al guardar', 'error');
+    }
+}
+
+async function testCJConnection() {
+    try {
+        showNotification('Probando conexión...', 'info');
+        
+        const res = await fetch('/api/welcome-kit/admin/cj/test-connection', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification(`✅ Conexión exitosa! Balance: $${data.balance.toFixed(2)}`, 'success');
+            loadCJBalance();
+        } else {
+            showNotification(`❌ ${data.error}`, 'error');
+        }
+    } catch (err) {
+        console.error('Error testing CJ connection:', err);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+async function loadCJStats() {
+    try {
+        const res = await fetch('/api/welcome-kit/admin/cj/orders?source=local', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success && data.orders) {
+            // Contar por estado
+            const stats = {
+                created: 0,
+                unpaid: 0,
+                shipped: 0,
+                delivered: 0
+            };
+            
+            data.orders.forEach(order => {
+                const status = order.shipping?.fulfillment?.status?.toLowerCase() || '';
+                if (status.includes('created') || status.includes('cart')) {
+                    stats.created++;
+                } else if (status.includes('unpaid')) {
+                    stats.unpaid++;
+                } else if (status.includes('shipped') || status.includes('unshipped')) {
+                    stats.shipped++;
+                } else if (status.includes('delivered')) {
+                    stats.delivered++;
+                }
+            });
+            
+            // Actualizar UI
+            const statCreated = document.getElementById('cj-stat-created');
+            const statUnpaid = document.getElementById('cj-stat-unpaid');
+            const statShipped = document.getElementById('cj-stat-shipped');
+            const statDelivered = document.getElementById('cj-stat-delivered');
+            
+            if (statCreated) statCreated.textContent = stats.created;
+            if (statUnpaid) statUnpaid.textContent = stats.unpaid;
+            if (statShipped) statShipped.textContent = stats.shipped;
+            if (statDelivered) statDelivered.textContent = stats.delivered;
+        }
+    } catch (err) {
+        console.error('Error loading CJ stats:', err);
+    }
+}
+
+async function loadCJPendingReview() {
+    const tbody = document.getElementById('cj-pending-tbody');
+    if (!tbody) return;
+    
+    try {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">Cargando...</td></tr>';
+        
+        const res = await fetch('/api/welcome-kit/admin/cj/orders?pendingReview=true', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success && data.orders && data.orders.length > 0) {
+            tbody.innerHTML = data.orders.map(kit => `
+                <tr>
+                    <td>${kit.studentName || 'N/A'}</td>
+                    <td>${kit.shipping?.country || 'N/A'}</td>
+                    <td>
+                        <span class="cable-badge">${getCableIcon(kit.shipping?.cableType)} ${formatCableType(kit.shipping?.cableType)}</span>
+                    </td>
+                    <td style="color:#ef4444;font-size:0.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;">
+                        ${kit.shipping?.fulfillment?.errorMessage || 'Error desconocido'}
+                    </td>
+                    <td>
+                        <button class="btn-icon" onclick="retryCJOrder('${kit._id}')" title="Reintentar">
+                            🔄
+                        </button>
+                        <button class="btn-icon" onclick="createManualCJOrder('${kit._id}')" title="Crear manual">
+                            ✏️
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#10b981;">✓ No hay órdenes pendientes de revisión</td></tr>';
+        }
+    } catch (err) {
+        console.error('Error loading pending review:', err);
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#ef4444;">Error al cargar</td></tr>';
+    }
+}
+
+async function retryCJOrder(kitId) {
+    if (!confirm('¿Reintentar crear orden en CJDropshipping?')) return;
+    
+    try {
+        showNotification('Reintentando...', 'info');
+        
+        const res = await fetch(`/api/welcome-kit/admin/cj/retry/${kitId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('✓ Orden creada exitosamente', 'success');
+            loadCJDashboard();
+            loadKits(); // Actualizar lista principal
+        } else {
+            showNotification(`Error: ${data.error}`, 'error');
+        }
+    } catch (err) {
+        console.error('Error retrying CJ order:', err);
+        showNotification('Error al reintentar', 'error');
+    }
+}
+
+async function syncAllCJOrders() {
+    if (!confirm('¿Sincronizar estado de todas las órdenes activas con CJDropshipping?')) return;
+    
+    try {
+        showNotification('Sincronizando...', 'info');
+        
+        const res = await fetch('/api/welcome-kit/admin/cj/sync-all', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification(`✓ ${data.synced} órdenes sincronizadas`, 'success');
+            loadCJDashboard();
+            loadKits();
+        } else {
+            showNotification(`Error: ${data.error}`, 'error');
+        }
+    } catch (err) {
+        console.error('Error syncing CJ orders:', err);
+        showNotification('Error al sincronizar', 'error');
+    }
+}
+
+async function createManualCJOrder(kitId) {
+    // Por ahora solo muestra info - en el futuro podría abrir un modal
+    alert('Para crear una orden manual, ve a CJDropshipping.com y crea la orden directamente. Luego sincroniza con el botón "Sincronizar Todo".');
+}
+
+function getCableIcon(cableType) {
+    const icons = {
+        'USB_B': '🔌',
+        'MIDI_5PIN': '🎹',
+        'MICRO_USB': '📱',
+        'USB_C': '⚡'
+    };
+    return icons[cableType] || '🔌';
+}
+
+function formatCableType(cableType) {
+    const names = {
+        'USB_B': 'USB-B',
+        'MIDI_5PIN': 'MIDI 5-Pin',
+        'MICRO_USB': 'Micro USB',
+        'USB_C': 'USB-C'
+    };
+    return names[cableType] || cableType || 'No especificado';
+}
+
+// ==================== DSERS / ALIEXPRESS ====================
+
+async function loadDSersTab() {
+    try {
+        // Cargar configuración
+        const configRes = await fetch('/api/welcome-kit/admin/dsers/config', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const configData = await configRes.json();
+        
+        if (configData.success) {
+            const config = configData.config;
+            document.getElementById('dsers-enabled-toggle').checked = config.enabled;
+            document.getElementById('dsers-affiliate-id').value = config.affiliateTrackingId || '';
+            document.getElementById('dsers-default-margin').value = config.defaultMargin || 40;
+            
+            document.getElementById('dsers-status').innerHTML = config.enabled 
+                ? '✅ Activo' 
+                : '⏸️ No Configurado';
+            document.getElementById('dsers-status').style.color = config.enabled 
+                ? 'var(--accent-green)' 
+                : 'var(--accent-orange)';
+            
+            document.getElementById('dsers-affiliate-preview').textContent = 
+                config.affiliateTrackingId || 'No configurado';
+        }
+        
+        // Cargar productos de AliExpress
+        await loadAliExpressProducts();
+        
+    } catch (error) {
+        console.error('Error cargando DSers:', error);
+    }
+}
+
+async function loadAliExpressProducts() {
+    try {
+        const res = await fetch('/api/welcome-kit/admin/products/aliexpress', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        const container = document.getElementById('aliexpress-products-list');
+        
+        if (!data.success || data.products.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:40px; color:#666;">
+                    No hay productos de AliExpress configurados aún.<br>
+                    <button class="btn btn-primary" onclick="openAddAliProductModal()" style="margin-top:15px;">
+                        ➕ Agregar Primer Producto
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '<div style="display:grid; gap:15px;">';
+        data.products.forEach(product => {
+            html += `
+                <div style="background:var(--bg-dark); border:1px solid #333; border-radius:8px; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="font-weight:600; color:#fff; margin-bottom:5px;">${product.name}</div>
+                        <div style="font-size:12px; color:#888;">
+                            Categoría: ${product.category} | Precio: $${product.defaultPrice}
+                        </div>
+                        <a href="${product.fulfillment.aliexpressUrl}" target="_blank" style="font-size:11px; color:var(--accent-blue);">
+                            Ver en AliExpress →
+                        </a>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-secondary" onclick="editAliProduct('${product._id}')">✏️</button>
+                        <button class="btn btn-danger" onclick="deleteAliProduct('${product._id}')">🗑️</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error cargando productos AliExpress:', error);
+    }
+}
+
+function openAddAliProductModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width:600px;">
+            <div class="modal-header">
+                <h3>🛒 Agregar Producto de AliExpress</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nombre del Producto</label>
+                    <input type="text" id="ali-product-name" class="form-input" placeholder="Ej: Cable MIDI USB para Teclado">
+                </div>
+                
+                <div class="form-group">
+                    <label>URL de AliExpress</label>
+                    <input type="url" id="ali-product-url" class="form-input" placeholder="https://www.aliexpress.com/item/...">
+                    <small style="color:#888; font-size:11px;">Copia la URL completa del producto desde AliExpress</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Precio en AliExpress ($USD)</label>
+                    <input type="number" id="ali-product-price" class="form-input" placeholder="2.50" step="0.01" min="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>Margen de Ganancia (%)</label>
+                    <input type="number" id="ali-product-margin" class="form-input" value="40" min="0" max="300">
+                    <small style="color:#888; font-size:11px;">Ej: 40% = El precio final será $2.50 × 1.40 = $3.50</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Categoría</label>
+                    <select id="ali-product-category" class="form-input">
+                        <option value="cable">🔌 Cable</option>
+                        <option value="keyboard">🎹 Teclado</option>
+                        <option value="stand">🪜 Soporte</option>
+                        <option value="pedal">🦶 Pedal</option>
+                        <option value="accessory">🎧 Accesorio</option>
+                    </select>
+                </div>
+                
+                <div style="background:rgba(59,130,246,0.1); border:1px solid var(--accent-blue); border-radius:8px; padding:12px; margin-top:15px;">
+                    <div style="font-size:13px; color:#888;">
+                        <strong style="color:var(--accent-blue);">💡 Precio calculado:</strong>
+                        <div id="ali-price-preview" style="font-size:18px; font-weight:700; color:#fff; margin-top:5px;">
+                            -
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveAliProduct()">💾 Agregar Producto</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Actualizar preview de precio al cambiar valores
+    const priceInput = document.getElementById('ali-product-price');
+    const marginInput = document.getElementById('ali-product-margin');
+    const preview = document.getElementById('ali-price-preview');
+    
+    function updatePreview() {
+        const price = parseFloat(priceInput.value) || 0;
+        const margin = parseFloat(marginInput.value) || 0;
+        const finalPrice = price * (1 + margin / 100);
+        preview.textContent = price > 0 ? `$${finalPrice.toFixed(2)} USD` : '-';
+    }
+    
+    priceInput.addEventListener('input', updatePreview);
+    marginInput.addEventListener('input', updatePreview);
+}
+
+async function saveAliProduct() {
+    const name = document.getElementById('ali-product-name').value.trim();
+    const url = document.getElementById('ali-product-url').value.trim();
+    const price = parseFloat(document.getElementById('ali-product-price').value);
+    const margin = parseFloat(document.getElementById('ali-product-margin').value);
+    const category = document.getElementById('ali-product-category').value;
+    
+    if (!name || !url || !price || price <= 0) {
+        showNotification('Por favor completa todos los campos requeridos', 'error');
+        return;
+    }
+    
+    if (!url.includes('aliexpress.com')) {
+        showNotification('La URL debe ser de aliexpress.com', 'error');
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/welcome-kit/admin/products/aliexpress', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name,
+                aliexpressUrl: url,
+                price,
+                margin,
+                category
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('✅ Producto agregado exitosamente', 'success');
+            document.querySelector('.modal-overlay.active').remove();
+            await loadAliExpressProducts();
+        } else {
+            showNotification(data.error || 'Error al agregar producto', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error guardando producto:', error);
+        showNotification('Error al guardar producto', 'error');
+    }
+}
+
+async function toggleDSersService() {
+    const enabled = document.getElementById('dsers-enabled-toggle').checked;
+    
+    try {
+        const res = await fetch('/api/welcome-kit/admin/dsers/config', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ enabled })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification(enabled ? 'DSers activado' : 'DSers desactivado', 'success');
+            await loadDSersTab();
+        }
+        
+    } catch (error) {
+        console.error('Error toggling DSers:', error);
+        showNotification('Error al cambiar estado', 'error');
+    }
+}
+
+async function saveDSersConfig() {
+    const affiliateId = document.getElementById('dsers-affiliate-id').value.trim();
+    const defaultMargin = parseFloat(document.getElementById('dsers-default-margin').value);
+    
+    try {
+        const res = await fetch('/api/welcome-kit/admin/dsers/config', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                affiliateTrackingId: affiliateId,
+                defaultMargin
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('✅ Configuración guardada', 'success');
+            await loadDSersTab();
+        } else {
+            showNotification(data.error || 'Error al guardar', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error guardando config DSers:', error);
+        showNotification('Error al guardar configuración', 'error');
+    }
+}
+
+async function exportDSersCSV() {
+    try {
+        const res = await fetch('/api/welcome-kit/admin/dsers/export-csv', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`
+            }
+        });
+        
+        if (res.ok) {
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dsers-orders-${Date.now()}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showNotification('✅ CSV exportado. Ahora súbelo a DSers.com', 'success');
+        } else {
+            const data = await res.json();
+            showNotification(data.message || 'No hay pedidos para exportar', 'info');
+        }
+        
+    } catch (error) {
+        console.error('Error exportando CSV:', error);
+        showNotification('Error al exportar CSV', 'error');
+    }
+}
+
+async function deleteAliProduct(productId) {
+    if (!confirm('¿Eliminar este producto de AliExpress?')) return;
+    
+    try {
+        const res = await fetch(`/api/welcome-kit/admin/products/${productId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('Producto eliminado', 'success');
+            await loadKitProductsList();
+        } else {
+            showNotification(data.error || 'Error al eliminar', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error eliminando producto:', error);
+        showNotification('Error al eliminar producto', 'error');
+    }
+}
+
+function editAliProduct(productId) {
+    showNotification('Función en desarrollo. Por ahora elimina y crea uno nuevo.', 'info');
+}
+
+// ==================== WELCOME KIT - NUEVO DISEÑO ====================
+
+function switchSimpleKitTab(tabName) {
+    document.querySelectorAll('.simple-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.kit-tab-content').forEach(c => c.classList.remove('active'));
+    
+    document.querySelector(`[data-kit-tab="${tabName}"]`)?.classList.add('active');
+    document.getElementById(`kit-tab-${tabName}`)?.classList.add('active');
+    
+    if (tabName === 'products') {
+        loadKitProductsList();
+    } else if (tabName === 'orders') {
+        loadKitOrdersList();
+    } else if (tabName === 'pricing') {
+        loadServicePricing();
+    }
+}
+
+async function loadWelcomeKitsModule() {
+    // Cargar stats rápidos
+    try {
+        const [productsRes, ordersRes] = await Promise.all([
+            fetch('/api/welcome-kit/admin/products', {
+                headers: { 'Authorization': `Bearer ${userSession.token}` }
+            }),
+            fetch('/api/welcome-kit/admin/orders', {
+                headers: { 'Authorization': `Bearer ${userSession.token}` }
+            })
+        ]);
+        
+        const productsData = await productsRes.json();
+        const ordersData = await ordersRes.json();
+        
+        // Actualizar stats
+        document.getElementById('kit-stat-products').textContent = productsData.products?.length || 0;
+        
+        if (ordersData.success && ordersData.orders) {
+            const orders = ordersData.orders;
+            const pending = orders.filter(o => o.shippingStatus === 'pending' || o.shippingStatus === 'paid').length;
+            const transit = orders.filter(o => o.shippingStatus === 'shipped').length;
+            const delivered = orders.filter(o => o.shippingStatus === 'delivered').length;
+            
+            document.getElementById('kit-stat-pending').textContent = pending;
+            document.getElementById('kit-stat-transit').textContent = transit;
+            document.getElementById('kit-stat-delivered').textContent = delivered;
+            
+            // Calcular revenue del mes
+            const thisMonth = new Date().getMonth();
+            const revenue = orders
+                .filter(o => new Date(o.createdAt).getMonth() === thisMonth && o.paymentStatus === 'completed')
+                .reduce((sum, o) => sum + (o.total || 0), 0);
+            document.getElementById('kit-stat-revenue').textContent = `$${revenue.toFixed(0)}`;
+        }
+    } catch (error) {
+        console.error('Error cargando stats:', error);
+    }
+    
+    // Cargar productos por defecto
+    loadKitProductsList();
+    
+    // Cargar config DSers
+    loadDSersConfig();
+}
+
+async function loadKitProductsList() {
+    const container = document.getElementById('kit-products-list');
+    
+    try {
+        const res = await fetch('/api/welcome-kit/admin/products', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (!data.success || !data.products || data.products.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:60px 20px; color:#666;">
+                    <div style="font-size:48px; margin-bottom:15px;">📦</div>
+                    <p>No hay productos aún</p>
+                    <p style="font-size:12px;">Agrega tu primer producto pegando una URL de AliExpress arriba</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        data.products.forEach(product => {
+            const provider = product.fulfillment?.provider || 'manual';
+            const providerIcon = provider === 'aliexpress' ? '🛒' : provider === 'cjdropshipping' ? '📦' : '📝';
+            const cost = product.fulfillment?.costPrice || 0;
+            const margin = product.defaultPrice ? ((product.defaultPrice - cost) / product.defaultPrice * 100).toFixed(0) : 0;
+            
+            // Usar placeholder si no hay imagen o es inválida
+            const hasImage = product.imageUrl && product.imageUrl.startsWith('http');
+            const imageHtml = hasImage 
+                ? `<img src="${product.imageUrl}" class="product-row-image" loading="lazy" 
+                       onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                   <div class="product-row-placeholder" style="display:none;">📦</div>`
+                : `<div class="product-row-placeholder">📦</div>`;
+            
+            html += `
+                <div class="product-row">
+                    <div class="product-row-img-container">
+                        ${imageHtml}
+                    </div>
+                    <div class="product-row-info">
+                        <div class="product-row-name">${product.name}</div>
+                        <div class="product-row-meta">
+                            <span>${providerIcon} ${provider}</span>
+                            <span>💰 Costo: $${cost.toFixed(2)}</span>
+                            <span>📈 Margen: ${margin}%</span>
+                        </div>
+                    </div>
+                    <div class="product-row-price">$${(product.defaultPrice || 0).toFixed(2)}</div>
+                    <div class="product-row-actions">
+                        <button onclick="editKitProduct('${product._id}')" title="Editar">✏️</button>
+                        <button class="delete" onclick="deleteKitProduct('${product._id}')" title="Eliminar">🗑️</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error cargando productos:', error);
+        container.innerHTML = '<p style="color:#666; text-align:center; padding:40px;">Error al cargar productos</p>';
+    }
+}
+
+async function loadKitOrdersList() {
+    const container = document.getElementById('kit-orders-list');
+    
+    try {
+        const res = await fetch('/api/welcome-kit/admin/orders', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (!data.success || !data.orders || data.orders.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:60px 20px; color:#666;">
+                    <div style="font-size:48px; margin-bottom:15px;">🧾</div>
+                    <p>No hay órdenes aún</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        data.orders.forEach(order => {
+            const statusIcon = {
+                'pending': '💳', 'paid': '💳', 
+                'shipped': '📦', 
+                'delivered': '✅'
+            }[order.shippingStatus] || '❓';
+            
+            const statusClass = {
+                'pending': 'pending', 'paid': 'pending',
+                'shipped': 'shipped',
+                'delivered': 'delivered'
+            }[order.shippingStatus] || 'pending';
+            
+            const date = new Date(order.createdAt).toLocaleDateString('es-CL');
+            
+            html += `
+                <div class="order-row">
+                    <div class="order-row-status ${statusClass}">${statusIcon}</div>
+                    <div class="order-row-info">
+                        <div class="order-row-customer">${order.customerName}</div>
+                        <div class="order-row-details">${order.email} • ${order.country || 'N/A'}</div>
+                    </div>
+                    <div class="order-row-total">$${(order.total || 0).toFixed(2)}</div>
+                    <div class="order-row-date">${date}</div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error cargando órdenes:', error);
+        container.innerHTML = '<p style="color:#666; text-align:center; padding:40px;">Error al cargar órdenes</p>';
+    }
+}
+
+function filterKitOrders(filter) {
+    document.querySelectorAll('[data-order-filter]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.orderFilter === filter);
+    });
+    // TODO: Implementar filtrado real
+    loadKitOrdersList();
+}
+
+async function loadServicePricing() {
+    const container = document.getElementById('service-pricing-grid');
+    
+    try {
+        const res = await fetch('/api/welcome-kit/admin/pricing', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        // Usar setupOnlyPricing (servicio unificado: Setup + Clase)
+        const setupPrices = data.setupOnlyPricing || [
+            { regionCode: 'DEFAULT', price: 10, currency: 'USD' }
+        ];
+        
+        const flags = {
+            'DEFAULT': '🌍', 'CL': '🇨🇱', 'US': '🇺🇸', 'MX': '🇲🇽', 
+            'AR': '🇦🇷', 'CO': '🇨🇴', 'ES': '🇪🇸', 'PE': '🇵🇪', 'BR': '🇧🇷',
+            'UY': '🇺🇾', 'EC': '🇪🇨', 'BO': '🇧🇴', 'PY': '🇵🇾', 'VE': '🇻🇪'
+        };
+        
+        const names = {
+            'DEFAULT': 'Por Defecto', 'CL': 'Chile', 'US': 'Estados Unidos', 'MX': 'México',
+            'AR': 'Argentina', 'CO': 'Colombia', 'ES': 'España', 'PE': 'Perú', 'BR': 'Brasil',
+            'UY': 'Uruguay', 'EC': 'Ecuador', 'BO': 'Bolivia', 'PY': 'Paraguay', 'VE': 'Venezuela'
+        };
+        
+        let html = '';
+        setupPrices.forEach((p) => {
+            const code = p.regionCode;
+            html += `
+                <div class="service-price-row" data-country="${code}" style="display:flex; align-items:center; gap:12px; padding:12px 15px; background:rgba(59,130,246,0.08); border-radius:8px; border:1px solid #333;">
+                    <span style="font-size:20px;">${flags[code] || '🏳️'}</span>
+                    <span style="font-weight:600; color:#fff; min-width:120px;">${names[code] || code}</span>
+                    <span style="color:#666; font-size:12px;">(${code})</span>
+                    <div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+                        <input type="number" class="service-price form-input" value="${p.price || 10}" min="0" step="0.5" 
+                               style="width:80px; text-align:center; font-weight:700; font-size:16px;">
+                        <select class="service-currency form-input" style="width:70px;">
+                            <option value="USD" ${p.currency === 'USD' ? 'selected' : ''}>USD</option>
+                            <option value="EUR" ${p.currency === 'EUR' ? 'selected' : ''}>EUR</option>
+                        </select>
+                        ${code !== 'DEFAULT' ? `<button class="btn btn-icon" onclick="removeServicePrice('${code}')" style="color:#ef4444; padding:5px;" title="Eliminar">✕</button>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html || '<p style="color:#666; text-align:center; padding:20px;">No hay precios configurados</p>';
+        
+        // Cargar márgenes desde CJ config
+        const cjRes = await fetch('/api/welcome-kit/admin/cj/config', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const cjData = await cjRes.json();
+        const margins = cjData.config?.pricing?.margins || {};
+        document.getElementById('margin-cable').value = margins.cable || 40;
+        document.getElementById('margin-keyboard').value = margins.keyboard || 25;
+        document.getElementById('margin-accessory').value = margins.accessory || 35;
+        
+    } catch (error) {
+        console.error('Error cargando precios:', error);
+        container.innerHTML = '<p style="color:#ef4444; text-align:center; padding:20px;">Error cargando precios</p>';
+    }
+}
+
+async function addServicePrice() {
+    const country = document.getElementById('new-price-country').value.toUpperCase().trim();
+    const countryName = document.getElementById('new-price-country-name').value.trim();
+    const price = parseFloat(document.getElementById('new-price-amount').value) || 10;
+    const currency = document.getElementById('new-price-currency').value || 'USD';
+    
+    if (!country || country.length !== 2) {
+        showNotification('Ingresa un código de país válido (2 letras)', 'error');
+        return;
+    }
+    
+    if (!countryName) {
+        showNotification('Ingresa el nombre del país', 'error');
+        return;
+    }
+    
+    // Verificar si ya existe
+    if (document.querySelector(`.service-price-row[data-country="${country}"]`)) {
+        showNotification(`El país ${country} ya existe`, 'error');
+        return;
+    }
+    
+    const flags = { 
+        'CL': '🇨🇱', 'US': '🇺🇸', 'MX': '🇲🇽', 'AR': '🇦🇷', 'CO': '🇨🇴', 'ES': '🇪🇸', 
+        'PE': '🇵🇪', 'BR': '🇧🇷', 'UY': '🇺🇾', 'EC': '🇪🇨', 'BO': '🇧🇴', 'PY': '🇵🇾', 
+        'VE': '🇻🇪', 'CR': '🇨🇷', 'PA': '🇵🇦', 'GT': '🇬🇹', 'HN': '🇭🇳', 'NI': '🇳🇮',
+        'DO': '🇩🇴', 'CU': '🇨🇺', 'PR': '🇵🇷', 'CA': '🇨🇦', 'UK': '🇬🇧', 'FR': '🇫🇷',
+        'DE': '🇩🇪', 'IT': '🇮🇹', 'PT': '🇵🇹'
+    };
+    
+    const container = document.getElementById('service-pricing-grid');
+    const newRow = document.createElement('div');
+    newRow.className = 'service-price-row';
+    newRow.dataset.country = country;
+    newRow.style.cssText = 'display:flex; align-items:center; gap:12px; padding:12px 15px; background:rgba(34,197,94,0.1); border-radius:8px; border:1px solid #22c55e;';
+    newRow.innerHTML = `
+        <span style="font-size:20px;">${flags[country] || '🏳️'}</span>
+        <span style="font-weight:600; color:#fff; min-width:120px;">${countryName}</span>
+        <span style="color:#666; font-size:12px;">(${country})</span>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+            <input type="number" class="service-price form-input" value="${price}" min="0" step="0.5" 
+                   style="width:80px; text-align:center; font-weight:700; font-size:16px;">
+            <select class="service-currency form-input" style="width:70px;">
+                <option value="USD" ${currency === 'USD' ? 'selected' : ''}>USD</option>
+                <option value="EUR" ${currency === 'EUR' ? 'selected' : ''}>EUR</option>
+            </select>
+            <button class="btn btn-icon" onclick="removeServicePrice('${country}')" style="color:#ef4444; padding:5px;" title="Eliminar">✕</button>
+        </div>
+    `;
+    container.appendChild(newRow);
+    
+    // Limpiar inputs
+    document.getElementById('new-price-country').value = '';
+    document.getElementById('new-price-country-name').value = '';
+    document.getElementById('new-price-amount').value = '';
+    
+    showNotification(`✅ País ${countryName} (${country}) agregado. Guarda para confirmar.`, 'success');
+}
+
+function removeServicePrice(country) {
+    const row = document.querySelector(`.service-price-row[data-country="${country}"]`);
+    if (row) {
+        row.remove();
+        showNotification(`País ${country} eliminado. Guarda para confirmar.`, 'info');
+    }
+}
+
+async function saveAllPricing() {
+    try {
+        showNotification('Guardando precios...', 'info');
+        
+        // Recolectar precios de servicios del grid
+        const setupOnlyPricing = [];
+        document.querySelectorAll('.service-price-row').forEach(row => {
+            const country = row.dataset.country;
+            const price = parseFloat(row.querySelector('.service-price').value) || 10;
+            const currency = row.querySelector('.service-currency').value || 'USD';
+            setupOnlyPricing.push({
+                regionCode: country,
+                price: price,
+                currency: currency,
+                description: 'Setup técnico + Clase de prueba 30min'
+            });
+        });
+        
+        // Guardar precios de servicios
+        const priceRes = await fetch('/api/welcome-kit/admin/pricing', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ setupOnlyPricing })
+        });
+        
+        const priceData = await priceRes.json();
+        if (!priceData.success) {
+            throw new Error(priceData.error || 'Error guardando precios');
+        }
+        
+        // Recolectar y guardar márgenes
+        const margins = {
+            cable: parseFloat(document.getElementById('margin-cable').value) || 40,
+            keyboard: parseFloat(document.getElementById('margin-keyboard').value) || 25,
+            accessory: parseFloat(document.getElementById('margin-accessory').value) || 35
+        };
+        
+        // Obtener config actual de CJ
+        const getRes = await fetch('/api/welcome-kit/admin/cj/config', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const currentData = await getRes.json();
+        
+        if (currentData.success) {
+            const pricing = currentData.config?.pricing || {};
+            pricing.margins = margins;
+            
+            await fetch('/api/welcome-kit/admin/cj/config', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${userSession.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    skus: currentData.config?.skus || {},
+                    pricing
+                })
+            });
+        }
+        
+        showNotification('✅ Configuración guardada correctamente', 'success');
+        
+        // Recargar para reflejar cambios
+        loadServicePricing();
+        
+    } catch (error) {
+        console.error('Error guardando precios:', error);
+        showNotification(`❌ Error: ${error.message}`, 'error');
+    }
+}
+
+async function loadDSersConfig() {
+    try {
+        const res = await fetch('/api/welcome-kit/admin/dsers/config', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (data.success && data.config) {
+            document.getElementById('dsers-config-affiliate').value = data.config.affiliateTrackingId || '';
+            document.getElementById('dsers-config-margin').value = data.config.defaultMargin || 40;
+        }
+    } catch (error) {
+        console.error('Error cargando config DSers:', error);
+    }
+}
+
+async function quickAddFromUrl() {
+    const url = document.getElementById('quick-add-url').value.trim();
+    
+    if (!url) {
+        showNotification('Pega una URL de AliExpress', 'error');
+        return;
+    }
+    
+    if (!url.includes('aliexpress.com')) {
+        showNotification('La URL debe ser de aliexpress.com', 'error');
+        return;
+    }
+    
+    // Abrir modal con la URL pre-llenada
+    openQuickAddProduct(url);
+}
+
+function openQuickAddProduct(prefilledUrl = '') {
+    const url = prefilledUrl || document.getElementById('quick-add-url')?.value || '';
+    const defaultMargin = parseInt(document.getElementById('dsers-config-margin')?.value) || 40;
+    
+    // Tipo de cambio CLP -> USD (actualizar según mercado)
+    const CLP_TO_USD = 950;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width:520px;">
+            <div class="modal-header">
+                <h3>➕ Agregar Producto de AliExpress</h3>
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+            </div>
+            <div class="modal-body" style="display:grid; gap:15px;">
+                
+                <div style="background:linear-gradient(135deg, #1a1a2e, #16213e); border-radius:10px; padding:15px; border:1px solid #333;">
+                    <p style="color:#888; font-size:12px; margin:0 0 10px 0;">
+                        📋 <strong>Copia estos datos desde AliExpress:</strong>
+                    </p>
+                    <ol style="color:#aaa; font-size:11px; margin:0; padding-left:20px; line-height:1.8;">
+                        <li>Abre el producto en AliExpress</li>
+                        <li>Copia la URL, nombre, precio (CLP) e imagen</li>
+                        <li>Pégalos aquí abajo</li>
+                    </ol>
+                </div>
+
+                <div>
+                    <label style="font-size:12px; color:#888;">URL de AliExpress *</label>
+                    <input type="url" id="modal-product-url" class="form-input" value="${url}" 
+                           placeholder="https://aliexpress.com/item/123456.html">
+                </div>
+                
+                <div>
+                    <label style="font-size:12px; color:#888;">Nombre del Producto *</label>
+                    <input type="text" id="modal-product-name" class="form-input" 
+                           placeholder="Ej: Cable MIDI USB Tipo-C para Teclado Piano">
+                </div>
+                
+                <div>
+                    <label style="font-size:12px; color:#888;">URL de Imagen (clic derecho → copiar dirección de imagen)</label>
+                    <input type="url" id="modal-product-image" class="form-input" 
+                           placeholder="https://ae01.alicdn.com/...">
+                </div>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                    <div>
+                        <label style="font-size:12px; color:#888;">💰 Precio AliExpress (CLP) *</label>
+                        <input type="number" id="modal-product-price-clp" class="form-input" 
+                               placeholder="2500" min="0" style="font-size:16px;">
+                        <p style="font-size:10px; color:#666; margin:3px 0 0 0;">El precio que ves en pesos chilenos</p>
+                    </div>
+                    <div>
+                        <label style="font-size:12px; color:#888;">📈 Tu Margen (%)</label>
+                        <input type="number" id="modal-product-margin" class="form-input" 
+                               value="${defaultMargin}" min="0" max="500" style="font-size:16px;">
+                        <p style="font-size:10px; color:#666; margin:3px 0 0 0;">Ganancia sobre el costo</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <label style="font-size:12px; color:#888;">Categoría</label>
+                    <select id="modal-product-category" class="form-input">
+                        <option value="cable">🔌 Cable</option>
+                        <option value="keyboard">🎹 Teclado</option>
+                        <option value="stand">🪜 Soporte</option>
+                        <option value="pedal">🦶 Pedal</option>
+                        <option value="accessory">🎧 Accesorio</option>
+                    </select>
+                </div>
+                
+                <div style="background:rgba(39,174,96,0.15); padding:15px; border-radius:10px; border:1px solid var(--accent-green);">
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; text-align:center;">
+                        <div>
+                            <div style="font-size:10px; color:#888;">Costo USD</div>
+                            <div id="preview-cost-usd" style="font-size:18px; font-weight:600; color:#3498db;">$0.00</div>
+                        </div>
+                        <div>
+                            <div style="font-size:10px; color:#888;">Precio Venta</div>
+                            <div id="preview-sale-price" style="font-size:22px; font-weight:700; color:var(--accent-green);">$0.00</div>
+                        </div>
+                        <div>
+                            <div style="font-size:10px; color:#888;">Tu Ganancia</div>
+                            <div id="preview-profit" style="font-size:18px; font-weight:600; color:#27ae60;">+$0.00</div>
+                        </div>
+                    </div>
+                    <div style="text-align:center; margin-top:8px;">
+                        <span style="font-size:10px; color:#666;">Tipo de cambio: 1 USD = ${CLP_TO_USD} CLP</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveQuickProduct()">💾 Agregar Producto</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Eventos para actualizar preview
+    const clpInput = document.getElementById('modal-product-price-clp');
+    const marginInput = document.getElementById('modal-product-margin');
+    
+    function updatePreview() {
+        const clp = parseFloat(clpInput.value) || 0;
+        const costUsd = clp / CLP_TO_USD;
+        const margin = parseFloat(marginInput.value) || 0;
+        const salePrice = costUsd * (1 + margin / 100);
+        const profit = salePrice - costUsd;
+        
+        document.getElementById('preview-cost-usd').textContent = `$${costUsd.toFixed(2)}`;
+        document.getElementById('preview-sale-price').textContent = `$${salePrice.toFixed(2)}`;
+        document.getElementById('preview-profit').textContent = `+$${profit.toFixed(2)}`;
+    }
+    
+    clpInput.addEventListener('input', updatePreview);
+    marginInput.addEventListener('input', updatePreview);
+    updatePreview();
+}
+
+async function saveQuickProduct() {
+    const url = document.getElementById('modal-product-url').value.trim();
+    const name = document.getElementById('modal-product-name').value.trim();
+    const image = document.getElementById('modal-product-image')?.value.trim() || '';
+    const priceCLP = parseFloat(document.getElementById('modal-product-price-clp').value) || 0;
+    const margin = parseFloat(document.getElementById('modal-product-margin').value) || 40;
+    const category = document.getElementById('modal-product-category').value;
+    
+    // Convertir CLP a USD
+    const CLP_TO_USD = 950;
+    const costUSD = priceCLP / CLP_TO_USD;
+    
+    if (!url || !name || !priceCLP) {
+        showNotification('Completa URL, nombre y precio', 'error');
+        return;
+    }
+    
+    if (!url.includes('aliexpress')) {
+        showNotification('La URL debe ser de AliExpress', 'error');
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/welcome-kit/admin/products/aliexpress', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name,
+                aliexpressUrl: url,
+                imageUrl: image,
+                price: costUSD,  // Enviamos en USD
+                margin,
+                category
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('✅ Producto agregado!', 'success');
+            document.querySelector('.modal-overlay.active')?.remove();
+            document.getElementById('quick-add-url').value = '';
+            loadKitProductsList();
+            
+            // Actualizar stat
+            const statEl = document.getElementById('kit-stat-products');
+            statEl.textContent = parseInt(statEl.textContent) + 1;
+        } else {
+            showNotification(data.error || 'Error al agregar', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error al agregar producto', 'error');
+    }
+}
+
+async function deleteKitProduct(productId) {
+    if (!confirm('¿Eliminar este producto?')) return;
+    
+    try {
+        const res = await fetch(`/api/welcome-kit/admin/products/${productId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        
+        if (res.ok) {
+            showNotification('Producto eliminado', 'success');
+            loadKitProductsList();
+        }
+    } catch (error) {
+        showNotification('Error al eliminar', 'error');
+    }
+}
+
+async function editKitProduct(productId) {
+    try {
+        // Obtener datos del producto
+        const res = await fetch(`/api/welcome-kit/admin/products/${productId}`, {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (!data.success || !data.product) {
+            showNotification('No se pudo cargar el producto', 'error');
+            return;
+        }
+        
+        const p = data.product;
+        const cost = p.fulfillment?.costPrice || 0;
+        const margin = p.defaultPrice && cost ? Math.round(((p.defaultPrice / cost) - 1) * 100) : 40;
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay active';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:520px;">
+                <div class="modal-header">
+                    <h3>✏️ Editar Producto</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+                </div>
+                <div class="modal-body" style="display:grid; gap:15px;">
+                    <div>
+                        <label style="font-size:12px; color:#888;">Nombre del Producto *</label>
+                        <input type="text" id="edit-product-name" class="form-input" value="${p.name || ''}">
+                    </div>
+                    
+                    <div>
+                        <label style="font-size:12px; color:#888;">URL de Imagen</label>
+                        <input type="url" id="edit-product-image" class="form-input" 
+                               value="${p.imageUrl || ''}" placeholder="https://ae01.alicdn.com/...">
+                        <p style="font-size:10px; color:#666; margin:3px 0 0 0;">Clic derecho en imagen de AliExpress → Abrir en nueva pestaña → Copiar URL</p>
+                    </div>
+                    
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                        <div>
+                            <label style="font-size:12px; color:#888;">💰 Costo (USD)</label>
+                            <input type="number" id="edit-product-cost" class="form-input" 
+                                   value="${cost.toFixed(2)}" step="0.01" min="0">
+                        </div>
+                        <div>
+                            <label style="font-size:12px; color:#888;">📈 Margen (%)</label>
+                            <input type="number" id="edit-product-margin" class="form-input" 
+                                   value="${margin}" min="0" max="500">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label style="font-size:12px; color:#888;">Categoría</label>
+                        <select id="edit-product-category" class="form-input">
+                            <option value="cable" ${p.category === 'cable' ? 'selected' : ''}>🔌 Cable</option>
+                            <option value="keyboard" ${p.category === 'keyboard' ? 'selected' : ''}>🎹 Teclado</option>
+                            <option value="stand" ${p.category === 'stand' ? 'selected' : ''}>🪜 Soporte</option>
+                            <option value="pedal" ${p.category === 'pedal' ? 'selected' : ''}>🦶 Pedal</option>
+                            <option value="accessory" ${p.category === 'accessory' ? 'selected' : ''}>🎧 Accesorio</option>
+                        </select>
+                    </div>
+                    
+                    <div style="background:rgba(52,152,219,0.15); padding:12px; border-radius:8px; border:1px solid #3498db;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:#888; font-size:12px;">Precio de Venta:</span>
+                            <span id="edit-price-preview" style="font-weight:700; color:#3498db;">$${(p.defaultPrice || 0).toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="saveEditedProduct('${productId}')">💾 Guardar</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Actualizar preview de precio
+        const costInput = document.getElementById('edit-product-cost');
+        const marginInput = document.getElementById('edit-product-margin');
+        const preview = document.getElementById('edit-price-preview');
+        
+        function updateEditPreview() {
+            const c = parseFloat(costInput.value) || 0;
+            const m = parseFloat(marginInput.value) || 0;
+            const price = c * (1 + m / 100);
+            preview.textContent = `$${price.toFixed(2)}`;
+        }
+        
+        costInput.addEventListener('input', updateEditPreview);
+        marginInput.addEventListener('input', updateEditPreview);
+        
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error al cargar producto', 'error');
+    }
+}
+
+async function saveEditedProduct(productId) {
+    const name = document.getElementById('edit-product-name').value.trim();
+    const imageUrl = document.getElementById('edit-product-image').value.trim();
+    const cost = parseFloat(document.getElementById('edit-product-cost').value) || 0;
+    const margin = parseFloat(document.getElementById('edit-product-margin').value) || 40;
+    const category = document.getElementById('edit-product-category').value;
+    
+    if (!name) {
+        showNotification('El nombre es requerido', 'error');
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/api/welcome-kit/admin/products/${productId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, imageUrl, cost, margin, category })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('✅ Producto actualizado', 'success');
+            document.querySelector('.modal-overlay.active')?.remove();
+            loadKitProductsList();
+        } else {
+            showNotification(data.error || 'Error al guardar', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error al guardar', 'error');
+    }
+}
+
+function syncDSersOrders() {
+    showNotification('Sincronización de tracking en desarrollo', 'info');
 }
 
 // ==================== CERRAR MODALES CON ESC ====================

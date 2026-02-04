@@ -30,6 +30,34 @@ const globalConfigSchema = new mongoose.Schema({
             shippingDays: { type: String }  // '3-5 días hábiles'
         }],
         
+        // Precio solo Setup + Clase (sin cable)
+        setupOnly: [{
+            regionCode: { type: String },
+            price: { type: Number },        // Precio cuando ya tiene cable
+            currency: { type: String }
+        }],
+        
+        // Costos de envío por región (para cálculos internos)
+        shippingCosts: [{
+            regionCode: { type: String },
+            cost: { type: Number },
+            currency: { type: String }
+        }]
+    },
+    
+    // ==================== CATÁLOGO DE CABLES ====================
+    cablesCatalog: [{
+        code: { type: String },           // 'USB_B', 'MIDI_5PIN', 'MICRO_USB', 'USB_C'
+        name: { type: String },           // 'USB-B (tipo impresora)'
+        description: { type: String },    // 'Para Yamaha, Roland, Casio modernos'
+        costPrice: { type: Number },      // Costo de compra (ej: $5)
+        keyboards: [{ type: String }],    // ['Yamaha P-125', 'Roland FP-30', 'Casio CDP-S100']
+        image: { type: String },          // URL de imagen
+        isActive: { type: Boolean, default: true }
+    }],
+    
+    // ==================== MEMBRESÍAS ====================
+    memberships: {
         // Membresía mensual del ALUMNO (4 clases)
         studentMembership: [{
             regionCode: { type: String },

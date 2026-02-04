@@ -5,11 +5,12 @@
 const mongoose = require('mongoose');
 
 const welcomeKitSchema = new mongoose.Schema({
-    // Cliente que compró
+    // Cliente que compró (puede ser null hasta verificar pago)
     clientId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false,
+        default: null
     },
     
     // Beneficiario (puede ser el mismo cliente o un hijo)
@@ -32,11 +33,40 @@ const welcomeKitSchema = new mongoose.Schema({
         paidAt: { type: Date }
     },
     
+    // ==================== TIPO DE KIT ====================
+    kitType: {
+        type: String,
+        enum: ['full', 'setup_only'],  // 'full' = cable + setup + clase, 'setup_only' = solo setup + clase
+        default: 'full'
+    },
+    
+    // ==================== PRODUCTOS SELECCIONADOS ====================
+    products: [{
+        productId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'KitProduct'
+        },
+        name: { type: String },
+        priceAtPurchase: { type: Number }
+    }],
+    
+    // ==================== CABLE MIDI (legacy) ====================
+    cable: {
+        type: {
+            type: String,
+            enum: ['USB_B', 'MIDI_5PIN', 'MICRO_USB', 'USB_C', 'NONE'],
+            default: 'USB_B'
+        },
+        keyboardModel: { type: String },  // Modelo del teclado del cliente
+        costPrice: { type: Number },       // Costo del cable (para tracking interno)
+        alreadyHasCable: { type: Boolean, default: false }
+    },
+    
     // ==================== ENVÍO FÍSICO ====================
     shipping: {
         status: {
             type: String,
-            enum: ['pending_payment', 'processing', 'shipped', 'delivered', 'returned', 'lost'],
+            enum: ['pending_payment', 'processing', 'shipped', 'delivered', 'returned', 'lost', 'not_required'],
             default: 'pending_payment'
         },
         
@@ -47,6 +77,20 @@ const welcomeKitSchema = new mongoose.Schema({
             state: String,
             postalCode: String,
             country: { type: String, required: true }
+        },
+        
+        // Fulfillment (CJDropshipping)
+        fulfillment: {
+            provider: { type: String }, // 'cjdropshipping', 'manual', etc.
+            externalOrderId: { type: String },
+            orderNumber: { type: String },
+            shipmentOrderId: { type: String },
+            status: { type: String }, // Estado en el proveedor
+            costPrice: { type: Number }, // Costo real del fulfillment
+            errorMessage: { type: String },
+            requiresManualReview: { type: Boolean, default: false },
+            createdAt: { type: Date },
+            lastSync: { type: Date }
         },
         
         // Tracking del courier

@@ -54,6 +54,15 @@
                 </div>
             </div>
             
+            <!-- Welcome Kits -->
+            <div class="nav-section">
+                <div class="nav-section-title">Logística</div>
+                <div class="nav-item" data-module="welcome-kits" onclick="switchModule('welcome-kits')">
+                    <span class="icon">📦</span> Welcome Kits
+                    <span class="badge" id="kits-badge" style="display:none;">0</span>
+                </div>
+            </div>
+            
             <!-- Pagos -->
             <div class="nav-section">
                 <div class="nav-section-title">Finanzas</div>
@@ -370,6 +379,260 @@
                             <tr><td colspan="7" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- ==================== WELCOME KITS ==================== -->
+            <div id="module-welcome-kits" class="module-view">
+                <!-- Header con acciones rápidas -->
+                <div class="kit-header" style="display:flex; justify-content:space-between; align-items:center; padding:20px 0; border-bottom:1px solid #333; margin-bottom:20px;">
+                    <div>
+                        <h2 style="color:#fff; margin:0 0 5px 0; font-size:24px;">🎹 Welcome Kit Store</h2>
+                        <p style="color:#888; margin:0; font-size:13px;">Dropshipping GRATIS con DSers + AliExpress</p>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-secondary" onclick="exportDSersCSV()">
+                            📤 Exportar CSV
+                        </button>
+                        <button class="btn btn-primary" onclick="openQuickAddProduct()">
+                            ➕ Agregar Producto
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Quick Stats Row -->
+                <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:15px; margin-bottom:25px;">
+                    <div class="mini-stat" style="background:var(--bg-card); border-radius:10px; padding:15px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:var(--accent-blue);" id="kit-stat-products">0</div>
+                        <div style="font-size:11px; color:#888;">Productos</div>
+                    </div>
+                    <div class="mini-stat" style="background:var(--bg-card); border-radius:10px; padding:15px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:var(--accent-yellow);" id="kit-stat-pending">0</div>
+                        <div style="font-size:11px; color:#888;">Por Enviar</div>
+                    </div>
+                    <div class="mini-stat" style="background:var(--bg-card); border-radius:10px; padding:15px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:var(--accent-orange);" id="kit-stat-transit">0</div>
+                        <div style="font-size:11px; color:#888;">En Tránsito</div>
+                    </div>
+                    <div class="mini-stat" style="background:var(--bg-card); border-radius:10px; padding:15px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:var(--accent-green);" id="kit-stat-delivered">0</div>
+                        <div style="font-size:11px; color:#888;">Entregados</div>
+                    </div>
+                    <div class="mini-stat" style="background:var(--bg-card); border-radius:10px; padding:15px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:var(--accent-purple);" id="kit-stat-revenue">$0</div>
+                        <div style="font-size:11px; color:#888;">Este Mes</div>
+                    </div>
+                </div>
+                
+                <!-- Layout en 2 columnas -->
+                <div style="display:grid; grid-template-columns:1fr 380px; gap:25px;">
+                    
+                    <!-- Columna Principal: Productos y Órdenes -->
+                    <div>
+                        <!-- Tabs simplificados -->
+                        <div class="simple-tabs" style="display:flex; gap:5px; margin-bottom:20px;">
+                            <button class="simple-tab active" data-kit-tab="products" onclick="switchSimpleKitTab('products')">
+                                📦 Productos
+                            </button>
+                            <button class="simple-tab" data-kit-tab="orders" onclick="switchSimpleKitTab('orders')">
+                                🧾 Órdenes
+                            </button>
+                            <button class="simple-tab" data-kit-tab="pricing" onclick="switchSimpleKitTab('pricing')">
+                                💰 Precios
+                            </button>
+                        </div>
+                        
+                        <!-- Tab Content: Productos -->
+                        <div id="kit-tab-products" class="kit-tab-content active">
+                            <!-- Barra de agregar rápido -->
+                            <div style="background:linear-gradient(135deg, #1a1a2e, #16213e); border:2px dashed #444; border-radius:12px; padding:20px; margin-bottom:20px;">
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <div style="flex:1;">
+                                        <input type="url" id="quick-add-url" class="form-input" 
+                                            placeholder="🔗 Pega URL de AliExpress aquí... (ej: https://aliexpress.com/item/123456.html)"
+                                            style="font-size:14px; padding:12px 15px; background:#0d0d1a; border-color:#333;">
+                                    </div>
+                                    <button class="btn btn-primary" onclick="quickAddFromUrl()" style="white-space:nowrap; padding:12px 20px;">
+                                        ➕ Agregar
+                                    </button>
+                                </div>
+                                <p style="font-size:11px; color:#666; margin:10px 0 0 0;">
+                                    💡 Copia la URL del producto en AliExpress y pégala aquí. El sistema extraerá la info automáticamente.
+                                </p>
+                            </div>
+                            
+                            <!-- Lista de productos -->
+                            <div id="kit-products-list" style="display:grid; gap:12px;">
+                                <div style="text-align:center; padding:60px 20px; color:#666;">
+                                    <div style="font-size:48px; margin-bottom:15px;">📦</div>
+                                    <p>No hay productos aún</p>
+                                    <p style="font-size:12px;">Agrega tu primer producto pegando una URL de AliExpress arriba</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tab Content: Órdenes -->
+                        <div id="kit-tab-orders" class="kit-tab-content">
+                            <!-- Filtros de órdenes -->
+                            <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+                                <button class="filter-chip active" data-order-filter="all" onclick="filterKitOrders('all')">Todas</button>
+                                <button class="filter-chip" data-order-filter="pending" onclick="filterKitOrders('pending')">💳 Por Enviar</button>
+                                <button class="filter-chip" data-order-filter="shipped" onclick="filterKitOrders('shipped')">📦 Enviadas</button>
+                                <button class="filter-chip" data-order-filter="delivered" onclick="filterKitOrders('delivered')">✅ Entregadas</button>
+                            </div>
+                            
+                            <!-- Lista de órdenes -->
+                            <div id="kit-orders-list" style="display:grid; gap:10px;">
+                                <div style="text-align:center; padding:60px 20px; color:#666;">
+                                    <div style="font-size:48px; margin-bottom:15px;">🧾</div>
+                                    <p>No hay órdenes aún</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tab Content: Precios -->
+                        <div id="kit-tab-pricing" class="kit-tab-content">
+                            <div style="background:var(--bg-card); border-radius:12px; padding:20px; margin-bottom:15px;">
+                                <h4 style="color:#fff; margin:0 0 10px 0;">🎓 Sesión de Setup + Clase de Prueba</h4>
+                                <p style="color:#888; font-size:12px; margin-bottom:15px;">
+                                    Servicio de 30 minutos que incluye configuración técnica del equipo MIDI y una clase demo.
+                                    Precio por defecto: <strong style="color:#3b82f6;">$10 USD</strong>. Ajusta según el país.
+                                </p>
+                                
+                                <div id="service-pricing-grid" style="display:grid; gap:10px;">
+                                    <!-- Se llena dinámicamente -->
+                                </div>
+                                
+                                <!-- Agregar nuevo país -->
+                                <div style="margin-top:15px; padding-top:15px; border-top:1px solid #333;">
+                                    <div style="font-size:12px; color:#888; margin-bottom:10px;">➕ Agregar nuevo país</div>
+                                    <div style="display:flex; gap:10px; align-items:end;">
+                                        <div style="width:80px;">
+                                            <label style="font-size:10px; color:#666;">Código</label>
+                                            <input type="text" id="new-price-country" class="form-input" placeholder="PE" maxlength="2" style="text-transform:uppercase; text-align:center;">
+                                        </div>
+                                        <div style="flex:1;">
+                                            <label style="font-size:10px; color:#666;">Nombre del País</label>
+                                            <input type="text" id="new-price-country-name" class="form-input" placeholder="Perú">
+                                        </div>
+                                        <div style="width:100px;">
+                                            <label style="font-size:10px; color:#666;">Precio ($)</label>
+                                            <input type="number" id="new-price-amount" class="form-input" placeholder="10" min="0" step="0.5">
+                                        </div>
+                                        <div style="width:80px;">
+                                            <label style="font-size:10px; color:#666;">Moneda</label>
+                                            <select id="new-price-currency" class="form-input">
+                                                <option value="USD">USD</option>
+                                                <option value="EUR">EUR</option>
+                                            </select>
+                                        </div>
+                                        <button class="btn btn-secondary" onclick="addServicePrice()" style="padding:8px 15px;">➕</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="background:var(--bg-card); border-radius:12px; padding:20px;">
+                                <h4 style="color:#fff; margin:0 0 15px 0;">📈 Margen de Productos (%)</h4>
+                                <p style="color:#888; font-size:12px; margin-bottom:15px;">
+                                    Los productos físicos (cables, teclados) usan el costo de AliExpress + este margen.
+                                </p>
+                                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+                                    <div>
+                                        <label style="font-size:11px; color:#888;">🔌 Cables</label>
+                                        <input type="number" id="margin-cable" class="form-input" value="40">
+                                    </div>
+                                    <div>
+                                        <label style="font-size:11px; color:#888;">🎹 Teclados</label>
+                                        <input type="number" id="margin-keyboard" class="form-input" value="25">
+                                    </div>
+                                    <div>
+                                        <label style="font-size:11px; color:#888;">🎧 Accesorios</label>
+                                        <input type="number" id="margin-accessory" class="form-input" value="35">
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" onclick="saveAllPricing()" style="margin-top:15px; width:100%;">
+                                    💾 Guardar Configuración
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Columna Lateral: DSers Panel -->
+                    <div>
+                        <!-- DSers Status Card -->
+                        <div style="background:linear-gradient(135deg, #ff6b35, #f7931e); border-radius:12px; padding:20px; margin-bottom:15px; color:#fff;">
+                            <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                                <img src="https://www.dsers.com/favicon.ico" style="width:24px; height:24px; border-radius:4px;" onerror="this.style.display='none'">
+                                <span style="font-weight:700; font-size:16px;">DSers Conectado</span>
+                                <span style="margin-left:auto; background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:10px; font-size:11px;">GRATIS</span>
+                            </div>
+                            <p style="font-size:12px; opacity:0.9; margin:0;">
+                                Dropshipping automático desde AliExpress sin costo mensual.
+                            </p>
+                        </div>
+                        
+                        <!-- Quick Actions -->
+                        <div style="background:var(--bg-card); border-radius:12px; padding:15px; margin-bottom:15px;">
+                            <h4 style="color:#fff; margin:0 0 12px 0; font-size:13px;">⚡ Acciones Rápidas</h4>
+                            <div style="display:grid; gap:8px;">
+                                <button class="action-btn" onclick="window.open('https://www.dsers.com/app', '_blank')">
+                                    🔗 Abrir DSers
+                                </button>
+                                <button class="action-btn" onclick="exportDSersCSV()">
+                                    📤 Exportar Pedidos CSV
+                                </button>
+                                <button class="action-btn" onclick="syncDSersOrders()">
+                                    🔄 Sincronizar Tracking
+                                </button>
+                                <button class="action-btn" onclick="window.open('https://www.aliexpress.com/category/708044/keyboards.html', '_blank')">
+                                    🔍 Buscar en AliExpress
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Configuración DSers -->
+                        <div style="background:var(--bg-card); border-radius:12px; padding:15px; margin-bottom:15px;">
+                            <h4 style="color:#fff; margin:0 0 12px 0; font-size:13px;">⚙️ Configuración</h4>
+                            <div style="margin-bottom:10px;">
+                                <label style="font-size:11px; color:#888;">Affiliate ID (opcional)</label>
+                                <input type="text" id="dsers-config-affiliate" class="form-input" placeholder="Tu ID de afiliado" style="font-size:12px;">
+                            </div>
+                            <div style="margin-bottom:10px;">
+                                <label style="font-size:11px; color:#888;">Margen Predeterminado (%)</label>
+                                <input type="number" id="dsers-config-margin" class="form-input" value="40" style="font-size:12px;">
+                            </div>
+                            <button class="btn btn-secondary" onclick="saveDSersConfig()" style="width:100%; font-size:12px;">
+                                💾 Guardar
+                            </button>
+                        </div>
+                        
+                        <!-- Guía rápida -->
+                        <div style="background:var(--bg-card); border-radius:12px; padding:15px;">
+                            <h4 style="color:#fff; margin:0 0 12px 0; font-size:13px;">📚 Flujo de Trabajo</h4>
+                            <div style="font-size:12px; color:#888; line-height:1.8;">
+                                <div style="display:flex; gap:8px; margin-bottom:8px;">
+                                    <span style="color:var(--accent-blue);">1.</span>
+                                    <span>Busca productos en AliExpress</span>
+                                </div>
+                                <div style="display:flex; gap:8px; margin-bottom:8px;">
+                                    <span style="color:var(--accent-blue);">2.</span>
+                                    <span>Pega la URL arriba ➕</span>
+                                </div>
+                                <div style="display:flex; gap:8px; margin-bottom:8px;">
+                                    <span style="color:var(--accent-blue);">3.</span>
+                                    <span>Cuando haya ventas, exporta CSV</span>
+                                </div>
+                                <div style="display:flex; gap:8px; margin-bottom:8px;">
+                                    <span style="color:var(--accent-blue);">4.</span>
+                                    <span>Importa CSV en DSers</span>
+                                </div>
+                                <div style="display:flex; gap:8px;">
+                                    <span style="color:var(--accent-green);">5.</span>
+                                    <span>DSers envía automáticamente 🎉</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -739,6 +1002,73 @@
     </div>
 </div>
 
+<!-- Modal: Actualizar Envío Welcome Kit -->
+<div id="shipping-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📦 Actualizar Envío</h3>
+            <button class="modal-close" onclick="closeModal('shipping-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="shipping-kit-id">
+            
+            <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:20px;">
+                <div style="font-weight:bold; color:var(--text-primary);" id="shipping-client-name"></div>
+                <div style="font-size:12px; color:var(--text-muted);" id="shipping-client-address"></div>
+            </div>
+            
+            <div class="form-group">
+                <label>Estado del envío</label>
+                <select id="shipping-status">
+                    <option value="processing">🔄 Procesando</option>
+                    <option value="shipped">📦 Enviado</option>
+                    <option value="delivered">✅ Entregado</option>
+                    <option value="returned">↩️ Devuelto</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Courier / Transportista</label>
+                <select id="shipping-carrier">
+                    <option value="">Seleccionar...</option>
+                    <option value="chilexpress">Chilexpress</option>
+                    <option value="starken">Starken</option>
+                    <option value="bluexpress">Blue Express</option>
+                    <option value="correos_chile">Correos de Chile</option>
+                    <option value="andreani">Andreani (AR)</option>
+                    <option value="oca">OCA (AR)</option>
+                    <option value="correos_argentina">Correos Argentina</option>
+                    <option value="dhl">DHL</option>
+                    <option value="fedex">FedEx</option>
+                    <option value="ups">UPS</option>
+                    <option value="seur">SEUR (ES)</option>
+                    <option value="correos_espana">Correos (ES)</option>
+                    <option value="otro">Otro</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Número de Tracking</label>
+                <input type="text" id="shipping-tracking" placeholder="ABC123456789">
+            </div>
+            
+            <div class="form-group">
+                <label>URL de Seguimiento (opcional)</label>
+                <input type="url" id="shipping-url" placeholder="https://...">
+            </div>
+            
+            <div class="form-group">
+                <label>Fecha estimada de entrega</label>
+                <input type="date" id="shipping-estimated">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('shipping-modal')">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="saveShipping()">💾 Guardar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Agendar Demo -->
 <div id="demo-modal" class="modal-overlay">
     <div class="modal-content">
@@ -1077,6 +1407,154 @@
     </div>
 </div>
 
-<script src="/js/admin.js?v=4.1"></script>
+<!-- Modal: Producto del Kit -->
+<div id="kit-product-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:700px; max-height:90vh; overflow-y:auto;">
+        <div class="modal-header">
+            <h3 id="kit-product-modal-title">➕ Nuevo Producto</h3>
+            <button class="modal-close" onclick="closeModal('kit-product-modal')">×</button>
+        </div>
+        <form id="kit-product-form" onsubmit="saveKitProduct(event)">
+            <div class="modal-body">
+                <input type="hidden" id="kit-product-id">
+                
+                <!-- Información básica -->
+                <div style="display:grid; grid-template-columns:2fr 1fr; gap:15px; margin-bottom:20px;">
+                    <div class="form-group">
+                        <label>Nombre del producto *</label>
+                        <input type="text" id="kit-product-name" required placeholder="Ej: Yamaha PSR-E373">
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría *</label>
+                        <select id="kit-product-category" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="keyboard">🎹 Teclado</option>
+                            <option value="stand">🪜 Soporte</option>
+                            <option value="pedal">🦶 Pedal</option>
+                            <option value="cable">🔌 Cable</option>
+                            <option value="accessory">🎧 Accesorio</option>
+                            <option value="bundle">📦 Bundle</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom:20px;">
+                    <label>Descripción corta</label>
+                    <input type="text" id="kit-product-short-desc" maxlength="150" placeholder="Máx 150 caracteres">
+                </div>
+                
+                <div class="form-group" style="margin-bottom:20px;">
+                    <label>Descripción completa</label>
+                    <textarea id="kit-product-description" rows="3" placeholder="Descripción detallada del producto..."></textarea>
+                </div>
+                
+                <!-- Precios -->
+                <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:20px;">
+                    <h4 style="color:#fff; margin:0 0 15px 0; font-size:14px;">💰 Precios</h4>
+                    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+                        <div class="form-group">
+                            <label style="font-size:11px;">Precio por defecto (USD) *</label>
+                            <input type="number" id="kit-product-default-price" required min="0" step="0.01" placeholder="199">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size:11px;">Costo (para margen)</label>
+                            <input type="number" id="kit-product-cost" min="0" step="0.01" placeholder="120">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size:11px;">Peso (kg)</label>
+                            <input type="number" id="kit-product-weight" min="0" step="0.1" placeholder="4.5">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Especificaciones para teclados -->
+                <div id="keyboard-specs" style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:20px; display:none;">
+                    <h4 style="color:#fff; margin:0 0 15px 0; font-size:14px;">🎹 Especificaciones de Teclado</h4>
+                    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;">
+                        <div class="form-group">
+                            <label style="font-size:11px;">Marca</label>
+                            <input type="text" id="kit-product-brand" placeholder="Yamaha">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size:11px;">Modelo</label>
+                            <input type="text" id="kit-product-model" placeholder="PSR-E373">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size:11px;">Teclas</label>
+                            <select id="kit-product-keys">
+                                <option value="">-</option>
+                                <option value="25">25</option>
+                                <option value="49">49</option>
+                                <option value="61">61</option>
+                                <option value="76">76</option>
+                                <option value="88">88</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size:11px;">Sonidos</label>
+                            <input type="number" id="kit-product-sounds" min="0" placeholder="622">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:20px; margin-top:10px;">
+                        <label style="display:flex; align-items:center; gap:8px; color:#aaa; cursor:pointer;">
+                            <input type="checkbox" id="kit-product-weighted"> Teclas contrapesadas
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; color:#aaa; cursor:pointer;">
+                            <input type="checkbox" id="kit-product-touch-sensitive"> Sensibilidad al tacto
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Fulfillment -->
+                <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:20px;">
+                    <h4 style="color:#fff; margin:0 0 15px 0; font-size:14px;">🚚 Fulfillment</h4>
+                    <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px;">
+                        <div class="form-group">
+                            <label style="font-size:11px;">Proveedor</label>
+                            <select id="kit-product-provider">
+                                <option value="cjdropshipping">CJDropshipping</option>
+                                <option value="manual">Manual</option>
+                                <option value="affiliate">Afiliado</option>
+                                <option value="local">Local</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size:11px;">SKU en CJ / URL Afiliado</label>
+                            <input type="text" id="kit-product-sku" placeholder="SKU o URL...">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Imagen -->
+                <div class="form-group" style="margin-bottom:20px;">
+                    <label>URL de imagen principal</label>
+                    <input type="url" id="kit-product-image" placeholder="https://...">
+                </div>
+                
+                <!-- Tags -->
+                <div class="form-group" style="margin-bottom:20px;">
+                    <label>Tags (separados por coma)</label>
+                    <input type="text" id="kit-product-tags" placeholder="yamaha, principiante, 61 teclas">
+                </div>
+                
+                <!-- Opciones -->
+                <div style="display:flex; gap:20px;">
+                    <label style="display:flex; align-items:center; gap:8px; color:#aaa; cursor:pointer;">
+                        <input type="checkbox" id="kit-product-active" checked> Activo
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; color:#aaa; cursor:pointer;">
+                        <input type="checkbox" id="kit-product-featured"> Destacado
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('kit-product-modal')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">💾 Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/js/admin.js?v=4.2"></script>
 </body>
 </html>

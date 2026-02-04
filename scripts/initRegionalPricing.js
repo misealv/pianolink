@@ -18,6 +18,16 @@ const REGIONAL_PRICING = {
         { regionCode: 'DEFAULT', price: 55, currency: 'USD', includesShipping: false, shippingDays: '7-15 días' }
     ],
     
+    // Sesión de Setup + Clase de Prueba (30 min) - SIN cable físico
+    setupOnly: [
+        { regionCode: 'CL', price: 8, currency: 'USD', description: 'Setup técnico + Clase de prueba 30min' },
+        { regionCode: 'AR', price: 6, currency: 'USD', description: 'Setup técnico + Clase de prueba 30min' },
+        { regionCode: 'ES', price: 12, currency: 'EUR', description: 'Setup técnico + Clase de prueba 30min' },
+        { regionCode: 'MX', price: 8, currency: 'USD', description: 'Setup técnico + Clase de prueba 30min' },
+        { regionCode: 'US', price: 15, currency: 'USD', description: 'Setup técnico + Clase de prueba 30min' },
+        { regionCode: 'DEFAULT', price: 10, currency: 'USD', description: 'Setup técnico + Clase de prueba 30min' }
+    ],
+    
     studentMembership: [
         { regionCode: 'CL', price: 100, currency: 'USD', classesIncluded: 4 },
         { regionCode: 'AR', price: 60, currency: 'USD', classesIncluded: 4 },
@@ -56,9 +66,14 @@ async function initPricing() {
         await config.save();
         
         console.log('\n✅ Precios regionales configurados:');
-        console.log('\n🎁 Welcome Kit:');
+        console.log('\n🎁 Welcome Kit (Cable + Setup + Clase):');
         REGIONAL_PRICING.welcomeKit.forEach(p => {
             console.log(`   ${p.regionCode}: ${p.currency} ${p.price} (${p.shippingDays})`);
+        });
+        
+        console.log('\n🎓 Sesión Setup + Clase de Prueba (sin cable):');
+        REGIONAL_PRICING.setupOnly.forEach(p => {
+            console.log(`   ${p.regionCode}: ${p.currency} ${p.price}`);
         });
         
         console.log('\n📚 Membresía Alumno (4 clases/mes):');

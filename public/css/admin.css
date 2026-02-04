@@ -913,3 +913,662 @@ body {
     
     .products-grid { grid-template-columns: 1fr; }
 }
+
+/* ==================== PRICING CARDS ==================== */
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+    margin-top: 20px;
+}
+
+.pricing-card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.pricing-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(99, 102, 241, 0.3);
+    border-color: rgba(99, 102, 241, 0.4);
+}
+
+.pricing-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+    border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+    position: relative;
+}
+
+.pricing-flag {
+    font-size: 38px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.pricing-country {
+    font-weight: 700;
+    font-size: 18px;
+    color: #fff;
+    letter-spacing: 0.3px;
+}
+
+.pricing-header .btn-delete {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+.pricing-header .btn-delete:hover {
+    background: #ef4444;
+    color: #fff;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.pricing-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.pricing-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pricing-field label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pricing-field input,
+.pricing-field select {
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    width: 100%;
+    transition: all 0.2s;
+}
+
+.pricing-field input:focus,
+.pricing-field select:focus {
+    outline: none;
+    border-color: rgba(99, 102, 241, 0.5);
+    background: rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.pricing-field input:focus,
+.pricing-field select:focus {
+    outline: none;
+    border-color: var(--accent-orange);
+}
+
+.pricing-field input[type="number"] {
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--accent-orange);
+}
+
+/* ==================== FORM INPUTS ==================== */
+.form-input {
+    padding: 10px 12px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    width: 100%;
+    transition: border-color 0.2s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--accent-orange);
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* ==================== TOGGLE SWITCH ==================== */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    transition: 0.3s;
+    border-radius: 26px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 2px;
+    bottom: 2px;
+    background-color: var(--text-muted);
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--accent-green);
+    border-color: var(--accent-green);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+    background-color: white;
+}
+
+/* ==================== PRODUCTS GRID ==================== */
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.product-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.product-card:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-2px);
+}
+
+.product-card.inactive {
+    opacity: 0.6;
+}
+
+.product-card-image {
+    width: 100%;
+    height: 160px;
+    background: var(--bg-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 60px;
+    position: relative;
+}
+
+.product-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.product-card-badges {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    gap: 5px;
+}
+
+.product-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.product-badge.featured {
+    background: var(--accent-orange);
+    color: white;
+}
+
+.product-badge.inactive {
+    background: var(--text-muted);
+    color: white;
+}
+
+.product-card-body {
+    padding: 15px;
+}
+
+.product-card-category {
+    font-size: 11px;
+    color: var(--accent-blue);
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.product-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 5px;
+}
+
+.product-card-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.product-card-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent-green);
+    margin-bottom: 10px;
+}
+
+.product-card-price .cost {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-left: 8px;
+}
+
+.product-card-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.product-card-actions button {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.product-card-actions .btn-edit {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.product-card-actions .btn-edit:hover {
+    background: var(--accent-blue);
+}
+
+.product-card-actions .btn-toggle {
+    background: var(--bg-hover);
+    color: var(--text-muted);
+}
+
+.product-card-actions .btn-toggle:hover {
+    background: var(--accent-orange);
+    color: white;
+}
+
+/* ==================== FILTER BUTTONS ==================== */
+.filter-btn {
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-btn:hover {
+    border-color: var(--accent-blue);
+    color: var(--text-primary);
+}
+
+.filter-btn.active {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: white;
+}
+
+/* ==================== WELCOME KIT REDESIGN ==================== */
+
+/* Simple Tabs */
+.simple-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+}
+
+.simple-tab {
+    padding: 10px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.simple-tab:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.simple-tab.active {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: white;
+}
+
+/* Kit Tab Content */
+.kit-tab-content {
+    display: none;
+}
+
+.kit-tab-content.active {
+    display: block;
+}
+
+/* Filter Chips */
+.filter-chip {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-chip:hover {
+    border-color: var(--accent-blue);
+    color: var(--text-primary);
+}
+
+.filter-chip.active {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: white;
+}
+
+/* Action Buttons in Sidebar */
+.action-btn {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-blue);
+    color: var(--text-primary);
+}
+
+/* Product Row Card */
+.product-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.product-row:hover {
+    border-color: var(--accent-blue);
+    transform: translateX(4px);
+}
+
+.product-row-img-container {
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+}
+
+.product-row-image {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--bg-dark);
+}
+
+.product-row-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    border: 1px solid #333;
+}
+
+.product-row-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.product-row-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 14px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.product-row-meta {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.product-row-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.product-row-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent-green);
+    min-width: 80px;
+    text-align: right;
+}
+
+.product-row-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.product-row-actions button {
+    padding: 8px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.product-row-actions button:hover {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: white;
+}
+
+.product-row-actions button.delete:hover {
+    background: var(--accent-red);
+    border-color: var(--accent-red);
+}
+
+/* Order Row Card */
+.order-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.order-row:hover {
+    border-color: var(--accent-orange);
+}
+
+.order-row-status {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.order-row-status.pending { background: rgba(241, 196, 15, 0.1); }
+.order-row-status.shipped { background: rgba(52, 152, 219, 0.1); }
+.order-row-status.delivered { background: rgba(39, 174, 96, 0.1); }
+
+.order-row-info {
+    flex: 1;
+}
+
+.order-row-customer {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.order-row-details {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.order-row-total {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent-green);
+}
+
+.order-row-date {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+/* Service Pricing Row */
+.service-price-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-dark);
+    border-radius: 8px;
+}
+
+.service-price-row .country-flag {
+    font-size: 20px;
+}
+
+.service-price-row .country-code {
+    font-weight: 600;
+    color: var(--text-primary);
+    width: 40px;
+}
+
+.service-price-row input {
+    width: 70px;
+    padding: 6px 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 13px;
+    text-align: center;
+}
+
+.service-price-row input:focus {
+    border-color: var(--accent-blue);
+    outline: none;
+}
+
+.service-price-row .delete-btn {
+    margin-left: auto;
+    padding: 4px 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.service-price-row .delete-btn:hover {
+    color: var(--accent-red);
+}

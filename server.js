@@ -71,6 +71,16 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, "public"), { index: false }));
 
+// Servir páginas HTML específicas
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Ruta limpia para Welcome Kit
+app.get(['/kit', '/welcome-kit', '/kit-bienvenida'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'kit-bienvenida.html'));
+});
+
 // Rutas API (Mantenemos tu lógica de negocio intacta)
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/teacher', require('./routes/teacherRoutes'));
@@ -86,6 +96,13 @@ app.use('/api/subscription', require('./routes/subscription'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/payment', require('./routes/payment')); // PayPal payments
 app.use('/api/admin/payments', require('./routes/adminPayments')); // Admin payments
+app.use('/api/welcome-kit', require('./routes/welcomeKitRoutes')); // Welcome Kit checkout
+app.use('/api/kit-products', require('./routes/kitProductRoutes')); // Productos del Welcome Kit
+
+// Ruta para página de éxito del Welcome Kit (sin .html)
+app.get('/welcome-kit/success', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'welcome-kit', 'success.html'));
+});
 
 // ==================================================
 // TRACKING SCRIPTS ENDPOINT - Servir scripts dinámicamente
