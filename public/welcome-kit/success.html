@@ -354,8 +354,17 @@
                         document.getElementById('shipping-time').textContent = 'N/A';
                     }
                     
-                    // Mostrar info del estudiante si se creó
-                    if (data.student) {
+                    // Mostrar info de los estudiantes si se crearon
+                    if (data.students && data.students.length > 0) {
+                        const studentInfo = document.createElement('div');
+                        studentInfo.className = 'info-item';
+                        const studentNames = data.students.map(s => s.name).join(', ');
+                        studentInfo.innerHTML = `
+                            <label>Estudiante${data.students.length > 1 ? 's' : ''}</label>
+                            <strong>${studentNames}</strong>
+                        `;
+                        document.querySelector('.order-info').appendChild(studentInfo);
+                    } else if (data.student) {
                         const studentInfo = document.createElement('div');
                         studentInfo.className = 'info-item';
                         studentInfo.innerHTML = `

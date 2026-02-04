@@ -1032,6 +1032,23 @@ router.post('/verify', async (req, res) => {
                 'Te contactaremos por WhatsApp para coordinar'
             ];
         
+        // Obtener todos los estudiantes creados
+        let allStudents = [];
+        if (user && user.clientData?.managedStudents?.length > 0) {
+            const managedStudents = await User.find({ _id: { $in: user.clientData.managedStudents } });
+            allStudents = managedStudents.map(s => ({
+                id: s._id,
+                name: s.name,
+                email: s.email
+            }));
+        } else if (student) {
+            allStudents = [{
+                id: student._id,
+                name: student.name,
+                email: student.email
+            }];
+        }
+        
         res.json({
             success: true,
             welcomeKit: {
@@ -1052,6 +1069,7 @@ router.post('/verify', async (req, res) => {
                 name: student.name,
                 email: student.email
             } : null,
+            students: allStudents, // Todos los estudiantes
             studentType: studentType,
             nextSteps
         });
