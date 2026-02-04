@@ -6,8 +6,8 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>PianoLink | Admin Panel v4.3</title>
-    <link rel="stylesheet" href="/css/admin.css?v=4.3">
+    <title>PianoLink | Admin Panel v4.4</title>
+    <link rel="stylesheet" href="/css/admin.css?v=4.4">
 </head>
 <body>
 <div class="admin-layout">
@@ -393,77 +393,70 @@
             <!-- ==================== CLIENTES / APODERADOS ==================== -->
             <div id="module-clients" class="module-view">
                 <!-- Stats -->
-                <div class="dashboard-grid">
-                    <div class="stat-card accent-purple">
-                        <div class="stat-icon">👨‍👧‍👦</div>
-                        <div class="stat-value" id="stat-clients-total">0</div>
-                        <div class="stat-label">Total Clientes</div>
-                    </div>
+                <div class="dashboard-grid" style="grid-template-columns: repeat(5, 1fr);">
                     <div class="stat-card accent-blue">
+                        <div class="stat-icon">🎹</div>
+                        <div class="stat-value" id="stat-clients-individual">0</div>
+                        <div class="stat-label">Estudiantes Adultos</div>
+                    </div>
+                    <div class="stat-card accent-purple">
                         <div class="stat-icon">👨‍👧</div>
                         <div class="stat-value" id="stat-clients-guardians">0</div>
                         <div class="stat-label">Apoderados</div>
                     </div>
-                    <div class="stat-card accent-green">
-                        <div class="stat-icon">✅</div>
-                        <div class="stat-value" id="stat-clients-active">0</div>
-                        <div class="stat-label">Con Clases Activas</div>
-                    </div>
                     <div class="stat-card accent-yellow">
                         <div class="stat-icon">👶</div>
                         <div class="stat-value" id="stat-clients-children">0</div>
-                        <div class="stat-label">Hijos Registrados</div>
+                        <div class="stat-label">Hijos (Estudiantes)</div>
+                    </div>
+                    <div class="stat-card accent-green">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-value" id="stat-clients-active">0</div>
+                        <div class="stat-label">Con Clases</div>
+                    </div>
+                    <div class="stat-card accent-orange">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-value" id="stat-clients-total-classes">0</div>
+                        <div class="stat-label">Total Clases Disp.</div>
                     </div>
                 </div>
                 
-                <!-- Info Card -->
-                <div style="background:linear-gradient(135deg, #1a2a3a, #162a3e); border:1px solid #2a4a6a; border-radius:12px; padding:20px; margin-bottom:20px;">
-                    <h4 style="color:#3b82f6; margin:0 0 10px 0;">💡 ¿Qué es un Cliente/Apoderado?</h4>
-                    <p style="color:#888; font-size:13px; margin:0; line-height:1.6;">
-                        Los <strong style="color:#fff;">Clientes</strong> son personas que pagan por clases de piano. 
-                        Pueden ser <strong style="color:#3b82f6;">adultos que estudian</strong> (ellos mismos toman las clases) 
-                        o <strong style="color:#a855f7;">apoderados</strong> (padres/tutores que pagan por sus hijos).
-                        <br><br>
-                        Aquí puedes crear clientes manualmente cuando te pagan <strong style="color:#22c55e;">fuera del sistema</strong> 
-                        (transferencia, efectivo, etc.) y asignarles clases directamente.
-                    </p>
+                <!-- Leyenda de colores -->
+                <div style="display:flex; gap:20px; margin-bottom:20px; padding:15px; background:var(--bg-card); border-radius:8px; flex-wrap:wrap;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="background:#3b82f6; width:12px; height:12px; border-radius:3px;"></span>
+                        <span style="font-size:12px; color:#888;"><strong style="color:#3b82f6;">Estudiante Individual</strong> - Adulto que paga y estudia (ej: Bill Gates)</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="background:#a855f7; width:12px; height:12px; border-radius:3px;"></span>
+                        <span style="font-size:12px; color:#888;"><strong style="color:#a855f7;">Apoderado</strong> - Padre/tutor que paga por sus hijos</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="background:#f59e0b; width:12px; height:12px; border-radius:3px;"></span>
+                        <span style="font-size:12px; color:#888;"><strong style="color:#f59e0b;">Hijo/Estudiante</strong> - Menor de edad gestionado por apoderado</span>
+                    </div>
                 </div>
                 
                 <!-- Filters -->
                 <div class="filters-bar">
                     <div class="filter-group">
-                        <button class="filter-btn active" data-filter="all" onclick="filterClients('all')">Todos</button>
-                        <button class="filter-btn" data-filter="guardian" onclick="filterClients('guardian')">Apoderados</button>
-                        <button class="filter-btn" data-filter="individual" onclick="filterClients('individual')">Individuales</button>
-                        <button class="filter-btn" data-filter="active" onclick="filterClients('active')">Con Clases</button>
-                        <button class="filter-btn" data-filter="inactive" onclick="filterClients('inactive')">Sin Clases</button>
+                        <button class="filter-btn active" data-filter="all" onclick="filterClients('all')">👥 Todos</button>
+                        <button class="filter-btn" data-filter="individual" onclick="filterClients('individual')">🎹 Estudiantes Adultos</button>
+                        <button class="filter-btn" data-filter="guardian" onclick="filterClients('guardian')">👨‍👧 Apoderados</button>
+                        <button class="filter-btn" data-filter="children" onclick="filterClients('children')">👶 Hijos</button>
+                        <button class="filter-btn" data-filter="active" onclick="filterClients('active')">✅ Con Clases</button>
+                        <button class="filter-btn" data-filter="inactive" onclick="filterClients('inactive')">⚠️ Sin Clases</button>
                     </div>
                     <div class="search-box">
                         <span>🔍</span>
-                        <input type="text" id="search-clients" placeholder="Buscar cliente..." oninput="searchClients()">
+                        <input type="text" id="search-clients" placeholder="Buscar por nombre, email o hijo..." oninput="searchClients()">
                     </div>
                     <button class="btn btn-primary" onclick="openCreateClientModal()">➕ Nuevo Cliente</button>
                 </div>
                 
-                <!-- Table -->
-                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Tipo</th>
-                                <th>Nombre</th>
-                                <th>Email</th>
-                                <th>WhatsApp</th>
-                                <th>Hijos/Alumnos</th>
-                                <th>Clases Disp.</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="clients-table-body">
-                            <tr><td colspan="8" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
-                        </tbody>
-                    </table>
+                <!-- Vista de Cards (más visual) -->
+                <div id="clients-cards-view" style="display:grid; gap:15px;">
+                    <div style="text-align:center; padding:40px; color:#666;">Cargando...</div>
                 </div>
             </div>
 
@@ -1921,6 +1914,6 @@
     </div>
 </div>
 
-<script src="/js/admin.js?v=4.3"></script>
+<script src="/js/admin.js?v=4.4"></script>
 </body>
 </html>

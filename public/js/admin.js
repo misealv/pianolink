@@ -4672,89 +4672,319 @@ async function loadClients() {
         allClientsData = await res.json();
         
         // Calcular stats
+        const individuals = allClientsData.filter(c => c.clientData?.accountType !== 'guardian');
         const guardians = allClientsData.filter(c => c.clientData?.accountType === 'guardian');
+        
+        // Contar hijos totales
+        const totalChildren = allClientsData.reduce((sum, c) => {
+            return sum + (c.clientData?.managedStudents?.length || 0);
+        }, 0);
+        
+        // Contar clientes con clases activas
         const activeClients = allClientsData.filter(c => {
             if (c.clientData?.accountType === 'guardian') {
                 return (c.clientData.managedStudents || []).some(s => s.classesRemaining > 0);
             }
             return c.classesRemaining > 0;
         });
-        const totalChildren = allClientsData.reduce((sum, c) => {
-            return sum + (c.clientData?.managedStudents?.length || 0);
+        
+        // Contar total de clases disponibles
+        const totalClasses = allClientsData.reduce((sum, c) => {
+            if (c.clientData?.accountType === 'guardian') {
+                return sum + (c.clientData.managedStudents || []).reduce((s, child) => s + (child.classesRemaining || 0), 0);
+            }
+            return sum + (c.classesRemaining || 0);
         }, 0);
         
-        document.getElementById('stat-clients-total').textContent = allClientsData.length;
+        // Actualizar stats
+        document.getElementById('stat-clients-individual').textContent = individuals.length;
         document.getElementById('stat-clients-guardians').textContent = guardians.length;
-        document.getElementById('stat-clients-active').textContent = activeClients.length;
         document.getElementById('stat-clients-children').textContent = totalChildren;
+        document.getElementById('stat-clients-active').textContent = activeClients.length;
+        document.getElementById('stat-clients-total-classes').textContent = totalClasses;
         
-        renderClientsTable(allClientsData);
+        renderClientsCards(allClientsData);
     } catch (error) {
         console.error('Error loading clients:', error);
         showNotification('Error cargando clientes', 'error');
     }
 }
 
-function renderClientsTable(clients) {
-    const tbody = document.getElementById('clients-table-body');
+function renderClientsCards(clients) {
+    const container = document.getElementById('clients-cards-view');
     
     if (!clients.length) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" style="text-align:center; padding:40px; color:#666;">
-                    <div style="font-size:32px; margin-bottom:10px;">👨‍👧‍👦</div>
-                    No hay clientes registrados aún
-                </td>
-            </tr>
+        container.innerHTML = `
+            <div style="text-align:center; padding:60px; color:#666; background:var(--bg-card); border-radius:12px;">
+                <div style="font-size:48px; margin-bottom:15px;">👨‍👧‍👦</div>
+                <h3 style="color:#fff; margin-bottom:10px;">No hay clientes registrados</h3>
+                <p style="margin-bottom:20px;">Crea tu primer cliente para comenzar a gestionar estudiantes y apoderados</p>
+                <button class="btn btn-primary" onclick="openCreateClientModal()">➕ Crear Primer Cliente</button>
+            </div>
         `;
         return;
     }
     
-    tbody.innerHTML = clients.map(client => {
-        const isGuardian = client.clientData?.accountType === 'guardian';
-        const students = client.clientData?.managedStudents || [];
-        
-        // Calcular clases totales
-        let totalClasses = 0;
-        if (isGuardian) {
-            totalClasses = students.reduce((sum, s) => sum + (s.classesRemaining || 0), 0);
-        } else {
-            totalClasses = client.classesRemaining || 0;
-        }
-        
-        const hasClasses = totalClasses > 0;
-        const typeBadge = isGuardian 
-            ? '<span style="background:#a855f7; color:white; padding:2px 8px; border-radius:4px; font-size:11px;">👨‍👧 Apoderado</span>'
-            : '<span style="background:#3b82f6; color:white; padding:2px 8px; border-radius:4px; font-size:11px;">🎹 Individual</span>';
-        
-        const statusBadge = hasClasses
-            ? '<span style="background:rgba(34,197,94,0.2); color:#22c55e; padding:2px 8px; border-radius:4px; font-size:11px;">✅ Activo</span>'
-            : '<span style="background:rgba(239,68,68,0.2); color:#ef4444; padding:2px 8px; border-radius:4px; font-size:11px;">⚠️ Sin clases</span>';
-        
-        const studentsInfo = isGuardian
-            ? students.map(s => `${s.name} (${s.classesRemaining || 0})`).join(', ') || 'Sin hijos'
-            : 'Él mismo';
-        
-        return `
-            <tr>
-                <td>${typeBadge}</td>
-                <td><strong>${client.name}</strong></td>
-                <td style="color:#888;">${client.email}</td>
-                <td>${client.whatsapp || '-'}</td>
-                <td style="font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis;">${studentsInfo}</td>
-                <td style="text-align:center; font-weight:bold; color:${hasClasses ? '#22c55e' : '#ef4444'};">${totalClasses}</td>
-                <td>${statusBadge}</td>
-                <td>
-                    <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                        <button class="btn btn-small" onclick="viewClientDetails('${client._id}')" title="Ver detalles">👁️</button>
-                        <button class="btn btn-small" onclick="editClient('${client._id}')" title="Editar">✏️</button>
-                        <button class="btn btn-small" onclick="quickAddClasses('${client._id}')" title="Agregar clases" style="background:rgba(34,197,94,0.2); color:#22c55e;">➕</button>
-                        <button class="btn btn-small" onclick="deleteClient('${client._id}')" title="Eliminar" style="background:rgba(239,68,68,0.2); color:#ef4444;">🗑️</button>
+    // Separar por tipo para mejor visualización
+    const individuals = clients.filter(c => c.clientData?.accountType !== 'guardian');
+    const guardians = clients.filter(c => c.clientData?.accountType === 'guardian');
+    
+    let html = '';
+    
+    // Sección de Estudiantes Individuales (Adultos)
+    if (currentClientFilter === 'all' || currentClientFilter === 'individual' || currentClientFilter === 'active' || currentClientFilter === 'inactive') {
+        const filteredIndividuals = filterClientsList(individuals);
+        if (filteredIndividuals.length > 0 || currentClientFilter === 'individual') {
+            html += `
+                <div style="margin-bottom:25px;">
+                    <h3 style="color:#3b82f6; margin:0 0 15px 0; font-size:16px; display:flex; align-items:center; gap:10px;">
+                        <span style="background:#3b82f6; padding:4px 10px; border-radius:6px;">🎹</span>
+                        Estudiantes Adultos (${filteredIndividuals.length})
+                        <span style="font-size:12px; font-weight:normal; color:#888;">Pagan y estudian ellos mismos</span>
+                    </h3>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(350px, 1fr)); gap:15px;">
+                        ${filteredIndividuals.length ? filteredIndividuals.map(c => renderIndividualCard(c)).join('') : 
+                        '<div style="padding:30px; text-align:center; color:#666; grid-column:1/-1;">No hay estudiantes adultos con este filtro</div>'}
                     </div>
-                </td>
-            </tr>
+                </div>
+            `;
+        }
+    }
+    
+    // Sección de Apoderados con Hijos
+    if (currentClientFilter === 'all' || currentClientFilter === 'guardian' || currentClientFilter === 'children' || currentClientFilter === 'active' || currentClientFilter === 'inactive') {
+        const filteredGuardians = filterClientsList(guardians);
+        if (filteredGuardians.length > 0 || currentClientFilter === 'guardian') {
+            html += `
+                <div>
+                    <h3 style="color:#a855f7; margin:0 0 15px 0; font-size:16px; display:flex; align-items:center; gap:10px;">
+                        <span style="background:#a855f7; padding:4px 10px; border-radius:6px;">👨‍👧</span>
+                        Apoderados (${filteredGuardians.length})
+                        <span style="font-size:12px; font-weight:normal; color:#888;">Pagan por sus hijos</span>
+                    </h3>
+                    <div style="display:grid; gap:15px;">
+                        ${filteredGuardians.length ? filteredGuardians.map(c => renderGuardianCard(c)).join('') : 
+                        '<div style="padding:30px; text-align:center; color:#666;">No hay apoderados con este filtro</div>'}
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    // Si solo se filtran hijos, mostrar lista expandida
+    if (currentClientFilter === 'children') {
+        const allChildren = [];
+        guardians.forEach(g => {
+            (g.clientData?.managedStudents || []).forEach((child, idx) => {
+                allChildren.push({
+                    ...child,
+                    guardianId: g._id,
+                    guardianName: g.name,
+                    guardianEmail: g.email,
+                    childIndex: idx
+                });
+            });
+        });
+        
+        html = `
+            <div>
+                <h3 style="color:#f59e0b; margin:0 0 15px 0; font-size:16px; display:flex; align-items:center; gap:10px;">
+                    <span style="background:#f59e0b; padding:4px 10px; border-radius:6px;">👶</span>
+                    Todos los Hijos/Estudiantes (${allChildren.length})
+                </h3>
+                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px;">
+                    ${allChildren.map(child => renderChildCard(child)).join('')}
+                </div>
+            </div>
         `;
-    }).join('');
+    }
+    
+    container.innerHTML = html;
+}
+
+function filterClientsList(clients) {
+    if (currentClientFilter === 'active') {
+        return clients.filter(c => {
+            if (c.clientData?.accountType === 'guardian') {
+                return (c.clientData.managedStudents || []).some(s => s.classesRemaining > 0);
+            }
+            return c.classesRemaining > 0;
+        });
+    }
+    if (currentClientFilter === 'inactive') {
+        return clients.filter(c => {
+            if (c.clientData?.accountType === 'guardian') {
+                return !(c.clientData.managedStudents || []).some(s => s.classesRemaining > 0);
+            }
+            return (c.classesRemaining || 0) <= 0;
+        });
+    }
+    return clients;
+}
+
+function renderIndividualCard(client) {
+    const classes = client.classesRemaining || 0;
+    const hasClasses = classes > 0;
+    const levelText = client.studentData?.level === 'beginner' ? 'Principiante' : 
+                     client.studentData?.level === 'intermediate' ? 'Intermedio' : 'Avanzado';
+    
+    return `
+        <div style="background:var(--bg-card); border:2px solid ${hasClasses ? 'rgba(59,130,246,0.3)' : 'rgba(239,68,68,0.3)'}; border-radius:12px; padding:15px; position:relative;">
+            <div style="position:absolute; top:10px; right:10px;">
+                <span style="background:${hasClasses ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}; color:${hasClasses ? '#22c55e' : '#ef4444'}; padding:3px 8px; border-radius:4px; font-size:11px;">
+                    ${hasClasses ? '✅ Activo' : '⚠️ Sin clases'}
+                </span>
+            </div>
+            
+            <div style="display:flex; gap:12px; align-items:flex-start;">
+                <div style="width:50px; height:50px; background:#3b82f6; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:24px;">
+                    🎹
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:bold; color:#fff; font-size:15px; margin-bottom:2px;">${client.name}</div>
+                    <div style="font-size:12px; color:#888; margin-bottom:5px;">${client.email}</div>
+                    <div style="display:flex; gap:10px; font-size:11px; color:#666; flex-wrap:wrap;">
+                        ${client.studentData?.age ? `<span>📅 ${client.studentData.age} años</span>` : ''}
+                        <span>🎵 ${levelText}</span>
+                        ${client.whatsapp ? `<span>📱 ${client.whatsapp}</span>` : ''}
+                    </div>
+                </div>
+                <div style="text-align:center; padding:8px 12px; background:${hasClasses ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'}; border-radius:8px;">
+                    <div style="font-size:24px; font-weight:bold; color:${hasClasses ? '#22c55e' : '#ef4444'};">${classes}</div>
+                    <div style="font-size:10px; color:#888;">clases</div>
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid #333;">
+                <button class="btn btn-small" onclick="viewClientDetails('${client._id}')" style="flex:1; font-size:11px;">👁️ Ver</button>
+                <button class="btn btn-small" onclick="editClient('${client._id}')" style="flex:1; font-size:11px;">✏️ Editar</button>
+                <button class="btn btn-small" onclick="quickAddClasses('${client._id}')" style="flex:1; font-size:11px; background:rgba(34,197,94,0.2); color:#22c55e;">➕ Clases</button>
+                <button class="btn btn-small" onclick="deleteClient('${client._id}')" style="font-size:11px; background:rgba(239,68,68,0.2); color:#ef4444;">🗑️</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderGuardianCard(client) {
+    const children = client.clientData?.managedStudents || [];
+    const totalClasses = children.reduce((sum, c) => sum + (c.classesRemaining || 0), 0);
+    const hasClasses = totalClasses > 0;
+    
+    return `
+        <div style="background:var(--bg-card); border:2px solid ${hasClasses ? 'rgba(168,85,247,0.3)' : 'rgba(239,68,68,0.3)'}; border-radius:12px; overflow:hidden;">
+            <!-- Header del Apoderado -->
+            <div style="padding:15px; background:rgba(168,85,247,0.1); border-bottom:1px solid rgba(168,85,247,0.2);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div style="display:flex; gap:12px; align-items:center;">
+                        <div style="width:45px; height:45px; background:#a855f7; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px;">
+                            👨‍👧
+                        </div>
+                        <div>
+                            <div style="font-weight:bold; color:#fff; font-size:15px;">${client.name}</div>
+                            <div style="font-size:12px; color:#888;">${client.email}</div>
+                            ${client.whatsapp ? `<div style="font-size:11px; color:#666;">📱 ${client.whatsapp}</div>` : ''}
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <span style="background:${hasClasses ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}; color:${hasClasses ? '#22c55e' : '#ef4444'}; padding:3px 8px; border-radius:4px; font-size:11px;">
+                            ${hasClasses ? '✅ Activo' : '⚠️ Sin clases'}
+                        </span>
+                        <div style="font-size:11px; color:#888; margin-top:5px;">${children.length} hijo${children.length !== 1 ? 's' : ''}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lista de Hijos -->
+            <div style="padding:12px;">
+                <div style="font-size:11px; color:#f59e0b; margin-bottom:10px; font-weight:600;">👶 HIJOS / ESTUDIANTES:</div>
+                <div style="display:grid; gap:8px;">
+                    ${children.map((child, idx) => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:rgba(245,158,11,0.1); border-radius:8px; border-left:3px solid #f59e0b;">
+                            <div>
+                                <div style="font-weight:600; color:#fff; font-size:13px;">${child.name}</div>
+                                <div style="font-size:11px; color:#888;">
+                                    ${child.age ? child.age + ' años • ' : ''}${child.level === 'beginner' ? 'Principiante' : child.level === 'intermediate' ? 'Intermedio' : 'Avanzado'}
+                                </div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div style="text-align:center; padding:5px 10px; background:${(child.classesRemaining || 0) > 0 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; border-radius:6px;">
+                                    <div style="font-size:18px; font-weight:bold; color:${(child.classesRemaining || 0) > 0 ? '#22c55e' : '#ef4444'};">${child.classesRemaining || 0}</div>
+                                    <div style="font-size:9px; color:#888;">clases</div>
+                                </div>
+                                <button class="btn btn-small" onclick="quickAddClassesToChild('${client._id}', ${idx})" style="font-size:10px; padding:4px 8px; background:rgba(34,197,94,0.2); color:#22c55e;" title="Agregar clases a ${child.name}">➕</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <!-- Footer con acciones -->
+            <div style="display:flex; gap:8px; padding:12px; border-top:1px solid #333; background:rgba(0,0,0,0.2);">
+                <button class="btn btn-small" onclick="viewClientDetails('${client._id}')" style="flex:1; font-size:11px;">👁️ Ver Detalles</button>
+                <button class="btn btn-small" onclick="editClient('${client._id}')" style="flex:1; font-size:11px;">✏️ Editar</button>
+                <button class="btn btn-small" onclick="quickAddClasses('${client._id}')" style="flex:1; font-size:11px; background:rgba(34,197,94,0.2); color:#22c55e;">➕ Agregar Clases</button>
+                <button class="btn btn-small" onclick="deleteClient('${client._id}')" style="font-size:11px; background:rgba(239,68,68,0.2); color:#ef4444;">🗑️</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderChildCard(child) {
+    const hasClasses = (child.classesRemaining || 0) > 0;
+    const levelText = child.level === 'beginner' ? 'Principiante' : 
+                     child.level === 'intermediate' ? 'Intermedio' : 'Avanzado';
+    
+    return `
+        <div style="background:var(--bg-card); border:2px solid rgba(245,158,11,0.3); border-radius:10px; padding:12px;">
+            <div style="display:flex; gap:10px; align-items:center;">
+                <div style="width:40px; height:40px; background:#f59e0b; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:18px;">
+                    👶
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:bold; color:#fff; font-size:14px;">${child.name}</div>
+                    <div style="font-size:11px; color:#888;">
+                        ${child.age ? child.age + ' años • ' : ''}${levelText}
+                    </div>
+                    <div style="font-size:10px; color:#a855f7; margin-top:2px;">
+                        👨‍👧 Apoderado: ${child.guardianName}
+                    </div>
+                </div>
+                <div style="text-align:center; padding:6px 10px; background:${hasClasses ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; border-radius:6px;">
+                    <div style="font-size:20px; font-weight:bold; color:${hasClasses ? '#22c55e' : '#ef4444'};">${child.classesRemaining || 0}</div>
+                    <div style="font-size:9px; color:#888;">clases</div>
+                </div>
+            </div>
+            <div style="display:flex; gap:6px; margin-top:10px;">
+                <button class="btn btn-small" onclick="viewClientDetails('${child.guardianId}')" style="flex:1; font-size:10px;">👁️ Ver Apoderado</button>
+                <button class="btn btn-small" onclick="quickAddClassesToChild('${child.guardianId}', ${child.childIndex})" style="flex:1; font-size:10px; background:rgba(34,197,94,0.2); color:#22c55e;">➕ Clases</button>
+            </div>
+        </div>
+    `;
+}
+
+// Función para agregar clases a un hijo específico directamente
+function quickAddClassesToChild(clientId, childIndex) {
+    const client = allClientsData.find(c => c._id === clientId);
+    if (!client) return;
+    
+    const child = client.clientData?.managedStudents?.[childIndex];
+    if (!child) return;
+    
+    document.getElementById('add-classes-client-id').value = clientId;
+    document.getElementById('add-classes-client-name').textContent = `${child.name} (hijo de ${client.name})`;
+    document.getElementById('add-classes-amount').value = 4;
+    document.getElementById('add-classes-payment').value = '';
+    document.getElementById('add-classes-method').value = '';
+    document.getElementById('add-classes-notes').value = '';
+    
+    // Set the select to this specific child
+    const select = document.getElementById('add-classes-student-select');
+    const students = client.clientData?.managedStudents || [];
+    select.innerHTML = students.map((s, idx) => 
+        `<option value="${idx}" ${idx === childIndex ? 'selected' : ''}>${s.name} (${s.classesRemaining || 0} clases)</option>`
+    ).join('');
+    
+    openModal('add-classes-modal');
 }
 
 function filterClients(filter) {
@@ -4764,52 +4994,25 @@ function filterClients(filter) {
         btn.classList.toggle('active', btn.dataset.filter === filter);
     });
     
-    let filtered = [...allClientsData];
-    
-    switch(filter) {
-        case 'guardian':
-            filtered = filtered.filter(c => c.clientData?.accountType === 'guardian');
-            break;
-        case 'individual':
-            filtered = filtered.filter(c => c.clientData?.accountType !== 'guardian');
-            break;
-        case 'active':
-            filtered = filtered.filter(c => {
-                if (c.clientData?.accountType === 'guardian') {
-                    return (c.clientData.managedStudents || []).some(s => s.classesRemaining > 0);
-                }
-                return c.classesRemaining > 0;
-            });
-            break;
-        case 'inactive':
-            filtered = filtered.filter(c => {
-                if (c.clientData?.accountType === 'guardian') {
-                    return !(c.clientData.managedStudents || []).some(s => s.classesRemaining > 0);
-                }
-                return (c.classesRemaining || 0) <= 0;
-            });
-            break;
-    }
-    
-    renderClientsTable(filtered);
+    renderClientsCards(allClientsData);
 }
 
 function searchClients() {
     const query = document.getElementById('search-clients').value.toLowerCase();
     
-    let filtered = allClientsData.filter(c => 
+    if (!query) {
+        renderClientsCards(allClientsData);
+        return;
+    }
+    
+    const filtered = allClientsData.filter(c => 
         c.name.toLowerCase().includes(query) || 
         c.email.toLowerCase().includes(query) ||
         (c.whatsapp || '').includes(query) ||
         (c.clientData?.managedStudents || []).some(s => s.name.toLowerCase().includes(query))
     );
     
-    if (currentClientFilter !== 'all') {
-        filterClients(currentClientFilter);
-        return;
-    }
-    
-    renderClientsTable(filtered);
+    renderClientsCards(filtered);
 }
 
 function openCreateClientModal() {
