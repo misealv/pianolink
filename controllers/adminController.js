@@ -366,3 +366,133 @@ exports.addClassesToClient = async (req, res) => {
         res.status(500).json({ message: 'Error agregando clases' });
     }
 };
+// Obtener historial de pagos de un cliente
+exports.getClientPayments = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const WelcomeKit = require('../models/WelcomeKit');
+        const Subscription = require('../models/Subscription');
+        const Payment = require('../models/Payment');
+        
+        const payments = [];
+        
+        // 1. Buscar pagos de Welcome Kit
+        const kits = await WelcomeKit.find({ 
+            $or: [
+                { clientId: id },
+                { clientEmail: (await User.findById(id))?.email }
+            ]
+        }).sort({ createdAt: -1 });
+        
+        for (const kit of kits) {
+            if (kit.payment?.paidAt) {
+                payments.push({
+                    type: 'welcome_kit',
+                    date: kit.payment.paidAt,
+                    amount: kit.payment.amount || 0,
+                    currency: kit.payment.currency || 'USD',
+                    provider: kit.payment.provider || 'paypal',
+                    status: 'approved',
+                    description: `Kit de Bienvenida (${kit.kitType})`,
+                    externalId: kit.payment.externalOrderId,
+                    details: {
+                        kitType: kit.kitType,
+                        products: kit.products?.length || 0,
+                        shippingStatus: kit.shipping?.status
+                    }
+                });
+            }
+        }
+        
+        // 2. Buscar suscripciones del cliente
+        const subscriptions = await Subscription.find({ 
+            $or: [
+                { studentId: id },
+                { teacherId: id }
+            ]
+        }).sort({ createdAt: -1 });
+        
+        for (const sub of subscriptions) {
+            // Pago inicial de suscripción
+            if (sub.startDate) {
+                payments.push({
+                    type: 'subscription',
+                    date: sub.startDate,
+                    amount: sub.amount || 0,
+                    currency: sub.currency || 'USD',
+                    provider: sub.paymentProvider || 'paypal',
+                    status: sub.status,
+                    description: `Suscripción ${sub.status === 'active' ? 'activa' : sub.status}`,
+                    externalId: sub.paypalSubscriptionId || sub.mpSubscriptionId,
+                    details: {
+                        subscriptionId: sub._id,
+                        expiresAt: sub.expiresAt
+                    }
+                });
+            }
+            
+            // Buscar pagos asociados a esta suscripción
+            const subPayments = await Payment.find({ subscriptionId: sub._id }).sort({ createdAt: -1 });
+            for (const p of subPayments) {
+                payments.push({
+                    type: 'subscription_payment',
+                    date: p.createdAt,
+                    amount: p.amount || 0,
+                    currency: p.currency || 'USD',
+                    provider: p.provider,
+                    status: p.status,
+                    description: 'Pago de suscripción',
+                    externalId: p.externalPaymentId,
+                    details: {
+                        subscriptionId: sub._id
+                    }
+                });
+            }
+        }
+        
+        // 3. Buscar pagos manuales registrados en el usuario
+        const user = await User.findById(id);
+        if (user?.paymentHistory && Array.isArray(user.paymentHistory)) {
+            for (const p of user.paymentHistory) {
+                payments.push({
+                    type: 'manual',
+                    date: p.date || p.createdAt,
+                    amount: p.amount || 0,
+                    currency: p.currency || 'USD',
+                    provider: p.method || 'manual',
+                    status: 'approved',
+                    description: p.notes || 'Pago manual',
+                    externalId: null,
+                    details: {
+                        classes: p.classes,
+                        notes: p.notes
+                    }
+                });
+            }
+        }
+        
+        // 4. Si compró kit, agregar el registro del pago inicial
+        if (user?.kitPurchased && user?.kitPurchaseDate && !payments.find(p => p.type === 'welcome_kit')) {
+            payments.push({
+                type: 'welcome_kit',
+                date: user.kitPurchaseDate,
+                amount: 0, // No tenemos el monto aquí
+                currency: 'USD',
+                provider: 'paypal',
+                status: 'approved',
+                description: 'Kit de Bienvenida',
+                externalId: user.paypalOrderId,
+                details: {}
+            });
+        }
+        
+        // Ordenar por fecha descendente
+        payments.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        res.json(payments);
+        
+    } catch (error) {
+        console.error('Error obteniendo historial de pagos:', error);
+        res.status(500).json({ message: 'Error obteniendo historial de pagos' });
+    }
+};

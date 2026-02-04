@@ -233,5 +233,8 @@ router.delete('/clients/:id', adminController.deleteClient);
 // Agregar clases a un cliente (pago manual)
 router.post('/clients/:id/add-classes', adminController.addClassesToClient);
 
+// Obtener historial de pagos de un cliente
+router.get('/clients/:id/payments', adminController.getClientPayments);
+
 
 module.exports = router;

@@ -5245,11 +5245,100 @@ function viewClientDetails(clientId) {
         `;
     }
     
-    // Render payment history (placeholder for now)
-    const paymentsDiv = document.getElementById('view-client-payments');
-    paymentsDiv.innerHTML = '<div style="text-align:center; color:#666; font-size:13px; padding:20px;">Sin pagos registrados</div>';
+    // Cargar historial de pagos
+    loadClientPayments(clientId);
     
     openModal('view-client-modal');
+}
+
+// Cargar historial de pagos de un cliente
+async function loadClientPayments(clientId) {
+    const paymentsDiv = document.getElementById('view-client-payments');
+    paymentsDiv.innerHTML = '<div style="text-align:center; color:#666; padding:15px;"><span class="spinner"></span> Cargando pagos...</div>';
+    
+    try {
+        const res = await fetch(`/admin/clients/${clientId}/payments`);
+        const payments = await res.json();
+        
+        if (!payments || payments.length === 0) {
+            paymentsDiv.innerHTML = '<div style="text-align:center; color:#666; font-size:13px; padding:20px;">Sin pagos registrados</div>';
+            return;
+        }
+        
+        // Calcular total
+        const total = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        
+        paymentsDiv.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--border-color);">
+                <span style="color:#888; font-size:12px;">${payments.length} pago(s)</span>
+                <span style="font-weight:bold; color:#22c55e;">Total: $${total.toFixed(2)}</span>
+            </div>
+            ${payments.map(p => renderPaymentItem(p)).join('')}
+        `;
+    } catch (error) {
+        console.error('Error cargando pagos:', error);
+        paymentsDiv.innerHTML = '<div style="text-align:center; color:#ef4444; font-size:13px; padding:20px;">Error cargando pagos</div>';
+    }
+}
+
+function renderPaymentItem(payment) {
+    const date = new Date(payment.date).toLocaleDateString('es-ES', { 
+        day: '2-digit', 
+        month: 'short', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    const typeIcons = {
+        'welcome_kit': '📦',
+        'subscription': '🔄',
+        'subscription_payment': '💳',
+        'manual': '✋'
+    };
+    
+    const typeLabels = {
+        'welcome_kit': 'Kit de Bienvenida',
+        'subscription': 'Suscripción',
+        'subscription_payment': 'Pago Suscripción',
+        'manual': 'Pago Manual'
+    };
+    
+    const statusColors = {
+        'approved': '#22c55e',
+        'active': '#22c55e',
+        'pending': '#f59e0b',
+        'rejected': '#ef4444',
+        'cancelled': '#6b7280',
+        'expired': '#6b7280'
+    };
+    
+    const providerIcons = {
+        'paypal': '🅿️',
+        'mercadopago': '💙',
+        'manual': '✋',
+        'transferencia': '🏦',
+        'efectivo': '💵'
+    };
+    
+    return `
+        <div style="display:flex; gap:12px; padding:10px; background:var(--bg-dark); border-radius:8px; margin-bottom:8px; align-items:flex-start;">
+            <div style="font-size:24px; width:40px; text-align:center;">${typeIcons[payment.type] || '💰'}</div>
+            <div style="flex:1; min-width:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:600; color:#fff; font-size:13px;">${payment.description}</span>
+                    <span style="font-weight:bold; color:#22c55e; font-size:14px;">$${(payment.amount || 0).toFixed(2)}</span>
+                </div>
+                <div style="font-size:11px; color:#888; margin-top:4px;">
+                    ${date} • ${providerIcons[payment.provider] || ''} ${payment.provider || 'N/A'}
+                    <span style="color:${statusColors[payment.status] || '#888'}; margin-left:8px;">● ${payment.status}</span>
+                </div>
+                ${payment.externalId ? `<div style="font-size:10px; color:#666; margin-top:2px;">ID: ${payment.externalId}</div>` : ''}
+                ${payment.details?.kitType ? `<div style="font-size:10px; color:#666;">Kit: ${payment.details.kitType}</div>` : ''}
+                ${payment.details?.notes ? `<div style="font-size:10px; color:#888; font-style:italic; margin-top:2px;">"${payment.details.notes}"</div>` : ''}
+            </div>
+        </div>
+    `;
 }
 
 function editClient(clientId) {
