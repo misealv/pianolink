@@ -852,9 +852,11 @@
                 'completed': 'Completado',
                 'pending': 'Pendiente',
                 'rejected': 'Rechazado',
-                'COMPLETED': 'Completado'
+                'COMPLETED': 'Completado',
+                'unknown': 'Pagado',
+                'paid': 'Pagado'
             };
-            return statusMap[status] || status;
+            return statusMap[status] || 'Pagado';
         }
 
         function renderOrder(order) {

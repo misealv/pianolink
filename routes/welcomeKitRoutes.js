@@ -684,7 +684,8 @@ router.post('/checkout', async (req, res) => {
                 provider: 'paypal',
                 externalOrderId: order.id,
                 amount: totalPrice,
-                currency: currency
+                currency: currency,
+                status: 'completed'
             },
             overallStatus: 'paid'  // Cambiará cuando se verifique el pago
         };
