@@ -815,7 +815,8 @@ router.post('/verify', async (req, res) => {
         // Obtener datos del checkout
         const checkoutData = welcomeKit.get('_checkoutData') || {};
         const payerEmail = captureData.payer?.email_address || checkoutData.email;
-        const payerName = captureData.payer?.name?.given_name || checkoutData.name;
+        // Priorizar nombre del formulario sobre el de PayPal (sandbox siempre devuelve "John Doe")
+        const payerName = checkoutData.name || captureData.payer?.name?.given_name;
         const studentType = checkoutData.studentType || 'self'; // 'self' o 'child'
         
         // Crear o actualizar usuario
