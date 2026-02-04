@@ -132,10 +132,20 @@ const GlobalConfig = require('../models/GlobalConfig');
 /* FUNCIONES DE CLIENTES / APODERADOS                                         */
 /* -------------------------------------------------------------------------- */
 
-// Obtener todos los clientes (role='client')
+// Obtener todos los clientes (estudiantes que pagaron: role='client' O role='student' con kitPurchased)
 exports.getClients = async (req, res) => {
     try {
-        const clients = await User.find({ role: 'client' })
+        // Incluir:
+        // 1. role='client' (apoderados y clientes manuales)
+        // 2. role='student' con kitPurchased=true (compraron kit de bienvenida)
+        // 3. role='student' con clientData definido (creados manualmente como clientes)
+        const clients = await User.find({
+            $or: [
+                { role: 'client' },
+                { role: 'student', kitPurchased: true },
+                { role: 'student', 'clientData.accountType': { $exists: true } }
+            ]
+        })
             .select('-password')
             .sort({ createdAt: -1 });
         
