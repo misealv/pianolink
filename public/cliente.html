@@ -769,6 +769,105 @@
             border: 1px solid rgba(34, 197, 94, 0.3);
         }
 
+        /* Filtro de Disponibilidad */
+        .availability-filter {
+            background: linear-gradient(135deg, #1e1e26 0%, #252530 100%);
+            border: 1px solid #3d3d48;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .filter-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .filter-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-clear {
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .filter-clear:hover {
+            color: var(--accent);
+            background: rgba(255, 118, 77, 0.1);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .filter-label {
+            display: block;
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-select {
+            width: 100%;
+            background: #16161c;
+            border: 1px solid #3d3d48;
+            color: #e0e0e8;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6,9 12,15 18,9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        .filter-select:hover, .filter-select:focus {
+            border-color: var(--accent);
+            outline: none;
+        }
+
+        .filter-active {
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 0 2px rgba(255, 118, 77, 0.15);
+        }
+
+        .no-teachers-filtered {
+            text-align: center;
+            padding: 30px 20px;
+            color: #888;
+        }
+
+        .no-teachers-filtered .icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
         /* Vista Calendario Semanal */
         .week-navigation {
             display: flex;
@@ -1188,6 +1287,41 @@
                     <h4 style="margin-bottom: 16px; font-size: 14px; color: var(--text-muted);">
                         Paso 1: Elige un profesor
                     </h4>
+                    
+                    <!-- Filtro de Disponibilidad -->
+                    <div class="availability-filter">
+                        <div class="filter-header">
+                            <span class="filter-title">🔍 Filtrar por disponibilidad</span>
+                            <button class="filter-clear" onclick="clearFilters()" id="clearFiltersBtn" style="display: none;">
+                                ✕ Limpiar filtros
+                            </button>
+                        </div>
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label class="filter-label">Día de la semana</label>
+                                <select class="filter-select" id="filterDay" onchange="applyFilters()">
+                                    <option value="">Cualquier día</option>
+                                    <option value="1">Lunes</option>
+                                    <option value="2">Martes</option>
+                                    <option value="3">Miércoles</option>
+                                    <option value="4">Jueves</option>
+                                    <option value="5">Viernes</option>
+                                    <option value="6">Sábado</option>
+                                    <option value="0">Domingo</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Horario preferido</label>
+                                <select class="filter-select" id="filterTime" onchange="applyFilters()">
+                                    <option value="">Cualquier hora</option>
+                                    <option value="morning">🌅 Mañana (8-12h)</option>
+                                    <option value="afternoon">☀️ Tarde (12-18h)</option>
+                                    <option value="evening">🌙 Noche (18-22h)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div id="teachersList">
                         <div class="loading-spinner">
                             <div class="spinner"></div>
@@ -1689,7 +1823,44 @@
             
             // Restaurar el paso de profesores
             document.getElementById('teacherStep').innerHTML = `
-                <h3>👨‍🏫 Elige tu profesor</h3>
+                <h4 style="margin-bottom: 16px; font-size: 14px; color: var(--text-muted);">
+                    Paso 1: Elige un profesor
+                </h4>
+                
+                <!-- Filtro de Disponibilidad -->
+                <div class="availability-filter">
+                    <div class="filter-header">
+                        <span class="filter-title">🔍 Filtrar por disponibilidad</span>
+                        <button class="filter-clear" onclick="clearFilters()" id="clearFiltersBtn" style="display: none;">
+                            ✕ Limpiar filtros
+                        </button>
+                    </div>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label class="filter-label">Día de la semana</label>
+                            <select class="filter-select" id="filterDay" onchange="applyFilters()">
+                                <option value="">Cualquier día</option>
+                                <option value="1">Lunes</option>
+                                <option value="2">Martes</option>
+                                <option value="3">Miércoles</option>
+                                <option value="4">Jueves</option>
+                                <option value="5">Viernes</option>
+                                <option value="6">Sábado</option>
+                                <option value="0">Domingo</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Horario preferido</label>
+                            <select class="filter-select" id="filterTime" onchange="applyFilters()">
+                                <option value="">Cualquier hora</option>
+                                <option value="morning">🌅 Mañana (8-12h)</option>
+                                <option value="afternoon">☀️ Tarde (12-18h)</option>
+                                <option value="evening">🌙 Noche (18-22h)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
                 <div id="teachersList" class="teachers-list"></div>
             `;
             
@@ -1716,7 +1887,12 @@
 
         function closeScheduleModal() {
             document.getElementById('scheduleModal').classList.remove('active');
+            // Limpiar filtros al cerrar
+            clearFilters(true);
         }
+
+        // Variable global para almacenar todos los profesores
+        let allTeachersData = [];
 
         async function loadAvailableTeachers() {
             const container = document.getElementById('teachersList');
@@ -1728,38 +1904,27 @@
             `;
             
             try {
-                const res = await fetch('/api/availability/teachers');
+                // Obtener filtros actuales
+                const filterDay = document.getElementById('filterDay')?.value || '';
+                const filterTime = document.getElementById('filterTime')?.value || '';
+                
+                // Construir URL con parámetros de filtro
+                let url = '/api/availability/teachers';
+                const params = new URLSearchParams();
+                if (filterDay) params.append('dayOfWeek', filterDay);
+                if (filterTime) params.append('timeRange', filterTime);
+                if (params.toString()) url += '?' + params.toString();
+                
+                const res = await fetch(url);
                 const teachers = await res.json();
                 
-                if (!teachers || teachers.length === 0) {
-                    container.innerHTML = `
-                        <p style="text-align: center; color: var(--text-muted); padding: 20px;">
-                            No hay profesores con disponibilidad en este momento.<br>
-                            <button class="btn btn-secondary" style="margin-top: 16px;" onclick="contactSupport()">
-                                💬 Contactar soporte
-                            </button>
-                        </p>
-                    `;
-                    return;
+                // Guardar todos los profesores
+                if (!filterDay && !filterTime) {
+                    allTeachersData = teachers;
                 }
                 
-                container.innerHTML = teachers.map(t => {
-                    const initials = t.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                    const nextDate = t.nextAvailable 
-                        ? new Date(t.nextAvailable).toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' })
-                        : '';
-                    
-                    return `
-                        <div class="teacher-card" onclick="selectTeacher('${t._id}', '${t.name}')">
-                            <div class="teacher-avatar">${initials}</div>
-                            <div class="teacher-info">
-                                <h4>${t.brandName || t.name}</h4>
-                                <small>Próximo: ${nextDate}</small>
-                            </div>
-                            <span class="slots-badge">${t.slotsAvailable} horarios</span>
-                        </div>
-                    `;
-                }).join('');
+                renderTeachersList(teachers);
+                updateFilterUI();
                 
             } catch (error) {
                 console.error('Error cargando profesores:', error);
@@ -1768,6 +1933,95 @@
                         Error al cargar profesores. Intenta de nuevo.
                     </p>
                 `;
+            }
+        }
+
+        function renderTeachersList(teachers) {
+            const container = document.getElementById('teachersList');
+            
+            if (!teachers || teachers.length === 0) {
+                const filterDay = document.getElementById('filterDay')?.value || '';
+                const filterTime = document.getElementById('filterTime')?.value || '';
+                const hasFilters = filterDay || filterTime;
+                
+                container.innerHTML = hasFilters ? `
+                    <div class="no-teachers-filtered">
+                        <div class="icon">🔍</div>
+                        <p>No hay profesores con disponibilidad para estos filtros.</p>
+                        <button class="btn btn-secondary" style="margin-top: 12px;" onclick="clearFilters()">
+                            Limpiar filtros
+                        </button>
+                    </div>
+                ` : `
+                    <p style="text-align: center; color: var(--text-muted); padding: 20px;">
+                        No hay profesores con disponibilidad en este momento.<br>
+                        <button class="btn btn-secondary" style="margin-top: 16px;" onclick="contactSupport()">
+                            💬 Contactar soporte
+                        </button>
+                    </p>
+                `;
+                return;
+            }
+            
+            container.innerHTML = teachers.map(t => {
+                const initials = t.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                const nextDate = t.nextAvailable 
+                    ? new Date(t.nextAvailable).toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' })
+                    : '';
+                
+                // Mostrar horarios filtrados si hay filtros activos
+                const filterInfo = t.filteredSlots ? 
+                    `<span style="color: var(--accent); font-size: 11px;">${t.filteredSlots} coinciden</span>` : '';
+                
+                return `
+                    <div class="teacher-card" onclick="selectTeacher('${t._id}', '${t.name}')">
+                        <div class="teacher-avatar">${initials}</div>
+                        <div class="teacher-info">
+                            <h4>${t.brandName || t.name}</h4>
+                            <small>Próximo: ${nextDate}</small>
+                            ${filterInfo}
+                        </div>
+                        <span class="slots-badge">${t.slotsAvailable} horarios</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function applyFilters() {
+            loadAvailableTeachers();
+        }
+
+        function clearFilters(silent = false) {
+            const daySelect = document.getElementById('filterDay');
+            const timeSelect = document.getElementById('filterTime');
+            
+            if (daySelect) daySelect.value = '';
+            if (timeSelect) timeSelect.value = '';
+            
+            updateFilterUI();
+            
+            if (!silent) {
+                loadAvailableTeachers();
+            }
+        }
+
+        function updateFilterUI() {
+            const daySelect = document.getElementById('filterDay');
+            const timeSelect = document.getElementById('filterTime');
+            const clearBtn = document.getElementById('clearFiltersBtn');
+            
+            const hasFilters = (daySelect?.value || '') || (timeSelect?.value || '');
+            
+            if (clearBtn) {
+                clearBtn.style.display = hasFilters ? 'block' : 'none';
+            }
+            
+            // Añadir/quitar clase activa a los selects
+            if (daySelect) {
+                daySelect.classList.toggle('filter-active', !!daySelect.value);
+            }
+            if (timeSelect) {
+                timeSelect.classList.toggle('filter-active', !!timeSelect.value);
             }
         }
 

@@ -274,31 +274,87 @@ router.delete('/slots/:id', protect, async (req, res) => {
 /**
  * GET /api/availability/teachers
  * Obtener lista de profesores con disponibilidad (para que guardian elija)
+ * Query params: dayOfWeek (0-6), timeRange (morning, afternoon, evening)
  */
 router.get('/teachers', async (req, res) => {
     try {
         const User = require('../models/User');
+        const { dayOfWeek, timeRange } = req.query;
         
         // Buscar profesores que tengan slots disponibles próximamente
         const fromDate = new Date();
         const toDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
         
-        // Obtener slots disponibles agrupados por profesor
-        const availableSlots = await TimeSlot.aggregate([
-            {
-                $match: {
-                    status: 'available',
-                    startTime: { $gte: fromDate, $lte: toDate }
-                }
-            },
-            {
-                $group: {
-                    _id: '$teacherId',
-                    slotsCount: { $sum: 1 },
-                    nextSlot: { $min: '$startTime' }
-                }
+        // Construir match con filtros
+        const matchStage = {
+            status: 'available',
+            startTime: { $gte: fromDate, $lte: toDate }
+        };
+        
+        // Agregar condiciones de filtro para el aggregation
+        const addFieldsStage = {};
+        const filterConditions = [];
+        
+        // Filtro por día de la semana (0=Dom, 1=Lun, etc)
+        if (dayOfWeek !== undefined && dayOfWeek !== '') {
+            addFieldsStage.dayOfWeek = { $dayOfWeek: '$startTime' };
+            // MongoDB: 1=Sunday, 2=Monday... JavaScript: 0=Sunday, 1=Monday...
+            // Convertir JS dayOfWeek a MongoDB format
+            const mongoDayOfWeek = parseInt(dayOfWeek) + 1;
+            filterConditions.push({ $eq: ['$dayOfWeek', mongoDayOfWeek === 8 ? 1 : mongoDayOfWeek] });
+        }
+        
+        // Filtro por rango horario
+        if (timeRange) {
+            addFieldsStage.hour = { $hour: '$startTime' };
+            let hourMin, hourMax;
+            switch (timeRange) {
+                case 'morning':
+                    hourMin = 8; hourMax = 12;
+                    break;
+                case 'afternoon':
+                    hourMin = 12; hourMax = 18;
+                    break;
+                case 'evening':
+                    hourMin = 18; hourMax = 22;
+                    break;
             }
-        ]);
+            if (hourMin !== undefined) {
+                filterConditions.push({ $gte: ['$hour', hourMin] });
+                filterConditions.push({ $lt: ['$hour', hourMax] });
+            }
+        }
+        
+        // Pipeline de aggregation
+        const pipeline = [
+            { $match: matchStage }
+        ];
+        
+        // Añadir campos calculados si hay filtros
+        if (Object.keys(addFieldsStage).length > 0) {
+            pipeline.push({ $addFields: addFieldsStage });
+        }
+        
+        // Añadir filtro si hay condiciones
+        if (filterConditions.length > 0) {
+            pipeline.push({
+                $match: {
+                    $expr: { $and: filterConditions }
+                }
+            });
+        }
+        
+        // Agrupar por profesor
+        pipeline.push({
+            $group: {
+                _id: '$teacherId',
+                slotsCount: { $sum: 1 },
+                nextSlot: { $min: '$startTime' },
+                filteredSlots: { $sum: 1 }
+            }
+        });
+        
+        const availableSlots = await TimeSlot.aggregate(pipeline);
         
         if (availableSlots.length === 0) {
             return res.json([]);
@@ -312,6 +368,7 @@ router.get('/teachers', async (req, res) => {
         }).select('name branding.profilePhotoUrl branding.brandName timezone');
         
         // Combinar info
+        const hasFilters = dayOfWeek !== undefined || timeRange;
         const result = teachers.map(teacher => {
             const slotInfo = availableSlots.find(s => s._id.toString() === teacher._id.toString());
             return {
@@ -320,7 +377,8 @@ router.get('/teachers', async (req, res) => {
                 brandName: teacher.branding?.brandName || teacher.name,
                 photoUrl: teacher.branding?.profilePhotoUrl,
                 slotsAvailable: slotInfo?.slotsCount || 0,
-                nextAvailable: slotInfo?.nextSlot
+                nextAvailable: slotInfo?.nextSlot,
+                filteredSlots: hasFilters ? slotInfo?.filteredSlots : null
             };
         });
         

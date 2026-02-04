@@ -470,10 +470,116 @@
         <!-- Tabs -->
         <div class="tabs">
             <button class="tab active" onclick="switchTab('overview')">📊 Overview</button>
+            <button class="tab" onclick="switchTab('audit')">🔍 Auditoría</button>
             <button class="tab" onclick="switchTab('connections')">🔌 Conexiones</button>
             <button class="tab" onclick="switchTab('performance')">⚡ Performance</button>
             <button class="tab" onclick="switchTab('tests')">🧪 Tests</button>
             <button class="tab" onclick="switchTab('logs')">📋 Logs</button>
+        </div>
+        
+        <!-- Tab: Audit -->
+        <div id="tab-audit" class="tab-content">
+            <!-- Audit Control Panel -->
+            <div class="card card-full" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <span class="card-title">Control de Auditoría</span>
+                    <div id="audit-status-badge" class="status-badge offline">
+                        <span class="status-dot"></span>
+                        <span id="audit-status-text">Inactiva</span>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 20px; margin-top: 15px; flex-wrap: wrap;">
+                    <!-- Toggle Button -->
+                    <div style="flex: 1; min-width: 200px;">
+                        <button id="audit-toggle-btn" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 16px;" onclick="toggleAudit()">
+                            ▶️ Iniciar Auditoría
+                        </button>
+                    </div>
+                    
+                    <!-- Config Options -->
+                    <div style="flex: 2; min-width: 300px; background: var(--bg-tertiary); padding: 15px; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px; font-size: 14px; color: var(--text-secondary);">Configuración de Captura:</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" id="cfg-midi" checked> 🎹 MIDI
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" id="cfg-connections" checked> 🔌 Conexiones
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" id="cfg-rooms" checked> 🏠 Salas
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" id="cfg-errors" checked> ⚠️ Errores
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" id="cfg-performance" checked> ⚡ Performance
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" id="cfg-network" checked> 🌐 Red
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Live Stats (when active) -->
+                <div id="audit-live-stats" style="display: none; margin-top: 20px; padding: 15px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; border: 1px solid var(--accent-green);">
+                    <h4 style="color: var(--accent-green); margin-bottom: 10px;">📊 Estadísticas en Tiempo Real</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                        <div>
+                            <div style="font-size: 24px; font-weight: bold;" id="live-events">0</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">Eventos</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: bold;" id="live-users">0</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">Usuarios</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: bold;" id="live-rooms">0</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">Salas</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: bold;" id="live-midi">0</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">MIDI</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: bold;" id="live-errors">0</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">Errores</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: bold;" id="live-duration">0s</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">Duración</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Audit History -->
+            <div class="card card-full">
+                <div class="card-header">
+                    <span class="card-title">Historial de Auditorías</span>
+                    <button class="btn btn-secondary" onclick="loadAuditHistory()">🔄 Actualizar</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Duración</th>
+                                <th>Eventos</th>
+                                <th>Usuarios</th>
+                                <th>Errores</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-history-table">
+                            <tr><td colspan="7" class="loading">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
         
         <!-- Tab: Overview -->
@@ -1037,9 +1143,452 @@
             URL.revokeObjectURL(url);
         }
         
+        // ============================================
+        // AUDIT SYSTEM
+        // ============================================
+        let auditRefreshInterval = null;
+        let currentAuditId = null;
+        
+        async function loadAuditStatus() {
+            try {
+                const res = await fetch('/api/diagnostic/status', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (data.active) {
+                    currentAuditId = data.auditId;
+                    setAuditUIActive(true);
+                    startLiveStatsPolling();
+                    updateLiveStats(data.stats || {});
+                } else {
+                    currentAuditId = null;
+                    setAuditUIActive(false);
+                    stopLiveStatsPolling();
+                }
+            } catch (err) {
+                console.error('Error loading audit status:', err);
+            }
+        }
+        
+        async function toggleAudit() {
+            const btn = document.getElementById('audit-toggle-btn');
+            btn.disabled = true;
+            
+            try {
+                if (currentAuditId) {
+                    // Stop audit
+                    const res = await fetch('/api/diagnostic/stop', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        currentAuditId = null;
+                        setAuditUIActive(false);
+                        stopLiveStatsPolling();
+                        loadAuditHistory();
+                        addLog('Auditoría detenida - ' + (data.summary?.totalEvents || 0) + ' eventos capturados', 'success');
+                    }
+                } else {
+                    // Start audit with config
+                    const config = {
+                        midi: document.getElementById('cfg-midi').checked,
+                        connections: document.getElementById('cfg-connections').checked,
+                        rooms: document.getElementById('cfg-rooms').checked,
+                        errors: document.getElementById('cfg-errors').checked,
+                        performance: document.getElementById('cfg-performance').checked,
+                        network: document.getElementById('cfg-network').checked,
+                        userActions: true,
+                        audio: true
+                    };
+                    
+                    const res = await fetch('/api/diagnostic/start', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ config })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        currentAuditId = data.auditId;
+                        setAuditUIActive(true);
+                        startLiveStatsPolling();
+                        addLog('Auditoría iniciada: ' + data.auditId, 'info');
+                    }
+                }
+            } catch (err) {
+                console.error('Error toggling audit:', err);
+                addLog('Error: ' + err.message, 'error');
+            }
+            
+            btn.disabled = false;
+        }
+        
+        function setAuditUIActive(active) {
+            const badge = document.getElementById('audit-status-badge');
+            const statusText = document.getElementById('audit-status-text');
+            const btn = document.getElementById('audit-toggle-btn');
+            const liveStats = document.getElementById('audit-live-stats');
+            const configs = document.querySelectorAll('[id^="cfg-"]');
+            
+            if (active) {
+                badge.className = 'status-badge online';
+                statusText.textContent = 'Activa';
+                btn.innerHTML = '⏹️ Detener Auditoría';
+                btn.className = 'btn btn-danger';
+                liveStats.style.display = 'block';
+                configs.forEach(c => c.disabled = true);
+            } else {
+                badge.className = 'status-badge offline';
+                statusText.textContent = 'Inactiva';
+                btn.innerHTML = '▶️ Iniciar Auditoría';
+                btn.className = 'btn btn-primary';
+                liveStats.style.display = 'none';
+                configs.forEach(c => c.disabled = false);
+            }
+        }
+        
+        function startLiveStatsPolling() {
+            if (auditRefreshInterval) clearInterval(auditRefreshInterval);
+            auditRefreshInterval = setInterval(fetchLiveStats, 2000);
+        }
+        
+        function stopLiveStatsPolling() {
+            if (auditRefreshInterval) {
+                clearInterval(auditRefreshInterval);
+                auditRefreshInterval = null;
+            }
+        }
+        
+        async function fetchLiveStats() {
+            if (!currentAuditId) return;
+            
+            try {
+                const res = await fetch('/api/diagnostic/live', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                updateLiveStats(data);
+            } catch (err) {
+                console.error('Error fetching live stats:', err);
+            }
+        }
+        
+        function updateLiveStats(stats) {
+            document.getElementById('live-events').textContent = stats.totalEvents || 0;
+            document.getElementById('live-users').textContent = stats.uniqueUsers || 0;
+            document.getElementById('live-rooms').textContent = stats.uniqueRooms || 0;
+            document.getElementById('live-midi').textContent = stats.byCategory?.midi || 0;
+            document.getElementById('live-errors').textContent = stats.byCategory?.error || 0;
+            
+            if (stats.durationMs) {
+                const secs = Math.floor(stats.durationMs / 1000);
+                const mins = Math.floor(secs / 60);
+                const hrs = Math.floor(mins / 60);
+                if (hrs > 0) {
+                    document.getElementById('live-duration').textContent = `${hrs}h ${mins%60}m`;
+                } else if (mins > 0) {
+                    document.getElementById('live-duration').textContent = `${mins}m ${secs%60}s`;
+                } else {
+                    document.getElementById('live-duration').textContent = `${secs}s`;
+                }
+            }
+        }
+        
+        async function loadAuditHistory() {
+            const tbody = document.getElementById('audit-history-table');
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">Cargando...</td></tr>';
+            
+            try {
+                const res = await fetch('/api/diagnostic/history?limit=20', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (!data.audits || data.audits.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);">No hay auditorías registradas</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = data.audits.map(audit => {
+                    const startDate = new Date(audit.startTime);
+                    const duration = audit.endTime 
+                        ? formatDuration(new Date(audit.endTime) - startDate)
+                        : 'En curso';
+                    
+                    const statusBadge = audit.status === 'active' 
+                        ? '<span class="status-badge online"><span class="status-dot"></span>Activa</span>'
+                        : audit.status === 'completed'
+                        ? '<span class="status-badge" style="background:var(--bg-secondary);"><span class="status-dot" style="background:var(--text-secondary);"></span>Completada</span>'
+                        : '<span class="status-badge" style="background:rgba(255,170,0,0.2);"><span class="status-dot" style="background:orange;"></span>Archivada</span>';
+                    
+                    return `
+                        <tr>
+                            <td>${startDate.toLocaleDateString()} ${startDate.toLocaleTimeString()}</td>
+                            <td>${duration}</td>
+                            <td>${audit.summary?.totalEvents || 0}</td>
+                            <td>${audit.summary?.uniqueUsers || 0}</td>
+                            <td style="color:${audit.summary?.byCategory?.error > 0 ? 'var(--accent-red)' : 'inherit'}">${audit.summary?.byCategory?.error || 0}</td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <button class="btn btn-secondary" style="padding:4px 8px;font-size:12px;" onclick="viewAudit('${audit.auditId}')">👁️ Ver</button>
+                                <button class="btn btn-secondary" style="padding:4px 8px;font-size:12px;" onclick="exportAudit('${audit.auditId}')">📥 Exportar</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" style="color:var(--accent-red);">Error: ${err.message}</td></tr>`;
+            }
+        }
+        
+        function formatDuration(ms) {
+            if (!ms || ms < 0) return '-';
+            const secs = Math.floor(ms / 1000);
+            const mins = Math.floor(secs / 60);
+            const hrs = Math.floor(mins / 60);
+            
+            if (hrs > 0) return `${hrs}h ${mins%60}m`;
+            if (mins > 0) return `${mins}m ${secs%60}s`;
+            return `${secs}s`;
+        }
+        
+        async function viewAudit(auditId) {
+            // Open modal with audit details
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width:900px;max-height:80vh;overflow:auto;">
+                    <div class="modal-header">
+                        <h3>📊 Auditoría: ${auditId}</h3>
+                        <button onclick="this.closest('.modal-overlay').remove()">✕</button>
+                    </div>
+                    <div id="audit-detail-content" style="padding:20px;">
+                        <div class="loading">Cargando eventos...</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Add modal styles if not exist
+            if (!document.getElementById('modal-styles')) {
+                const style = document.createElement('style');
+                style.id = 'modal-styles';
+                style.textContent = `
+                    .modal-overlay {
+                        position: fixed;
+                        top: 0; left: 0; right: 0; bottom: 0;
+                        background: rgba(0,0,0,0.8);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 1000;
+                    }
+                    .modal-content {
+                        background: var(--bg-primary);
+                        border-radius: 12px;
+                        width: 90%;
+                        border: 1px solid var(--border);
+                    }
+                    .modal-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 15px 20px;
+                        border-bottom: 1px solid var(--border);
+                    }
+                    .modal-header button {
+                        background: none;
+                        border: none;
+                        font-size: 20px;
+                        cursor: pointer;
+                        color: var(--text-primary);
+                    }
+                    .event-card {
+                        background: var(--bg-secondary);
+                        border-radius: 6px;
+                        padding: 10px 15px;
+                        margin-bottom: 8px;
+                        border-left: 3px solid var(--border);
+                    }
+                    .event-card.midi { border-left-color: var(--accent-blue); }
+                    .event-card.connection { border-left-color: var(--accent-green); }
+                    .event-card.room { border-left-color: var(--accent-yellow); }
+                    .event-card.error { border-left-color: var(--accent-red); }
+                    .event-card.performance { border-left-color: var(--accent-purple); }
+                    .event-time { font-size: 11px; color: var(--text-secondary); }
+                    .event-type { font-weight: bold; margin-right: 10px; }
+                    .event-filter-bar {
+                        display: flex;
+                        gap: 10px;
+                        margin-bottom: 15px;
+                        flex-wrap: wrap;
+                    }
+                    .event-filter-bar button {
+                        padding: 5px 12px;
+                        border-radius: 15px;
+                        border: 1px solid var(--border);
+                        background: var(--bg-secondary);
+                        color: var(--text-primary);
+                        cursor: pointer;
+                        font-size: 12px;
+                    }
+                    .event-filter-bar button.active {
+                        background: var(--accent-blue);
+                        border-color: var(--accent-blue);
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            // Fetch audit details
+            try {
+                const res = await fetch(`/api/diagnostic/audit/${auditId}?includeEvents=true&limit=500`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                const content = document.getElementById('audit-detail-content');
+                
+                // Summary section
+                let html = `
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:15px;margin-bottom:20px;">
+                        <div class="card" style="padding:15px;text-align:center;">
+                            <div style="font-size:24px;font-weight:bold;">${data.summary?.totalEvents || 0}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">Eventos</div>
+                        </div>
+                        <div class="card" style="padding:15px;text-align:center;">
+                            <div style="font-size:24px;font-weight:bold;">${data.summary?.uniqueUsers || 0}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">Usuarios</div>
+                        </div>
+                        <div class="card" style="padding:15px;text-align:center;">
+                            <div style="font-size:24px;font-weight:bold;">${data.summary?.uniqueRooms || 0}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">Salas</div>
+                        </div>
+                        <div class="card" style="padding:15px;text-align:center;">
+                            <div style="font-size:24px;font-weight:bold;color:var(--accent-red);">${data.summary?.byCategory?.error || 0}</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">Errores</div>
+                        </div>
+                    </div>
+                    
+                    <div class="event-filter-bar">
+                        <button class="active" onclick="filterAuditEvents('all', this)">Todos</button>
+                        <button onclick="filterAuditEvents('midi', this)">🎹 MIDI</button>
+                        <button onclick="filterAuditEvents('connection', this)">🔌 Conexiones</button>
+                        <button onclick="filterAuditEvents('room', this)">🏠 Salas</button>
+                        <button onclick="filterAuditEvents('error', this)">⚠️ Errores</button>
+                        <button onclick="filterAuditEvents('performance', this)">⚡ Performance</button>
+                    </div>
+                    
+                    <div id="events-container" style="max-height:400px;overflow-y:auto;">
+                `;
+                
+                // Events list
+                const events = data.events || [];
+                if (events.length === 0) {
+                    html += '<div style="text-align:center;color:var(--text-secondary);">No hay eventos</div>';
+                } else {
+                    events.forEach(e => {
+                        const time = new Date(e.timestamp).toLocaleTimeString();
+                        const icon = {
+                            midi: '🎹',
+                            connection: '🔌',
+                            room: '🏠',
+                            error: '⚠️',
+                            performance: '⚡',
+                            network: '🌐',
+                            audio: '🔊'
+                        }[e.category] || '📝';
+                        
+                        html += `
+                            <div class="event-card ${e.category}" data-category="${e.category}">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <div>
+                                        <span class="event-type">${icon} ${e.type}</span>
+                                        ${e.roomCode ? `<span style="color:var(--accent-yellow);">[${e.roomCode}]</span>` : ''}
+                                    </div>
+                                    <span class="event-time">${time}</span>
+                                </div>
+                                ${e.data ? `<div style="margin-top:5px;font-size:12px;color:var(--text-secondary);">${JSON.stringify(e.data).substring(0, 150)}${JSON.stringify(e.data).length > 150 ? '...' : ''}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += '</div>';
+                content.innerHTML = html;
+                
+            } catch (err) {
+                document.getElementById('audit-detail-content').innerHTML = `<div style="color:var(--accent-red);">Error: ${err.message}</div>`;
+            }
+        }
+        
+        function filterAuditEvents(category, btn) {
+            // Update active button
+            document.querySelectorAll('.event-filter-bar button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Filter events
+            document.querySelectorAll('.event-card').forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        async function exportAudit(auditId) {
+            try {
+                const res = await fetch(`/api/diagnostic/audit/${auditId}/export`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `audit-${auditId}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                addLog('Auditoría exportada: ' + auditId, 'success');
+            } catch (err) {
+                addLog('Error exportando: ' + err.message, 'error');
+            }
+        }
+        
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('error-logs');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + (type === 'error' ? 'error' : type === 'success' ? 'success' : '');
+            entry.innerHTML = `
+                <span class="log-time">${new Date().toLocaleTimeString()}</span>
+                ${message}
+            `;
+            container.insertBefore(entry, container.firstChild);
+        }
+        
+        // Initialize audit on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAuditStatus();
+            loadAuditHistory();
+        });
+        
         // Cleanup on leave
         window.addEventListener('beforeunload', () => {
             if (refreshInterval) clearInterval(refreshInterval);
+            if (auditRefreshInterval) clearInterval(auditRefreshInterval);
         });
     </script>
 </body>

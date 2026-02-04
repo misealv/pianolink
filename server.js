@@ -28,6 +28,10 @@ console.log('[SERVER] 📧 Estado del servicio de email:', JSON.stringify(emailS
 const SessionTracker = require('./services/SessionTracker');
 console.log('[SERVER] 📊 Session Tracker inicializado');
 
+// ✨ NUEVO: Inicializar Servicio de Auditoría de Diagnóstico
+const DiagnosticAuditService = require('./services/DiagnosticAuditService');
+console.log('[SERVER] 🔍 Diagnostic Audit Service inicializado');
+
 // ✨ v2.0: Inicializar servicios de suscripción y cron
 const CronService = require('./services/CronService');
 CronService.start();
@@ -130,6 +134,7 @@ app.use('/api/kit-products', require('./routes/kitProductRoutes')); // Productos
 app.use('/api/client', require('./routes/clientRoutes')); // Panel del cliente
 app.use('/api/availability', require('./routes/availabilityRoutes')); // Calendario disponibilidad
 app.use('/api/bookings', require('./routes/bookingRoutes')); // Reservas de clases
+app.use('/api/diagnostic', require('./routes/diagnosticRoutes')); // Auditoría de diagnóstico
 
 // Ruta para página de éxito del Welcome Kit (sin .html)
 app.get('/welcome-kit/success', (req, res) => {
@@ -413,9 +418,17 @@ function encodeMidiBundle(messages) {
 io.on("connection", (socket) => {
     // console.log(`🔌 Cliente conectado: ${socket.id}`);
     
+    // � AUDIT: Log conexión
+    DiagnosticAuditService.logConnection('socket_connect', socket.id, {
+        transport: socket.conn?.transport?.name,
+        remoteAddress: socket.handshake?.address,
+        userAgent: socket.handshake?.headers?.['user-agent']?.substring(0, 100)
+    });
+    
     // 📊 TELEMETRÍA: Detectar reconexión
     if (socket.handshake.query.reconnect === 'true') {
         performanceMetrics.reconnections++;
+        DiagnosticAuditService.logConnection('socket_reconnect', socket.id, {});
         console.log(`[Telemetry] 🔄 Reconexión detectada: ${socket.id}`);
     }
 
@@ -429,7 +442,13 @@ io.on("connection", (socket) => {
         rooms[roomCode].isActive = true; // El profe activa la sala
         socket.emit("room-created", roomCode);
         
-        // 📊 TRACK: Iniciar sesión
+        // � AUDIT: Log creación de sala
+        DiagnosticAuditService.logRoom('room_created', roomCode, {
+            teacherName: payload.username,
+            teacherId: payload.userId
+        }, { socketId: socket.id, userId: payload.userId });
+        
+        // �📊 TRACK: Iniciar sesión
         try {
             // Obtener datos del profesor desde el token/payload si está disponible
             const teacherData = {
@@ -458,6 +477,12 @@ io.on("connection", (socket) => {
         }
         
         setupUserInRoom(socket, roomCode, payload.username || "Alumno", payload.userRole || "student");
+        
+        // 🔍 AUDIT: Log unión a sala
+        DiagnosticAuditService.logRoom('room_joined', roomCode, {
+            userName: payload.username,
+            userRole: payload.userRole || 'student'
+        }, { socketId: socket.id, userId: payload.userId });
         
         // Trackear estudiante que se une
         try {
@@ -516,6 +541,17 @@ io.on("connection", (socket) => {
         
         // 📊 TELEMETRÍA: Contar mensajes MIDI
         performanceMetrics.midiMessagesTotal++;
+        
+        // 🔍 AUDIT: Log MIDI (solo si auditoría activa - optimizado para no afectar latencia)
+        if (DiagnosticAuditService.isActive()) {
+            DiagnosticAuditService.logMidi('midi_message', {
+                bufferSize: buffer.byteLength || buffer.length
+            }, { 
+                socketId: socket.id, 
+                roomCode,
+                sizeBytes: buffer.byteLength || buffer.length
+            });
+        }
         
         // VALIDACIÓN DE SEGURIDAD
         if (!validateUserInRoom(socket, roomCode)) {
@@ -1235,6 +1271,14 @@ io.on("connection", (socket) => {
         const userName = socket.userName;
         const userRole = socket.userRole;
         
+        // 🔍 AUDIT: Log desconexión
+        DiagnosticAuditService.logConnection('socket_disconnect', socket.id, {
+            roomCode,
+            userName,
+            userRole,
+            reason: 'normal'
+        });
+        
         if (roomCode && rooms[roomCode]) {
             const room = rooms[roomCode];
             
@@ -1468,6 +1512,8 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 // Capturar errores no manejados (última defensa)
 process.on('uncaughtException', (error) => {
     console.error('[Critical Error] Excepción no capturada:', error);
+    // � AUDIT: Log error crítico
+    DiagnosticAuditService.logError('uncaught_exception', error, {});
     // 📊 TELEMETRÍA: Registrar error
     if (typeof performanceMetrics !== 'undefined') {
         performanceMetrics.errors.push({
@@ -1483,6 +1529,8 @@ process.on('uncaughtException', (error) => {
 
 process.on('unhandledRejection', (reason, promise) => {
     console.error('[Critical Error] Promesa rechazada no manejada:', reason);
+    // 🔍 AUDIT: Log error
+    DiagnosticAuditService.logError('unhandled_rejection', { message: String(reason) }, {});
     // 📊 TELEMETRÍA: Registrar error
     if (typeof performanceMetrics !== 'undefined') {
         performanceMetrics.errors.push({

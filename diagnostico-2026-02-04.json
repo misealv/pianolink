@@ -1,0 +1,101 @@
+{
+  "timestamp": "2026-02-04T22:16:14.724Z",
+  "server": "https://pianolink.onrender.com",
+  "summary": {
+    "avgLatency": 202,
+    "minLatency": 188,
+    "maxLatency": 218,
+    "jitter": 30,
+    "packetLoss": 0,
+    "totalPings": 15,
+    "successfulPings": 15,
+    "failedPings": 0
+  },
+  "details": {
+    "pings": [
+      {
+        "iteration": 1,
+        "latency": 201,
+        "status": "ok"
+      },
+      {
+        "iteration": 2,
+        "latency": 192,
+        "status": "ok"
+      },
+      {
+        "iteration": 3,
+        "latency": 193,
+        "status": "ok"
+      },
+      {
+        "iteration": 4,
+        "latency": 188,
+        "status": "ok"
+      },
+      {
+        "iteration": 5,
+        "latency": 212,
+        "status": "ok"
+      },
+      {
+        "iteration": 6,
+        "latency": 209,
+        "status": "ok"
+      },
+      {
+        "iteration": 7,
+        "latency": 201,
+        "status": "ok"
+      },
+      {
+        "iteration": 8,
+        "latency": 204,
+        "status": "ok"
+      },
+      {
+        "iteration": 9,
+        "latency": 211,
+        "status": "ok"
+      },
+      {
+        "iteration": 10,
+        "latency": 196,
+        "status": "ok"
+      },
+      {
+        "iteration": 11,
+        "latency": 192,
+        "status": "ok"
+      },
+      {
+        "iteration": 12,
+        "latency": 218,
+        "status": "ok"
+      },
+      {
+        "iteration": 13,
+        "latency": 203,
+        "status": "ok"
+      },
+      {
+        "iteration": 14,
+        "latency": 213,
+        "status": "ok"
+      },
+      {
+        "iteration": 15,
+        "latency": 200,
+        "status": "ok"
+      }
+    ],
+    "errors": [],
+    "healthChecks": [
+      {
+        "status": "ok",
+        "latency": 283,
+        "uptime": 11535.218482034
+      }
+    ]
+  }
+}
