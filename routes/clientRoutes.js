@@ -59,8 +59,13 @@ router.get('/me', protect, async (req, res) => {
  */
 router.get('/payments', protect, async (req, res) => {
     try {
-        // Buscar kits comprados por este usuario
-        const kits = await WelcomeKit.find({ userId: req.user._id })
+        // Buscar kits comprados por este usuario (clientId o por email)
+        const kits = await WelcomeKit.find({
+            $or: [
+                { clientId: req.user._id },
+                { clientEmail: req.user.email?.toLowerCase() }
+            ]
+        })
             .select('payment kitType createdAt')
             .sort({ createdAt: -1 })
             .lean();
@@ -97,7 +102,12 @@ router.get('/subscription', protect, async (req, res) => {
 
         // Determinar estado de pago basado en clases restantes
         let totalClassesRemaining = 0;
-        if (user.clientData?.managedStudents?.length > 0) {
+        
+        if (user.role === 'student') {
+            // El usuario es estudiante directo
+            totalClassesRemaining = user.classesRemaining || 0;
+        } else if (user.clientData?.managedStudents?.length > 0) {
+            // El usuario es guardian/client con estudiantes gestionados
             user.clientData.managedStudents.forEach(student => {
                 totalClassesRemaining += student.classesRemaining || 0;
             });
