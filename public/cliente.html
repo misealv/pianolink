@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Panel | Piano Link</title>
+    <style>
+        :root {
+            --bg: #0f0f0f;
+            --card: #1a1a1a;
+            --border: #2a2a2a;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --accent: #ff764d;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 800;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-name {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* Main Content */
+        .main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        /* Welcome Section */
+        .welcome {
+            margin-bottom: 32px;
+        }
+
+        .welcome h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .welcome p {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 42px;
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card.success .stat-number { color: var(--success); }
+        .stat-card.warning .stat-number { color: var(--warning); }
+
+        /* Section Title */
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Students Grid */
+        .students-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .student-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .student-avatar {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--accent), #ff9f7e);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .student-info {
+            flex: 1;
+        }
+
+        .student-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .student-age {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .student-classes {
+            text-align: right;
+        }
+
+        .classes-count {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .classes-count.low { color: var(--warning); }
+        .classes-count.empty { color: var(--danger); }
+
+        .classes-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* Actions */
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 32px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #ff9f7e;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Payment Status */
+        .payment-status {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.active {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        .status-badge.pending {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        /* Billing History */
+        .billing-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .billing-table th,
+        .billing-table td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .billing-table th {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .billing-table td {
+            font-size: 14px;
+        }
+
+        .billing-status {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .billing-status.approved {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        .billing-status.pending {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .welcome h1 {
+                font-size: 22px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .stat-number {
+                font-size: 32px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .billing-table {
+                font-size: 12px;
+            }
+
+            .billing-table th,
+            .billing-table td {
+                padding: 10px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">🎹 Piano Link</div>
+        <div class="user-info">
+            <span class="user-name" id="userName">Cargando...</span>
+            <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main" id="mainContent">
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Cargando tu panel...</p>
+        </div>
+    </main>
+
+    <script>
+        // Verificar autenticación
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Cargar datos del usuario
+        async function loadDashboard() {
+            try {
+                const [userRes, paymentsRes, subscriptionRes] = await Promise.all([
+                    fetch('/api/client/me', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/client/payments', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/client/subscription', { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+
+                if (!userRes.ok) {
+                    throw new Error('No autorizado');
+                }
+
+                const user = await userRes.json();
+                const paymentsData = await paymentsRes.json();
+                const subscription = await subscriptionRes.json();
+
+                renderDashboard(user, paymentsData.payments, subscription);
+            } catch (error) {
+                console.error('Error cargando dashboard:', error);
+                if (error.message === 'No autorizado') {
+                    localStorage.removeItem('token');
+                    window.location.href = '/login';
+                }
+            }
+        }
+
+        function renderDashboard(user, payments, subscription) {
+            // Actualizar nombre en header
+            document.getElementById('userName').textContent = user.name;
+
+            const students = user.clientData?.managedStudents || [];
+            const isGuardian = students.length > 0;
+
+            const main = document.getElementById('mainContent');
+            main.innerHTML = `
+                <!-- Welcome -->
+                <section class="welcome">
+                    <h1>¡Hola, ${user.name.split(' ')[0]}! 👋</h1>
+                    <p>${isGuardian ? `Gestionas ${students.length} estudiante(s)` : 'Tu panel de clases de piano'}</p>
+                </section>
+
+                <!-- Stats -->
+                <section class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">${user.summary.totalClassesRemaining}</div>
+                        <div class="stat-label">Clases disponibles</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-number">${user.summary.totalClassesUsed}</div>
+                        <div class="stat-label">Clases realizadas</div>
+                    </div>
+                    ${isGuardian ? `
+                    <div class="stat-card">
+                        <div class="stat-number">${students.length}</div>
+                        <div class="stat-label">Estudiantes</div>
+                    </div>
+                    ` : ''}
+                </section>
+
+                <!-- Actions -->
+                <section class="actions">
+                    <a href="#" class="btn btn-primary" onclick="scheduleClass()">
+                        📅 Agendar clase
+                    </a>
+                    <a href="/welcome-kit" class="btn btn-secondary">
+                        🛒 Comprar más clases
+                    </a>
+                    <a href="#" class="btn btn-secondary" onclick="contactSupport()">
+                        💬 Soporte WhatsApp
+                    </a>
+                </section>
+
+                <!-- Students (if guardian) -->
+                ${isGuardian ? `
+                <section>
+                    <h2 class="section-title">👨‍👩‍👧‍👦 Tus estudiantes</h2>
+                    <div class="students-grid">
+                        ${students.map(s => `
+                            <div class="student-card">
+                                <div class="student-avatar">${getInitials(s.name)}</div>
+                                <div class="student-info">
+                                    <div class="student-name">${s.name}</div>
+                                    <div class="student-age">${s.age ? s.age + ' años' : 'Edad no especificada'}</div>
+                                </div>
+                                <div class="student-classes">
+                                    <div class="classes-count ${s.classesRemaining === 0 ? 'empty' : s.classesRemaining <= 2 ? 'low' : ''}">${s.classesRemaining}</div>
+                                    <div class="classes-label">clases</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </section>
+                ` : ''}
+
+                <!-- Payment Status -->
+                <section class="payment-status">
+                    <div class="status-header">
+                        <h2 class="section-title" style="margin:0">💳 Estado de cuenta</h2>
+                        <span class="status-badge ${subscription.status === 'active' ? 'active' : 'pending'}">
+                            ${subscription.status === 'active' ? '✓ Al día' : '⚠ Sin clases'}
+                        </span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 14px;">
+                        ${subscription.message}
+                    </p>
+                    ${user.kitPurchaseDate ? `
+                    <p style="color: var(--text-muted); font-size: 13px; margin-top: 8px;">
+                        Kit adquirido: ${new Date(user.kitPurchaseDate).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                    ` : ''}
+                </section>
+
+                <!-- Billing History -->
+                <section>
+                    <h2 class="section-title">📋 Historial de facturación</h2>
+                    ${payments.length > 0 ? `
+                    <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+                        <table class="billing-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Concepto</th>
+                                    <th>Monto</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${payments.map(p => `
+                                    <tr>
+                                        <td>${new Date(p.date).toLocaleDateString('es-CL')}</td>
+                                        <td>${p.type}${p.kitType ? ` (${p.kitType})` : ''}</td>
+                                        <td>$${p.amount} ${p.currency}</td>
+                                        <td><span class="billing-status ${p.status}">${formatStatus(p.status)}</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    ` : `
+                    <div class="empty-state">
+                        <p>No hay pagos registrados aún</p>
+                    </div>
+                    `}
+                </section>
+            `;
+        }
+
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        }
+
+        function formatStatus(status) {
+            const statusMap = {
+                'approved': 'Aprobado',
+                'completed': 'Completado',
+                'pending': 'Pendiente',
+                'rejected': 'Rechazado',
+                'COMPLETED': 'Completado'
+            };
+            return statusMap[status] || status;
+        }
+
+        function scheduleClass() {
+            // TODO: Implementar modal de agendar clase
+            alert('Próximamente: Sistema de agendamiento de clases.\n\nPor ahora, contáctanos por WhatsApp para agendar.');
+            contactSupport();
+        }
+
+        function contactSupport() {
+            const phone = '56912345678'; // Cambiar por número real
+            const message = encodeURIComponent('Hola! Necesito agendar una clase de piano.');
+            window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+
+        // Iniciar
+        loadDashboard();
+    </script>
+</body>
+</html>

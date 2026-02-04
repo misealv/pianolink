@@ -126,6 +126,15 @@ const userSchema = mongoose.Schema({
 
   slug: { type: String, unique: true, sparse: true },
 
+  // === AUTENTICACIÓN Y SEGURIDAD ===
+  // Magic Link / Reset Password
+  magicLinkToken: { type: String },
+  magicLinkExpires: { type: Date },
+  resetPasswordToken: { type: String },
+  resetPasswordExpires: { type: Date },
+  mustChangePassword: { type: Boolean, default: false },
+  lastPasswordChange: { type: Date },
+
   // Marca personal
   branding: {
     country: { type: String, default: '🏳️ Internacional' },

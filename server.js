@@ -76,6 +76,24 @@ app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
+// Ruta para Login
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Rutas para Magic Link y Recuperación de Password
+app.get('/acceso/:token', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'establecer-password.html'));
+});
+
+app.get('/recuperar-password', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'recuperar-password.html'));
+});
+
+app.get('/recuperar/:token', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'recuperar-password.html'));
+});
+
 // Ruta limpia para Welcome Kit
 app.get(['/kit', '/welcome-kit', '/kit-bienvenida'], (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'kit-bienvenida.html'));
@@ -83,6 +101,7 @@ app.get(['/kit', '/welcome-kit', '/kit-bienvenida'], (req, res) => {
 
 // Rutas API (Mantenemos tu lógica de negocio intacta)
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/password', require('./routes/passwordRoutes')); // Magic Link y Recuperación
 app.use('/api/teacher', require('./routes/teacherRoutes'));
 app.use('/api/scores', require('./routes/scoreRoutes'));
 app.use('/api/leads', require('./routes/leadRoutes')); // Lead generation
@@ -98,6 +117,7 @@ app.use('/api/payment', require('./routes/payment')); // PayPal payments
 app.use('/api/admin/payments', require('./routes/adminPayments')); // Admin payments
 app.use('/api/welcome-kit', require('./routes/welcomeKitRoutes')); // Welcome Kit checkout
 app.use('/api/kit-products', require('./routes/kitProductRoutes')); // Productos del Welcome Kit
+app.use('/api/client', require('./routes/clientRoutes')); // Panel del cliente
 
 // Ruta para página de éxito del Welcome Kit (sin .html)
 app.get('/welcome-kit/success', (req, res) => {
@@ -107,6 +127,11 @@ app.get('/welcome-kit/success', (req, res) => {
 // Ruta para Mi Kit (dashboard del cliente)
 app.get('/mi-kit', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'mi-kit.html'));
+});
+
+// Ruta para Panel del Cliente
+app.get('/cliente', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'cliente.html'));
 });
 
 // ==================================================

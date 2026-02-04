@@ -824,9 +824,14 @@ router.post('/verify', async (req, res) => {
         let user = await User.findOne({ email: payerEmail?.toLowerCase() });
         let student = null;
         
+        // Generar magic link token
+        const crypto = require('crypto');
+        const magicLinkToken = crypto.randomBytes(32).toString('hex');
+        const magicLinkExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
+        
         if (!user && payerEmail) {
-            // Generar contraseña temporal
-            const tempPassword = Math.random().toString(36).slice(-8);
+            // Password temporal aleatorio (no se usa, solo para cumplir schema)
+            const tempPassword = crypto.randomBytes(16).toString('hex');
             
             if (studentType === 'self') {
                 // El comprador es el estudiante
@@ -844,7 +849,11 @@ router.post('/verify', async (req, res) => {
                     },
                     kitPurchased: true,
                     kitPurchaseDate: new Date(),
-                    paypalOrderId: orderId
+                    paypalOrderId: orderId,
+                    // Magic Link
+                    magicLinkToken: magicLinkToken,
+                    magicLinkExpires: magicLinkExpires,
+                    mustChangePassword: true
                 });
                 
                 student = user; // El usuario es el estudiante
@@ -879,18 +888,27 @@ router.post('/verify', async (req, res) => {
                     },
                     kitPurchased: true,
                     kitPurchaseDate: new Date(),
-                    paypalOrderId: orderId
+                    paypalOrderId: orderId,
+                    // Magic Link
+                    magicLinkToken: magicLinkToken,
+                    magicLinkExpires: magicLinkExpires,
+                    mustChangePassword: true
                 });
                 
                 console.log(`[WelcomeKit] 👤 Apoderado creado: ${user.email} con ${managedStudents.length} estudiante(s)`);
                 managedStudents.forEach(s => console.log(`[WelcomeKit] 👶 Estudiante: ${s.name}`));
             }
             
-            // Enviar email de bienvenida
+            // Generar URL del magic link
+            const baseUrl = process.env.FRONTEND_URL || 'https://pianolink.onrender.com';
+            const magicLinkUrl = `${baseUrl}/acceso/${magicLinkToken}`;
+            
+            // Enviar email de bienvenida CON MAGIC LINK
             try {
                 const emailHtml = generateWelcomeKitEmail({
                     clientName: user.name,
                     clientEmail: user.email,
+                    magicLinkUrl: magicLinkUrl, // ← Magic Link en vez de password
                     students: user.clientData?.managedStudents || [],
                     kitType: welcomeKit.kitType,
                     totalPaid: welcomeKit.payment?.amount,
@@ -903,7 +921,7 @@ router.post('/verify', async (req, res) => {
                     subject: '🎹 ¡Bienvenido a PianoLink! Tu kit está listo',
                     html: emailHtml
                 });
-                console.log(`[WelcomeKit] 📧 Email de bienvenida enviado a: ${user.email}`);
+                console.log(`[WelcomeKit] 📧 Email de bienvenida con magic link enviado a: ${user.email}`);
             } catch (emailError) {
                 console.error('[WelcomeKit] ⚠️ Error enviando email:', emailError.message);
             }

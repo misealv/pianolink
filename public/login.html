@@ -221,7 +221,7 @@
   <div class="login-card">
 
     <div class="brand-logo">🎹 Piano Link</div>
-    <div class="brand-subtitle">Acceso Docente</div>
+    <div class="brand-subtitle">Acceso</div>
     
     <form id="loginForm">
       <input type="email" id="email" placeholder="Correo electrónico" required>
@@ -230,6 +230,12 @@
     </form>
     
     <div id="msg"></div>
+
+    <div style="margin-top: 15px;">
+        <a href="/recuperar-password" style="color: var(--accent); font-size: 13px; text-decoration: none; opacity: 0.8; transition: opacity 0.2s;">
+            ¿Olvidaste tu contraseña?
+        </a>
+    </div>
 
     <div class="founders-link">
         <span style="color: #666; font-size: 12px;">Respaldo Académico</span><br>
@@ -327,12 +333,15 @@
           console.log('[Login] Guardando usuario:', userToSave);
 
           localStorage.setItem('pianoUser', JSON.stringify(userToSave));
+          localStorage.setItem('token', userData.token); // Para el panel del cliente
           
           setTimeout(() => {
             if (userToSave.role === 'admin') {
               window.location.href = "admin.html";
             } else if (userToSave.role === 'teacher') {
               window.location.href = "dashboard.html";
+            } else if (userToSave.role === 'client') {
+              window.location.href = "/cliente";
             } else {
               window.location.href = "/";
             }

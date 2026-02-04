@@ -10,6 +10,7 @@
  * @param {Object} data - Datos para el email
  * @param {string} data.clientName - Nombre del cliente/apoderado
  * @param {string} data.clientEmail - Email del cliente
+ * @param {string} data.magicLinkUrl - URL del magic link para establecer contraseña
  * @param {Array} data.students - Array de estudiantes [{name, age, classesRemaining}]
  * @param {string} data.kitType - Tipo de kit: 'setup_only' o 'full'
  * @param {number} data.totalPaid - Monto pagado
@@ -22,6 +23,7 @@ function generateWelcomeKitEmail(data) {
     const {
         clientName = 'Cliente',
         clientEmail,
+        magicLinkUrl,
         students = [],
         kitType = 'setup_only',
         totalPaid,
@@ -117,6 +119,31 @@ function generateWelcomeKitEmail(data) {
                             </div>
                         </td>
                     </tr>
+                    
+                    <!-- Magic Link - Acceso a la cuenta -->
+                    ${magicLinkUrl ? `
+                    <tr>
+                        <td style="padding: 0 40px 30px 40px;">
+                            <div style="background: linear-gradient(135deg, #fef3c7, #fde68a); border-radius: 12px; padding: 25px; border: 1px solid #fcd34d;">
+                                <h3 style="color: #92400e; margin: 0 0 15px 0; font-size: 18px;">
+                                    🔐 Accede a tu cuenta
+                                </h3>
+                                <p style="color: #78350f; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6;">
+                                    Haz clic en el botón para crear tu contraseña y acceder a tu panel donde podrás ver tus clases, agendar sesiones y más.
+                                </p>
+                                <div style="text-align: center;">
+                                    <a href="${magicLinkUrl}" 
+                                       style="display: inline-block; background: #f59e0b; color: white; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3);">
+                                        🚀 Crear mi contraseña y acceder
+                                    </a>
+                                </div>
+                                <p style="color: #92400e; margin: 20px 0 0 0; font-size: 12px; text-align: center;">
+                                    ⏰ Este enlace expira en 7 días
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    ` : ''}
                     
                     ${isGuardian ? `
                     <!-- Students List (for guardians) -->
