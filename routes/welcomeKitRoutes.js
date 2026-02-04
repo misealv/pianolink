@@ -2099,6 +2099,132 @@ router.post('/admin/dsers/export-csv', protect, adminOnly, async (req, res) => {
 });
 
 /**
+ * POST /api/welcome-kit/admin/dsers/import-tracking
+ * Importar trackings desde CSV de DSers o texto pegado
+ */
+router.post('/admin/dsers/import-tracking', protect, adminOnly, async (req, res) => {
+    try {
+        const AliExpressService = require('../services/AliExpressService');
+        const { csvContent, trackings } = req.body;
+        
+        let trackingData = [];
+        
+        // Si viene CSV, parsearlo
+        if (csvContent) {
+            trackingData = AliExpressService.parseTrackingCSV(csvContent);
+        }
+        // Si viene array de trackings directamente
+        else if (trackings && Array.isArray(trackings)) {
+            trackingData = trackings.map(t => ({
+                orderId: t.orderId,
+                trackingNumber: t.trackingNumber,
+                carrier: AliExpressService.detectCarrier(t.trackingNumber),
+                trackingUrl: AliExpressService.generateTrackingUrl(t.trackingNumber)
+            }));
+        }
+        
+        if (trackingData.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'No se encontraron trackings válidos' 
+            });
+        }
+        
+        const results = {
+            updated: 0,
+            notFound: 0,
+            errors: []
+        };
+        
+        // Actualizar cada orden
+        for (const track of trackingData) {
+            try {
+                const kit = await WelcomeKit.findById(track.orderId);
+                
+                if (!kit) {
+                    results.notFound++;
+                    results.errors.push(`Orden ${track.orderId} no encontrada`);
+                    continue;
+                }
+                
+                // Calcular fecha estimada
+                const country = kit.shipping?.address?.country || kit.country || 'DEFAULT';
+                const delivery = AliExpressService.calculateEstimatedDelivery(country, track.trackingNumber);
+                
+                // Actualizar shipping
+                kit.shipping = kit.shipping || {};
+                kit.shipping.trackingNumber = track.trackingNumber;
+                kit.shipping.trackingUrl = track.trackingUrl;
+                kit.shipping.carrier = track.carrier;
+                kit.shipping.status = 'shipped';
+                kit.shipping.shippedAt = new Date();
+                kit.shipping.estimatedDelivery = delivery.date;
+                kit.overallStatus = 'shipping';
+                
+                await kit.save();
+                results.updated++;
+                
+            } catch (err) {
+                results.errors.push(`Error en orden ${track.orderId}: ${err.message}`);
+            }
+        }
+        
+        res.json({
+            success: true,
+            message: `${results.updated} órdenes actualizadas`,
+            results
+        });
+        
+    } catch (error) {
+        console.error('[DSers] Error importando trackings:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/welcome-kit/admin/shipping/auto-complete
+ * Auto-completar URL de tracking y fecha estimada
+ */
+router.post('/admin/shipping/auto-complete', protect, adminOnly, async (req, res) => {
+    try {
+        const AliExpressService = require('../services/AliExpressService');
+        const { trackingNumber, countryCode } = req.body;
+        
+        if (!trackingNumber) {
+            return res.status(400).json({ success: false, error: 'Tracking number requerido' });
+        }
+        
+        const carrier = AliExpressService.detectCarrier(trackingNumber);
+        const trackingUrl = AliExpressService.generateTrackingUrl(trackingNumber);
+        const delivery = AliExpressService.calculateEstimatedDelivery(countryCode, trackingNumber);
+        
+        res.json({
+            success: true,
+            data: {
+                trackingNumber,
+                carrier,
+                carrierLabel: {
+                    'cainiao': 'Cainiao (AliExpress Premium)',
+                    'china_post': 'China Post',
+                    'yanwen': 'Yanwen Logistics',
+                    'sunyou': 'SunYou Logistics',
+                    'epacket': 'ePacket',
+                    'aliexpress_standard': 'AliExpress Standard'
+                }[carrier] || 'AliExpress Shipping',
+                trackingUrl,
+                estimatedDelivery: delivery.date,
+                estimatedDays: delivery.days,
+                deliveryRange: delivery.range
+            }
+        });
+        
+    } catch (error) {
+        console.error('[Shipping] Error auto-complete:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
  * POST /api/welcome-kit/admin/products/fetch-info
  * Extraer información de producto desde URL de AliExpress
  */

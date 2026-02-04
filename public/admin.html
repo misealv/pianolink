@@ -582,8 +582,8 @@
                                 <button class="action-btn" onclick="exportDSersCSV()">
                                     📤 Exportar Pedidos CSV
                                 </button>
-                                <button class="action-btn" onclick="syncDSersOrders()">
-                                    🔄 Sincronizar Tracking
+                                <button class="action-btn" onclick="openImportTrackingModal()">
+                                    📥 Importar Trackings
                                 </button>
                                 <button class="action-btn" onclick="window.open('https://www.aliexpress.com/category/708044/keyboards.html', '_blank')">
                                     🔍 Buscar en AliExpress
@@ -1029,43 +1029,71 @@
             </div>
             
             <div class="form-group">
-                <label>Courier / Transportista</label>
-                <select id="shipping-carrier">
-                    <option value="">Seleccionar...</option>
-                    <option value="chilexpress">Chilexpress</option>
-                    <option value="starken">Starken</option>
-                    <option value="bluexpress">Blue Express</option>
-                    <option value="correos_chile">Correos de Chile</option>
-                    <option value="andreani">Andreani (AR)</option>
-                    <option value="oca">OCA (AR)</option>
-                    <option value="correos_argentina">Correos Argentina</option>
-                    <option value="dhl">DHL</option>
-                    <option value="fedex">FedEx</option>
-                    <option value="ups">UPS</option>
-                    <option value="seur">SEUR (ES)</option>
-                    <option value="correos_espana">Correos (ES)</option>
-                    <option value="otro">Otro</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
                 <label>Número de Tracking</label>
-                <input type="text" id="shipping-tracking" placeholder="ABC123456789">
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="shipping-tracking" placeholder="Pega el tracking de AliExpress" style="flex:1;">
+                    <button type="button" class="btn btn-secondary" onclick="autoCompleteTracking()" title="Auto-detectar carrier y fecha">
+                        🔍 Auto
+                    </button>
+                </div>
+                <div id="tracking-detected" style="display:none; margin-top:8px; padding:10px; background:rgba(34,197,94,0.1); border-radius:6px; font-size:12px;">
+                    <!-- Se llena automáticamente -->
+                </div>
             </div>
             
             <div class="form-group">
-                <label>URL de Seguimiento (opcional)</label>
-                <input type="url" id="shipping-url" placeholder="https://...">
+                <label>Carrier (auto-detectado)</label>
+                <input type="text" id="shipping-carrier" placeholder="Se detecta automáticamente" readonly style="background:#1a1a1a;">
             </div>
             
             <div class="form-group">
-                <label>Fecha estimada de entrega</label>
+                <label>URL de Seguimiento (auto-generada)</label>
+                <input type="url" id="shipping-url" placeholder="Se genera automáticamente con 17Track" readonly style="background:#1a1a1a;">
+            </div>
+            
+            <div class="form-group">
+                <label>Fecha estimada de entrega (auto-calculada)</label>
                 <input type="date" id="shipping-estimated">
+                <div id="delivery-range" style="font-size:11px; color:#888; margin-top:4px;"></div>
             </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeModal('shipping-modal')">Cancelar</button>
             <button type="button" class="btn btn-primary" onclick="saveShipping()">💾 Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Importar Trackings Masivo -->
+<div id="import-tracking-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:550px;">
+        <div class="modal-header">
+            <h3>📥 Importar Trackings de AliExpress/DSers</h3>
+            <button class="modal-close" onclick="closeModal('import-tracking-modal')">×</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:#888; font-size:13px; margin-bottom:15px;">
+                Pega los trackings que recibiste de DSers/AliExpress. Formato: <code>OrderID,TrackingNumber</code> (una línea por pedido)
+            </p>
+            
+            <div class="form-group">
+                <label>Pegar trackings (CSV o texto)</label>
+                <textarea id="import-tracking-content" rows="8" placeholder="Ejemplo:
+67890abc123,LP00123456789CN
+67890abc456,LX00987654321CN
+67890abc789,RB123456789CN" style="font-family:monospace; font-size:12px;"></textarea>
+            </div>
+            
+            <div style="background:rgba(59,130,246,0.1); padding:12px; border-radius:8px; font-size:12px; color:#3b82f6;">
+                <strong>💡 Tip:</strong> En DSers, ve a "Orders" → "Export" para obtener el CSV con trackings.
+                El sistema detectará automáticamente el carrier (Cainiao, China Post, etc.) y calculará la fecha estimada.
+            </div>
+            
+            <div id="import-tracking-results" style="display:none; margin-top:15px; padding:12px; border-radius:8px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('import-tracking-modal')">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="importTrackings()">📥 Importar Trackings</button>
         </div>
     </div>
 </div>

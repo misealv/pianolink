@@ -1120,6 +1120,9 @@ function openShippingModal(kitId) {
     const kit = allKitsData.find(k => k._id === kitId);
     if (!kit) return;
     
+    // Guardar país para auto-complete
+    window.currentShippingCountry = kit.shipping?.address?.country || kit.country || 'CL';
+    
     document.getElementById('shipping-kit-id').value = kitId;
     document.getElementById('shipping-client-name').textContent = kit.clientId?.name || 'Cliente';
     document.getElementById('shipping-client-address').textContent = 
@@ -1130,13 +1133,85 @@ function openShippingModal(kitId) {
     document.getElementById('shipping-tracking').value = kit.shipping?.trackingNumber || '';
     document.getElementById('shipping-url').value = kit.shipping?.trackingUrl || '';
     
+    // Limpiar detección previa
+    document.getElementById('tracking-detected').style.display = 'none';
+    document.getElementById('delivery-range').textContent = '';
+    
     if (kit.shipping?.estimatedDelivery) {
         document.getElementById('shipping-estimated').value = 
             new Date(kit.shipping.estimatedDelivery).toISOString().split('T')[0];
+    } else {
+        document.getElementById('shipping-estimated').value = '';
     }
     
     document.querySelectorAll('.actions-dropdown').forEach(m => m.style.display = 'none');
     openModal('shipping-modal');
+}
+
+/**
+ * Auto-completar tracking: detecta carrier, genera URL y calcula fecha
+ */
+async function autoCompleteTracking() {
+    const trackingNumber = document.getElementById('shipping-tracking').value.trim();
+    
+    if (!trackingNumber) {
+        showNotification('Ingresa el número de tracking primero', 'warning');
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/welcome-kit/admin/shipping/auto-complete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userSession.token}`
+            },
+            body: JSON.stringify({
+                trackingNumber,
+                countryCode: window.currentShippingCountry || 'CL'
+            })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+            const data = result.data;
+            
+            // Llenar campos
+            document.getElementById('shipping-carrier').value = data.carrierLabel;
+            document.getElementById('shipping-url').value = data.trackingUrl;
+            document.getElementById('shipping-estimated').value = 
+                new Date(data.estimatedDelivery).toISOString().split('T')[0];
+            
+            // Cambiar estado a "Enviado" automáticamente
+            document.getElementById('shipping-status').value = 'shipped';
+            
+            // Mostrar info detectada
+            const detectedDiv = document.getElementById('tracking-detected');
+            detectedDiv.innerHTML = `
+                <div style="color:#22c55e; font-weight:600; margin-bottom:4px;">✓ Tracking detectado</div>
+                <div>📦 <strong>${data.carrierLabel}</strong></div>
+                <div>📅 Entrega estimada: <strong>${data.deliveryRange}</strong></div>
+                <div style="margin-top:6px;">
+                    <a href="${data.trackingUrl}" target="_blank" style="color:#3b82f6;">
+                        🔗 Ver en 17Track →
+                    </a>
+                </div>
+            `;
+            detectedDiv.style.display = 'block';
+            
+            // Mostrar rango de días
+            document.getElementById('delivery-range').textContent = 
+                `⏱️ Aprox. ${data.deliveryRange} a ${window.currentShippingCountry || 'destino'}`;
+            
+            showNotification('Tracking detectado correctamente', 'success');
+        } else {
+            showNotification(result.error || 'Error detectando tracking', 'error');
+        }
+    } catch (error) {
+        console.error('Error auto-complete:', error);
+        showNotification('Error de conexión', 'error');
+    }
 }
 
 async function saveShipping() {
@@ -4468,7 +4543,70 @@ async function saveEditedProduct(productId) {
 }
 
 function syncDSersOrders() {
-    showNotification('Sincronización de tracking en desarrollo', 'info');
+    // Ahora redirige al modal de importar
+    openImportTrackingModal();
+}
+
+function openImportTrackingModal() {
+    document.getElementById('import-tracking-content').value = '';
+    document.getElementById('import-tracking-results').style.display = 'none';
+    openModal('import-tracking-modal');
+}
+
+async function importTrackings() {
+    const content = document.getElementById('import-tracking-content').value.trim();
+    
+    if (!content) {
+        showNotification('Pega el contenido del CSV o los trackings', 'warning');
+        return;
+    }
+    
+    const resultsDiv = document.getElementById('import-tracking-results');
+    resultsDiv.innerHTML = '<div style="color:#888;">⏳ Importando...</div>';
+    resultsDiv.style.display = 'block';
+    
+    try {
+        const res = await fetch('/api/welcome-kit/admin/dsers/import-tracking', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userSession.token}`
+            },
+            body: JSON.stringify({ csvContent: content })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+            resultsDiv.innerHTML = `
+                <div style="background:rgba(34,197,94,0.15); padding:12px; border-radius:8px;">
+                    <div style="color:#22c55e; font-weight:600; margin-bottom:8px;">✅ Importación completada</div>
+                    <div style="color:#fff;">• <strong>${result.results.updated}</strong> órdenes actualizadas</div>
+                    ${result.results.notFound > 0 ? `<div style="color:#f59e0b;">• ${result.results.notFound} órdenes no encontradas</div>` : ''}
+                    ${result.results.errors.length > 0 ? `<div style="color:#ef4444; font-size:11px; margin-top:8px;">${result.results.errors.slice(0,3).join('<br>')}</div>` : ''}
+                </div>
+            `;
+            
+            showNotification(`${result.results.updated} trackings importados`, 'success');
+            
+            // Recargar lista de órdenes
+            loadKitOrdersList();
+            loadWelcomeKitsModule();
+        } else {
+            resultsDiv.innerHTML = `
+                <div style="background:rgba(239,68,68,0.15); padding:12px; border-radius:8px; color:#ef4444;">
+                    ❌ Error: ${result.error}
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error importando:', error);
+        resultsDiv.innerHTML = `
+            <div style="background:rgba(239,68,68,0.15); padding:12px; border-radius:8px; color:#ef4444;">
+                ❌ Error de conexión
+            </div>
+        `;
+    }
 }
 
 // ==================== CERRAR MODALES CON ESC ====================
