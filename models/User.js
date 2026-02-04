@@ -127,6 +127,17 @@ const userSchema = mongoose.Schema({
   paypalOrderId: {
     type: String
   },
+  
+  // ==================== HISTORIAL DE PAGOS MANUALES ====================
+  paymentHistory: [{
+    amount: { type: Number, required: true },
+    currency: { type: String, default: 'CLP' },
+    method: { type: String, default: 'manual' }, // transfer, cash, other, manual
+    notes: { type: String, default: '' },
+    classes: { type: Number, default: 0 },
+    studentName: { type: String, default: '' },
+    date: { type: Date, default: Date.now }
+  }],
 
   slug: { type: String, unique: true, sparse: true },
 

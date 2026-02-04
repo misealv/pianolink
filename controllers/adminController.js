@@ -200,7 +200,16 @@ exports.createClient = async (req, res) => {
                 level: studentData.level || 'beginner',
                 source: 'platform',
                 assignedTeacher: assignedTeacher || null
-            } : undefined
+            } : undefined,
+            // Registrar pago inicial si existe
+            paymentHistory: paymentInfo && paymentInfo.amount ? [{
+                amount: paymentInfo.amount,
+                currency: paymentInfo.currency || 'CLP',
+                method: paymentInfo.method || 'transferencia',
+                notes: paymentInfo.notes || '',
+                classes: classesRemaining || 0,
+                date: new Date()
+            }] : []
         });
         
         await newClient.save();
@@ -209,8 +218,7 @@ exports.createClient = async (req, res) => {
         
         // Log del pago manual si existe
         if (paymentInfo && paymentInfo.amount) {
-            console.log(`💵 Pago manual registrado: $${paymentInfo.amount} via ${paymentInfo.method}`);
-            // Aquí podrías crear un registro de pago en otra colección si lo deseas
+            console.log(`💵 Pago registrado: $${paymentInfo.amount} via ${paymentInfo.method}`);
         }
         
         res.status(201).json({ 
@@ -330,7 +338,7 @@ exports.addClassesToClient = async (req, res) => {
         if (isGuardian && studentIndex !== null && studentIndex !== undefined) {
             // Agregar clases a un hijo específico
             if (!client.clientData.managedStudents || !client.clientData.managedStudents[studentIndex]) {
-                return res.status(400).json({ message: 'Alumno no encontrado' });
+                return res.status(400).json({ message: 'Estudiante no encontrado' });
             }
             
             client.clientData.managedStudents[studentIndex].classesRemaining = 
@@ -346,12 +354,29 @@ exports.addClassesToClient = async (req, res) => {
             console.log(`➕ ${classesToAdd} clases agregadas a ${client.name}`);
         }
         
-        await client.save();
-        
-        // Log del pago si existe
+        // Registrar pago en el historial si existe
         if (payment && payment.amount) {
-            console.log(`💵 Pago registrado: $${payment.amount} via ${payment.method || 'no especificado'}`);
+            client.paymentHistory = client.paymentHistory || [];
+            
+            const studentName = isGuardian && studentIndex !== null 
+                ? client.clientData.managedStudents[studentIndex]?.name 
+                : client.name;
+            
+            client.paymentHistory.push({
+                amount: payment.amount,
+                currency: payment.currency || 'CLP',
+                method: payment.method || 'manual',
+                notes: payment.notes || `${classesToAdd} clases para ${studentName}`,
+                classes: classesToAdd,
+                studentName: studentName,
+                date: new Date()
+            });
+            
+            client.markModified('paymentHistory');
+            console.log(`💵 Pago registrado: $${payment.amount} via ${payment.method || 'manual'}`);
         }
+        
+        await client.save();
         
         res.json({ 
             success: true, 
