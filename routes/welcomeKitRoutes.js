@@ -823,11 +823,13 @@ router.post('/verify', async (req, res) => {
         // Crear o actualizar usuario
         let user = await User.findOne({ email: payerEmail?.toLowerCase() });
         let student = null;
+        let generatedMagicLinkToken = null; // Para guardar el token y usarlo en la respuesta
         
         // Generar magic link token
         const crypto = require('crypto');
         const magicLinkToken = crypto.randomBytes(32).toString('hex');
         const magicLinkExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
+        generatedMagicLinkToken = magicLinkToken; // Guardar para la respuesta
         
         if (!user && payerEmail) {
             // Password temporal aleatorio (no se usa, solo para cumplir schema)
@@ -1086,7 +1088,11 @@ router.post('/verify', async (req, res) => {
             } : null,
             students: allStudents, // Todos los estudiantes
             studentType: studentType,
-            nextSteps
+            nextSteps,
+            // Magic Link para activar cuenta (si es usuario nuevo)
+            magicLinkUrl: generatedMagicLinkToken 
+                ? `${process.env.FRONTEND_URL || 'https://pianolink.onrender.com'}/acceso/${generatedMagicLinkToken}`
+                : null
         });
         
     } catch (error) {

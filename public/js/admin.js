@@ -3716,6 +3716,7 @@ async function loadKitProductsList() {
 
 async function loadKitOrdersList() {
     const container = document.getElementById('kit-orders-list');
+    const statsContainer = document.getElementById('orders-quick-stats');
     
     try {
         const res = await fetch('/api/welcome-kit/admin/orders', {
@@ -3725,104 +3726,224 @@ async function loadKitOrdersList() {
         
         if (!data.success || !data.orders || data.orders.length === 0) {
             container.innerHTML = `
-                <div style="text-align:center; padding:60px 20px; color:#666;">
+                <div style="text-align:center; padding:60px 20px; color:#666; background:#1a1a1a;">
                     <div style="font-size:48px; margin-bottom:15px;">🧾</div>
                     <p>No hay órdenes aún</p>
+                    <p style="font-size:12px; color:#555;">Las órdenes aparecerán aquí cuando los clientes compren</p>
                 </div>
             `;
+            if (statsContainer) statsContainer.innerHTML = '';
             return;
         }
         
-        let html = '';
-        data.orders.forEach(order => {
-            const statusConfig = {
-                'pending_payment': { icon: '⏳', label: 'Pago pendiente', class: 'pending', color: '#ef4444' },
-                'pending': { icon: '💳', label: 'Por enviar', class: 'pending', color: '#f59e0b' },
-                'paid': { icon: '💳', label: 'Por enviar', class: 'pending', color: '#f59e0b' },
-                'processing': { icon: '📦', label: 'Preparando', class: 'pending', color: '#f59e0b' },
-                'shipped': { icon: '🚚', label: 'En camino', class: 'shipped', color: '#3b82f6' },
-                'delivered': { icon: '✅', label: 'Entregado', class: 'delivered', color: '#22c55e' }
-            };
-            
-            const status = statusConfig[order.shippingStatus] || statusConfig['pending'];
-            const date = new Date(order.createdAt).toLocaleDateString('es-CL');
-            
-            // Badge de confirmación del cliente
-            let clientBadge = '';
-            if (order.clientConfirmedReceipt) {
-                const confirmDate = order.clientConfirmedAt 
-                    ? new Date(order.clientConfirmedAt).toLocaleDateString('es-CL')
-                    : '';
-                clientBadge = `
-                    <div class="client-confirmed-badge" style="background:rgba(34,197,94,0.15); color:#22c55e; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
-                        ✓ Cliente confirmó recepción ${confirmDate ? `(${confirmDate})` : ''}
-                    </div>
-                `;
-            } else if (order.shippingStatus === 'shipped') {
-                clientBadge = `
-                    <div style="background:rgba(245,158,11,0.15); color:#f59e0b; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:500;">
-                        ⏳ Esperando confirmación del cliente
-                    </div>
-                `;
-            }
-            
-            // Tracking info
-            let trackingHtml = '';
-            if (order.trackingNumber) {
-                const trackingLink = order.trackingUrl 
-                    ? `<a href="${order.trackingUrl}" target="_blank" style="color:#3b82f6; text-decoration:none;">${order.trackingNumber}</a>`
-                    : order.trackingNumber;
-                trackingHtml = `
-                    <div style="font-size:12px; color:#888; margin-top:4px;">
-                        📍 ${order.carrier || 'Tracking'}: ${trackingLink}
-                    </div>
-                `;
-            }
-            
-            // Estimated delivery
-            let deliveryHtml = '';
-            if (order.estimatedDelivery && order.shippingStatus !== 'delivered') {
-                const estDate = new Date(order.estimatedDelivery).toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' });
-                deliveryHtml = `<div style="font-size:11px; color:#666; margin-top:2px;">📅 Est: ${estDate}</div>`;
-            }
-            if (order.deliveredAt) {
-                const delDate = new Date(order.deliveredAt).toLocaleDateString('es-CL');
-                deliveryHtml = `<div style="font-size:11px; color:#22c55e; margin-top:2px;">✓ Entregado: ${delDate}</div>`;
-            }
-            
-            html += `
-                <div class="order-row" style="display:grid; grid-template-columns: 40px 1fr auto auto auto; align-items:center; gap:12px; padding:14px 16px; background:#1a1a1a; border-radius:10px; border:1px solid #2a2a2a;">
-                    <div class="order-row-status" style="width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; background:${status.color}22;">
-                        ${status.icon}
-                    </div>
-                    <div class="order-row-info" style="min-width:0;">
-                        <div style="font-weight:600; color:#fff; font-size:14px;">${order.customerName}</div>
-                        <div style="font-size:12px; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            ${order.email} • ${order.city ? order.city + ', ' : ''}${order.country || 'N/A'}
-                        </div>
-                        ${trackingHtml}
-                        ${deliveryHtml}
-                        <div style="margin-top:6px;">${clientBadge}</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="font-weight:700; color:#fff; font-size:15px;">$${(order.total || 0).toFixed(2)}</div>
-                        <div style="font-size:11px; color:#666;">${date}</div>
-                    </div>
-                    <div style="padding:6px 12px; border-radius:20px; font-size:11px; font-weight:600; background:${status.color}22; color:${status.color};">
-                        ${status.label}
-                    </div>
-                    <button onclick="openShippingModal('${order._id}')" style="padding:8px 12px; background:#2a2a2a; border:none; border-radius:6px; color:#fff; cursor:pointer; font-size:12px;" title="Actualizar envío">
-                        ✏️
-                    </button>
+        // Calcular estadísticas
+        const stats = {
+            total: data.orders.length,
+            pending: data.orders.filter(o => ['pending', 'paid', 'processing'].includes(o.shippingStatus)).length,
+            shipped: data.orders.filter(o => o.shippingStatus === 'shipped').length,
+            delivered: data.orders.filter(o => o.shippingStatus === 'delivered').length,
+            revenue: data.orders.reduce((sum, o) => sum + (o.total || 0), 0)
+        };
+        
+        // Mostrar stats rápidos
+        if (statsContainer) {
+            statsContainer.innerHTML = `
+                <div style="background:#1a1a2e; padding:6px 12px; border-radius:6px; color:#888;">
+                    <span style="color:#fff; font-weight:600;">${stats.total}</span> órdenes
+                </div>
+                <div style="background:rgba(34,197,94,0.1); padding:6px 12px; border-radius:6px; color:#22c55e;">
+                    <span style="font-weight:600;">$${stats.revenue.toFixed(2)}</span> total
                 </div>
             `;
-        });
+        }
         
-        container.innerHTML = html;
+        renderOrdersTable(data.orders);
         
     } catch (error) {
         console.error('Error cargando órdenes:', error);
-        container.innerHTML = '<p style="color:#666; text-align:center; padding:40px;">Error al cargar órdenes</p>';
+        container.innerHTML = '<p style="color:#666; text-align:center; padding:40px; background:#1a1a1a;">Error al cargar órdenes</p>';
+    }
+}
+
+function renderOrdersTable(orders) {
+    const container = document.getElementById('kit-orders-list');
+    
+    const statusConfig = {
+        'pending_payment': { icon: '⏳', label: 'Pago pendiente', color: '#ef4444' },
+        'pending': { icon: '💳', label: 'Por enviar', color: '#f59e0b' },
+        'paid': { icon: '💳', label: 'Por enviar', color: '#f59e0b' },
+        'processing': { icon: '📦', label: 'Preparando', color: '#f59e0b' },
+        'shipped': { icon: '🚚', label: 'En camino', color: '#3b82f6' },
+        'delivered': { icon: '✅', label: 'Entregado', color: '#22c55e' }
+    };
+    
+    let html = '';
+    orders.forEach((order, index) => {
+        const status = statusConfig[order.shippingStatus] || statusConfig['pending'];
+        const date = new Date(order.createdAt).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
+        const isEven = index % 2 === 0;
+        
+        // Shipping info
+        let shippingHtml = '';
+        if (order.trackingNumber) {
+            const trackingLink = order.trackingUrl 
+                ? `<a href="${order.trackingUrl}" target="_blank" style="color:#3b82f6; text-decoration:none; font-weight:500;">${order.trackingNumber}</a>`
+                : `<span style="font-family:monospace;">${order.trackingNumber}</span>`;
+            
+            shippingHtml = `
+                <div style="font-size:12px;">
+                    <div style="color:#888; font-size:10px; text-transform:uppercase;">${order.carrier || 'Tracking'}</div>
+                    ${trackingLink}
+                </div>
+            `;
+            
+            // Estimated delivery
+            if (order.estimatedDelivery && order.shippingStatus !== 'delivered') {
+                const estDate = new Date(order.estimatedDelivery).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' });
+                shippingHtml += `<div style="font-size:10px; color:#666; margin-top:2px;">📅 Est: ${estDate}</div>`;
+            }
+            if (order.deliveredAt) {
+                const delDate = new Date(order.deliveredAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' });
+                shippingHtml += `<div style="font-size:10px; color:#22c55e; margin-top:2px;">✓ ${delDate}</div>`;
+            }
+        } else {
+            shippingHtml = `<span style="color:#555; font-size:11px;">Sin tracking</span>`;
+        }
+        
+        // Products info
+        const productCount = order.products?.length || 0;
+        const productNames = order.products?.map(p => p.name).join(', ') || 'Servicio';
+        const productsHtml = productCount > 0 
+            ? `<div style="font-size:12px; color:#fff;">${productCount} producto${productCount > 1 ? 's' : ''}</div>
+               <div style="font-size:10px; color:#666; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${productNames}">${productNames}</div>`
+            : `<span style="color:#666; font-size:11px;">Solo servicio</span>`;
+        
+        // Client confirmation badge
+        let confirmBadge = '';
+        if (order.clientConfirmedReceipt) {
+            confirmBadge = `<div style="width:8px; height:8px; background:#22c55e; border-radius:50%; margin-left:4px;" title="Cliente confirmó recepción"></div>`;
+        }
+        
+        // Location
+        const location = [order.city, order.country].filter(Boolean).join(', ') || 'N/A';
+        
+        html += `
+            <div class="order-row" data-order-id="${order._id}" data-status="${order.shippingStatus}" 
+                style="display:grid; grid-template-columns: 50px 1.5fr 1fr 120px 100px 90px 50px; gap:12px; align-items:center; padding:14px 16px; background:${isEven ? '#1a1a1a' : '#151515'}; border-bottom:1px solid #2a2a2a; cursor:pointer; transition:background 0.2s;"
+                onmouseover="this.style.background='#252525'" onmouseout="this.style.background='${isEven ? '#1a1a1a' : '#151515'}'"
+                onclick="toggleOrderDetails('${order._id}')">
+                
+                <!-- Status Icon -->
+                <div style="width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; background:${status.color}15; border:1px solid ${status.color}30;">
+                    ${status.icon}
+                </div>
+                
+                <!-- Cliente -->
+                <div style="min-width:0;">
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        <span style="font-weight:600; color:#fff; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${order.customerName}</span>
+                        ${confirmBadge}
+                    </div>
+                    <div style="font-size:11px; color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${order.email}</div>
+                    <div style="font-size:10px; color:#555; margin-top:2px;">📍 ${location}</div>
+                </div>
+                
+                <!-- Envío -->
+                <div style="min-width:0;">
+                    ${shippingHtml}
+                </div>
+                
+                <!-- Productos -->
+                <div>
+                    ${productsHtml}
+                </div>
+                
+                <!-- Total -->
+                <div style="text-align:right;">
+                    <div style="font-weight:700; color:#fff; font-size:14px;">$${(order.total || 0).toFixed(2)}</div>
+                    <div style="font-size:10px; color:#555;">${date}</div>
+                </div>
+                
+                <!-- Estado -->
+                <div style="padding:5px 10px; border-radius:6px; font-size:10px; font-weight:600; background:${status.color}15; color:${status.color}; text-align:center; white-space:nowrap;">
+                    ${status.label}
+                </div>
+                
+                <!-- Acciones -->
+                <button onclick="event.stopPropagation(); openShippingModal('${order._id}')" 
+                    style="padding:8px 10px; background:#2a2a2a; border:none; border-radius:6px; color:#888; cursor:pointer; font-size:12px; transition:all 0.2s;"
+                    onmouseover="this.style.background='#3b82f6'; this.style.color='#fff';" 
+                    onmouseout="this.style.background='#2a2a2a'; this.style.color='#888';"
+                    title="Actualizar envío">
+                    ✏️
+                </button>
+            </div>
+            
+            <!-- Detalles expandibles -->
+            <div id="order-details-${order._id}" class="order-details-panel" style="display:none; padding:16px 20px 16px 66px; background:#111; border-bottom:1px solid #2a2a2a;">
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px;">
+                    <!-- Info de contacto -->
+                    <div>
+                        <div style="font-size:10px; color:#666; text-transform:uppercase; margin-bottom:6px;">Contacto</div>
+                        <div style="font-size:12px; color:#fff;">${order.phone || 'Sin teléfono'}</div>
+                        <div style="font-size:11px; color:#888; margin-top:4px;">${order.email}</div>
+                    </div>
+                    
+                    <!-- Dirección -->
+                    <div>
+                        <div style="font-size:10px; color:#666; text-transform:uppercase; margin-bottom:6px;">Dirección de Envío</div>
+                        <div style="font-size:12px; color:#fff;">${order.address || 'N/A'}</div>
+                        <div style="font-size:11px; color:#888;">${[order.city, order.state, order.postalCode, order.country].filter(Boolean).join(', ')}</div>
+                    </div>
+                    
+                    <!-- Kit Type -->
+                    <div>
+                        <div style="font-size:10px; color:#666; text-transform:uppercase; margin-bottom:6px;">Tipo de Kit</div>
+                        <div style="font-size:12px; color:#fff;">${order.kitType || 'standard'}</div>
+                    </div>
+                    
+                    <!-- Confirmación cliente -->
+                    <div>
+                        <div style="font-size:10px; color:#666; text-transform:uppercase; margin-bottom:6px;">Confirmación Cliente</div>
+                        ${order.clientConfirmedReceipt 
+                            ? `<div style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:rgba(34,197,94,0.15); color:#22c55e; border-radius:6px; font-size:11px; font-weight:500;">
+                                ✓ Confirmado ${order.clientConfirmedAt ? new Date(order.clientConfirmedAt).toLocaleDateString('es-CL') : ''}
+                               </div>`
+                            : `<div style="font-size:12px; color:#666;">Pendiente</div>`
+                        }
+                    </div>
+                </div>
+                
+                <!-- Productos detallados -->
+                ${order.products && order.products.length > 0 ? `
+                    <div style="margin-top:16px; padding-top:16px; border-top:1px solid #2a2a2a;">
+                        <div style="font-size:10px; color:#666; text-transform:uppercase; margin-bottom:8px;">Productos del Kit</div>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                            ${order.products.map(p => `
+                                <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; background:#1a1a1a; border-radius:6px;">
+                                    ${p.image ? `<img src="${p.image}" style="width:24px; height:24px; object-fit:cover; border-radius:4px;">` : ''}
+                                    <span style="font-size:11px; color:#fff;">${p.name}</span>
+                                    <span style="font-size:10px; color:#666;">x${p.quantity || 1}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function toggleOrderDetails(orderId) {
+    const panel = document.getElementById(`order-details-${orderId}`);
+    if (panel) {
+        const isVisible = panel.style.display !== 'none';
+        // Cerrar todos los demás
+        document.querySelectorAll('.order-details-panel').forEach(p => p.style.display = 'none');
+        // Toggle este
+        panel.style.display = isVisible ? 'none' : 'block';
     }
 }
 
@@ -3850,7 +3971,7 @@ async function loadKitOrdersListFiltered(filter = 'all') {
         
         if (!data.success || !data.orders || data.orders.length === 0) {
             container.innerHTML = `
-                <div style="text-align:center; padding:60px 20px; color:#666;">
+                <div style="text-align:center; padding:60px 20px; color:#666; background:#1a1a1a;">
                     <div style="font-size:48px; margin-bottom:15px;">🧾</div>
                     <p>No hay órdenes ${filter !== 'all' ? 'con este filtro' : 'aún'}</p>
                 </div>
@@ -3866,7 +3987,7 @@ async function loadKitOrdersListFiltered(filter = 'all') {
         
         if (orders.length === 0) {
             container.innerHTML = `
-                <div style="text-align:center; padding:60px 20px; color:#666;">
+                <div style="text-align:center; padding:60px 20px; color:#666; background:#1a1a1a;">
                     <div style="font-size:48px; margin-bottom:15px;">🧾</div>
                     <p>No hay órdenes con este filtro</p>
                 </div>
@@ -3874,96 +3995,12 @@ async function loadKitOrdersListFiltered(filter = 'all') {
             return;
         }
         
-        let html = '';
-        orders.forEach(order => {
-            const statusConfig = {
-                'pending_payment': { icon: '⏳', label: 'Pago pendiente', class: 'pending', color: '#ef4444' },
-                'pending': { icon: '💳', label: 'Por enviar', class: 'pending', color: '#f59e0b' },
-                'paid': { icon: '💳', label: 'Por enviar', class: 'pending', color: '#f59e0b' },
-                'processing': { icon: '📦', label: 'Preparando', class: 'pending', color: '#f59e0b' },
-                'shipped': { icon: '🚚', label: 'En camino', class: 'shipped', color: '#3b82f6' },
-                'delivered': { icon: '✅', label: 'Entregado', class: 'delivered', color: '#22c55e' }
-            };
-            
-            const status = statusConfig[order.shippingStatus] || statusConfig['pending'];
-            const date = new Date(order.createdAt).toLocaleDateString('es-CL');
-            
-            // Badge de confirmación del cliente
-            let clientBadge = '';
-            if (order.clientConfirmedReceipt) {
-                const confirmDate = order.clientConfirmedAt 
-                    ? new Date(order.clientConfirmedAt).toLocaleDateString('es-CL')
-                    : '';
-                clientBadge = `
-                    <div class="client-confirmed-badge" style="background:rgba(34,197,94,0.15); color:#22c55e; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
-                        ✓ Cliente confirmó recepción ${confirmDate ? `(${confirmDate})` : ''}
-                    </div>
-                `;
-            } else if (order.shippingStatus === 'shipped') {
-                clientBadge = `
-                    <div style="background:rgba(245,158,11,0.15); color:#f59e0b; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:500;">
-                        ⏳ Esperando confirmación del cliente
-                    </div>
-                `;
-            }
-            
-            // Tracking info
-            let trackingHtml = '';
-            if (order.trackingNumber) {
-                const trackingLink = order.trackingUrl 
-                    ? `<a href="${order.trackingUrl}" target="_blank" style="color:#3b82f6; text-decoration:none;">${order.trackingNumber}</a>`
-                    : order.trackingNumber;
-                trackingHtml = `
-                    <div style="font-size:12px; color:#888; margin-top:4px;">
-                        📍 ${order.carrier || 'Tracking'}: ${trackingLink}
-                    </div>
-                `;
-            }
-            
-            // Estimated delivery
-            let deliveryHtml = '';
-            if (order.estimatedDelivery && order.shippingStatus !== 'delivered') {
-                const estDate = new Date(order.estimatedDelivery).toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' });
-                deliveryHtml = `<div style="font-size:11px; color:#666; margin-top:2px;">📅 Est: ${estDate}</div>`;
-            }
-            if (order.deliveredAt) {
-                const delDate = new Date(order.deliveredAt).toLocaleDateString('es-CL');
-                deliveryHtml = `<div style="font-size:11px; color:#22c55e; margin-top:2px;">✓ Entregado: ${delDate}</div>`;
-            }
-            
-            html += `
-                <div class="order-row" style="display:grid; grid-template-columns: 40px 1fr auto auto auto; align-items:center; gap:12px; padding:14px 16px; background:#1a1a1a; border-radius:10px; border:1px solid #2a2a2a;">
-                    <div class="order-row-status" style="width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; background:${status.color}22;">
-                        ${status.icon}
-                    </div>
-                    <div class="order-row-info" style="min-width:0;">
-                        <div style="font-weight:600; color:#fff; font-size:14px;">${order.customerName}</div>
-                        <div style="font-size:12px; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            ${order.email} • ${order.city ? order.city + ', ' : ''}${order.country || 'N/A'}
-                        </div>
-                        ${trackingHtml}
-                        ${deliveryHtml}
-                        <div style="margin-top:6px;">${clientBadge}</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="font-weight:700; color:#fff; font-size:15px;">$${(order.total || 0).toFixed(2)}</div>
-                        <div style="font-size:11px; color:#666;">${date}</div>
-                    </div>
-                    <div style="padding:6px 12px; border-radius:20px; font-size:11px; font-weight:600; background:${status.color}22; color:${status.color};">
-                        ${status.label}
-                    </div>
-                    <button onclick="openShippingModal('${order._id}')" style="padding:8px 12px; background:#2a2a2a; border:none; border-radius:6px; color:#fff; cursor:pointer; font-size:12px;" title="Actualizar envío">
-                        ✏️
-                    </button>
-                </div>
-            `;
-        });
-        
-        container.innerHTML = html;
+        // Usar la misma función de renderizado
+        renderOrdersTable(orders);
         
     } catch (error) {
         console.error('Error cargando órdenes:', error);
-        container.innerHTML = '<p style="color:#666; text-align:center; padding:40px;">Error al cargar órdenes</p>';
+        container.innerHTML = '<p style="color:#666; text-align:center; padding:40px; background:#1a1a1a;">Error al cargar órdenes</p>';
     }
 }
 

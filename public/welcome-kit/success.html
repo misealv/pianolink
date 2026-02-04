@@ -306,19 +306,49 @@
             <div class="card">
                 <h2>📧 Revisa tu correo</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                    Te hemos enviado un email de bienvenida con los detalles de tu compra y los próximos pasos.
+                    Te hemos enviado un email de bienvenida con los detalles de tu compra.
                 </p>
                 
-                <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                    <h3 style="color: var(--primary); margin: 0 0 10px 0; font-size: 16px;">🔐 Tu cuenta está lista</h3>
-                    <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">
-                        Inicia sesión con el email que usaste para la compra. Tu contraseña temporal está en el correo de bienvenida.
+                <!-- Magic Link directo (se llena con JS) -->
+                <div id="magic-link-section" style="display: none;">
+                    <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(34, 197, 94, 0.1)); border: 2px solid rgba(99, 102, 241, 0.4); border-radius: 16px; padding: 24px; margin-bottom: 20px; text-align: center;">
+                        <h3 style="color: var(--primary); margin: 0 0 12px 0; font-size: 18px;">🔗 ¡Activa tu cuenta ahora!</h3>
+                        <p style="color: var(--text-secondary); margin: 0 0 16px 0; font-size: 14px;">
+                            Haz clic en el botón para crear tu contraseña y acceder a tu panel:
+                        </p>
+                        <a id="magic-link-button" href="#" class="btn btn-primary" style="display: inline-block; padding: 16px 32px; font-size: 16px; font-weight: 600; border-radius: 12px; text-decoration: none; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);">
+                            ✨ Activar mi cuenta
+                        </a>
+                        <p style="color: var(--text-muted); margin: 12px 0 0 0; font-size: 12px;">
+                            También te enviamos este enlace a tu correo
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Fallback si no hay magic link -->
+                <div id="no-magic-link-section">
+                    <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <h3 style="color: var(--primary); margin: 0 0 10px 0; font-size: 16px;">🔗 Acceso con Link Mágico</h3>
+                        <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">
+                            En tu correo encontrarás un <strong>enlace especial</strong> para crear tu contraseña y activar tu cuenta.
+                        </p>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+                    <p style="color: #22c55e; margin: 0; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 18px;">💡</span>
+                        <span>El enlace es válido por <strong>7 días</strong>. Si no lo encuentras, revisa tu carpeta de spam.</span>
                     </p>
                 </div>
                 
-                <a href="/login" class="btn btn-primary" style="width: 100%; padding: 16px; font-size: 18px;">
-                    🚀 Iniciar sesión en mi panel
+                <a href="/login" class="btn btn-secondary" style="width: 100%; padding: 14px; font-size: 16px;">
+                    Ya tengo cuenta - Iniciar sesión
                 </a>
+                
+                <p style="text-align: center; margin-top: 12px; font-size: 13px; color: var(--text-muted);">
+                    ¿No recibiste el correo? <a href="/recuperar-password" style="color: var(--primary);">Solicitar nuevo enlace</a>
+                </p>
             </div>
             
             <div style="margin-top: 20px;">
@@ -438,6 +468,21 @@
                         // Actualizar nota de WhatsApp
                         document.querySelector('.whatsapp-note').innerHTML = 
                             '📱 Te contactaremos por <strong>WhatsApp</strong> para agendar tu sesión de Setup + Clase de prueba.';
+                    }
+                    
+                    // Mostrar Magic Link si está disponible (usuarios nuevos)
+                    if (data.magicLinkUrl) {
+                        const magicLinkSection = document.getElementById('magic-link-section');
+                        const noMagicLinkSection = document.getElementById('no-magic-link-section');
+                        const magicLinkButton = document.getElementById('magic-link-button');
+                        
+                        if (magicLinkSection && magicLinkButton) {
+                            magicLinkButton.href = data.magicLinkUrl;
+                            magicLinkSection.style.display = 'block';
+                            if (noMagicLinkSection) {
+                                noMagicLinkSection.style.display = 'none';
+                            }
+                        }
                     }
                     
                     // Guardar datos en localStorage para el dashboard
