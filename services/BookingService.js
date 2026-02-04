@@ -84,8 +84,10 @@ class BookingService {
             // 3. Descontar clase del saldo
             if (payer.role === 'client' && payer.clientData?.accountType === 'guardian') {
                 // Descontar del estudiante específico
+                const student = await User.findById(studentId).select('name');
+                const studentName = student?.name?.toLowerCase() || '';
                 const studentIndex = payer.clientData.managedStudents.findIndex(
-                    s => s.name.toLowerCase() === (await User.findById(studentId))?.name?.toLowerCase()
+                    s => s.name.toLowerCase() === studentName
                 );
                 if (studentIndex >= 0) {
                     payer.clientData.managedStudents[studentIndex].classesRemaining--;
