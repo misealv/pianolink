@@ -46,11 +46,11 @@
                 </div>
             </div>
             
-            <!-- Alumnos -->
+            <!-- Estudiantes -->
             <div class="nav-section">
-                <div class="nav-section-title">Alumnos</div>
+                <div class="nav-section-title">Estudiantes</div>
                 <div class="nav-item" data-module="students" onclick="switchModule('students')">
-                    <span class="icon">👨‍🎓</span> Gestión
+                    <span class="icon">👨‍🎓</span> Ver Lista
                 </div>
             </div>
             
@@ -327,14 +327,23 @@
                 </div>
             </div>
 
-            <!-- ==================== ALUMNOS ==================== -->
+            <!-- ==================== ESTUDIANTES ==================== -->
             <div id="module-students" class="module-view">
+                <!-- Info Banner -->
+                <div style="background:linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding:15px 20px; border-radius:12px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="color:white;">
+                        <div style="font-weight:600; font-size:16px;">📋 Vista de Estudiantes</div>
+                        <div style="font-size:13px; opacity:0.9;">Para crear nuevos estudiantes, ve a la sección Clientes</div>
+                    </div>
+                    <button class="btn" onclick="switchModule('clients')" style="background:white; color:#3b82f6; font-weight:600;">➕ Crear en Clientes</button>
+                </div>
+                
                 <!-- Stats -->
                 <div class="dashboard-grid">
                     <div class="stat-card accent-blue">
                         <div class="stat-icon">👨‍🎓</div>
                         <div class="stat-value" id="stat-students-total">0</div>
-                        <div class="stat-label">Total Alumnos</div>
+                        <div class="stat-label">Total Estudiantes</div>
                     </div>
                     <div class="stat-card accent-green">
                         <div class="stat-icon">✅</div>
@@ -364,9 +373,8 @@
                     </div>
                     <div class="search-box">
                         <span>🔍</span>
-                        <input type="text" id="search-students" placeholder="Buscar alumno..." oninput="searchStudents()">
+                        <input type="text" id="search-students" placeholder="Buscar estudiante..." oninput="searchStudents()">
                     </div>
-                    <button class="btn btn-primary" onclick="openCreateStudentModal()">➕ Nuevo Alumno</button>
                 </div>
                 
                 <!-- Table -->
@@ -775,7 +783,7 @@
                                 <thead>
                                     <tr>
                                         <th>Fecha</th>
-                                        <th>Alumno</th>
+                                        <th>Estudiante</th>
                                         <th>Profesor</th>
                                         <th>Monto</th>
                                         <th>Proveedor</th>
@@ -808,7 +816,7 @@
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Alumno</th>
+                                        <th>Estudiante</th>
                                         <th>Profesor</th>
                                         <th>Monto</th>
                                         <th>Proveedor</th>
@@ -1045,7 +1053,7 @@
                             <div class="beneficiary-row" style="display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:10px;">
                                 <div>
                                     <label style="font-size:11px; color:var(--text-muted);">Nombre</label>
-                                    <input type="text" class="beneficiary-name" placeholder="Nombre del alumno">
+                                    <input type="text" class="beneficiary-name" placeholder="Nombre del estudiante">
                                 </div>
                                 <div>
                                     <label style="font-size:11px; color:var(--text-muted);">Edad</label>
@@ -1063,7 +1071,7 @@
                             </div>
                         </div>
                         <button type="button" class="btn btn-secondary" onclick="addBeneficiary()" style="width:100%; margin-top:5px;">
-                            ➕ Agregar otro alumno
+                            ➕ Agregar otro estudiante
                         </button>
                     </div>
                     
@@ -1279,11 +1287,11 @@
     </div>
 </div>
 
-<!-- Crear/Editar Alumno -->
+<!-- Modal de Editar Estudiante (solo edición, no creación) -->
 <div id="create-student-modal" class="modal-overlay">
     <div class="modal-content" style="max-width:500px;">
         <div class="modal-header">
-            <h3 id="student-modal-title">➕ Nuevo Alumno</h3>
+            <h3 id="student-modal-title">✏️ Editar Estudiante</h3>
             <button class="modal-close" onclick="closeModal('create-student-modal')">×</button>
         </div>
         <form id="create-student-form" onsubmit="createStudent(event)">
@@ -1297,7 +1305,7 @@
                     <input type="email" id="student-email" required>
                 </div>
                 <div class="form-group">
-                    <label>Contraseña (dejar vacío para mantener actual)</label>
+                    <label>Nueva contraseña (dejar vacío para mantener actual)</label>
                     <input type="password" id="student-password" placeholder="Mínimo 6 caracteres">
                 </div>
                 <div class="form-group">
@@ -1309,17 +1317,17 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('create-student-modal')">Cancelar</button>
-                <button type="submit" class="btn btn-primary">💾 Guardar</button>
+                <button type="submit" class="btn btn-primary">💾 Guardar Cambios</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Ver Detalles Alumno -->
+<!-- Ver Detalles Estudiante -->
 <div id="view-student-modal" class="modal-overlay">
     <div class="modal-content" style="max-width:550px;">
         <div class="modal-header">
-            <h3>📋 Detalles del Alumno</h3>
+            <h3>📋 Detalles del Estudiante</h3>
             <button class="modal-close" onclick="closeModal('view-student-modal')">×</button>
         </div>
         <div class="modal-body">
@@ -1366,7 +1374,7 @@
         </div>
         <div class="modal-body">
             <div style="background:var(--bg-dark); padding:12px; border-radius:6px; margin-bottom:15px;">
-                <span style="color:var(--text-muted);">Alumno:</span>
+                <span style="color:var(--text-muted);">Estudiante:</span>
                 <strong id="assign-student-name" style="color:var(--text-primary); margin-left:5px;"></strong>
             </div>
             <div class="form-group">
@@ -1383,7 +1391,7 @@
     </div>
 </div>
 
-<!-- Enviar Mensaje a Alumno -->
+<!-- Enviar Mensaje a Estudiante -->
 <div id="student-message-modal" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
@@ -1469,7 +1477,7 @@
                 
                 <!-- Sección para ADULTO que estudia -->
                 <div id="client-individual-section" style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:15px;">
-                    <h4 style="color:#3b82f6; margin:0 0 15px 0; font-size:14px;">🎹 Datos de Alumno (el mismo cliente)</h4>
+                    <h4 style="color:#3b82f6; margin:0 0 15px 0; font-size:14px;">🎹 Datos del Estudiante (el mismo cliente)</h4>
                     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
                         <div class="form-group">
                             <label>Edad</label>
@@ -1492,7 +1500,7 @@
                 
                 <!-- Sección para APODERADO con hijos -->
                 <div id="client-guardian-section" style="display:none; background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:15px;">
-                    <h4 style="color:#a855f7; margin:0 0 15px 0; font-size:14px;">👶 Hijos / Alumnos Dependientes</h4>
+                    <h4 style="color:#a855f7; margin:0 0 15px 0; font-size:14px;">👶 Hijos / Estudiantes Dependientes</h4>
                     <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;">
                         Agrega los hijos que tomarán las clases. El apoderado será quien pague y gestione.
                     </p>
@@ -1502,7 +1510,7 @@
                     </div>
                     
                     <button type="button" class="btn btn-secondary" onclick="addChildRow()" style="width:100%; margin-top:10px;">
-                        ➕ Agregar Hijo/Alumno
+                        ➕ Agregar Hijo/Estudiante
                     </button>
                 </div>
                 
@@ -1574,10 +1582,10 @@
                 </div>
             </div>
             
-            <!-- Alumnos/Hijos -->
+            <!-- Estudiantes/Hijos -->
             <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:15px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                    <h4 style="color:#a855f7; margin:0; font-size:14px;">👶 Alumnos</h4>
+                    <h4 style="color:#a855f7; margin:0; font-size:14px;">👶 Estudiantes</h4>
                     <button class="btn btn-small" onclick="openAddClassesModal()" style="font-size:11px; padding:5px 10px;">
                         ➕ Agregar Clases
                     </button>
@@ -1620,7 +1628,7 @@
             </div>
             
             <div class="form-group">
-                <label>Alumno que recibirá las clases</label>
+                <label>Estudiante que recibirá las clases</label>
                 <select id="add-classes-student-select">
                     <!-- Se llena dinámicamente -->
                 </select>
@@ -1670,11 +1678,11 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label>Nombre *</label>
-                    <input type="text" id="product-name" required placeholder="Ej: Suscripción Mensual Alumno">
+                    <input type="text" id="product-name" required placeholder="Ej: Suscripción Mensual Estudiante">
                 </div>
                 <div class="form-group">
                     <label>Slug (URL) *</label>
-                    <input type="text" id="product-slug" required placeholder="ej: sub-alumno-mensual">
+                    <input type="text" id="product-slug" required placeholder="ej: sub-estudiante-mensual">
                 </div>
                 <div class="form-group">
                     <label>Descripción</label>
@@ -1691,7 +1699,7 @@
                     <div class="form-group">
                         <label>Dirigido a *</label>
                         <select id="product-target" required>
-                            <option value="student">Alumno</option>
+                            <option value="student">Estudiante</option>
                             <option value="teacher">Profesor</option>
                         </select>
                     </div>
@@ -1748,10 +1756,10 @@
         </div>
         <div class="modal-body">
             <div style="background:rgba(255,82,82,0.1); border:1px solid rgba(255,82,82,0.3); padding:15px; border-radius:8px; margin-bottom:15px;">
-                <p style="color:#ff5252; margin:0;">Esta acción cancelará la suscripción y el acceso del alumno.</p>
+                <p style="color:#ff5252; margin:0;">Esta acción cancelará la suscripción y el acceso del estudiante.</p>
             </div>
             <div style="background:var(--bg-dark); padding:12px; border-radius:6px; margin-bottom:15px;">
-                <div style="color:var(--text-muted); font-size:12px;">Alumno:</div>
+                <div style="color:var(--text-muted); font-size:12px;">Estudiante:</div>
                 <strong id="cancel-sub-student" style="color:var(--text-primary);"></strong>
             </div>
             <div class="form-group">

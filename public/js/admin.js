@@ -42,7 +42,7 @@ function updateContentTitle(moduleName) {
         'tracking': { icon: '📈', text: 'Tracking Pixels' },
         'calendar': { icon: '📅', text: 'Google Calendar' },
         'teachers': { icon: '👨‍🏫', text: 'Profesores' },
-        'students': { icon: '👨‍🎓', text: 'Alumnos' },
+        'students': { icon: '👨‍🎓', text: 'Estudiantes' },
         'clients': { icon: '👨‍👧‍👦', text: 'Clientes / Apoderados' },
         'payments': { icon: '💰', text: 'Pagos' },
         'welcome-kits': { icon: '📦', text: 'Welcome Kits' }
@@ -472,7 +472,7 @@ function addBeneficiary() {
     newRow.innerHTML = `
         <div>
             <label style="font-size:11px; color:var(--text-muted);">Nombre</label>
-            <input type="text" class="beneficiary-name" placeholder="Nombre del alumno">
+            <input type="text" class="beneficiary-name" placeholder="Nombre del estudiante">
         </div>
         <div>
             <label style="font-size:11px; color:var(--text-muted);">Edad</label>
@@ -1585,7 +1585,7 @@ async function savePricing() {
     }
 }
 
-// ==================== ALUMNOS ====================
+// ==================== ESTUDIANTES ====================
 let allStudentsData = [];
 let currentStudentFilter = 'all';
 let currentStudentId = null;
@@ -1609,8 +1609,8 @@ async function loadStudents() {
         
         renderStudentsTable(students);
     } catch (error) {
-        console.error('Error cargando alumnos:', error);
-        showNotification('Error cargando alumnos', 'error');
+        console.error('Error cargando estudiantes:', error);
+        showNotification('Error cargando estudiantes', 'error');
     }
 }
 
@@ -1618,7 +1618,7 @@ function renderStudentsTable(students) {
     const tbody = document.getElementById('students-table-body');
     
     if (!students || students.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:#666;">No hay alumnos registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:#666;">No hay estudiantes registrados</td></tr>';
         return;
     }
     
@@ -1728,17 +1728,10 @@ function searchStudents() {
 }
 
 async function openCreateStudentModal() {
-    currentStudentId = null;
-    document.getElementById('student-modal-title').textContent = '➕ Nuevo Alumno';
-    document.getElementById('student-name').value = '';
-    document.getElementById('student-email').value = '';
-    document.getElementById('student-password').value = '';
-    document.getElementById('student-password').placeholder = 'Mínimo 6 caracteres';
-    
-    // Load teachers for dropdown
-    await loadTeachersDropdown('student-teacher');
-    
-    openModal('create-student-modal');
+    // Redirigir a crear desde Clientes
+    showNotification('Para crear estudiantes, usa la sección Clientes', 'info');
+    switchModule('clients');
+    setTimeout(() => openCreateClientModal(), 300);
 }
 
 async function loadTeachersDropdown(selectId) {
@@ -1786,7 +1779,7 @@ async function createStudent(event) {
             if (res.ok) {
                 closeModal('create-student-modal');
                 loadStudents();
-                showNotification('Alumno actualizado', 'success');
+                showNotification('Estudiante actualizado', 'success');
             } else {
                 const data = await res.json();
                 showNotification(data.message || 'Error actualizando', 'error');
@@ -1807,7 +1800,7 @@ async function createStudent(event) {
             if (res.ok) {
                 closeModal('create-student-modal');
                 loadStudents();
-                showNotification('Alumno creado exitosamente', 'success');
+                showNotification('Estudiante creado exitosamente', 'success');
             } else {
                 const data = await res.json();
                 showNotification(data.message || 'Error creando', 'error');
@@ -1824,7 +1817,7 @@ function editStudent(studentId) {
     if (!student) return;
     
     currentStudentId = studentId;
-    document.getElementById('student-modal-title').textContent = '✏️ Editar Alumno';
+    document.getElementById('student-modal-title').textContent = '✏️ Editar Estudiante';
     document.getElementById('student-name').value = student.name;
     document.getElementById('student-email').value = student.email;
     document.getElementById('student-password').value = '';
@@ -1958,7 +1951,7 @@ async function deleteStudent(studentId) {
         
         if (res.ok) {
             loadStudents();
-            showNotification('Alumno eliminado', 'success');
+            showNotification('Estudiante eliminado', 'success');
         } else {
             showNotification('Error eliminando', 'error');
         }
@@ -2260,7 +2253,7 @@ function renderProductsGrid(products) {
                     $${p.price?.toFixed(2) || '0.00'} <small>${p.currency || 'USD'}${interval}</small>
                 </div>
                 <div class="product-meta">
-                    <div>👤 Para: <strong>${p.targetRole === 'teacher' ? 'Profesores' : 'Alumnos'}</strong></div>
+                    <div>👤 Para: <strong>${p.targetRole === 'teacher' ? 'Profesores' : 'Estudiantes'}</strong></div>
                     <div>🔗 Slug: <code style="background:var(--bg-dark); padding:2px 6px; border-radius:3px;">${p.slug}</code></div>
                     ${p.paypalProductId ? '<div style="color:#4fc3f7;">✓ Sincronizado con PayPal</div>' : ''}
                 </div>
