@@ -250,6 +250,25 @@
             color: var(--accent);
         }
 
+        .btn-sm {
+            padding: 8px 14px;
+            font-size: 12px;
+            border-radius: 6px;
+            background: var(--accent);
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .btn-sm:hover {
+            background: #ff9f7e;
+        }
+
+        .btn-sm.btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
         /* Payment Status */
         .payment-status {
             background: var(--card);
@@ -620,6 +639,221 @@
             font-weight: 500;
         }
 
+        /* Modal Agendar */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .teacher-card {
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.2s;
+        }
+
+        .teacher-card:hover {
+            border-color: var(--accent);
+        }
+
+        .teacher-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #ff9a7c);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .teacher-info {
+            flex: 1;
+        }
+
+        .teacher-info h4 {
+            margin: 0 0 4px 0;
+            font-size: 15px;
+        }
+
+        .teacher-info small {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .slots-badge {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .day-group {
+            margin-bottom: 20px;
+        }
+
+        .day-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 10px;
+            text-transform: capitalize;
+        }
+
+        .slots-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .slot-btn {
+            background: var(--bg);
+            border: 2px solid var(--border);
+            color: var(--text);
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .slot-btn:hover {
+            border-color: var(--accent);
+        }
+
+        .slot-btn.selected {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .confirm-box {
+            background: rgba(34, 197, 94, 0.1);
+            border: 2px solid var(--success);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .confirm-box h4 {
+            margin: 0 0 8px 0;
+            color: var(--success);
+        }
+
+        .confirm-box p {
+            margin: 0 0 16px 0;
+            font-size: 16px;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .checkbox-row input {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-confirm {
+            width: 100%;
+            background: var(--success);
+            border: none;
+            color: white;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-confirm:hover:not(:disabled) {
+            background: #1ea550;
+        }
+
+        .btn-confirm:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-back {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
         /* Responsive */
         @media (max-width: 600px) {
             .header {
@@ -677,12 +911,77 @@
         </div>
     </main>
 
+    <!-- Modal Agendar Clase -->
+    <div class="modal-overlay" id="scheduleModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📅 Agendar Clase</h2>
+                <button class="modal-close" onclick="closeScheduleModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-muted); margin-bottom: 20px;" id="bookingForText">
+                    Selecciona un profesor y horario
+                </p>
+                
+                <!-- Step 1: Profesores -->
+                <div id="teacherStep">
+                    <h4 style="margin-bottom: 16px; font-size: 14px; color: var(--text-muted);">
+                        Paso 1: Elige un profesor
+                    </h4>
+                    <div id="teachersList">
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                            <p>Buscando profesores disponibles...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Horarios -->
+                <div id="slotStep" style="display: none;">
+                    <button class="btn-back" onclick="backToTeachers()">← Cambiar profesor</button>
+                    <h4 style="margin-bottom: 16px; font-size: 14px; color: var(--text-muted);">
+                        Paso 2: Elige un horario
+                    </h4>
+                    <p id="selectedTeacherText" style="margin-bottom: 16px;"></p>
+                    <div id="slotsList">
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                            <p>Cargando horarios...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Confirmación -->
+                <div id="confirmStep" style="display: none;">
+                    <div class="confirm-box">
+                        <h4>✓ Horario seleccionado</h4>
+                        <p id="selectedSlotText"></p>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="midiConfirm" onchange="toggleConfirmBtn()">
+                            Tengo mi piano/teclado MIDI listo para la clase
+                        </label>
+                        <button class="btn-confirm" id="confirmBtn" onclick="confirmBooking()" disabled>
+                            Confirmar Reserva
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Verificar autenticación
         const token = localStorage.getItem('token');
         if (!token) {
             window.location.href = '/login';
         }
+
+        // Variables globales para agendamiento
+        let currentTeacherId = null;
+        let selectedSlotId = null;
+        let bookingStudentId = null;
+        let bookingStudentName = null;
+        let currentUserData = null;
 
         // Cargar datos del usuario
         async function loadDashboard() {
@@ -702,6 +1001,9 @@
                 const paymentsData = await paymentsRes.json();
                 const subscription = await subscriptionRes.json();
                 const ordersData = await ordersRes.json();
+
+                // Guardar referencia para uso en agendamiento
+                currentUserData = user;
 
                 renderDashboard(user, paymentsData.payments, subscription, ordersData.orders);
             } catch (error) {
@@ -775,6 +1077,15 @@
                                     <div class="classes-count ${s.classesRemaining === 0 ? 'empty' : s.classesRemaining <= 2 ? 'low' : ''}">${s.classesRemaining}</div>
                                     <div class="classes-label">clases</div>
                                 </div>
+                                ${s.classesRemaining > 0 ? `
+                                <button class="btn btn-sm" onclick="scheduleClass('${s.name}', '${s._id}')">
+                                    📅 Agendar
+                                </button>
+                                ` : `
+                                <a href="/welcome-kit" class="btn btn-sm btn-secondary">
+                                    🛒 Comprar
+                                </a>
+                                `}
                             </div>
                         `).join('')}
                     </div>
@@ -1037,15 +1348,294 @@
             }
         }
 
-        function scheduleClass() {
-            // TODO: Implementar modal de agendar clase
-            alert('Próximamente: Sistema de agendamiento de clases.\n\nPor ahora, contáctanos por WhatsApp para agendar.');
-            contactSupport();
+        function scheduleClass(studentName = null, studentId = null) {
+            const students = currentUserData?.clientData?.managedStudents || [];
+            const isGuardian = students.length > 0;
+            
+            // Si es guardian y no especificó estudiante
+            if (isGuardian && !studentName && !studentId) {
+                // Si solo tiene un estudiante, usarlo automáticamente
+                if (students.length === 1) {
+                    bookingStudentName = students[0].name;
+                    bookingStudentId = students[0]._id;
+                } else {
+                    // Múltiples estudiantes: mostrar selección
+                    showStudentSelection(students);
+                    return;
+                }
+            } else if (studentName && studentId) {
+                bookingStudentName = studentName;
+                bookingStudentId = studentId;
+            } else if (currentUserData) {
+                // Cliente directo (no guardian)
+                bookingStudentName = currentUserData.name;
+                bookingStudentId = currentUserData._id;
+            }
+            
+            openBookingModal();
+        }
+
+        function showStudentSelection(students) {
+            const studentHtml = students.map(s => `
+                <div class="teacher-card" onclick="selectStudent('${s.name}', '${s._id}')" 
+                     style="${s.classesRemaining === 0 ? 'opacity: 0.5; pointer-events: none;' : ''}">
+                    <div class="teacher-avatar">${getInitials(s.name)}</div>
+                    <div class="teacher-info">
+                        <h4>${s.name}</h4>
+                        <small>${s.classesRemaining} clases disponibles</small>
+                    </div>
+                    ${s.classesRemaining === 0 ? '<span style="color: var(--danger);">Sin clases</span>' : ''}
+                </div>
+            `).join('');
+            
+            document.getElementById('teacherStep').innerHTML = `
+                <h3>👶 Selecciona un estudiante</h3>
+                <div id="studentsList" class="teachers-list">
+                    ${studentHtml}
+                </div>
+            `;
+            
+            document.getElementById('teacherStep').style.display = 'block';
+            document.getElementById('slotStep').style.display = 'none';
+            document.getElementById('confirmStep').style.display = 'none';
+            
+            document.getElementById('bookingForText').textContent = 'Selecciona para quién agendar';
+            document.getElementById('scheduleModal').classList.add('active');
+        }
+
+        function selectStudent(name, id) {
+            bookingStudentName = name;
+            bookingStudentId = id;
+            
+            // Restaurar el paso de profesores
+            document.getElementById('teacherStep').innerHTML = `
+                <h3>👨‍🏫 Elige tu profesor</h3>
+                <div id="teachersList" class="teachers-list"></div>
+            `;
+            
+            openBookingModal();
+        }
+
+        function openBookingModal() {
+            document.getElementById('bookingForText').textContent = 
+                `Agendar clase para ${bookingStudentName || 'tu estudiante'}`;
+            
+            // Reset modal state
+            document.getElementById('teacherStep').style.display = 'block';
+            document.getElementById('slotStep').style.display = 'none';
+            document.getElementById('confirmStep').style.display = 'none';
+            currentTeacherId = null;
+            selectedSlotId = null;
+            
+            // Mostrar modal
+            document.getElementById('scheduleModal').classList.add('active');
+            
+            // Cargar profesores
+            loadAvailableTeachers();
+        }
+
+        function closeScheduleModal() {
+            document.getElementById('scheduleModal').classList.remove('active');
+        }
+
+        async function loadAvailableTeachers() {
+            const container = document.getElementById('teachersList');
+            container.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Buscando profesores disponibles...</p>
+                </div>
+            `;
+            
+            try {
+                const res = await fetch('/api/availability/teachers');
+                const teachers = await res.json();
+                
+                if (!teachers || teachers.length === 0) {
+                    container.innerHTML = `
+                        <p style="text-align: center; color: var(--text-muted); padding: 20px;">
+                            No hay profesores con disponibilidad en este momento.<br>
+                            <button class="btn btn-secondary" style="margin-top: 16px;" onclick="contactSupport()">
+                                💬 Contactar soporte
+                            </button>
+                        </p>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = teachers.map(t => {
+                    const initials = t.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                    const nextDate = t.nextAvailable 
+                        ? new Date(t.nextAvailable).toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' })
+                        : '';
+                    
+                    return `
+                        <div class="teacher-card" onclick="selectTeacher('${t._id}', '${t.name}')">
+                            <div class="teacher-avatar">${initials}</div>
+                            <div class="teacher-info">
+                                <h4>${t.brandName || t.name}</h4>
+                                <small>Próximo: ${nextDate}</small>
+                            </div>
+                            <span class="slots-badge">${t.slotsAvailable} horarios</span>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error cargando profesores:', error);
+                container.innerHTML = `
+                    <p style="text-align: center; color: var(--danger); padding: 20px;">
+                        Error al cargar profesores. Intenta de nuevo.
+                    </p>
+                `;
+            }
+        }
+
+        function selectTeacher(teacherId, teacherName) {
+            currentTeacherId = teacherId;
+            document.getElementById('selectedTeacherText').innerHTML = 
+                `<strong>${teacherName}</strong>`;
+            
+            document.getElementById('teacherStep').style.display = 'none';
+            document.getElementById('slotStep').style.display = 'block';
+            
+            loadAvailableSlots(teacherId);
+        }
+
+        function backToTeachers() {
+            document.getElementById('teacherStep').style.display = 'block';
+            document.getElementById('slotStep').style.display = 'none';
+            document.getElementById('confirmStep').style.display = 'none';
+            currentTeacherId = null;
+            selectedSlotId = null;
+        }
+
+        async function loadAvailableSlots(teacherId) {
+            const container = document.getElementById('slotsList');
+            container.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Cargando horarios...</p>
+                </div>
+            `;
+            
+            try {
+                const today = new Date();
+                const twoWeeks = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                
+                const res = await fetch(`/api/availability/teacher/${teacherId}?from=${today.toISOString()}&to=${twoWeeks.toISOString()}&timezone=${timezone}`);
+                const slots = await res.json();
+                
+                if (!slots || slots.length === 0) {
+                    container.innerHTML = `
+                        <p style="text-align: center; color: var(--text-muted); padding: 20px;">
+                            No hay horarios disponibles con este profesor.
+                        </p>
+                    `;
+                    return;
+                }
+                
+                // Agrupar por día
+                const grouped = {};
+                slots.forEach(slot => {
+                    const dateKey = slot.displayDate || new Date(slot.startTime).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+                    if (!grouped[dateKey]) grouped[dateKey] = [];
+                    grouped[dateKey].push(slot);
+                });
+                
+                container.innerHTML = Object.entries(grouped).map(([date, daySlots]) => `
+                    <div class="day-group">
+                        <div class="day-title">${date}</div>
+                        <div class="slots-row">
+                            ${daySlots.map(slot => {
+                                const time = slot.displayStart || new Date(slot.startTime).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                                return `
+                                    <button class="slot-btn" data-slot-id="${slot._id}" onclick="selectSlot('${slot._id}', '${time}', '${date}')">
+                                        ${time}
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error cargando slots:', error);
+                container.innerHTML = `
+                    <p style="text-align: center; color: var(--danger); padding: 20px;">
+                        Error al cargar horarios. Intenta de nuevo.
+                    </p>
+                `;
+            }
+        }
+
+        function selectSlot(slotId, time, date) {
+            selectedSlotId = slotId;
+            
+            // Quitar selección anterior
+            document.querySelectorAll('.slot-btn').forEach(btn => btn.classList.remove('selected'));
+            // Marcar nuevo
+            document.querySelector(`[data-slot-id="${slotId}"]`).classList.add('selected');
+            
+            // Mostrar confirmación
+            document.getElementById('selectedSlotText').innerHTML = 
+                `📅 ${date}<br>⏰ ${time}`;
+            document.getElementById('confirmStep').style.display = 'block';
+            document.getElementById('midiConfirm').checked = false;
+            document.getElementById('confirmBtn').disabled = true;
+        }
+
+        function toggleConfirmBtn() {
+            document.getElementById('confirmBtn').disabled = !document.getElementById('midiConfirm').checked;
+        }
+
+        async function confirmBooking() {
+            if (!selectedSlotId) {
+                alert('Selecciona un horario');
+                return;
+            }
+            
+            const btn = document.getElementById('confirmBtn');
+            btn.disabled = true;
+            btn.textContent = 'Reservando...';
+            
+            try {
+                const res = await fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        slotId: selectedSlotId,
+                        studentId: bookingStudentId,
+                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    })
+                });
+                
+                const result = await res.json();
+                
+                if (res.ok) {
+                    closeScheduleModal();
+                    alert('✅ ¡Clase reservada exitosamente!\n\nRecibirás un email con los detalles.');
+                    loadDashboard(); // Recargar para actualizar clases
+                } else {
+                    alert('❌ ' + (result.message || 'Error al reservar'));
+                    btn.disabled = false;
+                    btn.textContent = 'Confirmar Reserva';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión');
+                btn.disabled = false;
+                btn.textContent = 'Confirmar Reserva';
+            }
         }
 
         function contactSupport() {
             const phone = '56912345678'; // Cambiar por número real
-            const message = encodeURIComponent('Hola! Necesito agendar una clase de piano.');
+            const message = encodeURIComponent('Hola! Tengo una consulta sobre mis clases de piano.');
             window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
         }
 
