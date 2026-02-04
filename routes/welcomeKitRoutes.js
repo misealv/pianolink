@@ -668,11 +668,16 @@ router.post('/checkout', async (req, res) => {
         // Crear WelcomeKit en estado paid (será verificado después)
         const welcomeKitData = {
             clientId: user?._id || null,
+            // Datos del cliente (backup independiente del usuario)
+            clientName: name,
+            clientEmail: email,
+            clientWhatsapp: whatsapp || null,
             kitType: kitTypeValue,
             // Productos seleccionados
             products: selectedProducts.map(p => ({
                 productId: p._id,
                 name: p.name,
+                image: p.images?.[0] || null,
                 priceAtPurchase: p.pricing?.find(pr => pr.regionCode === country)?.price || p.defaultPrice || 0
             })),
             payment: {
@@ -1213,7 +1218,7 @@ router.get('/admin/orders', protect, adminOnly, async (req, res) => {
         }
         
         const orders = await WelcomeKit.find(query)
-            .populate('clientId', 'name email')
+            .populate('clientId', 'name email whatsapp')
             .sort({ createdAt: -1 })
             .limit(100)
             .lean();
@@ -1221,11 +1226,17 @@ router.get('/admin/orders', protect, adminOnly, async (req, res) => {
         // Mapear a formato simplificado
         const mappedOrders = orders.map(order => ({
             _id: order._id,
-            customerName: order.clientId?.name || order.clientName || 'Cliente',
-            email: order.clientId?.email || order.clientEmail || '',
+            customerName: order.clientId?.name || order.clientName || order._checkoutData?.name || 'Cliente',
+            email: order.clientId?.email || order.clientEmail || order._checkoutData?.email || '',
+            phone: order.clientId?.whatsapp || order.clientWhatsapp || order._checkoutData?.whatsapp || null,
             country: order.shipping?.address?.country || order.country || '',
             city: order.shipping?.address?.city || '',
-            total: order.payment?.total || order.total || 0,
+            state: order.shipping?.address?.state || '',
+            postalCode: order.shipping?.address?.postalCode || '',
+            address: order.shipping?.address?.street || '',
+            total: order.payment?.amount || order.payment?.total || order.total || 0,
+            kitType: order.kitType || 'standard',
+            products: order.products || [],
             shippingStatus: order.shipping?.status || order.overallStatus || 'pending',
             paymentStatus: order.payment?.status || 'pending',
             trackingNumber: order.shipping?.trackingNumber || null,

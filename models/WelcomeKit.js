@@ -13,6 +13,11 @@ const welcomeKitSchema = new mongoose.Schema({
         default: null
     },
     
+    // Datos del cliente (backup independiente del usuario)
+    clientName: { type: String },
+    clientEmail: { type: String },
+    clientWhatsapp: { type: String },
+    
     // Beneficiario (puede ser el mismo cliente o un hijo)
     beneficiaryId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -47,7 +52,9 @@ const welcomeKitSchema = new mongoose.Schema({
             ref: 'KitProduct'
         },
         name: { type: String },
-        priceAtPurchase: { type: Number }
+        image: { type: String },
+        priceAtPurchase: { type: Number },
+        quantity: { type: Number, default: 1 }
     }],
     
     // ==================== CABLE MIDI (legacy) ====================
