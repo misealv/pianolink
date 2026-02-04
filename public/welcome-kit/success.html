@@ -425,6 +425,11 @@
                         
                         document.getElementById('shipping-address').textContent = 
                             addressParts.join(', ') || 'No requiere envío';
+                        
+                        // Mostrar tiempo de envío estimado según país
+                        if (data.welcomeKit.shippingDays) {
+                            document.getElementById('shipping-time').textContent = data.welcomeKit.shippingDays;
+                        }
                     } else {
                         document.getElementById('shipping-address').textContent = 'Solo servicio digital';
                         document.getElementById('shipping-time').textContent = 'N/A';

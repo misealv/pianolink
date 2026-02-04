@@ -1077,6 +1077,21 @@ router.post('/verify', async (req, res) => {
             }];
         }
         
+        // Obtener tiempo de envío según país
+        let shippingDays = '5-10 días hábiles'; // Default
+        if (hasPhysicalProducts && welcomeKit.shipping?.address?.country) {
+            const country = welcomeKit.shipping.address.country;
+            const config = await GlobalConfig.findOne({ isDefault: true });
+            const regionConfig = config?.regionalPricing?.welcomeKit?.find(r => r.regionCode === country);
+            if (regionConfig?.shippingDays) {
+                shippingDays = regionConfig.shippingDays;
+                // Agregar "días hábiles" si no lo tiene
+                if (!shippingDays.includes('día')) {
+                    shippingDays = `${shippingDays} días hábiles`;
+                }
+            }
+        }
+        
         res.json({
             success: true,
             welcomeKit: {
@@ -1085,6 +1100,7 @@ router.post('/verify', async (req, res) => {
                 kitType: welcomeKit.kitType,
                 products: welcomeKit.products || [],
                 shipping: hasPhysicalProducts ? welcomeKit.shipping?.address : null,
+                shippingDays: hasPhysicalProducts ? shippingDays : null,
                 payment: welcomeKit.payment || null
             },
             user: user ? {
