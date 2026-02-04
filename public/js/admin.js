@@ -5049,12 +5049,12 @@ function addChildRow(childData = null) {
     
     row.innerHTML = `
         <div>
-            <label style="font-size:10px; color:#888;">Nombre del hijo *</label>
+            <label style="font-size:10px; color:#888;">Nombre del hijo/a *</label>
             <input type="text" class="child-name" value="${childData?.name || ''}" placeholder="María" required>
         </div>
         <div>
             <label style="font-size:10px; color:#888;">Edad</label>
-            <input type="number" class="child-age" value="${childData?.age || ''}" min="3" max="18" placeholder="8">
+            <input type="number" class="child-age" value="${childData?.age || ''}" min="1" placeholder="8">
         </div>
         <div>
             <label style="font-size:10px; color:#888;">Nivel</label>
@@ -5144,7 +5144,7 @@ async function createClient(event) {
         }
         
         if (children.length === 0) {
-            showNotification('Agrega al menos un hijo para el apoderado', 'error');
+            showNotification('Agrega al menos un estudiante dependiente', 'error');
             return;
         }
         
