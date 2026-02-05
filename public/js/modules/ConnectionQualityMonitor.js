@@ -31,29 +31,33 @@ export class ConnectionQualityMonitor {
         };
         
         // === CONFIGURACIÓN ===
+        // Thresholds ajustados para servidor en USA (Oregon) con usuarios en Sudamérica
+        // Latencia base esperada: 120-180ms
         this.config = {
-            pingInterval: 3000,      // Ping cada 3 segundos
-            historySize: 20,         // Mantener 20 muestras
+            pingInterval: 5000,      // Ping cada 5 segundos (menos intrusivo)
+            historySize: 10,         // Mantener 10 muestras
             thresholds: {
                 latency: {
-                    excellent: 50,
-                    good: 100,
-                    fair: 200,
-                    poor: 400
+                    excellent: 150,  // Ajustado para distancia Chile-Oregon
+                    good: 250,
+                    fair: 400,
+                    poor: 600
                 },
                 jitter: {
-                    excellent: 20,
-                    good: 50,
-                    fair: 100,
-                    poor: 200
+                    excellent: 50,   // Más tolerante
+                    good: 100,
+                    fair: 150,
+                    poor: 250
                 },
                 packetLoss: {
-                    excellent: 0,
-                    good: 2,
-                    fair: 5,
-                    poor: 10
+                    excellent: 1,    // Algo de pérdida es normal
+                    good: 3,
+                    fair: 7,
+                    poor: 15
                 }
-            }
+            },
+            // Solo mostrar banner en casos críticos
+            bannerMinQuality: 'poor'  // No mostrar para 'fair'
         };
         
         // === UI ELEMENTS ===
@@ -431,27 +435,20 @@ export class ConnectionQualityMonitor {
     checkQuality() {
         const { quality, avgLatency, jitter, packetLossPercent, missedPings } = this.metrics;
         
-        // Mostrar alerta si la calidad es mala
-        if (quality === 'critical' || missedPings >= 2) {
+        // Solo mostrar alerta en casos CRÍTICOS (menos intrusivo)
+        // Para calidad 'fair' solo actualizamos el indicador, sin banner
+        if (quality === 'critical' || missedPings >= 3) {
+            // Crítico: banner rojo solo si hay desconexión real
             this.showBanner(
-                '🔴 Conexión muy inestable',
-                `Latencia: ${avgLatency}ms | Jitter: ${jitter}ms | Pérdida: ${packetLossPercent}%`,
+                'Conexión perdida',
+                'Reconectando...',
                 'critical'
             );
-        } else if (quality === 'poor') {
-            this.showBanner(
-                '🟠 Conexión inestable',
-                `Latencia: ${avgLatency}ms | Jitter: ${jitter}ms | Pérdida: ${packetLossPercent}%`,
-                'warning'
-            );
-        } else if (quality === 'fair' && packetLossPercent > 3) {
-            this.showBanner(
-                '🟡 Conexión degradada',
-                `Detectada pérdida de paquetes: ${packetLossPercent}%`,
-                'warning'
-            );
+        } else if (quality === 'poor' && packetLossPercent > 10) {
+            // Poor + pérdida alta: toast sutil, no banner
+            this.showToast(`⚠️ Red inestable (${packetLossPercent}% pérdida)`);
         } else {
-            // Ocultar si la conexión mejoró
+            // En cualquier otro caso, ocultar banner
             if (!this.alertBanner.classList.contains('hidden')) {
                 this.hideBanner();
             }
@@ -502,6 +499,42 @@ export class ConnectionQualityMonitor {
         if (this.alertBanner) {
             this.alertBanner.classList.add('hidden');
         }
+    }
+    
+    /**
+     * Toast sutil - desaparece solo, no molesta
+     */
+    showToast(message) {
+        // Evitar spam de toasts
+        if (this._lastToast && Date.now() - this._lastToast < 30000) return;
+        this._lastToast = Date.now();
+        
+        const toast = document.createElement('div');
+        toast.className = 'connection-toast';
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: #ffa726;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 9998;
+            opacity: 0;
+            transition: opacity 0.3s;
+        `;
+        document.body.appendChild(toast);
+        
+        // Fade in
+        setTimeout(() => toast.style.opacity = '1', 10);
+        
+        // Auto-remove después de 4 segundos
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
     }
     
     // Método público para obtener métricas
