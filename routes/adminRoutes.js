@@ -38,11 +38,19 @@ router.get('/feedbacks', async (req, res) => {
 router.post('/feedbacks/mark-read', async (req, res) => {
     console.log("👀 Marcando mensajes como leídos...");
     try {
-        // Busca todos los que estén 'unread' y ponlos en 'read'
-        await Feedback.updateMany(
-            { status: 'unread' }, 
-            { $set: { status: 'read' } }
-        );
+        const { id } = req.body;
+        
+        if (id) {
+            // Marcar un mensaje específico
+            await Feedback.findByIdAndUpdate(id, { status: 'read' });
+        } else {
+            // Marcar todos los que estén 'unread'
+            await Feedback.updateMany(
+                { status: 'unread' }, 
+                { $set: { status: 'read' } }
+            );
+        }
+        
         res.json({ success: true });
     } catch (error) {
         console.error("Error marcando leídos:", error);

@@ -42,6 +42,7 @@ function updateContentTitle(moduleName) {
         'tracking': { icon: '📈', text: 'Tracking Pixels' },
         'calendar': { icon: '📅', text: 'Google Calendar' },
         'teachers': { icon: '👨‍🏫', text: 'Profesores' },
+        'founder-messages': { icon: '💬', text: 'Mensajes Fundadores' },
         'students': { icon: '👨‍🎓', text: 'Estudiantes' },
         'clients': { icon: '👨‍👧‍👦', text: 'Clientes / Apoderados' },
         'payments': { icon: '💰', text: 'Pagos' },
@@ -62,6 +63,7 @@ function loadModuleData(moduleName) {
         case 'tracking': loadTrackingScripts(); break;
         case 'calendar': loadCalendarConfig(); break;
         case 'teachers': loadTeachers(); break;
+        case 'founder-messages': loadFounderMessages(); break;
         case 'students': loadStudents(); break;
         case 'clients': loadClients(); break;
         case 'payments': loadPaymentsDashboard(); break;
@@ -80,6 +82,24 @@ function switchTab(tabGroup, tabName) {
     
     container.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
     container.querySelector(`#tab-${tabName}`)?.classList.add('active');
+}
+
+// ==================== UTILIDADES ====================
+// Actualizar badge de mensajes fundadores sin recargar toda la tabla
+async function updateFounderMessagesBadge() {
+    try {
+        const res = await fetch('/admin/feedbacks');
+        const messages = await res.json();
+        const unreadCount = messages.filter(m => m.status === 'unread').length;
+        
+        const badge = document.getElementById('founder-messages-badge');
+        if (badge) {
+            badge.textContent = unreadCount;
+            badge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+        }
+    } catch (e) {
+        console.error('Error updating founder messages badge:', e);
+    }
 }
 
 // ==================== DASHBOARD ====================
@@ -106,6 +126,9 @@ async function loadDashboard() {
         const teachersRes = await fetch('/api/auth/teachers');
         const teachers = await teachersRes.json();
         document.getElementById('stat-teachers').textContent = teachers.length || 0;
+        
+        // Actualizar badge de mensajes fundadores
+        updateFounderMessagesBadge();
         
     } catch (e) {
         console.error('Error loading dashboard:', e);
@@ -1584,6 +1607,212 @@ async function savePricing() {
     } catch (error) {
         console.error('Error saving pricing:', error);
         showNotification('Error de conexión', 'error');
+    }
+}
+
+// ==================== MENSAJES FUNDADORES ====================
+let allFounderMessages = [];
+let currentFounderFilter = 'all';
+
+async function loadFounderMessages() {
+    try {
+        const res = await fetch('/admin/feedbacks');
+        allFounderMessages = await res.json();
+        
+        // Actualizar badge de mensajes sin leer
+        const unreadCount = allFounderMessages.filter(m => m.status === 'unread').length;
+        const badge = document.getElementById('founder-messages-badge');
+        if (badge) {
+            badge.textContent = unreadCount;
+            badge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+        }
+        
+        // Actualizar stats
+        document.getElementById('stat-messages-total').textContent = allFounderMessages.length;
+        document.getElementById('stat-messages-unread').textContent = unreadCount;
+        
+        renderFounderMessages(allFounderMessages);
+    } catch (e) {
+        console.error('Error loading founder messages:', e);
+        document.getElementById('founder-messages-table-body').innerHTML = 
+            '<tr><td colspan="5" style="text-align:center; padding:40px; color:#ff4444;">Error al cargar mensajes</td></tr>';
+    }
+}
+
+function renderFounderMessages(messages) {
+    const tbody = document.getElementById('founder-messages-table-body');
+    
+    if (!messages || messages.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#666;">No hay mensajes de fundadores</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = messages.map(msg => {
+        const date = new Date(msg.createdAt).toLocaleString('es-CL', { 
+            day: '2-digit', 
+            month: 'short', 
+            year: 'numeric',
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+        
+        const statusBadge = msg.status === 'unread' 
+            ? '<span class="status-badge status-active">Nuevo</span>'
+            : '<span class="status-badge">Leído</span>';
+        
+        const userName = msg.user ? msg.user.name : 'Usuario desconocido';
+        const userEmail = msg.user ? msg.user.email : 'N/A';
+        
+        return `
+            <tr class="${msg.status === 'unread' ? 'unread-message' : ''}">
+                <td>
+                    <strong style="color:#fff;">${userName}</strong>
+                    <div style="font-size:11px; color:#666;">${userEmail}</div>
+                </td>
+                <td style="color:#aaa; max-width: 400px;">
+                    <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        ${msg.content}
+                    </div>
+                </td>
+                <td style="color:#666; font-size: 12px;">${date}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <div class="actions-menu">
+                        <button class="actions-btn" onclick="toggleMessageMenu('${msg._id}')">⋮</button>
+                        <div class="actions-dropdown" id="message-menu-${msg._id}">
+                            <div class="action-item" onclick="viewMessageDetail('${msg._id}')">
+                                <span>👁️</span> Ver completo
+                            </div>
+                            ${msg.user ? `
+                            <div class="action-item" onclick="replyToFounder('${msg.user._id}', '${userName.replace(/'/g, "\\'")}')">
+                                <span>↩️</span> Responder
+                            </div>` : ''}
+                            ${msg.status === 'unread' ? `
+                            <div class="action-item" onclick="markAsRead('${msg._id}')">
+                                <span>✓</span> Marcar leído
+                            </div>` : ''}
+                            <div class="action-item danger" onclick="deleteMessage('${msg._id}')">
+                                <span>🗑️</span> Eliminar
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function filterFounderMessages(filter) {
+    currentFounderFilter = filter;
+    document.querySelectorAll('#module-founder-messages .filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`#module-founder-messages [data-filter="${filter}"]`)?.classList.add('active');
+    
+    let filtered = allFounderMessages;
+    if (filter === 'unread') {
+        filtered = allFounderMessages.filter(m => m.status === 'unread');
+    } else if (filter === 'read') {
+        filtered = allFounderMessages.filter(m => m.status === 'read');
+    }
+    
+    renderFounderMessages(filtered);
+}
+
+function toggleMessageMenu(messageId) {
+    closeAllMenus();
+    const menu = document.getElementById(`message-menu-${messageId}`);
+    if (menu) menu.classList.toggle('show');
+}
+
+function viewMessageDetail(messageId) {
+    const message = allFounderMessages.find(m => m._id === messageId);
+    if (!message) return;
+    
+    const userName = message.user ? message.user.name : 'Usuario desconocido';
+    const date = new Date(message.createdAt).toLocaleString('es-CL', { 
+        day: '2-digit', 
+        month: 'long', 
+        year: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    showNotification(
+        `<strong>${userName}</strong><br>
+        <span style="font-size:11px; color:#888;">${date}</span><br><br>
+        ${message.content}`,
+        'info',
+        8000
+    );
+    
+    closeAllMenus();
+    
+    // Si no estaba leído, marcarlo como leído
+    if (message.status === 'unread') {
+        markAsRead(messageId);
+    }
+}
+
+async function markAsRead(messageId) {
+    try {
+        await fetch('/admin/feedbacks/mark-read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: messageId })
+        });
+        
+        showNotification('Mensaje marcado como leído', 'success');
+        loadFounderMessages(); // Recargar
+        closeAllMenus();
+    } catch (error) {
+        console.error('Error marking as read:', error);
+        showNotification('Error al actualizar estado', 'error');
+    }
+}
+
+async function markAllAsRead() {
+    if (!confirm('¿Marcar todos los mensajes como leídos?')) return;
+    
+    try {
+        await fetch('/admin/feedbacks/mark-read', {
+            method: 'POST'
+        });
+        
+        showNotification('Todos los mensajes marcados como leídos', 'success');
+        loadFounderMessages(); // Recargar
+    } catch (error) {
+        console.error('Error marking all as read:', error);
+        showNotification('Error al actualizar mensajes', 'error');
+    }
+}
+
+function replyToFounder(userId, userName) {
+    // Implementar modal de respuesta o redirigir a conversación
+    showNotification(`Función de respuesta a ${userName} en desarrollo`, 'info');
+    closeAllMenus();
+}
+
+async function deleteMessage(messageId) {
+    const message = allFounderMessages.find(m => m._id === messageId);
+    if (!message) return;
+    
+    const userName = message.user ? message.user.name : 'este mensaje';
+    if (!confirm(`¿Eliminar mensaje de ${userName}?`)) return;
+    
+    try {
+        const res = await fetch(`/admin/feedbacks/${messageId}`, {
+            method: 'DELETE'
+        });
+        
+        if (res.ok) {
+            showNotification('Mensaje eliminado', 'success');
+            loadFounderMessages(); // Recargar
+        } else {
+            throw new Error('Error en respuesta');
+        }
+        closeAllMenus();
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        showNotification('Error al eliminar mensaje', 'error');
     }
 }
 

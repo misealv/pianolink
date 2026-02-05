@@ -292,6 +292,16 @@ body {
     background: var(--bg-hover);
 }
 
+/* Mensajes sin leer - resaltados */
+.data-table tr.unread-message {
+    background: rgba(147, 51, 234, 0.08);
+    border-left: 3px solid #9333ea;
+}
+
+.data-table tr.unread-message:hover {
+    background: rgba(147, 51, 234, 0.12);
+}
+
 /* ==================== BADGES ==================== */
 .status-badge {
     display: inline-block;
