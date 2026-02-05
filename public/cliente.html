@@ -1532,6 +1532,37 @@
                     ` : ''}
                 </section>
 
+                <!-- Subscription Card -->
+                ${subscription.status !== 'active' ? `
+                <section id="studentSubscriptionSection" style="margin-bottom: 32px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); max-width: 500px; margin: 0 auto;">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h3 style="font-size: 24px; font-weight: 700; margin-bottom: 12px;">🎹 Membresía Mensual de Clases</h3>
+                            <div style="font-size: 48px; font-weight: 800; margin: 15px 0;">$100<span style="font-size: 20px; opacity: 0.8;">/mes</span></div>
+                        </div>
+                        
+                        <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 20px 0;">
+                            <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">¿Qué incluye?</h4>
+                            <ul style="list-style: none; padding: 0; margin: 0;">
+                                <li style="padding: 8px 0; font-size: 15px;">✓ 4 sesiones de 45 minutos</li>
+                                <li style="padding: 8px 0; font-size: 15px;">✓ Acceso 24/7 a materiales</li>
+                                <li style="padding: 8px 0; font-size: 15px;">✓ MIDI sincronizado en vivo</li>
+                                <li style="padding: 8px 0; font-size: 15px;">✓ Biblioteca de partituras</li>
+                                <li style="padding: 8px 0; font-size: 15px;">✓ Grabaciones de tus clases</li>
+                            </ul>
+                        </div>
+
+                        <button id="btnSubscribeStudent" onclick="handleStudentSubscription()" style="width: 100%; padding: 15px; background: white; color: #667eea; border: none; border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                            🎵 Suscribirme Ahora
+                        </button>
+
+                        <p style="text-align: center; margin-top: 15px; opacity: 0.85; font-size: 14px;">
+                            Cancela cuando quieras desde tu cuenta PayPal
+                        </p>
+                    </div>
+                </section>
+                ` : ''}
+
                 <!-- Billing History -->
                 <section>
                     <h2 class="section-title">📋 Historial de facturación</h2>
@@ -2288,6 +2319,45 @@
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';
+        }
+
+        // ============================================
+        // SUSCRIPCIÓN DE ESTUDIANTE
+        // ============================================
+        
+        async function handleStudentSubscription() {
+            const btn = document.getElementById('btnSubscribeStudent');
+            const originalText = btn.textContent;
+            
+            try {
+                btn.disabled = true;
+                btn.textContent = '⏳ Procesando...';
+                
+                const response = await fetch('/api/payment/create-student-subscription', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.approveLink) {
+                    // Redirigir a PayPal
+                    window.location.href = data.approveLink;
+                } else {
+                    alert('Error: ' + (data.error || 'No se pudo crear la suscripción'));
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al procesar la solicitud. Por favor intenta nuevamente.');
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
         }
 
         // Iniciar

@@ -14,6 +14,7 @@ const { stripe, stripeConfig, isStripeConfigured, getStripeClient } = require('.
 const Payment = require('../models/Payment');
 const WebhookLog = require('../models/WebhookLog');
 const User = require('../models/User');
+const GlobalConfig = require('../models/GlobalConfig');
 
 class StripeService {
 
@@ -376,9 +377,24 @@ class StripeService {
                 });
             }
 
-            // Determinar precio según si es fundador o no
-            // Precio fundador: $10/mes, Regular: $20/mes
-            const priceAmount = isFounder ? 1000 : 2000; // en centavos
+            // Obtener precios desde la configuración global
+            let config = await GlobalConfig.findOne({ isDefault: true });
+            if (!config) {
+                // Crear configuración por defecto si no existe
+                config = await GlobalConfig.create({
+                    isDefault: true,
+                    teacherSubscription: {
+                        regular: 20,
+                        founder: 10
+                    }
+                });
+            }
+
+            // Determinar precio según si es fundador o no (convertir de USD a centavos)
+            const priceInUSD = isFounder 
+                ? config.teacherSubscription?.founder || 10 
+                : config.teacherSubscription?.regular || 20;
+            const priceAmount = Math.round(priceInUSD * 100); // en centavos
             
             // Crear o buscar el Price en Stripe
             const priceLookup = isFounder ? 'teacher_founder_monthly' : 'teacher_regular_monthly';
@@ -398,11 +414,8 @@ class StripeService {
                     recurring: { interval: 'month' },
                     product_data: {
                         name: isFounder 
-                            ? 'PianoLink Profesor Fundador' 
-                            : 'PianoLink Profesor',
-                        description: isFounder 
-                            ? 'Membresía mensual de profesor fundador - Precio especial'
-                            : 'Membresía mensual de profesor',
+                            ? 'PianoLink Profesor Fundador - Membresía Mensual' 
+                            : 'PianoLink Profesor - Membresía Mensual',
                         metadata: {
                             type: 'teacher_subscription',
                             isFounder: isFounder.toString()

@@ -236,5 +236,15 @@ router.post('/clients/:id/add-classes', adminController.addClassesToClient);
 // Obtener historial de pagos de un cliente
 router.get('/clients/:id/payments', adminController.getClientPayments);
 
+/* -------------------------------------------------------------------------- */
+/* RUTAS DE CONFIGURACIÓN DE PRECIOS                                          */
+/* -------------------------------------------------------------------------- */
+
+// Obtener configuración de precios
+router.get('/config/pricing', adminController.getPricingConfig);
+
+// Actualizar configuración de precios
+router.put('/config/pricing', adminController.updatePricingConfig);
+
 
 module.exports = router;

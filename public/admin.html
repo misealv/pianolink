@@ -82,6 +82,9 @@
             <!-- Sistema -->
             <div class="nav-section">
                 <div class="nav-section-title">Sistema</div>
+                <div class="nav-item" data-module="pricing" onclick="switchModule('pricing')">
+                    <span class="icon">💰</span> Configuración de Precios
+                </div>
                 <div class="nav-item" onclick="window.open('/diagnostics', '_blank')">
                     <span class="icon">🔧</span> Diagnóstico
                 </div>
@@ -888,6 +891,55 @@
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- ==================== CONFIGURACIÓN DE PRECIOS ==================== -->
+            <div id="module-pricing" class="module-view">
+                <div style="max-width:800px;">
+                    <h2 style="color:var(--text-primary); margin-bottom:10px;">💰 Configuración de Precios de Suscripciones</h2>
+                    <p style="color:var(--text-secondary); margin-bottom:30px;">Configura los precios mensuales para las suscripciones de profesores.</p>
+
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:30px; margin-bottom:20px;">
+                        <h3 style="color:var(--accent-purple); margin-bottom:20px;">👨‍🏫 Suscripción de Profesores</h3>
+                        
+                        <div class="form-group">
+                            <label>💎 Precio Fundador (USD/mes)</label>
+                            <input type="number" id="pricing-founder" step="0.01" min="0" placeholder="10.00" 
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                            <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                Precio especial para profesores fundadores que se registraron temprano
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>⭐ Precio Regular (USD/mes)</label>
+                            <input type="number" id="pricing-regular" step="0.01" min="0" placeholder="20.00" 
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                            <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                Precio estándar para nuevos profesores
+                            </small>
+                        </div>
+
+                        <div style="margin-top:25px; padding-top:20px; border-top:1px solid var(--border-color);">
+                            <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:15px;">
+                                <p style="color:var(--accent-orange); font-weight:600; margin-bottom:8px;">⚠️ Importante:</p>
+                                <ul style="color:var(--text-secondary); line-height:1.6; margin-left:20px;">
+                                    <li>Los cambios solo afectan a nuevas suscripciones</li>
+                                    <li>Las suscripciones existentes mantienen su precio original</li>
+                                    <li>Los precios se guardan en dólares USD</li>
+                                    <li>PianoLink retiene 20% de comisión, el profesor recibe 80%</li>
+                                </ul>
+                            </div>
+                            <button class="btn btn-primary" onclick="savePricingConfig()" style="width:100%; padding:15px; font-size:16px;">
+                                💾 Guardar Configuración
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="pricing-status" style="display:none; padding:15px; border-radius:8px; margin-top:15px;"></div>
                 </div>
             </div>
         </div>

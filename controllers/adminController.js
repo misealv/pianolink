@@ -534,3 +534,70 @@ exports.getClientPayments = async (req, res) => {
         res.status(500).json({ message: 'Error obteniendo historial de pagos' });
     }
 };
+
+// Obtener configuración de precios
+exports.getPricingConfig = async (req, res) => {
+    try {
+        let config = await GlobalConfig.findOne({ isDefault: true });
+        
+        if (!config) {
+            // Crear configuración por defecto si no existe
+            config = new GlobalConfig({
+                isDefault: true,
+                teacherSubscription: {
+                    regular: 20,
+                    founder: 10
+                }
+            });
+            await config.save();
+        }
+        
+        res.json({
+            teacherSubscription: config.teacherSubscription || { regular: 20, founder: 10 }
+        });
+    } catch (error) {
+        console.error('Error obteniendo configuración de precios:', error);
+        res.status(500).json({ message: 'Error obteniendo configuración de precios' });
+    }
+};
+
+// Actualizar configuración de precios
+exports.updatePricingConfig = async (req, res) => {
+    try {
+        const { founder, regular } = req.body;
+        
+        // Validación
+        if (typeof founder !== 'number' || typeof regular !== 'number') {
+            return res.status(400).json({ message: 'Los precios deben ser números válidos' });
+        }
+        
+        if (founder < 0 || regular < 0) {
+            return res.status(400).json({ message: 'Los precios no pueden ser negativos' });
+        }
+        
+        if (founder > 1000 || regular > 1000) {
+            return res.status(400).json({ message: 'Los precios no pueden exceder $1000 USD' });
+        }
+        
+        let config = await GlobalConfig.findOne({ isDefault: true });
+        
+        if (!config) {
+            config = new GlobalConfig({
+                isDefault: true,
+                teacherSubscription: { regular, founder }
+            });
+        } else {
+            config.teacherSubscription = { regular, founder };
+        }
+        
+        await config.save();
+        
+        res.json({
+            message: 'Configuración de precios actualizada exitosamente',
+            teacherSubscription: config.teacherSubscription
+        });
+    } catch (error) {
+        console.error('Error actualizando configuración de precios:', error);
+        res.status(500).json({ message: 'Error actualizando configuración de precios' });
+    }
+};

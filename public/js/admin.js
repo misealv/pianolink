@@ -45,7 +45,8 @@ function updateContentTitle(moduleName) {
         'students': { icon: '👨‍🎓', text: 'Estudiantes' },
         'clients': { icon: '👨‍👧‍👦', text: 'Clientes / Apoderados' },
         'payments': { icon: '💰', text: 'Pagos' },
-        'welcome-kits': { icon: '📦', text: 'Welcome Kits' }
+        'welcome-kits': { icon: '📦', text: 'Welcome Kits' },
+        'pricing': { icon: '💰', text: 'Configuración de Precios' }
     };
     
     const titleEl = document.getElementById('content-title');
@@ -65,6 +66,7 @@ function loadModuleData(moduleName) {
         case 'clients': loadClients(); break;
         case 'payments': loadPaymentsDashboard(); break;
         case 'welcome-kits': loadWelcomeKits(); break;
+        case 'pricing': loadPricingConfig(); break;
     }
 }
 
@@ -5491,6 +5493,91 @@ async function deleteClient(clientId) {
         }
     } catch (error) {
         console.error('Error:', error);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+// ==================== CONFIGURACIÓN DE PRECIOS ====================
+
+async function loadPricingConfig() {
+    try {
+        const res = await fetch('/admin/config/pricing', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById('pricing-founder').value = data.teacherSubscription.founder;
+            document.getElementById('pricing-regular').value = data.teacherSubscription.regular;
+        } else {
+            showNotification('Error cargando configuración de precios', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+async function savePricingConfig() {
+    const founderInput = document.getElementById('pricing-founder');
+    const regularInput = document.getElementById('pricing-regular');
+    const statusDiv = document.getElementById('pricing-status');
+    
+    const founder = parseFloat(founderInput.value);
+    const regular = parseFloat(regularInput.value);
+    
+    // Validación
+    if (isNaN(founder) || isNaN(regular)) {
+        showNotification('Por favor ingresa precios válidos', 'error');
+        return;
+    }
+    
+    if (founder < 0 || regular < 0) {
+        showNotification('Los precios no pueden ser negativos', 'error');
+        return;
+    }
+    
+    if (founder > 1000 || regular > 1000) {
+        showNotification('Los precios no pueden exceder $1000 USD', 'error');
+        return;
+    }
+    
+    try {
+        const res = await fetch('/admin/config/pricing', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userSession.token}`
+            },
+            body: JSON.stringify({ founder, regular })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#10b981';
+            statusDiv.style.color = 'white';
+            statusDiv.textContent = '✅ ' + data.message;
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+            
+            showNotification('Precios actualizados exitosamente', 'success');
+        } else {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#ef4444';
+            statusDiv.style.color = 'white';
+            statusDiv.textContent = '❌ ' + data.message;
+            showNotification(data.message || 'Error guardando configuración', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#ef4444';
+        statusDiv.style.color = 'white';
+        statusDiv.textContent = '❌ Error de conexión';
         showNotification('Error de conexión', 'error');
     }
 }
