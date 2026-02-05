@@ -433,6 +433,18 @@
         var self = this;
         
         try {
+            // ====== CONFIGURAR REGIÓN PARA LATAM (CRÍTICO) ======
+            // Forzar conexión a servidores de Sudamérica para menor latencia
+            // Chile y Argentina típicamente usan SA (South America)
+            if (AgoraRTC.setArea) {
+                // Priorizar Sudamérica, fallback a Norteamérica
+                AgoraRTC.setArea({
+                    areaCode: [AgoraRTC.AREAS.SOUTH_AMERICA, AgoraRTC.AREAS.NORTH_AMERICA],
+                    excludedArea: AgoraRTC.AREAS.CHINA // Excluir China (muy lejos)
+                });
+                console.log('[VideoManager] 🌎 Región configurada: Sudamérica + Norteamérica');
+            }
+            
             // Crear cliente RTC con configuración optimizada para baja latencia
             self.client = AgoraRTC.createClient({
                 mode: 'live',  // Modo live tiene mejor manejo de red que rtc
@@ -456,7 +468,7 @@
             // Event listeners del cliente
             self._setupAgoraEventListeners();
             
-            console.log('[VideoManager] ✅ Cliente Agora creado (modo live, H.264)');
+            console.log('[VideoManager] ✅ Cliente Agora creado (modo live, H.264, región SA)');
         } catch (error) {
             console.error('[VideoManager] ❌ Error creando cliente Agora:', error);
             self.bus.emit('video-error', {
