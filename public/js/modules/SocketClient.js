@@ -316,10 +316,26 @@ export class SocketClient {
             localStorage.setItem('pianolink-last-room', this.roomCode);
         }
         
+        // 🔐 Obtener userId del usuario logueado para validar membresía
+        const storedUser = localStorage.getItem('pianoUser');
+        let userId = null;
+        let userEmail = null;
+        if (storedUser) {
+            try {
+                const parsed = JSON.parse(storedUser);
+                userId = parsed._id || parsed.id || null;
+                userEmail = parsed.email || null;
+            } catch (e) {
+                console.warn('[SocketClient] Error parsing pianoUser:', e);
+            }
+        }
+        
         this.socket.emit("create-room", { 
             username: payload.name, 
             userRole: "teacher",
-            roomCode: payload.code 
+            roomCode: payload.code,
+            userId: userId,
+            email: userEmail
         });
         
         // Iniciar heartbeat después de crear sala

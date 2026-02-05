@@ -736,7 +736,16 @@ export class UIManager {
         const currentName = this.inputName.value.trim() || "Profesor";
         this.saveIdentity(currentName, 'teacher');
         let roomCode = window.PREDEFINED_ROOM || "SALA-" + Math.floor(Math.random() * 10000);
-        this.bus.emit("ui-create", { name: currentName, code: roomCode });
+        // 🔐 Incluir userId para validación de membresía
+        const storedUser = localStorage.getItem('pianoUser');
+        let userId = null;
+        if (storedUser) {
+            try {
+                const parsed = JSON.parse(storedUser);
+                userId = parsed._id || parsed.id || null;
+            } catch (e) {}
+        }
+        this.bus.emit("ui-create", { name: currentName, code: roomCode, userId: userId });
         const url = `${window.location.origin}/?role=student&sala=${roomCode.toLowerCase()}`;
         try {
             await navigator.clipboard.writeText(url);
@@ -753,7 +762,25 @@ export class UIManager {
     }
 
     saveIdentity(name, role) {
-        localStorage.setItem('pianoUser', JSON.stringify({ name, role }));
+        // 🔐 Preservar datos existentes del login (especialmente _id para validación de membresía)
+        const existing = localStorage.getItem('pianoUser');
+        let userData = { name, role };
+        
+        if (existing) {
+            try {
+                const parsed = JSON.parse(existing);
+                // Mantener _id, email, token y otros datos importantes
+                userData = {
+                    ...parsed,
+                    name: name || parsed.name,
+                    role: role || parsed.role
+                };
+            } catch (e) {
+                console.warn('[UIManager] Error parsing existing user data:', e);
+            }
+        }
+        
+        localStorage.setItem('pianoUser', JSON.stringify(userData));
     }
 
     setupUrlParams() {

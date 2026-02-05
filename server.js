@@ -560,28 +560,39 @@ io.on("connection", (socket) => {
     
     // Crear Sala (Profesor)
     socket.on("create-room", async (payload) => {
-        // 🔐 VALIDACIÓN DE MEMBRESÍA
-        if (payload.userId) {
-            try {
-                const User = require('./models/User');
-                const teacher = await User.findById(payload.userId).select('role teacherData isFoundingMember');
-                
-                if (teacher && teacher.role === 'teacher') {
-                    const membershipStatus = teacher.teacherData?.subscriptionStatus;
-                    
-                    if (membershipStatus !== 'active') {
-                        console.log(`[Auth] ⛔ Profesor sin membresía activa intentó crear sala: ${payload.userId}`);
-                        socket.emit("room-error", {
-                            code: 'MEMBERSHIP_INACTIVE',
-                            message: 'Tu membresía no está activa. Actívala desde tu panel para acceder a tu sala.'
-                        });
-                        return; // Bloquear creación de sala
-                    }
-                }
-            } catch (err) {
-                console.error('[Auth] Error validando membresía:', err);
-                // En caso de error, permitir acceso (fail-open para no bloquear)
+        // 🔐 VALIDACIÓN DE MEMBRESÍA (OBLIGATORIA PARA PROFESORES)
+        try {
+            const User = require('./models/User');
+            let teacher = null;
+            
+            // Intentar encontrar al profesor por userId o email
+            if (payload.userId) {
+                teacher = await User.findById(payload.userId).select('role teacherData isFoundingMember email');
+            } else if (payload.email) {
+                teacher = await User.findOne({ email: payload.email }).select('role teacherData isFoundingMember email');
             }
+            
+            // Si encontramos un profesor, validar membresía
+            if (teacher && teacher.role === 'teacher') {
+                const membershipStatus = teacher.teacherData?.subscriptionStatus;
+                
+                if (membershipStatus !== 'active') {
+                    console.log(`[Auth] ⛔ Profesor sin membresía activa intentó crear sala: ${teacher.email || payload.userId}`);
+                    socket.emit("room-error", {
+                        code: 'MEMBERSHIP_INACTIVE',
+                        message: 'Tu membresía no está activa. Actívala desde tu panel para acceder a tu sala.'
+                    });
+                    return; // Bloquear creación de sala
+                }
+                console.log(`[Auth] ✅ Membresía activa verificada para: ${teacher.email}`);
+            } else if (!teacher && (payload.userId || payload.email)) {
+                // Había credenciales pero no se encontró el usuario
+                console.log(`[Auth] ⚠️ Profesor no encontrado: ${payload.userId || payload.email}`);
+            }
+            // Si no hay userId ni email, permitir (usuarios legacy/invitados)
+        } catch (err) {
+            console.error('[Auth] Error validando membresía:', err);
+            // En caso de error, permitir acceso (fail-open para no bloquear)
         }
         
         const roomCode = (payload.roomCode || generateCode()).toUpperCase();
