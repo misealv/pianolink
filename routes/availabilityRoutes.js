@@ -167,10 +167,10 @@ router.post('/generate', protect, async (req, res) => {
             return res.status(400).json({ message: 'Fechas inválidas' });
         }
         
-        // Máximo 30 días a la vez
+        // Máximo 336 días (48 semanas = 1 año)
         const daysDiff = (to - from) / (1000 * 60 * 60 * 24);
-        if (daysDiff > 30) {
-            return res.status(400).json({ message: 'Máximo 30 días por generación' });
+        if (daysDiff > 336) {
+            return res.status(400).json({ message: 'Máximo 336 días (48 semanas) por generación' });
         }
         
         const slots = await AvailabilityService.generateSlotsFromTemplate(

@@ -927,7 +927,11 @@
                 
                 if (res.ok) {
                     currentTemplate = result;
-                    showToast('✓ Plantilla guardada');
+                    showToast('✓ Plantilla guardada. Generando horarios para 1 año...');
+                    
+                    // Generar slots automáticamente para 48 semanas (1 año)
+                    await generateSlotsForYear();
+                    
                     return true;
                 } else {
                     showToast(result.message || 'Error al guardar', true);
@@ -940,20 +944,16 @@
             }
         }
 
-        // Generar slots concretos
-        async function generateSlots() {
+        // Generar slots para 48 semanas (1 año) automáticamente
+        async function generateSlotsForYear() {
             if (!currentTemplate) {
-                const saved = await saveTemplate();
-                if (!saved) return; // Validación falló
-            }
-            
-            if (!currentTemplate) {
-                showToast('Primero guarda tu disponibilidad', true);
+                showToast('No hay plantilla configurada', true);
                 return;
             }
 
             const fromDate = new Date();
-            const toDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+            // Generar slots para 48 semanas (1 año = 336 días)
+            const toDate = new Date(Date.now() + 336 * 24 * 60 * 60 * 1000);
 
             try {
                 const res = await fetch('/api/availability/generate', {
@@ -972,14 +972,26 @@
                 const result = await res.json();
                 
                 if (res.ok) {
-                    showToast(`✓ ${result.slotsCreated} horarios generados`);
+                    showToast(`✓ ${result.slotsCreated} horarios generados para todo el año`);
+                    // Recargar el calendario
+                    await loadCalendar();
                 } else {
-                    showToast(result.message || 'Error', true);
+                    showToast(result.message || 'Error generando horarios', true);
                 }
             } catch (error) {
                 console.error(error);
-                showToast('Error de conexión', true);
+                showToast('Error de conexión al generar horarios', true);
             }
+        }
+
+        // Generar slots concretos (función legacy, ahora usa generateSlotsForYear)
+        async function generateSlots() {
+            if (!currentTemplate) {
+                const saved = await saveTemplate();
+                if (!saved) return; // Validación falló
+            }
+            
+            await generateSlotsForYear();
         }
 
         // Cargar plantilla existente
