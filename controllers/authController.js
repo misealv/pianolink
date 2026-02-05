@@ -65,7 +65,7 @@ exports.loginUser = async (req, res) => {
 // 2. REGISTRO
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password, slug, isFoundingMember } = req.body;
+    const { name, email, password, slug, isFoundingMember, country, whatsapp } = req.body;
     
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'El correo ya está registrado' });
@@ -79,10 +79,12 @@ exports.registerUser = async (req, res) => {
     // gracias al hook .pre('save'). Asegúrate de que tu modelo tenga eso.
     const user = await User.create({
       name, email, password, slug,
+      country: country || '',
+      whatsapp: whatsapp || '',
       isFoundingMember: isFoundingMember || false, 
       role: 'teacher',
       branding: {
-          country: '🏳️ Internacional', 
+          country: country || '🏳️ Internacional', 
           colors: { base: '#ff764d', bg: '#1a1a1a', panel: '#262626' }
       }
     });

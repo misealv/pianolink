@@ -780,7 +780,7 @@ async function loadTeachers() {
     } catch (e) {
         console.error('Error loading teachers:', e);
         document.getElementById('teachers-table-body').innerHTML = 
-            '<tr><td colspan="6" style="text-align:center; padding:40px; color:#ff4444;">Error al cargar profesores</td></tr>';
+            '<tr><td colspan="7" style="text-align:center; padding:40px; color:#ff4444;">Error al cargar profesores</td></tr>';
     }
 }
 
@@ -788,7 +788,7 @@ function renderTeachersTable(teachers) {
     const tbody = document.getElementById('teachers-table-body');
     
     if (!teachers || teachers.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:#666;">No hay profesores registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:#666;">No hay profesores registrados</td></tr>';
         return;
     }
     
@@ -797,7 +797,10 @@ function renderTeachersTable(teachers) {
             ? '<span class="status-badge" style="background:linear-gradient(135deg,#bf953f,#fcf6ba,#b38728);color:#3e2723;border:none;">★ FUNDADOR</span>'
             : '<span class="status-badge status-inactive">Regular</span>';
         
-        const country = (t.branding && t.branding.country) || '-';
+        const country = t.country || '-';
+        const whatsapp = t.whatsapp 
+            ? `<a href="https://wa.me/${t.whatsapp.replace(/[^0-9]/g, '')}" target="_blank" class="whatsapp-link">📱 ${t.whatsapp}</a>` 
+            : '-';
         const slug = t.slug ? `<a href="/?sala=${t.slug}" target="_blank" style="color:var(--accent-blue);">/c/${t.slug}</a>` : '-';
         
         return `
@@ -807,6 +810,7 @@ function renderTeachersTable(teachers) {
                     <div style="font-size:11px; color:#666;">${country}</div>
                 </td>
                 <td style="color:#aaa;">${t.email}</td>
+                <td>${whatsapp}</td>
                 <td>${slug}</td>
                 <td>${founderBadge}</td>
                 <td>
@@ -905,6 +909,8 @@ async function createTeacher(e) {
         name: document.getElementById('teacher-name').value.trim(),
         email: document.getElementById('teacher-email').value.trim(),
         password: document.getElementById('teacher-password').value,
+        country: document.getElementById('teacher-country').value.trim() || undefined,
+        whatsapp: document.getElementById('teacher-whatsapp').value.trim() || undefined,
         slug: document.getElementById('teacher-slug').value.trim() || undefined,
         isFoundingMember: document.getElementById('teacher-founder').checked
     };
@@ -921,6 +927,8 @@ async function createTeacher(e) {
             const updateData = { 
                 name: formData.name,
                 email: formData.email,
+                country: formData.country,
+                whatsapp: formData.whatsapp,
                 slug: formData.slug,
                 isFoundingMember: formData.isFoundingMember
             };
@@ -962,6 +970,8 @@ function editTeacher(teacherId) {
     document.getElementById('teacher-modal-title').textContent = 'Editar Profesor';
     document.getElementById('teacher-name').value = teacher.name;
     document.getElementById('teacher-email').value = teacher.email;
+    document.getElementById('teacher-country').value = teacher.country || '';
+    document.getElementById('teacher-whatsapp').value = teacher.whatsapp || '';
     document.getElementById('teacher-slug').value = teacher.slug || '';
     document.getElementById('teacher-password').value = '';
     document.getElementById('teacher-founder').checked = teacher.isFoundingMember;

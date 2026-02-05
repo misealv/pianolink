@@ -93,7 +93,7 @@ exports.getConversationWithUser = async (req, res) => {
 exports.updateTeacherByAdmin = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, email, slug, country } = req.body;
+        const { name, email, slug, country, whatsapp, password, isFoundingMember } = req.body;
 
         const user = await User.findById(id);
         if (!user) {
@@ -104,14 +104,25 @@ exports.updateTeacherByAdmin = async (req, res) => {
         user.name = name || user.name;
         user.email = email || user.email;
         
-        // El slug es opcional, si viene vacío lo dejamos undefined o mantenemos el anterior
-        if (slug !== undefined) user.slug = slug; 
-
-        // Actualizamos el objeto branding (asegurando que exista)
-        if (!user.branding) user.branding = {};
+        // País y WhatsApp a nivel raíz
+        if (country !== undefined) user.country = country;
+        if (whatsapp !== undefined) user.whatsapp = whatsapp;
         
-        // Aquí guardamos el PAÍS
-        user.branding.country = country || '🏳️ Internacional';
+        // El slug es opcional, si viene vacío lo dejamos undefined o mantenemos el anterior
+        if (slug !== undefined) user.slug = slug;
+        
+        // Status de fundador
+        if (isFoundingMember !== undefined) user.isFoundingMember = isFoundingMember;
+        
+        // Password si se proporciona
+        if (password && password.length >= 6) {
+            const bcrypt = require('bcryptjs');
+            user.password = await bcrypt.hash(password, 10);
+        }
+
+        // Actualizamos el objeto branding (asegurando que exista) - mantener compatibilidad
+        if (!user.branding) user.branding = {};
+        user.branding.country = country || user.branding.country || '🏳️ Internacional';
 
         await user.save();
         res.json({ success: true, message: 'Profesor actualizado correctamente' });
