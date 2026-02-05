@@ -1,0 +1,27 @@
+# Ignorar en Docker build
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+*.md
+!README.md
+.DS_Store
+logs/
+*.log
+archive/
+docs/
+test-*.js
+*.test.js
+check-*.js
+fix*.js
+create*.js
+list*.js
+diagnostico*.json
+estructura.txt
+git_commit_final.sh
+rotate_credentials.sh
+ecosystem.config.js
+render.yaml
