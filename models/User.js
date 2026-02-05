@@ -25,10 +25,15 @@ const userSchema = mongoose.Schema({
     // Estado de suscripción
     subscriptionStatus: {
       type: String,
-      enum: ['trial', 'active', 'expired', 'cancelled'],
+      enum: ['trial', 'active', 'expired', 'cancelled', 'past_due'],
       default: 'trial'
     },
     subscriptionExpiresAt: { type: Date },
+    
+    // Stripe Subscription IDs
+    stripeCustomerId: { type: String, default: '' },
+    stripeSubscriptionId: { type: String, default: '' },
+    stripePriceId: { type: String, default: '' },
     
     // Ganancias (por clases a alumnos de plataforma)
     earnings: {

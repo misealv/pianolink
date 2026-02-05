@@ -1,6 +1,6 @@
 /**
  * routes/payment.js
- * Rutas para generar links de pago de PayPal
+ * Rutas para generar links de pago de PayPal y Stripe
  */
 
 const express = require('express');
@@ -8,6 +8,7 @@ const router = express.Router();
 const fetch = require('node-fetch');
 const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
+const StripeService = require('../services/StripeService');
 
 // Obtener access token de PayPal
 async function getPayPalAccessToken() {
@@ -351,6 +352,180 @@ router.post('/create-student-subscription', protect, async (req, res) => {
         }
     } catch (error) {
         console.error('[PayPal] Error en create-student-subscription:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// ============================================
+// 4. SUSCRIPCIÓN PROFESOR CON STRIPE
+// ============================================
+
+/**
+ * POST /api/payment/stripe/teacher-subscription
+ * Crear checkout de suscripción para profesor con Stripe
+ */
+router.post('/stripe/teacher-subscription', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo profesores pueden acceder' 
+            });
+        }
+
+        // Verificar que Stripe esté configurado
+        if (!StripeService.isConfigured()) {
+            return res.status(503).json({
+                success: false,
+                error: 'Stripe no está configurado'
+            });
+        }
+
+        const result = await StripeService.createTeacherSubscriptionCheckout({
+            teacherId: userId.toString(),
+            isFounder: user.isFounder || false,
+            successUrl: req.body.successUrl,
+            cancelUrl: req.body.cancelUrl
+        });
+
+        if (!result.success) {
+            return res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+
+        res.json({
+            success: true,
+            sessionId: result.sessionId,
+            checkoutUrl: result.url,
+            expiresAt: result.expiresAt
+        });
+
+    } catch (error) {
+        console.error('[Stripe] Error en teacher-subscription:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+/**
+ * POST /api/payment/stripe/cancel-subscription
+ * Cancelar suscripción de profesor
+ */
+router.post('/stripe/cancel-subscription', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo profesores pueden acceder' 
+            });
+        }
+
+        const immediately = req.body.immediately || false;
+        const result = await StripeService.cancelTeacherSubscription(userId.toString(), immediately);
+
+        if (!result.success) {
+            return res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+
+        res.json({
+            success: true,
+            cancelAtPeriodEnd: result.cancelAtPeriodEnd,
+            currentPeriodEnd: result.currentPeriodEnd
+        });
+
+    } catch (error) {
+        console.error('[Stripe] Error cancelando suscripción:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+/**
+ * GET /api/payment/stripe/customer-portal
+ * Obtener URL del portal de facturación de Stripe
+ */
+router.get('/stripe/customer-portal', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo profesores pueden acceder' 
+            });
+        }
+
+        const result = await StripeService.getCustomerPortal(userId.toString());
+
+        if (!result.success) {
+            return res.status(400).json({
+                success: false,
+                error: result.error
+            });
+        }
+
+        res.json({
+            success: true,
+            portalUrl: result.url
+        });
+
+    } catch (error) {
+        console.error('[Stripe] Error obteniendo portal:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+/**
+ * GET /api/payment/stripe/subscription-status
+ * Obtener estado de suscripción del profesor
+ */
+router.get('/stripe/subscription-status', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId).select('teacherData role isFounder');
+
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo profesores pueden acceder' 
+            });
+        }
+
+        res.json({
+            success: true,
+            subscription: {
+                status: user.teacherData?.subscriptionStatus || 'trial',
+                expiresAt: user.teacherData?.subscriptionExpiresAt,
+                isFounder: user.isFounder || false,
+                hasStripeSubscription: !!user.teacherData?.stripeSubscriptionId,
+                stripeCustomerId: user.teacherData?.stripeCustomerId || null
+            }
+        });
+
+    } catch (error) {
+        console.error('[Stripe] Error obteniendo estado:', error);
         res.status(500).json({ 
             success: false, 
             error: error.message 

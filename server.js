@@ -71,6 +71,38 @@ const io = new Server(server, {
 });
 
 // 2. Middlewares y Rutas
+
+// ⚠️ IMPORTANTE: Webhook de Stripe necesita raw body ANTES de express.json()
+// Esto es necesario para verificar la firma del webhook
+const StripeService = require('./services/StripeService');
+app.post('/api/webhooks/stripe', 
+    express.raw({ type: 'application/json' }), 
+    async (req, res) => {
+        console.log('[Webhook] Stripe recibido');
+        
+        try {
+            if (!StripeService.isConfigured()) {
+                console.error('[Webhook] Stripe no configurado');
+                return res.status(503).send('Stripe not configured');
+            }
+
+            const result = await StripeService.processWebhook(req);
+            
+            if (!result.success && result.error === 'INVALID_SIGNATURE') {
+                console.error('[Webhook] ⚠️ Firma inválida de Stripe');
+                return res.status(400).send('Invalid signature');
+            }
+            
+            console.log(`[Webhook] Stripe procesado: ${result.eventType}`);
+            res.status(200).json({ received: true });
+
+        } catch (error) {
+            console.error('[Webhook] Error Stripe:', error);
+            res.status(500).send('Webhook error');
+        }
+    }
+);
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, "public"), { index: false }));
@@ -108,9 +140,9 @@ app.get(['/comenzar', '/empezar', '/tu-sueno-piano'], (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'welcome-kit-landing.html'));
 });
 
-// Ruta limpia para Welcome Kit (checkout)
+// Ruta limpia para Welcome Kit (checkout) - Versión 2
 app.get(['/kit', '/welcome-kit', '/kit-bienvenida'], (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'kit-bienvenida.html'));
+    res.sendFile(path.join(__dirname, 'public', 'kit-bienvenida-v2.html'));
 });
 
 // Rutas API (Mantenemos tu lógica de negocio intacta)

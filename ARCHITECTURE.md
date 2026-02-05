@@ -67,7 +67,7 @@
 
 ## Plan de Implementación por Fases
 
-### 🟢 FASE 1: MVP (Ya Tienes ~80%)
+### 🟢 FASE 1: MVP (Ya Tienes ~95%)
 **Objetivo:** Profesores pueden dar clases a sus propios alumnos
 
 | Componente | Estado | Acción |
@@ -78,10 +78,10 @@
 | PLB (Piano Learning Bot) | ✅ | - |
 | Lead capture | ✅ | - |
 | Panel Admin básico | ✅ | - |
-| **Suscripción profesor** | ⚠️ | Falta cobro automático |
-| **Landing profesor** | ⚠️ | Existe pero sin checkout |
+| **Suscripción profesor** | ✅ | Stripe integrado (checkout + webhooks) |
+| **Landing profesor** | ⚠️ | Falta integrar botón en frontend |
 
-**Entregable:** Profesores pagan $20/mes y usan la plataforma con sus alumnos.
+**Entregable:** Profesores pagan $20/mes (o $10 fundadores) y usan la plataforma con sus alumnos.
 
 ---
 

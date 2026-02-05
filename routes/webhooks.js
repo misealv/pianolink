@@ -3,11 +3,13 @@
  * Endpoints para webhooks de pagos - PianoLink v2.0
  * 
  * ⚠️ SEGURIDAD: Todos los webhooks validan firma antes de procesar
+ * ⚠️ NOTA: El webhook de Stripe está en server.js (necesita raw body antes de express.json)
  */
 
 const express = require('express');
 const router = express.Router();
 const PaymentService = require('../services/PaymentService');
+const StripeService = require('../services/StripeService');
 
 /**
  * POST /api/webhooks/mercadopago
@@ -65,7 +67,8 @@ router.get('/test', (req, res) => {
     }
     res.json({ 
         status: 'Webhook endpoints active',
-        endpoints: ['/mercadopago', '/paypal']
+        endpoints: ['/stripe', '/mercadopago', '/paypal'],
+        stripeConfigured: StripeService.isConfigured()
     });
 });
 
