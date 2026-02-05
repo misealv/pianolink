@@ -389,7 +389,7 @@ router.post('/stripe/teacher-subscription', protect, async (req, res) => {
 
         const result = await StripeService.createTeacherSubscriptionCheckout({
             teacherId: userId.toString(),
-            isFounder: user.isFounder || false,
+            isFounder: user.isFoundingMember || false,
             successUrl: req.body.successUrl,
             cancelUrl: req.body.cancelUrl
         });
@@ -504,7 +504,7 @@ router.get('/stripe/customer-portal', protect, async (req, res) => {
 router.get('/stripe/subscription-status', protect, async (req, res) => {
     try {
         const userId = req.user._id;
-        const user = await User.findById(userId).select('teacherData role isFounder');
+        const user = await User.findById(userId).select('teacherData role isFoundingMember');
 
         if (!user || user.role !== 'teacher') {
             return res.status(403).json({ 
@@ -518,7 +518,7 @@ router.get('/stripe/subscription-status', protect, async (req, res) => {
             subscription: {
                 status: user.teacherData?.subscriptionStatus || 'trial',
                 expiresAt: user.teacherData?.subscriptionExpiresAt,
-                isFounder: user.isFounder || false,
+                isFounder: user.isFoundingMember || false,
                 hasStripeSubscription: !!user.teacherData?.stripeSubscriptionId,
                 stripeCustomerId: user.teacherData?.stripeCustomerId || null
             }
