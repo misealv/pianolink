@@ -93,6 +93,12 @@
         margin: 10px auto 0 auto; width: fit-content;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2); border: 1px solid #cfaa56;
     }
+    
+    /* Botones de Suscripción */
+    #btnActivateSubscription:hover, #btnManageBilling:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
 
     /* --- ÁREA PRINCIPAL --- */
     .main {
@@ -412,6 +418,25 @@
             <button onclick="openProfileModal()" class="action-btn btn-secondary">
                 👤 EDITAR PERFIL
             </button>
+            
+            <!-- SUSCRIPCIÓN STRIPE -->
+            <div id="subscriptionSection" style="display:none; margin-top: 15px;">
+                <div id="subscriptionCard" style="background: linear-gradient(135deg, #6772e5 0%, #4f46e5 100%); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                    <div style="text-align: center; color: white;">
+                        <div id="subscriptionTitle" style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">🎹 Membresía Profesor</div>
+                        <div id="subscriptionPrice" style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">$20/mes</div>
+                        <div id="founderPrice" style="display:none; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-bottom: 8px;">🌟 Precio Fundador: $10/mes</div>
+                        <div id="subscriptionStatus" style="font-size: 11px; opacity: 0.9; margin-bottom: 12px;">Activa tu membresía</div>
+                        <button id="btnActivateSubscription" onclick="handleSubscription()" style="width: 100%; padding: 10px; background: white; color: #6772e5; border: none; border-radius: 6px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                            💳 Activar Membresía
+                        </button>
+                        <button id="btnManageBilling" onclick="openBillingPortal()" style="display:none; width: 100%; padding: 10px; background: transparent; color: white; border: 2px solid white; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer; transition: all 0.2s; margin-top: 8px;">
+                            ⚙️ Gestionar Facturación
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
             <button onclick="window.location.href='/teacher-availability.html'" class="action-btn btn-secondary">
                 📅 MI DISPONIBILIDAD
             </button>
@@ -890,6 +915,150 @@
     loadData();
     loadGlobalBrand();
     loadMyMessages(); // Cargar mensajes admin si existen
+    loadSubscriptionStatus(); // Cargar estado de suscripción
+
+    // ============================================
+    // FUNCIONALIDAD DE SUSCRIPCIÓN STRIPE
+    // ============================================
+    
+    async function loadSubscriptionStatus() {
+        try {
+            const response = await fetch('/api/payment/stripe/subscription-status', {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            
+            const data = await response.json();
+            
+            if (!data.success) {
+                console.error('Error cargando suscripción:', data.error);
+                return;
+            }
+            
+            const { subscription } = data;
+            const section = document.getElementById('subscriptionSection');
+            const statusDiv = document.getElementById('subscriptionStatus');
+            const subscribeBtn = document.getElementById('btnActivateSubscription');
+            const manageBtn = document.getElementById('btnManageBilling');
+            const priceDiv = document.getElementById('subscriptionPrice');
+            const founderPrice = document.getElementById('founderPrice');
+            const card = document.getElementById('subscriptionCard');
+            
+            // Mostrar sección
+            section.style.display = 'block';
+            
+            // Mostrar precio de fundador si aplica
+            if (subscription.isFounder) {
+                priceDiv.style.display = 'none';
+                founderPrice.style.display = 'block';
+            }
+            
+            // Actualizar UI según estado
+            switch(subscription.status) {
+                case 'active':
+                    card.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                    statusDiv.innerHTML = '✅ Suscripción Activa';
+                    if (subscription.expiresAt) {
+                        const expiryDate = new Date(subscription.expiresAt).toLocaleDateString();
+                        statusDiv.innerHTML += `<br><span style="font-size:10px;">Válida hasta: ${expiryDate}</span>`;
+                    }
+                    subscribeBtn.style.display = 'none';
+                    manageBtn.style.display = 'block';
+                    break;
+                    
+                case 'past_due':
+                    card.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+                    statusDiv.innerHTML = '⚠️ Pago Pendiente<br><span style="font-size:10px;">Por favor actualiza tu método de pago</span>';
+                    subscribeBtn.style.display = 'none';
+                    manageBtn.style.display = 'block';
+                    break;
+                    
+                case 'cancelled':
+                    card.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                    statusDiv.innerHTML = '❌ Suscripción Cancelada<br><span style="font-size:10px;">Reactiva para continuar</span>';
+                    subscribeBtn.textContent = '🔄 Reactivar Suscripción';
+                    subscribeBtn.style.display = 'block';
+                    break;
+                    
+                case 'trial':
+                default:
+                    statusDiv.innerHTML = '🎁 Período de Prueba<br><span style="font-size:10px;">Activa tu membresía</span>';
+                    subscribeBtn.style.display = 'block';
+                    break;
+            }
+            
+        } catch (error) {
+            console.error('Error cargando estado de suscripción:', error);
+        }
+    }
+    
+    async function handleSubscription() {
+        const btn = document.getElementById('btnActivateSubscription');
+        const originalText = btn.textContent;
+        
+        try {
+            btn.disabled = true;
+            btn.textContent = '⏳ Procesando...';
+            
+            const response = await fetch('/api/payment/stripe/teacher-subscription', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${user.token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.checkoutUrl) {
+                // Redirigir a Stripe Checkout
+                window.location.href = data.checkoutUrl;
+            } else {
+                alert('Error: ' + (data.error || 'No se pudo crear el checkout'));
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+            
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+    
+    async function openBillingPortal() {
+        try {
+            const response = await fetch('/api/payment/stripe/customer-portal', {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.portalUrl) {
+                window.location.href = data.portalUrl;
+            } else {
+                alert('Error: ' + (data.error || 'No se pudo abrir el portal'));
+            }
+            
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al abrir el portal');
+        }
+    }
+    
+    // Verificar si regresa de Stripe con éxito
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('subscription') === 'success') {
+        alert('🎉 ¡Suscripción activada exitosamente!');
+        // Limpiar URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Recargar estado
+        setTimeout(() => loadSubscriptionStatus(), 1000);
+    } else if (urlParams.get('subscription') === 'cancelled') {
+        alert('La suscripción fue cancelada. Puedes intentarlo nuevamente cuando quieras.');
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
   </script>
 </body>
 </html>
