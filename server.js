@@ -1783,7 +1783,44 @@ setInterval(() => {
     if (currentConnections > performanceMetrics.peakConnections) {
         performanceMetrics.peakConnections = currentConnections;
     }
+    
+    // 🔒 MEMORY CLEANUP: Limpiar salas inactivas sin usuarios (cada minuto)
+    const roomCodes = Object.keys(rooms);
+    let cleanedRooms = 0;
+    roomCodes.forEach(code => {
+        const room = rooms[code];
+        if (room && (!room.users || Object.keys(room.users).length === 0)) {
+            // Sala sin usuarios por más de 5 minutos
+            if (!room.emptyAt) {
+                room.emptyAt = Date.now();
+            } else if (Date.now() - room.emptyAt > 5 * 60 * 1000) {
+                if (room.snapshotTimer) clearTimeout(room.snapshotTimer);
+                if (room.inactivityTimer) clearTimeout(room.inactivityTimer);
+                delete rooms[code];
+                cleanedRooms++;
+            }
+        } else if (room) {
+            room.emptyAt = null; // Reset si tiene usuarios
+        }
+    });
+    if (cleanedRooms > 0) {
+        console.log(`[Memory] 🧹 Limpiadas ${cleanedRooms} salas vacías`);
+    }
 }, 60000);
+
+// 🔒 MEMORY MONITOR: Log de memoria cada 5 minutos
+setInterval(() => {
+    const mem = process.memoryUsage();
+    const heapMB = Math.round(mem.heapUsed / 1024 / 1024);
+    const rssMB = Math.round(mem.rss / 1024 / 1024);
+    
+    // Warning si supera 400MB (cerca del límite de 512MB de Render Free)
+    if (heapMB > 400) {
+        console.warn(`[Memory] ⚠️ ALERTA: Heap=${heapMB}MB, RSS=${rssMB}MB - cerca del límite!`);
+    } else {
+        console.log(`[Memory] 📊 Heap=${heapMB}MB, RSS=${rssMB}MB, Salas=${Object.keys(rooms).length}`);
+    }
+}, 5 * 60 * 1000);
 
 app.get('/api/diagnostics', (req, res) => {
     const mongoose = require('mongoose');

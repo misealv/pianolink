@@ -30,14 +30,14 @@ class DiagnosticAuditService {
             currentConnections: 0
         };
         
-        // Configuración
+        // Configuración - OPTIMIZADO PARA RENDER FREE (512MB)
         this._config = {
-            bufferSize: 100,           // Flush cada 100 eventos
-            bufferFlushMs: 5000,       // O cada 5 segundos
-            maxEmbeddedEvents: 10000   // Antes de usar overflow collection
+            bufferSize: 50,            // Flush cada 50 eventos (era 100)
+            bufferFlushMs: 3000,       // O cada 3 segundos (era 5)
+            maxEmbeddedEvents: 2000    // Reducido de 10000 a 2000 para ahorrar RAM
         };
         
-        console.log('[DiagnosticAudit] 📊 Servicio inicializado');
+        console.log('[DiagnosticAudit] 📊 Servicio inicializado (modo bajo RAM)');
         
         // Intentar recuperar auditoría activa al iniciar
         this._recoverActiveAudit();
@@ -334,6 +334,10 @@ class DiagnosticAuditService {
         this.logEvent('performance', type, data, 'info', meta);
         if (meta.latencyMs) {
             this._metrics.latencies.push(meta.latencyMs);
+            // 🔒 MEMORY LIMIT: Mantener solo últimas 1000 latencias
+            if (this._metrics.latencies.length > 1000) {
+                this._metrics.latencies = this._metrics.latencies.slice(-500);
+            }
         }
     }
     
@@ -450,8 +454,22 @@ class DiagnosticAuditService {
     
     _updateMetrics(event) {
         this._metrics.eventCount++;
-        if (event.userId) this._metrics.uniqueUsers.add(event.userId);
-        if (event.roomCode) this._metrics.uniqueRooms.add(event.roomCode);
+        if (event.userId) {
+            this._metrics.uniqueUsers.add(event.userId);
+            // 🔒 MEMORY LIMIT: Máximo 500 usuarios únicos en memoria
+            if (this._metrics.uniqueUsers.size > 500) {
+                const arr = Array.from(this._metrics.uniqueUsers);
+                this._metrics.uniqueUsers = new Set(arr.slice(-250));
+            }
+        }
+        if (event.roomCode) {
+            this._metrics.uniqueRooms.add(event.roomCode);
+            // 🔒 MEMORY LIMIT: Máximo 100 salas únicas en memoria
+            if (this._metrics.uniqueRooms.size > 100) {
+                const arr = Array.from(this._metrics.uniqueRooms);
+                this._metrics.uniqueRooms = new Set(arr.slice(-50));
+            }
+        }
     }
     
     _resetMetrics() {
