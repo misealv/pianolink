@@ -5,7 +5,14 @@
 const express = require('express');
 const router = express.Router();
 const Lead = require('../models/Lead');
-const CalendarService = require('../services/CalendarService');
+// 🔒 LAZY LOADING: CalendarService carga googleapis (~60MB), solo cargar cuando se necesite
+let _calendarService = null;
+function getCalendarService() {
+    if (!_calendarService) {
+        _calendarService = require('../services/CalendarService');
+    }
+    return _calendarService;
+}
 const { detectCountryFromPhone } = require('../utils/timezoneHelper');
 
 /**
@@ -589,7 +596,7 @@ router.post('/:id/schedule-demo', async (req, res) => {
                 }
             }
             
-            const calendarEvent = await CalendarService.createEvent({
+            const calendarEvent = await getCalendarService().createEvent({
                 summary: `Demo PianoLink - ${lead.name}`,
                 startDateTime: startDateTime.toISOString(),
                 endDateTime: endDateTime.toISOString(),

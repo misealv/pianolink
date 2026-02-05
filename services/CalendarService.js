@@ -9,7 +9,15 @@
  * 4. Configurar desde Admin Panel → Integración Calendar
  */
 
-const { google } = require('googleapis');
+// 🔒 LAZY LOADING: googleapis consume ~60MB, solo cargar cuando se necesite
+let google = null;
+function getGoogleApis() {
+    if (!google) {
+        console.log('[CalendarService] 📦 Cargando googleapis bajo demanda...');
+        google = require('googleapis').google;
+    }
+    return google;
+}
 
 class CalendarService {
     constructor() {
@@ -54,8 +62,9 @@ class CalendarService {
                 return;
             }
             
-            // Crear cliente OAuth2
-            this.oauth2Client = new google.auth.OAuth2(
+            // Crear cliente OAuth2 (lazy load googleapis)
+            const googleApi = getGoogleApis();
+            this.oauth2Client = new googleApi.auth.OAuth2(
                 clientId,
                 clientSecret,
                 redirectUri
@@ -67,7 +76,7 @@ class CalendarService {
             });
             
             // Crear cliente de Calendar
-            this.calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+            this.calendar = googleApi.calendar({ version: 'v3', auth: this.oauth2Client });
             
             this.isConfigured = true;
             console.log('[Calendar] ✅ Google Calendar configurado correctamente');
@@ -338,8 +347,9 @@ Equipo PianoLink
                 throw new Error('Credenciales de Google Calendar no configuradas. Por favor configúralas en el Admin Panel → Integración Calendar antes de autorizar.');
             }
             
-            // Crear o actualizar cliente OAuth2
-            this.oauth2Client = new google.auth.OAuth2(
+            // Crear o actualizar cliente OAuth2 (lazy load googleapis)
+            const googleApi = getGoogleApis();
+            this.oauth2Client = new googleApi.auth.OAuth2(
                 clientId,
                 clientSecret,
                 redirectUri

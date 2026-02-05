@@ -4,7 +4,15 @@
  */
 const express = require('express');
 const router = express.Router();
-const CalendarService = require('../services/CalendarService');
+
+// 🔒 LAZY LOADING: CalendarService carga googleapis (~60MB), solo cargar cuando se necesite
+let _calendarService = null;
+function getCalendarService() {
+    if (!_calendarService) {
+        _calendarService = require('../services/CalendarService');
+    }
+    return _calendarService;
+}
 
 /**
  * GET /api/calendar/auth
@@ -13,7 +21,7 @@ const CalendarService = require('../services/CalendarService');
  */
 router.get('/auth', async (req, res) => {
     try {
-        const authUrl = await CalendarService.getAuthUrl();
+        const authUrl = await getCalendarService().getAuthUrl();
         
         res.send(`
             <html>
@@ -168,7 +176,7 @@ router.get('/oauth2callback', async (req, res) => {
             return res.status(400).send('Código de autorización no recibido');
         }
         
-        const tokens = await CalendarService.getTokensFromCode(code);
+        const tokens = await getCalendarService().getTokensFromCode(code);
         
         res.send(`
             <html>
@@ -286,9 +294,10 @@ router.get('/oauth2callback', async (req, res) => {
  * Verifica si Google Calendar está configurado
  */
 router.get('/status', (req, res) => {
+    const calService = getCalendarService();
     res.json({
-        configured: CalendarService.isConfigured,
-        message: CalendarService.isConfigured 
+        configured: calService.isConfigured,
+        message: calService.isConfigured 
             ? 'Google Calendar está configurado correctamente'
             : 'Google Calendar no está configurado. Visita /api/calendar/auth para configurarlo.'
     });
@@ -300,7 +309,8 @@ router.get('/status', (req, res) => {
  */
 router.get('/test', async (req, res) => {
     try {
-        if (!CalendarService.isConfigured) {
+        const calService = getCalendarService();
+        if (!calService.isConfigured) {
             return res.json({
                 success: false,
                 message: 'Google Calendar no está configurado',
@@ -309,7 +319,7 @@ router.get('/test', async (req, res) => {
         }
 
         // Intentar listar calendarios como test de conexión
-        const result = await CalendarService.testConnection();
+        const result = await calService.testConnection();
         
         res.json({
             success: true,
