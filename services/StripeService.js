@@ -407,20 +407,25 @@ class StripeService {
             if (prices.data.length > 0) {
                 priceId = prices.data[0].id;
             } else {
-                // Crear el precio si no existe
+                // Primero crear el producto
+                const productName = isFounder 
+                    ? 'PianoLink Profesor Fundador - Membresía Mensual' 
+                    : 'PianoLink Profesor - Membresía Mensual';
+                
+                const product = await client.products.create({
+                    name: productName,
+                    metadata: {
+                        type: 'teacher_subscription',
+                        isFounder: isFounder.toString()
+                    }
+                });
+
+                // Luego crear el precio vinculado al producto
                 const price = await client.prices.create({
                     unit_amount: priceAmount,
                     currency: 'usd',
                     recurring: { interval: 'month' },
-                    product_data: {
-                        name: isFounder 
-                            ? 'PianoLink Profesor Fundador - Membresía Mensual' 
-                            : 'PianoLink Profesor - Membresía Mensual',
-                        metadata: {
-                            type: 'teacher_subscription',
-                            isFounder: isFounder.toString()
-                        }
-                    },
+                    product: product.id,
                     lookup_key: priceLookup
                 });
                 priceId = price.id;
