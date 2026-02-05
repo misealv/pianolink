@@ -447,10 +447,20 @@
             
             // Crear cliente RTC con configuración optimizada para baja latencia
             self.client = AgoraRTC.createClient({
-                mode: 'live',  // Modo live tiene mejor manejo de red que rtc
-                codec: 'h264', // H.264 es más eficiente que VP8
-                role: 'host'   // Ambos son hosts para comunicación bidireccional
+                mode: 'rtc',   // RTC tiene menor latencia que live para 1:1
+                codec: 'vp8',  // VP8 tiene menor latencia de codificación que H264
+                role: 'host'
             });
+            
+            // ====== OPTIMIZACIÓN DE LATENCIA ======
+            // Habilitar dual-stream para menor latencia
+            if (self.client.enableDualStream) {
+                self.client.enableDualStream().then(function() {
+                    console.log('[VideoManager] 📡 Dual-stream habilitado (menor latencia)');
+                }).catch(function(err) {
+                    console.warn('[VideoManager] Dual-stream no disponible:', err.message);
+                });
+            }
             
             // ====== HABILITAR DEGRADACIÓN AUTOMÁTICA DE CALIDAD ======
             // Esto hace que Agora baje la calidad automáticamente si hay problemas de red
