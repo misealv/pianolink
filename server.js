@@ -52,10 +52,11 @@ const io = new Server(server, {
         methods: ['GET', 'POST'],
         credentials: true
     },
-    maxHttpBufferSize: 1e7, // 10 MB (Suficiente para PDFs y MIDI)
-    pingTimeout: 120000,    // 120s antes de considerar desconexión (aumentado de 60s)
-    pingInterval: 25000,    // Enviar ping cada 25s
-    connectTimeout: 45000,  // Timeout para establecer conexión inicial
+    // 🔒 OPTIMIZADO PARA RENDER FREE (512MB)
+    maxHttpBufferSize: 1e6,  // 1 MB (reducido de 10 MB) - suficiente para MIDI
+    pingTimeout: 60000,      // 60s (reducido de 120s) - detectar desconexiones más rápido
+    pingInterval: 25000,     // Enviar ping cada 25s
+    connectTimeout: 30000,   // 30s timeout (reducido de 45s)
     transports: ['websocket', 'polling'], // Fallback a polling si websocket falla
     
     // === OPTIMIZACIÓN DE LATENCIA PARA MIDI ===
@@ -63,6 +64,9 @@ const io = new Server(server, {
     httpCompression: false,    // Sin compresión HTTP (MIDI binario no comprime bien)
     allowUpgrades: true,       // Permitir upgrade de polling → websocket
     upgradeTimeout: 10000,     // 10s para upgrade
+    
+    // 🔒 LÍMITES DE MEMORIA
+    maxPayload: 1e6,           // 1 MB máximo por mensaje
     
     // === PRIORIZACIÓN DE MENSAJES ===
     // Socket.io v4 no soporta priorización nativa, pero podemos usar:
