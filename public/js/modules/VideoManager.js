@@ -364,6 +364,7 @@
             <div class="video-header">
                 <span class="video-title" id="remote-video-title">👥 Remoto</span>
                 <div class="video-controls">
+                    <button id="remote-hide-video" class="video-btn" title="Ocultar video remoto">📹</button>
                     <button id="remote-minimize" class="video-btn" title="Minimizar">−</button>
                 </div>
             </div>
