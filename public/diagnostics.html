@@ -847,6 +847,7 @@
         let diagnosticsData = null;
         let latencyHistory = [];
         let refreshInterval = null;
+        const token = userSession.token; // Token para requests autenticados
         
         // ============================================
         // INIT
@@ -1029,6 +1030,12 @@
             
             document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
             document.getElementById('tab-' + tabName).classList.add('active');
+            
+            // Acciones específicas por tab
+            if (tabName === 'audit') {
+                loadAuditStatus();
+                loadAuditHistory();
+            }
         }
         
         // ============================================
@@ -1156,11 +1163,11 @@
                 });
                 const data = await res.json();
                 
-                if (data.active) {
-                    currentAuditId = data.auditId;
+                if (data.isActive) {
+                    currentAuditId = data.currentAudit?.auditId || data.auditId;
                     setAuditUIActive(true);
                     startLiveStatsPolling();
-                    updateLiveStats(data.stats || {});
+                    updateLiveStats(data.stats || data);
                 } else {
                     currentAuditId = null;
                     setAuditUIActive(false);
@@ -1193,6 +1200,8 @@
                         stopLiveStatsPolling();
                         loadAuditHistory();
                         addLog('Auditoría detenida - ' + (data.summary?.totalEvents || 0) + ' eventos capturados', 'success');
+                    } else {
+                        addLog('Error al detener: ' + (data.error || data.message || 'Error desconocido'), 'error');
                     }
                 } else {
                     // Start audit with config
@@ -1218,10 +1227,12 @@
                     const data = await res.json();
                     
                     if (data.success) {
-                        currentAuditId = data.auditId;
+                        currentAuditId = data.audit?.auditId || data.auditId;
                         setAuditUIActive(true);
                         startLiveStatsPolling();
-                        addLog('Auditoría iniciada: ' + data.auditId, 'info');
+                        addLog('Auditoría iniciada: ' + currentAuditId, 'info');
+                    } else {
+                        addLog('Error: ' + (data.error || data.message || 'Error desconocido'), 'error');
                     }
                 }
             } catch (err) {

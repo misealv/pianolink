@@ -83,6 +83,10 @@ const availabilityTemplateSchema = mongoose.Schema({
             type: String,
             default: ''
         },
+        isBlocked: {
+            type: Boolean,
+            default: true
+        },
         isFullDay: {
             type: Boolean,
             default: true

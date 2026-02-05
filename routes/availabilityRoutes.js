@@ -269,6 +269,112 @@ router.delete('/slots/:id', protect, async (req, res) => {
     }
 });
 
+/**
+ * POST /api/availability/slots
+ * Crear slots manualmente (único o en lote)
+ * Body: { slots: [{ date, startTime, endTime }] } o { date, startTime, endTime } para uno solo
+ */
+router.post('/slots', protect, async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({ message: 'Solo profesores pueden crear slots' });
+        }
+        
+        let slotsToCreate = [];
+        
+        // Soportar formato único o en lote
+        if (req.body.slots && Array.isArray(req.body.slots)) {
+            slotsToCreate = req.body.slots;
+        } else if (req.body.date && req.body.startTime) {
+            slotsToCreate = [req.body];
+        } else {
+            return res.status(400).json({ message: 'Formato inválido. Envía { date, startTime, endTime } o { slots: [...] }' });
+        }
+        
+        // Obtener plantilla activa para duración default
+        const template = await AvailabilityTemplate.findOne({
+            teacherId: req.user._id,
+            isActive: true
+        });
+        
+        const defaultDuration = template?.defaultDuration || 45;
+        const bufferMinutes = template?.bufferMinutes || 10;
+        const createdSlots = [];
+        const errors = [];
+        
+        for (const slotData of slotsToCreate) {
+            try {
+                const { date, startTime, endTime } = slotData;
+                
+                if (!date || !startTime) {
+                    errors.push({ slot: slotData, error: 'Fecha y hora de inicio requeridas' });
+                    continue;
+                }
+                
+                // Construir datetime completo
+                const startDateTime = new Date(`${date}T${startTime}:00`);
+                
+                // Si no hay endTime, usar duración default
+                let endDateTime;
+                if (endTime) {
+                    endDateTime = new Date(`${date}T${endTime}:00`);
+                } else {
+                    endDateTime = new Date(startDateTime.getTime() + defaultDuration * 60 * 1000);
+                }
+                
+                // Validar que no sea en el pasado
+                if (startDateTime < new Date()) {
+                    errors.push({ slot: slotData, error: 'No puedes crear slots en el pasado' });
+                    continue;
+                }
+                
+                // Validar que no haya conflictos
+                const conflict = await TimeSlot.findOne({
+                    teacherId: req.user._id,
+                    status: { $in: ['available', 'booked'] },
+                    $or: [
+                        { startTime: { $lt: endDateTime, $gte: startDateTime } },
+                        { endTime: { $gt: startDateTime, $lte: endDateTime } },
+                        { startTime: { $lte: startDateTime }, endTime: { $gte: endDateTime } }
+                    ]
+                });
+                
+                if (conflict) {
+                    errors.push({ slot: slotData, error: `Conflicto con slot existente (${conflict.startTime.toLocaleTimeString('es-CL')})` });
+                    continue;
+                }
+                
+                // Crear el slot
+                const newSlot = await TimeSlot.create({
+                    teacherId: req.user._id,
+                    startTime: startDateTime,
+                    endTime: endDateTime,
+                    duration: Math.round((endDateTime - startDateTime) / 60000),
+                    status: 'available',
+                    source: 'manual'
+                });
+                
+                createdSlots.push(newSlot);
+                
+            } catch (err) {
+                errors.push({ slot: slotData, error: err.message });
+            }
+        }
+        
+        res.json({
+            success: true,
+            created: createdSlots.length,
+            errors: errors.length,
+            slots: createdSlots,
+            errorDetails: errors
+        });
+        
+    } catch (error) {
+        console.error('Error creando slots:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 // ==================== DISPONIBILIDAD PÚBLICA (ESTUDIANTES) ====================
 
 /**
@@ -414,6 +520,145 @@ router.get('/teacher/:teacherId', async (req, res) => {
         res.json(slots);
     } catch (error) {
         console.error('Error obteniendo disponibilidad:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ==================== BLOQUEO DE FECHAS ====================
+
+/**
+ * POST /api/availability/block-date
+ * Bloquear una fecha específica (elimina slots existentes y previene generación futura)
+ */
+router.post('/block-date', protect, async (req, res) => {
+    try {
+        const { date, reason } = req.body;
+        
+        if (!date) {
+            return res.status(400).json({ message: 'Fecha requerida' });
+        }
+        
+        // Validar que es profesor
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({ message: 'Solo profesores pueden bloquear fechas' });
+        }
+        
+        // Crear rango de inicio y fin del día
+        const blockDate = new Date(date + 'T00:00:00');
+        const dayStart = new Date(blockDate);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(blockDate);
+        dayEnd.setHours(23, 59, 59, 999);
+        
+        // Eliminar todos los slots disponibles (no reservados) de ese día
+        const deleteResult = await TimeSlot.deleteMany({
+            teacherId: req.user._id,
+            startTime: { $gte: dayStart, $lte: dayEnd },
+            status: 'available'
+        });
+        
+        // Guardar la fecha bloqueada en el template activo
+        const template = await AvailabilityTemplate.findOne({
+            teacherId: req.user._id,
+            isActive: true
+        });
+        
+        if (template) {
+            // Agregar a excepciones si no existe
+            if (!template.exceptions) {
+                template.exceptions = [];
+            }
+            
+            const existingException = template.exceptions.find(
+                e => e.date && new Date(e.date).toDateString() === blockDate.toDateString()
+            );
+            
+            if (!existingException) {
+                template.exceptions.push({
+                    date: blockDate,
+                    isBlocked: true,
+                    reason: reason || 'Bloqueado por el profesor'
+                });
+                await template.save();
+            }
+        }
+        
+        res.json({ 
+            success: true, 
+            deletedSlots: deleteResult.deletedCount,
+            message: `Fecha bloqueada. ${deleteResult.deletedCount} slot(s) eliminado(s).`
+        });
+        
+    } catch (error) {
+        console.error('Error bloqueando fecha:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
+ * GET /api/availability/blocked-dates
+ * Obtener fechas bloqueadas del profesor
+ */
+router.get('/blocked-dates', protect, async (req, res) => {
+    try {
+        const template = await AvailabilityTemplate.findOne({
+            teacherId: req.user._id,
+            isActive: true
+        });
+        
+        if (!template || !template.exceptions) {
+            return res.json({ blockedDates: [] });
+        }
+        
+        // Filtrar solo las fechas bloqueadas futuras
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        
+        const blockedDates = template.exceptions
+            .filter(e => e.isBlocked && new Date(e.date) >= now)
+            .map(e => ({
+                date: e.date.toISOString().split('T')[0],
+                reason: e.reason
+            }))
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        res.json({ blockedDates });
+        
+    } catch (error) {
+        console.error('Error obteniendo fechas bloqueadas:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
+ * DELETE /api/availability/block-date/:date
+ * Desbloquear una fecha
+ */
+router.delete('/block-date/:date', protect, async (req, res) => {
+    try {
+        const template = await AvailabilityTemplate.findOne({
+            teacherId: req.user._id,
+            isActive: true
+        });
+        
+        if (!template) {
+            return res.status(404).json({ message: 'No hay plantilla activa' });
+        }
+        
+        const dateToUnblock = new Date(req.params.date + 'T12:00:00');
+        
+        // Remover la excepción
+        template.exceptions = (template.exceptions || []).filter(e => {
+            const exDate = new Date(e.date);
+            return exDate.toDateString() !== dateToUnblock.toDateString();
+        });
+        
+        await template.save();
+        
+        res.json({ success: true, message: 'Fecha desbloqueada' });
+        
+    } catch (error) {
+        console.error('Error desbloqueando fecha:', error);
         res.status(500).json({ message: error.message });
     }
 });

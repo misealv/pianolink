@@ -409,6 +409,21 @@
             background: rgba(34, 197, 94, 0.15);
             color: #4ade80;
             border: 1px dashed rgba(34, 197, 94, 0.4);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cal-slot.available:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            color: #f87171;
+        }
+
+        .cal-slot.available:hover::after {
+            content: '✕ Eliminar';
+            display: block;
+            font-size: 8px;
+            margin-top: 2px;
         }
 
         .cal-slot.booked {
@@ -416,10 +431,29 @@
             color: white;
             cursor: pointer;
             box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+            position: relative;
+            transition: all 0.2s;
         }
 
         .cal-slot.booked:hover {
             transform: scale(1.02);
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+        }
+        
+        .cal-slot.booked:hover .student-name,
+        .cal-slot.booked:hover .slot-time {
+            opacity: 0.3;
+        }
+        
+        .cal-slot.booked:hover::after {
+            content: '✕ Cancelar';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            font-weight: 700;
         }
 
         .cal-slot .student-name {
@@ -436,6 +470,31 @@
             text-align: center;
             padding: 40px;
             color: var(--text-muted);
+        }
+
+        /* Checkboxes de días para batch */
+        .day-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 12px;
+            background: #252530;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+        
+        .day-check:has(input:checked) {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .day-check input {
+            display: none;
         }
 
         @keyframes slideIn {
@@ -644,9 +703,126 @@
             </div>
         </div>
 
+        <!-- Bloquear fechas específicas -->
+        <div class="card">
+            <h2>🚫 Bloquear Fechas</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+                ¿Tienes un día que no podrás dar clases? Bloquéalo aquí.
+            </p>
+            
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                <div class="config-item" style="flex: 1; min-width: 150px;">
+                    <label>Fecha a bloquear</label>
+                    <input type="date" id="blockDate" min="" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                </div>
+                <div class="config-item" style="flex: 2; min-width: 200px;">
+                    <label>Motivo (opcional)</label>
+                    <input type="text" id="blockReason" placeholder="Ej: Vacaciones, compromiso personal..." style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                </div>
+                <button class="btn btn-primary" onclick="blockDate()" style="height: 42px;">
+                    🚫 Bloquear Día
+                </button>
+            </div>
+            
+            <!-- Lista de fechas bloqueadas -->
+            <div id="blockedDatesList" style="margin-top: 20px;"></div>
+        </div>
+
+        <!-- Añadir Disponibilidad Manual -->
+        <div class="card">
+            <h2>➕ Añadir Disponibilidad</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+                Agrega horarios disponibles manualmente, ya sea uno a la vez o varios de golpe.
+            </p>
+            
+            <!-- Tabs para tipo de añadido -->
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn" id="tabSingle" onclick="showAddTab('single')" style="flex: 1; background: var(--accent);">
+                    📍 Único
+                </button>
+                <button class="btn" id="tabBatch" onclick="showAddTab('batch')" style="flex: 1; background: #252530; border: 1px solid var(--border);">
+                    📋 En Lote
+                </button>
+            </div>
+            
+            <!-- Panel: Añadir Único -->
+            <div id="panelSingle">
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                    <div class="config-item" style="flex: 1; min-width: 130px;">
+                        <label>Fecha</label>
+                        <input type="date" id="addDate" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                    </div>
+                    <div class="config-item" style="min-width: 100px;">
+                        <label>Hora inicio</label>
+                        <input type="time" id="addStartTime" value="10:00" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                    </div>
+                    <div class="config-item" style="min-width: 100px;">
+                        <label>Hora fin <span style="font-size: 10px; opacity: 0.6;">(opcional)</span></label>
+                        <input type="time" id="addEndTime" placeholder="Auto" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                    </div>
+                    <button class="btn btn-success" onclick="addSingleSlot()" style="height: 42px;">
+                        ➕ Agregar
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Panel: Añadir en Lote -->
+            <div id="panelBatch" style="display: none;">
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
+                    <div class="config-item" style="flex: 1; min-width: 130px;">
+                        <label>Desde fecha</label>
+                        <input type="date" id="batchFromDate" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                    </div>
+                    <div class="config-item" style="flex: 1; min-width: 130px;">
+                        <label>Hasta fecha</label>
+                        <input type="date" id="batchToDate" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 12px; color: var(--text-muted);">Días de la semana</label>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <label class="day-check"><input type="checkbox" id="batchDay1" checked> Lun</label>
+                        <label class="day-check"><input type="checkbox" id="batchDay2" checked> Mar</label>
+                        <label class="day-check"><input type="checkbox" id="batchDay3" checked> Mié</label>
+                        <label class="day-check"><input type="checkbox" id="batchDay4" checked> Jue</label>
+                        <label class="day-check"><input type="checkbox" id="batchDay5" checked> Vie</label>
+                        <label class="day-check"><input type="checkbox" id="batchDay6"> Sáb</label>
+                        <label class="day-check"><input type="checkbox" id="batchDay0"> Dom</label>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                    <div class="config-item" style="min-width: 100px;">
+                        <label>Hora inicio</label>
+                        <input type="time" id="batchStartTime" value="10:00" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                    </div>
+                    <div class="config-item" style="min-width: 100px;">
+                        <label>Hora fin</label>
+                        <input type="time" id="batchEndTime" value="18:00" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                    </div>
+                    <div class="config-item" style="min-width: 80px;">
+                        <label>Duración <span style="font-size: 10px;">(min)</span></label>
+                        <input type="number" id="batchDuration" value="45" min="15" max="120" step="15" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                    </div>
+                    <button class="btn btn-success" onclick="addBatchSlots()" style="height: 42px;">
+                        ⚡ Generar Slots
+                    </button>
+                </div>
+                
+                <p style="color: var(--text-muted); font-size: 11px; margin-top: 10px;">
+                    💡 Esto creará slots de la duración indicada entre las horas especificadas, para los días seleccionados.
+                </p>
+            </div>
+        </div>
+
         <!-- Próximas Reservas - Vista Calendario Semanal -->
         <div class="card">
             <h2>📅 Mi Calendario de Clases</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">
+                <span style="color: #4ade80;">● Verde</span> = Disponible (click para eliminar) &nbsp;|&nbsp;
+                <span style="color: #8b5cf6;">● Morado</span> = Clase reservada (click para cancelar)
+            </p>
             
             <!-- Navegación de semanas -->
             <div class="week-navigation">
@@ -1007,13 +1183,12 @@
                         `;
                     }
                     
-                    // Mostrar slots disponibles
+                    // Mostrar slots disponibles (ahora clickeables para eliminar)
                     for (const slot of daySlots) {
                         const time = new Date(slot.startTime).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
                         html += `
-                            <div class="cal-slot available">
+                            <div class="cal-slot available" onclick="deleteSlot('${slot._id}', '${time}')">
                                 <div class="slot-time">${time}</div>
-                                <div style="font-size: 9px;">Disponible</div>
                             </div>
                         `;
                     }
@@ -1024,6 +1199,34 @@
             
             html += '</div>';
             container.innerHTML = html;
+        }
+
+        // Eliminar slot disponible
+        async function deleteSlot(slotId, time) {
+            if (!confirm(`¿Eliminar este horario disponible (${time})?\n\nYa no aparecerá para que los estudiantes lo reserven.`)) {
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/availability/slots/${slotId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const result = await res.json();
+                
+                if (res.ok) {
+                    showToast('✓ Horario eliminado');
+                    loadCalendarData(); // Recargar calendario
+                } else {
+                    showToast(result.message || 'Error al eliminar', true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error de conexión', true);
+            }
         }
 
         function showBookingDetails(bookingId, studentName) {
@@ -1062,6 +1265,103 @@
             }
         }
 
+        // Bloquear una fecha específica
+        async function blockDate() {
+            const dateInput = document.getElementById('blockDate');
+            const reasonInput = document.getElementById('blockReason');
+            
+            const date = dateInput.value;
+            const reason = reasonInput.value.trim();
+            
+            if (!date) {
+                showToast('Selecciona una fecha', true);
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/availability/block-date', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ date, reason })
+                });
+                
+                const result = await res.json();
+                
+                if (res.ok) {
+                    showToast(`✓ Fecha bloqueada. ${result.deletedSlots || 0} slots eliminados.`);
+                    dateInput.value = '';
+                    reasonInput.value = '';
+                    loadBlockedDates();
+                    loadCalendarData();
+                } else {
+                    showToast(result.message || 'Error al bloquear fecha', true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error de conexión', true);
+            }
+        }
+        
+        // Cargar fechas bloqueadas
+        async function loadBlockedDates() {
+            try {
+                const res = await fetch('/api/availability/blocked-dates', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!res.ok) return;
+                
+                const data = await res.json();
+                const container = document.getElementById('blockedDatesList');
+                
+                if (!data.blockedDates || data.blockedDates.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted); font-size: 13px;">No hay fechas bloqueadas</p>';
+                    return;
+                }
+                
+                container.innerHTML = data.blockedDates.map(bd => {
+                    const date = new Date(bd.date + 'T12:00:00');
+                    const formatted = date.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' });
+                    return `
+                        <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(239,68,68,0.1); border-radius: 6px; margin-bottom: 8px;">
+                            <span style="flex: 1;">
+                                <strong style="color: #ef4444;">🚫 ${formatted}</strong>
+                                ${bd.reason ? `<span style="color: var(--text-muted); margin-left: 10px;">${bd.reason}</span>` : ''}
+                            </span>
+                            <button onclick="unblockDate('${bd.date}')" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px;" title="Desbloquear">✕</button>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error cargando fechas bloqueadas:', error);
+            }
+        }
+        
+        // Desbloquear fecha
+        async function unblockDate(date) {
+            if (!confirm('¿Desbloquear esta fecha?')) return;
+            
+            try {
+                const res = await fetch(`/api/availability/block-date/${date}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    showToast('✓ Fecha desbloqueada');
+                    loadBlockedDates();
+                } else {
+                    showToast('Error al desbloquear', true);
+                }
+            } catch (error) {
+                showToast('Error de conexión', true);
+            }
+        }
+
         // Toast notification
         function showToast(message, isError = false) {
             const toast = document.getElementById('toast');
@@ -1074,10 +1374,185 @@
             }, 3000);
         }
 
+        // Inicializar mínimo del datepicker
+        function initBlockDatePicker() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('blockDate').setAttribute('min', today);
+            document.getElementById('addDate').setAttribute('min', today);
+            document.getElementById('addDate').value = today;
+            document.getElementById('batchFromDate').setAttribute('min', today);
+            document.getElementById('batchFromDate').value = today;
+            
+            // Fecha fin por defecto: 2 semanas después
+            const twoWeeks = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            document.getElementById('batchToDate').setAttribute('min', today);
+            document.getElementById('batchToDate').value = twoWeeks;
+        }
+        
+        // Mostrar tab de añadir (único vs lote)
+        function showAddTab(tab) {
+            const tabSingle = document.getElementById('tabSingle');
+            const tabBatch = document.getElementById('tabBatch');
+            const panelSingle = document.getElementById('panelSingle');
+            const panelBatch = document.getElementById('panelBatch');
+            
+            if (tab === 'single') {
+                tabSingle.style.background = 'var(--accent)';
+                tabSingle.style.border = 'none';
+                tabBatch.style.background = '#252530';
+                tabBatch.style.border = '1px solid var(--border)';
+                panelSingle.style.display = 'block';
+                panelBatch.style.display = 'none';
+            } else {
+                tabBatch.style.background = 'var(--accent)';
+                tabBatch.style.border = 'none';
+                tabSingle.style.background = '#252530';
+                tabSingle.style.border = '1px solid var(--border)';
+                panelSingle.style.display = 'none';
+                panelBatch.style.display = 'block';
+            }
+        }
+        
+        // Añadir slot único
+        async function addSingleSlot() {
+            const date = document.getElementById('addDate').value;
+            const startTime = document.getElementById('addStartTime').value;
+            const endTime = document.getElementById('addEndTime').value;
+            
+            if (!date || !startTime) {
+                showToast('Selecciona fecha y hora de inicio', true);
+                return;
+            }
+            
+            try {
+                const body = { date, startTime };
+                if (endTime) body.endTime = endTime;
+                
+                const res = await fetch('/api/availability/slots', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+                
+                const result = await res.json();
+                
+                if (res.ok && result.created > 0) {
+                    showToast(`✓ Slot agregado correctamente`);
+                    loadCalendarData();
+                } else if (result.errorDetails && result.errorDetails.length > 0) {
+                    showToast(result.errorDetails[0].error, true);
+                } else {
+                    showToast(result.message || 'Error al agregar slot', true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error de conexión', true);
+            }
+        }
+        
+        // Añadir slots en lote
+        async function addBatchSlots() {
+            const fromDate = document.getElementById('batchFromDate').value;
+            const toDate = document.getElementById('batchToDate').value;
+            const startTime = document.getElementById('batchStartTime').value;
+            const endTime = document.getElementById('batchEndTime').value;
+            const duration = parseInt(document.getElementById('batchDuration').value) || 45;
+            
+            if (!fromDate || !toDate || !startTime || !endTime) {
+                showToast('Completa todos los campos', true);
+                return;
+            }
+            
+            // Obtener días seleccionados
+            const selectedDays = [];
+            for (let i = 0; i <= 6; i++) {
+                if (document.getElementById(`batchDay${i}`)?.checked) {
+                    selectedDays.push(i);
+                }
+            }
+            
+            if (selectedDays.length === 0) {
+                showToast('Selecciona al menos un día', true);
+                return;
+            }
+            
+            // Generar lista de slots
+            const slots = [];
+            const start = new Date(fromDate + 'T00:00:00');
+            const end = new Date(toDate + 'T23:59:59');
+            
+            // Convertir horas a minutos
+            const [startH, startM] = startTime.split(':').map(Number);
+            const [endH, endM] = endTime.split(':').map(Number);
+            const startMinutes = startH * 60 + startM;
+            const endMinutes = endH * 60 + endM;
+            
+            // Iterar cada día en el rango
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dayOfWeek = d.getDay();
+                
+                if (!selectedDays.includes(dayOfWeek)) continue;
+                
+                const dateStr = d.toISOString().split('T')[0];
+                
+                // Generar slots de este día
+                for (let mins = startMinutes; mins + duration <= endMinutes; mins += duration) {
+                    const slotStartH = Math.floor(mins / 60).toString().padStart(2, '0');
+                    const slotStartM = (mins % 60).toString().padStart(2, '0');
+                    const slotEndMins = mins + duration;
+                    const slotEndH = Math.floor(slotEndMins / 60).toString().padStart(2, '0');
+                    const slotEndM = (slotEndMins % 60).toString().padStart(2, '0');
+                    
+                    slots.push({
+                        date: dateStr,
+                        startTime: `${slotStartH}:${slotStartM}`,
+                        endTime: `${slotEndH}:${slotEndM}`
+                    });
+                }
+            }
+            
+            if (slots.length === 0) {
+                showToast('No hay slots para crear con esa configuración', true);
+                return;
+            }
+            
+            if (slots.length > 200) {
+                if (!confirm(`Se crearán ${slots.length} slots. ¿Continuar?`)) return;
+            }
+            
+            try {
+                const res = await fetch('/api/availability/slots', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ slots })
+                });
+                
+                const result = await res.json();
+                
+                if (res.ok) {
+                    showToast(`✓ ${result.created} slots creados${result.errors > 0 ? ` (${result.errors} conflictos)` : ''}`);
+                    loadCalendarData();
+                } else {
+                    showToast(result.message || 'Error al crear slots', true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error de conexión', true);
+            }
+        }
+
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
             loadTemplate();
             loadCalendarData();
+            loadBlockedDates();
+            initBlockDatePicker();
         });
     </script>
 </body>
