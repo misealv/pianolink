@@ -201,6 +201,12 @@ export class SocketClient {
             }, 100);
         });
         
+        // 🔐 Manejar error de sala (membresía inactiva, etc.)
+        this.socket.on("room-error", (error) => {
+            console.warn('[SocketClient] Room error:', error);
+            this.bus.emit("room-error", error);
+        });
+        
         this.socket.on("room-joined", (code) => { 
             this.roomCode = code; 
             this.bus.emit("room-joined", code);

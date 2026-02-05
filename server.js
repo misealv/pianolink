@@ -308,7 +308,90 @@ app.get('/', (req, res) => {
 
 
 // Rutas de Entrada (SPA)
-app.get(['/c/:slug'], (req, res) => {
+app.get(['/c/:slug'], async (req, res) => {
+    const slug = req.params.slug;
+    
+    // Verificar si el profesor tiene membresía activa (para profesores que acceden a su sala)
+    try {
+        const Room = require('./models/Room');
+        const User = require('./models/User');
+        
+        const room = await Room.findOne({ slug: slug.toLowerCase() });
+        
+        if (room) {
+            const teacher = await User.findById(room.teacherId).select('teacherData role');
+            
+            if (teacher && teacher.role === 'teacher') {
+                const status = teacher.teacherData?.subscriptionStatus;
+                
+                if (status !== 'active') {
+                    // Profesor sin membresía - servir página de membresía requerida
+                    return res.send(`
+                        <!DOCTYPE html>
+                        <html lang="es">
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <title>Membresía Requerida - PianoLink</title>
+                            <link rel="icon" href="/img/favicon.ico">
+                            <style>
+                                * { margin: 0; padding: 0; box-sizing: border-box; }
+                                body {
+                                    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+                                    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                                    min-height: 100vh;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    color: white;
+                                    padding: 20px;
+                                }
+                                .container {
+                                    text-align: center;
+                                    max-width: 450px;
+                                }
+                                .icon { font-size: 72px; margin-bottom: 24px; }
+                                h1 { font-size: 28px; margin-bottom: 16px; color: #f59e0b; }
+                                p { font-size: 16px; color: rgba(255,255,255,0.8); line-height: 1.6; margin-bottom: 32px; }
+                                .buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+                                .btn {
+                                    display: inline-flex; align-items: center; gap: 8px;
+                                    padding: 14px 28px; border-radius: 10px; text-decoration: none;
+                                    font-weight: 700; font-size: 14px; transition: all 0.3s;
+                                }
+                                .btn-primary {
+                                    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                                    color: white; box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+                                }
+                                .btn-primary:hover { transform: translateY(-2px); }
+                                .btn-secondary {
+                                    background: transparent; color: white;
+                                    border: 2px solid rgba(255,255,255,0.3);
+                                }
+                                .btn-secondary:hover { border-color: rgba(255,255,255,0.6); }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <div class="icon">🎹</div>
+                                <h1>Membresía Requerida</h1>
+                                <p>La sala de clases no está disponible porque la membresía del profesor no está activa.</p>
+                                <div class="buttons">
+                                    <a href="/dashboard.html" class="btn btn-primary">💳 Activar Membresía</a>
+                                    <a href="/" class="btn btn-secondary">← Volver al Inicio</a>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                    `);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('[Route] Error verificando membresía:', err);
+        // En caso de error, permitir acceso (fail-open)
+    }
+    
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -477,6 +560,30 @@ io.on("connection", (socket) => {
     
     // Crear Sala (Profesor)
     socket.on("create-room", async (payload) => {
+        // 🔐 VALIDACIÓN DE MEMBRESÍA
+        if (payload.userId) {
+            try {
+                const User = require('./models/User');
+                const teacher = await User.findById(payload.userId).select('role teacherData isFoundingMember');
+                
+                if (teacher && teacher.role === 'teacher') {
+                    const membershipStatus = teacher.teacherData?.subscriptionStatus;
+                    
+                    if (membershipStatus !== 'active') {
+                        console.log(`[Auth] ⛔ Profesor sin membresía activa intentó crear sala: ${payload.userId}`);
+                        socket.emit("room-error", {
+                            code: 'MEMBERSHIP_INACTIVE',
+                            message: 'Tu membresía no está activa. Actívala desde tu panel para acceder a tu sala.'
+                        });
+                        return; // Bloquear creación de sala
+                    }
+                }
+            } catch (err) {
+                console.error('[Auth] Error validando membresía:', err);
+                // En caso de error, permitir acceso (fail-open para no bloquear)
+            }
+        }
+        
         const roomCode = (payload.roomCode || generateCode()).toUpperCase();
         setupUserInRoom(socket, roomCode, payload.username || "Profesor", "teacher");
         

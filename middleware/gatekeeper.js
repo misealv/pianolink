@@ -135,6 +135,21 @@ const verifySocketAccess = async ({ token, roomCode, guestName }) => {
                 };
             }
 
+            // 4.1 Verificar membresía activa del profesor (excepto admin)
+            if (user.role === 'teacher') {
+                const membershipStatus = user.teacherData?.subscriptionStatus;
+                const isActive = membershipStatus === 'active';
+                
+                if (!isActive) {
+                    return {
+                        allowed: false,
+                        reason: 'MEMBERSHIP_INACTIVE',
+                        message: 'Tu membresía no está activa. Actívala para acceder a tu sala.',
+                        membershipStatus: membershipStatus || 'none'
+                    };
+                }
+            }
+
             return {
                 allowed: true,
                 reason: 'OWNER',
