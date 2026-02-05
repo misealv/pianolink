@@ -686,6 +686,20 @@ async function bootstrap() {
         }
     }, 3000);
     
+    // Botón para refrescar lista de participantes manualmente
+    const refreshBtn = document.getElementById('refreshParticipants');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            console.log('[Main] 🔄 Solicitando lista de participantes...');
+            const roomCode = scoreLogic.getRoomCode && scoreLogic.getRoomCode();
+            if (roomCode && socket) {
+                socket.emit('request-user-list', { roomCode: roomCode });
+                this.textContent = '⏳';
+                setTimeout(() => { this.textContent = '🔄'; }, 1000);
+            }
+        });
+    }
+    
     console.log('✅ [Main] Sistema completamente inicializado (Video se cargará en 3s).');
 }
 
