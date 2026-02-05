@@ -13,8 +13,9 @@ export class MidiBundler {
     constructor(sendCallback) {
         this.sendCallback = sendCallback; // Función para enviar al servidor
         
-        // === MICRO-BUFFER CONFIG ===
-        this.BUNDLE_INTERVAL_MS = 10; // 10ms = 100fps (precisión profesional)
+        // === MICRO-BUFFER CONFIG (OPTIMIZADO PARA RENDER FREE) ===
+        // 16ms = 60fps (balanceado entre latencia y eficiencia de red)
+        this.BUNDLE_INTERVAL_MS = 16; // Aumentado de 10ms a 16ms
         this.bundleTimer = null;
         this.messageQueue = [];
         
@@ -23,8 +24,12 @@ export class MidiBundler {
         
         // === FILTRADO DE CC REDUNDANTES ===
         this.lastCCValues = new Map(); // key: "channel-cc", value: {value, timestamp}
-        this.CC_THROTTLE_MS = 20;      // No enviar mismo CC más de 1 vez cada 20ms
-        this.CC_VALUE_THRESHOLD = 2;   // Ignorar cambios menores a 2 unidades
+        this.CC_THROTTLE_MS = 25;      // Aumentado de 20ms a 25ms
+        this.CC_VALUE_THRESHOLD = 3;   // Aumentado de 2 a 3 (menos sensible)
+        
+        // === NUEVO: RATE LIMIT PARA RÁFAGAS ===
+        this._lastFlushTime = 0;
+        this.MIN_FLUSH_INTERVAL_MS = 8; // Mínimo 8ms entre envíos (125 paquetes/seg máx)
         
         // === ESTADÍSTICAS (para debugging) ===
         this.stats = {
@@ -32,11 +37,13 @@ export class MidiBundler {
             messagesFiltered: 0,
             bundlesSent: 0,
             avgBundleSize: 0,
-            raceConditionsPrevented: 0  // Contador de races evitadas
+            raceConditionsPrevented: 0,  // Contador de races evitadas
+            rateLimited: 0               // Contador de rate limits
         };
         
-        console.log('[MidiBundler] ⚡ High-Priority MIDI Stream (Professional Mode + Mutex)');
+        console.log('[MidiBundler] ⚡ High-Priority MIDI Stream (Optimizado para red limitada)');
         console.log(`  - Bundle interval: ${this.BUNDLE_INTERVAL_MS}ms`);
+        console.log(`  - Min flush interval: ${this.MIN_FLUSH_INTERVAL_MS}ms`);
         console.log(`  - CC throttle: ${this.CC_THROTTLE_MS}ms`);
     }
     
@@ -76,9 +83,23 @@ export class MidiBundler {
             type: messageType
         });
         
-        // === ENVÍO INMEDIATO PARA NOTAS Y PEDAL (CRÍTICO) ===
+        // === ENVÍO CON RATE LIMIT (ANTI-RÁFAGAS) ===
+        const timeSinceLastFlush = now - this._lastFlushTime;
+        
         if (priority === 'high') {
-            this._flushBundle(); // Enviar inmediatamente sin esperar timer
+            // Notas y pedal tienen prioridad pero respetan rate limit mínimo
+            if (timeSinceLastFlush >= this.MIN_FLUSH_INTERVAL_MS) {
+                this._flushBundle();
+            } else {
+                // Programar flush para cuando pase el rate limit
+                this.stats.rateLimited++;
+                if (!this.bundleTimer) {
+                    const delay = this.MIN_FLUSH_INTERVAL_MS - timeSinceLastFlush;
+                    this.bundleTimer = setTimeout(() => {
+                        this._flushBundle();
+                    }, Math.max(1, delay));
+                }
+            }
         } else {
             // === PROGRAMAR ENVÍO AGRUPADO PARA CC/OTROS ===
             if (!this.bundleTimer) {
@@ -185,6 +206,9 @@ export class MidiBundler {
             // === ENVIAR BUNDLE ===
             const bundle = this.messageQueue.slice(); // Copia
             this.sendCallback(bundle);
+            
+            // === REGISTRAR TIEMPO DE FLUSH (para rate limit) ===
+            this._lastFlushTime = performance.now();
             
             // === ESTADÍSTICAS ===
             this.stats.bundlesSent++;

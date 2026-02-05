@@ -12,6 +12,10 @@ export class LibraryManager {
         this.currentUrl = null;
         this.isSpying = false; // Modo espejo
         this.spyTargetId = null;
+        
+        // === CACHÉ DE PDFs CARGADOS ===
+        this._pdfCache = new Map(); // url -> pdfDocument
+        this._cacheMaxSize = 5;     // Máximo 5 PDFs en caché
 
         // Referencias DOM
         this.ui = {
@@ -72,7 +76,19 @@ export class LibraryManager {
         this.bus.emit("ui-tab-change", "pdf");
 
         try {
-            this.pdfDoc = await pdfjsLib.getDocument(url).promise;
+            // === VERIFICAR CACHÉ PRIMERO ===
+            if (this._pdfCache.has(url)) {
+                console.log('[Library] 📄 PDF desde caché:', title || url.substring(0, 50));
+                this.pdfDoc = this._pdfCache.get(url);
+            } else {
+                // Descargar nuevo PDF
+                console.log('[Library] ⬇️ Descargando PDF:', title || url.substring(0, 50));
+                this.pdfDoc = await pdfjsLib.getDocument(url).promise;
+                
+                // Guardar en caché
+                this._addToCache(url, this.pdfDoc);
+            }
+            
             if(this.ui.pageCount) this.ui.pageCount.textContent = this.pdfDoc.numPages;
             if(this.ui.loading) this.ui.loading.style.display = 'none';
             
@@ -87,6 +103,21 @@ export class LibraryManager {
             console.error("Error PDF:", e);
             if(this.ui.loading) this.ui.loading.innerText = "Error carga";
         }
+    }
+    
+    /**
+     * Agrega PDF al caché con límite de tamaño
+     * @private
+     */
+    _addToCache(url, pdfDoc) {
+        // Limpiar caché si excede límite
+        if (this._pdfCache.size >= this._cacheMaxSize) {
+            const firstKey = this._pdfCache.keys().next().value;
+            this._pdfCache.delete(firstKey);
+            console.log('[Library] 🗑️ Caché lleno, removiendo:', firstKey.substring(0, 30));
+        }
+        this._pdfCache.set(url, pdfDoc);
+        console.log('[Library] 💾 PDF guardado en caché. Total:', this._pdfCache.size);
     }
 
     renderPage(num) {
