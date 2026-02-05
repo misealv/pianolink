@@ -408,6 +408,18 @@
             <div id="founderBadge" class="gold-badge">★ PROFESOR FUNDADOR</div>
         </div>
 
+        <!-- Banner de Modo Prueba -->
+        <div id="testModeBanner" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #60a5fa;">
+            <div style="color: white; font-size: 11px; font-weight: 700; margin-bottom: 4px;">🧪 MODO PRUEBA</div>
+            <div style="color: rgba(255,255,255,0.9); font-size: 9px; line-height: 1.4;">
+                Usa tarjeta de prueba Stripe:<br>
+                <strong>4242 4242 4242 4242</strong>
+            </div>
+            <button onclick="toggleTestInfo()" style="margin-top: 6px; background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 10px; border-radius: 4px; font-size: 9px; cursor: pointer;">
+                ℹ️ Más info
+            </button>
+        </div>
+
         <div>
             <button id="btnOpenRoom" class="action-btn btn-primary">
                 ⚡ IR A MI SALA
@@ -1154,6 +1166,27 @@
             console.error('[Dashboard] Error sincronizando:', error);
             return false;
         }
+    }
+    
+    // Función para mostrar/ocultar info de tarjetas de prueba
+    function toggleTestInfo() {
+        const message = `🧪 TARJETAS DE PRUEBA STRIPE
+
+✅ Tarjeta que siempre funciona:
+Número: 4242 4242 4242 4242
+CVV: 123
+Fecha: 12/34 (cualquier fecha futura)
+
+⚠️ Con autenticación 3D Secure:
+Número: 4000 0025 0000 3155
+
+❌ Que siempre falla:
+Número: 4000 0000 0000 9995
+
+💡 Estos pagos NO generan cargos reales.
+El sistema está en modo TEST.`;
+
+        alert(message);
     }
     
     // Verificar si regresa de Stripe con éxito
