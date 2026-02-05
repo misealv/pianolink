@@ -495,67 +495,65 @@ const _connectVideoControls = function() {
             });
             console.log('[Main] ✅ Listener de mute audio conectado');
         }
-        });
-    }
     
-    // Botón mute video
-    const muteVideoBtn = document.getElementById('local-mute-video');
-    if (muteVideoBtn && !muteVideoBtn._hasListener) {
-        muteVideoBtn._hasListener = true;
-        muteVideoBtn.addEventListener('click', async function() {
-            if (!videoManager) return;
-            
-            const isMuted = videoManager.isMuted.video;
-            await videoManager.muteVideo(!isMuted);
-            
-            // Update UI
-            this.textContent = isMuted ? '📹' : '🚫';
-            this.style.opacity = isMuted ? '1' : '0.5';
-            console.log('[Main] Video', isMuted ? 'activado' : 'muteado');
-        });
-        console.log('[Main] ✅ Listener de mute video conectado');
-    }
+        // Botón mute video
+        const muteVideoBtn = document.getElementById('local-mute-video');
+        if (muteVideoBtn && !muteVideoBtn._hasListener) {
+            muteVideoBtn._hasListener = true;
+            muteVideoBtn.addEventListener('click', async function() {
+                if (!videoManager) return;
+                
+                const isMuted = videoManager.isMuted.video;
+                await videoManager.muteVideo(!isMuted);
+                
+                // Update UI
+                this.textContent = isMuted ? '📹' : '🚫';
+                this.style.opacity = isMuted ? '1' : '0.5';
+                console.log('[Main] Video', isMuted ? 'activado' : 'muteado');
+            });
+            console.log('[Main] ✅ Listener de mute video conectado');
+        }
     
-    // Botón minimize local
-    const minimizeLocalBtn = document.getElementById('local-minimize');
-    if (minimizeLocalBtn && !minimizeLocalBtn._hasListener) {
-        minimizeLocalBtn._hasListener = true;
-        minimizeLocalBtn.addEventListener('click', function() {
-            const container = document.getElementById('local-video');
-            if (container) {
-                container.classList.toggle('minimized');
-            }
-        });
-    }
+        // Botón minimize local
+        const minimizeLocalBtn = document.getElementById('local-minimize');
+        if (minimizeLocalBtn && !minimizeLocalBtn._hasListener) {
+            minimizeLocalBtn._hasListener = true;
+            minimizeLocalBtn.addEventListener('click', function() {
+                const container = document.getElementById('local-video');
+                if (container) {
+                    container.classList.toggle('minimized');
+                }
+            });
+        }
     
-    // Botón minimize remote
-    const minimizeRemoteBtn = document.getElementById('remote-minimize');
-    if (minimizeRemoteBtn && !minimizeRemoteBtn._hasListener) {
-        minimizeRemoteBtn._hasListener = true;
-        minimizeRemoteBtn.addEventListener('click', function() {
-            const container = document.getElementById('remote-video');
-            if (container) {
-                container.classList.toggle('minimized');
-            }
-        });
-    }
+        // Botón minimize remote
+        const minimizeRemoteBtn = document.getElementById('remote-minimize');
+        if (minimizeRemoteBtn && !minimizeRemoteBtn._hasListener) {
+            minimizeRemoteBtn._hasListener = true;
+            minimizeRemoteBtn.addEventListener('click', function() {
+                const container = document.getElementById('remote-video');
+                if (container) {
+                    container.classList.toggle('minimized');
+                }
+            });
+        }
     
-    // Botón ocultar video remoto (para ahorrar ancho de banda)
-    const hideRemoteVideoBtn = document.getElementById('remote-hide-video');
-    if (hideRemoteVideoBtn && !hideRemoteVideoBtn._hasListener) {
-        hideRemoteVideoBtn._hasListener = true;
-        hideRemoteVideoBtn.addEventListener('click', function() {
-            const videoContainer = document.getElementById('remote-video-container');
-            if (videoContainer) {
-                const isHidden = videoContainer.style.display === 'none';
-                videoContainer.style.display = isHidden ? 'block' : 'none';
-                this.textContent = isHidden ? '📹' : '🚫';
-                this.style.opacity = isHidden ? '1' : '0.5';
-                console.log('[Main] Video remoto', isHidden ? 'visible' : 'oculto');
-            }
-        });
-        console.log('[Main] ✅ Listener de ocultar video remoto conectado');
-    }
+        // Botón ocultar video remoto (para ahorrar ancho de banda)
+        const hideRemoteVideoBtn = document.getElementById('remote-hide-video');
+        if (hideRemoteVideoBtn && !hideRemoteVideoBtn._hasListener) {
+            hideRemoteVideoBtn._hasListener = true;
+            hideRemoteVideoBtn.addEventListener('click', function() {
+                const videoContainer = document.getElementById('remote-video-container');
+                if (videoContainer) {
+                    const isHidden = videoContainer.style.display === 'none';
+                    videoContainer.style.display = isHidden ? 'block' : 'none';
+                    this.textContent = isHidden ? '📹' : '🚫';
+                    this.style.opacity = isHidden ? '1' : '0.5';
+                    console.log('[Main] Video remoto', isHidden ? 'visible' : 'oculto');
+                }
+            });
+            console.log('[Main] ✅ Listener de ocultar video remoto conectado');
+        }
     
     }, 500); // Fin del setTimeout
     
