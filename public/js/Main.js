@@ -1089,11 +1089,57 @@ function setupEventHandlers() {
         if (error.code === 'MEMBERSHIP_INACTIVE') {
             // Mostrar pantalla de membresía requerida
             showMembershipRequiredScreen(error.message);
+        } else if (error.code === 'CREDENTIALS_REQUIRED') {
+            // Credenciales no encontradas - pedir re-login
+            showReloginRequiredScreen(error.message);
         } else {
             // Error genérico
             if(statusDiv) statusDiv.innerHTML = '🔴 Error: ' + (error.message || 'No se pudo acceder a la sala');
         }
     });
+    
+    // Función para mostrar pantalla cuando necesita re-login
+    function showReloginRequiredScreen(message) {
+        const container = document.getElementById('piano-container') || document.body;
+        container.innerHTML = `
+            <div style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 80vh;
+                text-align: center;
+                font-family: system-ui, -apple-system, sans-serif;
+                padding: 40px;
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                color: white;
+            ">
+                <div style="font-size: 64px; margin-bottom: 20px;">🔐</div>
+                <h1 style="font-size: 28px; margin-bottom: 16px; color: #f59e0b;">Sesión Requerida</h1>
+                <p style="font-size: 16px; color: rgba(255,255,255,0.8); max-width: 400px; line-height: 1.6; margin-bottom: 30px;">
+                    ${message || 'Por favor, cierra sesión y vuelve a ingresar para verificar tu membresía.'}
+                </p>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
+                    <a href="/login.html" onclick="localStorage.removeItem('pianoUser'); localStorage.removeItem('token');" style="
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 14px 28px;
+                        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 10px;
+                        font-weight: 700;
+                        font-size: 14px;
+                        box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+                        transition: all 0.3s;
+                    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        🔑 Volver a Ingresar
+                    </a>
+                </div>
+            </div>
+        `;
+    }
     
     // Función para mostrar pantalla de membresía requerida
     function showMembershipRequiredScreen(message) {

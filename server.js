@@ -588,8 +588,15 @@ io.on("connection", (socket) => {
             } else if (!teacher && (payload.userId || payload.email)) {
                 // Había credenciales pero no se encontró el usuario
                 console.log(`[Auth] ⚠️ Profesor no encontrado: ${payload.userId || payload.email}`);
+            } else if (payload.userRole === 'teacher' && !payload.userId && !payload.email) {
+                // ⚠️ NUEVO: Si dice ser profesor pero no tiene credenciales, bloquear
+                console.log(`[Auth] ⛔ Profesor sin credenciales intentó crear sala`);
+                socket.emit("room-error", {
+                    code: 'CREDENTIALS_REQUIRED',
+                    message: 'Por favor, cierra sesión y vuelve a ingresar para verificar tu membresía.'
+                });
+                return;
             }
-            // Si no hay userId ni email, permitir (usuarios legacy/invitados)
         } catch (err) {
             console.error('[Auth] Error validando membresía:', err);
             // En caso de error, permitir acceso (fail-open para no bloquear)
