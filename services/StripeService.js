@@ -450,8 +450,8 @@ class StripeService {
                     }
                 },
 
-                success_url: successUrl || `${process.env.APP_URL}/teacher-dashboard?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: cancelUrl || `${process.env.APP_URL}/teacher-dashboard?subscription=cancelled`,
+                success_url: successUrl || `${process.env.APP_URL}/dashboard.html?subscription=success&session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: cancelUrl || `${process.env.APP_URL}/dashboard.html?subscription=cancelled`,
 
                 metadata: {
                     [stripeConfig.metadataKeys.teacherId]: teacherId.toString(),
@@ -538,7 +538,7 @@ class StripeService {
 
             const session = await client.billingPortal.sessions.create({
                 customer: teacher.teacherData.stripeCustomerId,
-                return_url: `${process.env.APP_URL}/teacher-dashboard`
+                return_url: `${process.env.APP_URL}/dashboard.html`
             });
 
             return {
