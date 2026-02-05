@@ -433,20 +433,30 @@
         var self = this;
         
         try {
-            // Crear cliente RTC
+            // Crear cliente RTC con configuración optimizada para baja latencia
             self.client = AgoraRTC.createClient({
-                mode: 'rtc',
-                codec: 'vp8'
+                mode: 'live',  // Modo live tiene mejor manejo de red que rtc
+                codec: 'h264', // H.264 es más eficiente que VP8
+                role: 'host'   // Ambos son hosts para comunicación bidireccional
             });
             
-            // ====== NUEVO: Habilitar indicador de volumen para monitoreo ======
+            // ====== HABILITAR DEGRADACIÓN AUTOMÁTICA DE CALIDAD ======
+            // Esto hace que Agora baje la calidad automáticamente si hay problemas de red
+            // Similar a como lo hace WhatsApp
+            if (self.client.setStreamFallbackOption) {
+                // Cuando hay problemas de red, primero baja video, luego solo audio
+                self.client.setStreamFallbackOption(2); // 2 = audio only en mal caso
+                console.log('[VideoManager] 📉 Degradación automática habilitada');
+            }
+            
+            // ====== Habilitar indicador de volumen para monitoreo ======
             self.client.enableAudioVolumeIndicator();
             console.log('[VideoManager] 📊 Indicador de volumen habilitado');
             
             // Event listeners del cliente
             self._setupAgoraEventListeners();
             
-            console.log('[VideoManager] ✅ Cliente Agora creado');
+            console.log('[VideoManager] ✅ Cliente Agora creado (modo live, H.264)');
         } catch (error) {
             console.error('[VideoManager] ❌ Error creando cliente Agora:', error);
             self.bus.emit('video-error', {
@@ -784,13 +794,19 @@
         var self = this;
         
         try {
-            // === CREAR VIDEO TRACK (720p_1) ===
-            console.log('[VideoManager] 📹 Creando video track (720p_1)...');
+            // === CREAR VIDEO TRACK (360p - optimizado para conexiones limitadas, como WhatsApp) ===
+            console.log('[VideoManager] 📹 Creando video track (360p - modo WhatsApp)...');
             self.localVideoTrack = await AgoraRTC.createCameraVideoTrack({
-                encoderConfig: '720p_1', // 1280x720, 15fps - Óptimo para Dell
-                optimizationMode: 'detail' // Mejor calidad para partitur as
+                encoderConfig: {
+                    width: 640,
+                    height: 360,
+                    frameRate: 15,
+                    bitrateMin: 200,
+                    bitrateMax: 600  // WhatsApp usa ~300-600kbps
+                },
+                optimizationMode: 'motion' // Mejor para fluidez que 'detail'
             });
-            console.log('[VideoManager] ✅ Video track creado');
+            console.log('[VideoManager] ✅ Video track creado (360p optimizado)');
             
             // === CREAR AUDIO TRACK (Sin ANS/AGC para piano natural) ===
             console.log('[VideoManager] 🎤 Creando audio track (natural piano)...');
