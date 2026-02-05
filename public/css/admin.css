@@ -664,6 +664,14 @@ body {
 
 .actions-dropdown.show { display: block; }
 
+/* Dropdown hacia arriba cuando está cerca del fondo de la página */
+.actions-dropdown.dropup {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 5px;
+}
+
 .action-item {
     padding: 10px 15px;
     cursor: pointer;

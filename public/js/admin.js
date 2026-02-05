@@ -329,11 +329,27 @@ function searchLeads() {
 function toggleLeadMenu(leadId) {
     closeAllMenus();
     const menu = document.getElementById(`menu-${leadId}`);
-    if (menu) menu.classList.toggle('show');
+    if (menu) {
+        menu.classList.toggle('show');
+        // Detectar si hay espacio para mostrar hacia abajo
+        if (menu.classList.contains('show')) {
+            const rect = menu.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.top;
+            // Si no hay suficiente espacio abajo, mostrar hacia arriba
+            if (spaceBelow < rect.height + 50) {
+                menu.classList.add('dropup');
+            } else {
+                menu.classList.remove('dropup');
+            }
+        }
+    }
 }
 
 function closeAllMenus() {
-    document.querySelectorAll('.actions-dropdown').forEach(m => m.classList.remove('show'));
+    document.querySelectorAll('.actions-dropdown').forEach(m => {
+        m.classList.remove('show');
+        m.classList.remove('dropup');
+    });
 }
 
 document.addEventListener('click', (e) => {
@@ -858,7 +874,20 @@ function filterTeachers(filter) {
 function toggleTeacherMenu(teacherId) {
     closeAllMenus();
     const menu = document.getElementById(`teacher-menu-${teacherId}`);
-    if (menu) menu.classList.toggle('show');
+    if (menu) {
+        menu.classList.toggle('show');
+        // Detectar si hay espacio para mostrar hacia abajo
+        if (menu.classList.contains('show')) {
+            const rect = menu.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.top;
+            // Si no hay suficiente espacio abajo, mostrar hacia arriba
+            if (spaceBelow < rect.height + 50) {
+                menu.classList.add('dropup');
+            } else {
+                menu.classList.remove('dropup');
+            }
+        }
+    }
 }
 
 // Crear profesor
