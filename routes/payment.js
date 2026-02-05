@@ -533,4 +533,116 @@ router.get('/stripe/subscription-status', protect, async (req, res) => {
     }
 });
 
+/**
+ * POST /api/payment/stripe/sync-subscription
+ * Sincronizar estado de suscripción desde Stripe
+ * (Para desarrollo o cuando el webhook falla)
+ */
+router.post('/stripe/sync-subscription', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo profesores pueden acceder' 
+            });
+        }
+
+        if (!StripeService.isConfigured()) {
+            return res.status(503).json({
+                success: false,
+                error: 'Stripe no está configurado'
+            });
+        }
+
+        const stripeSubscriptionId = user.teacherData?.stripeSubscriptionId;
+        
+        if (!stripeSubscriptionId) {
+            return res.status(404).json({
+                success: false,
+                error: 'No tienes una suscripción en Stripe'
+            });
+        }
+
+        // Obtener estado actual desde Stripe
+        const { stripe } = require('../config/stripe');
+        const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+
+        // Actualizar en base de datos
+        await User.findByIdAndUpdate(userId, {
+            'teacherData.subscriptionStatus': StripeService.mapStripeStatus(subscription.status),
+            'teacherData.subscriptionExpiresAt': new Date(subscription.current_period_end * 1000)
+        });
+
+        res.json({
+            success: true,
+            message: 'Estado sincronizado desde Stripe',
+            subscription: {
+                status: subscription.status,
+                currentPeriodEnd: new Date(subscription.current_period_end * 1000)
+            }
+        });
+
+    } catch (error) {
+        console.error('[Stripe] Error sincronizando:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+/**
+ * POST /api/payment/stripe/simulate-active (SOLO DESARROLLO)
+ * Simular membresía activa para pruebas
+ */
+router.post('/stripe/simulate-active', protect, async (req, res) => {
+    try {
+        // Solo permitir en entorno de desarrollo
+        if (process.env.NODE_ENV === 'production') {
+            return res.status(403).json({
+                success: false,
+                error: 'Esta ruta solo está disponible en desarrollo'
+            });
+        }
+
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo profesores pueden acceder' 
+            });
+        }
+
+        // Simular membresía activa
+        const expiresAt = new Date();
+        expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+        await User.findByIdAndUpdate(userId, {
+            'teacherData.subscriptionStatus': 'active',
+            'teacherData.subscriptionExpiresAt': expiresAt
+        });
+
+        res.json({
+            success: true,
+            message: '✅ Membresía simulada como activa (solo desarrollo)',
+            subscription: {
+                status: 'active',
+                expiresAt: expiresAt
+            }
+        });
+
+    } catch (error) {
+        console.error('[Stripe] Error simulando:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
 module.exports = router;

@@ -1130,14 +1130,47 @@
         }
     }
     
+    // Función para sincronizar estado de suscripción desde Stripe
+    async function syncSubscriptionFromStripe() {
+        try {
+            console.log('[Dashboard] Sincronizando estado desde Stripe...');
+            const response = await fetch('/api/payment/stripe/sync-subscription', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('[Dashboard] ✅ Estado sincronizado:', data.subscription);
+                // Recargar estado de membresía
+                loadSubscriptionStatus();
+                return true;
+            } else {
+                console.warn('[Dashboard] No se pudo sincronizar:', data.error);
+                return false;
+            }
+        } catch (error) {
+            console.error('[Dashboard] Error sincronizando:', error);
+            return false;
+        }
+    }
+    
     // Verificar si regresa de Stripe con éxito
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('subscription') === 'success') {
-        alert('🎉 ¡Suscripción activada exitosamente!');
+        // Intentar sincronizar automáticamente
+        setTimeout(async () => {
+            const synced = await syncSubscriptionFromStripe();
+            if (synced) {
+                alert('🎉 ¡Suscripción activada exitosamente!');
+            } else {
+                alert('✅ Pago completado. Tu membresía se activará en unos minutos.');
+            }
+        }, 2000);
+        
         // Limpiar URL
         window.history.replaceState({}, document.title, window.location.pathname);
-        // Recargar estado
-        setTimeout(() => loadSubscriptionStatus(), 1000);
     } else if (urlParams.get('subscription') === 'cancelled') {
         alert('La suscripción fue cancelada. Puedes intentarlo nuevamente cuando quieras.');
         window.history.replaceState({}, document.title, window.location.pathname);

@@ -682,6 +682,36 @@ class StripeService {
 
         const metadata = session.metadata || {};
         const teacherId = metadata[stripeConfig.metadataKeys.teacherId];
+        
+        // CASO 1: Suscripción de profesor
+        if (metadata.subscriptionType === 'teacher_platform') {
+            console.log(`[StripeService] 📋 Checkout de suscripción profesor: ${teacherId}`);
+            
+            try {
+                // Obtener la suscripción de Stripe
+                const subscriptionId = session.subscription;
+                
+                if (subscriptionId) {
+                    const client = getStripeClient();
+                    const subscription = await client.subscriptions.retrieve(subscriptionId);
+                    
+                    await User.findByIdAndUpdate(teacherId, {
+                        'teacherData.stripeSubscriptionId': subscription.id,
+                        'teacherData.stripePriceId': subscription.items?.data[0]?.price?.id,
+                        'teacherData.subscriptionStatus': this.mapStripeStatus(subscription.status),
+                        'teacherData.subscriptionExpiresAt': new Date(subscription.current_period_end * 1000)
+                    });
+
+                    console.log(`[StripeService] ✅ Suscripción de profesor activada: ${teacherId}`);
+                    return { success: true, subscriptionId: subscription.id };
+                }
+            } catch (error) {
+                console.error('[StripeService] Error activando suscripción profesor:', error.message);
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // CASO 2: Pago de clases (estudiante)
         const studentId = metadata[stripeConfig.metadataKeys.studentId];
         const classCount = parseInt(metadata.classCount) || 1;
 
