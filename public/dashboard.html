@@ -419,20 +419,80 @@
                 👤 EDITAR PERFIL
             </button>
             
-            <!-- SUSCRIPCIÓN STRIPE -->
-            <div id="subscriptionSection" style="display:none; margin-top: 15px;">
-                <div id="subscriptionCard" style="background: linear-gradient(135deg, #6772e5 0%, #4f46e5 100%); border-radius: 8px; padding: 15px; margin-bottom: 10px;">
-                    <div style="text-align: center; color: white;">
-                        <div id="subscriptionTitle" style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">🎹 Membresía Profesor</div>
-                        <div id="subscriptionPrice" style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">$20/mes</div>
-                        <div id="founderPrice" style="display:none; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-bottom: 8px;">🌟 Precio Fundador: $10/mes</div>
-                        <div id="subscriptionStatus" style="font-size: 11px; opacity: 0.9; margin-bottom: 12px;">Activa tu membresía</div>
-                        <button id="btnActivateSubscription" onclick="handleSubscription()" style="width: 100%; padding: 10px; background: white; color: #6772e5; border: none; border-radius: 6px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s;">
-                            💳 Activar Membresía
+            <!-- MEMBRESÍA - DISEÑO PROFESIONAL -->
+            <div id="membershipSection" style="margin-top: 15px;">
+                <!-- Estado: Activo (compacto) -->
+                <div id="membershipActive" style="display:none;">
+                    <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border-radius: 10px; padding: 12px; position: relative; overflow: hidden;">
+                        <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 36px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">✓</div>
+                            <div style="flex: 1;">
+                                <div style="color: white; font-size: 12px; font-weight: 700;">Membresía Activa</div>
+                                <div id="membershipExpiry" style="color: rgba(255,255,255,0.8); font-size: 10px;">Renueva: --</div>
+                            </div>
+                            <button onclick="openBillingPortal()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 10px; border-radius: 6px; font-size: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                                ⚙️ Gestionar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Estado: Pago Pendiente -->
+                <div id="membershipPastDue" style="display:none;">
+                    <div style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border-radius: 10px; padding: 14px; text-align: center;">
+                        <div style="font-size: 24px; margin-bottom: 6px;">⚠️</div>
+                        <div style="color: white; font-size: 13px; font-weight: 700; margin-bottom: 4px;">Pago Pendiente</div>
+                        <div style="color: rgba(255,255,255,0.85); font-size: 10px; margin-bottom: 10px;">Actualiza tu método de pago</div>
+                        <button onclick="openBillingPortal()" style="width: 100%; padding: 10px; background: white; color: #b45309; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">
+                            💳 Actualizar Pago
                         </button>
-                        <button id="btnManageBilling" onclick="openBillingPortal()" style="display:none; width: 100%; padding: 10px; background: transparent; color: white; border: 2px solid white; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer; transition: all 0.2s; margin-top: 8px;">
-                            ⚙️ Gestionar Facturación
-                        </button>
+                    </div>
+                </div>
+                
+                <!-- Estado: Necesita Activar (Trial/Cancelado/Vencido) -->
+                <div id="membershipInactive" style="display:none;">
+                    <div id="membershipCard" style="background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%); border-radius: 10px; padding: 16px; border: 1px solid #3d3d5c; position: relative; overflow: hidden;">
+                        <!-- Efecto decorativo -->
+                        <div style="position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, transparent 100%); border-radius: 0 10px 0 100%;"></div>
+                        
+                        <div style="text-align: center; position: relative; z-index: 1;">
+                            <div style="font-size: 28px; margin-bottom: 8px;">🎹</div>
+                            <div style="color: white; font-size: 14px; font-weight: 700; margin-bottom: 4px;">Membresía Profesor</div>
+                            <div id="membershipTrialText" style="display:none; color: #fbbf24; font-size: 11px; margin-bottom: 10px; background: rgba(251,191,36,0.1); padding: 4px 10px; border-radius: 12px; display: inline-block;">
+                                🎁 Período de prueba
+                            </div>
+                            <div id="membershipCancelledText" style="display:none; color: #ef4444; font-size: 11px; margin-bottom: 10px;">
+                                Tu membresía ha expirado
+                            </div>
+                            
+                            <!-- Precio -->
+                            <div id="membershipPriceBox" style="margin: 12px 0;">
+                                <div id="priceRegular" style="color: white; font-size: 28px; font-weight: 800;">
+                                    $<span id="priceAmount">20</span><span style="font-size: 14px; font-weight: 400; opacity: 0.7;">/mes</span>
+                                </div>
+                                <div id="priceFounder" style="display:none;">
+                                    <div style="color: #fbbf24; font-size: 28px; font-weight: 800;">
+                                        $10<span style="font-size: 14px; font-weight: 400; opacity: 0.7;">/mes</span>
+                                    </div>
+                                    <div style="background: linear-gradient(90deg, #fbbf24, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 10px; font-weight: 600; margin-top: 2px;">
+                                        ⭐ Precio exclusivo fundador
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Botón -->
+                            <button id="btnActivateMembership" onclick="handleSubscription()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(99,102,241,0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(99,102,241,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(99,102,241,0.3)'">
+                                💳 Activar Membresía
+                            </button>
+                            
+                            <!-- Beneficios mini -->
+                            <div style="margin-top: 12px; display: flex; justify-content: center; gap: 15px; font-size: 9px; color: rgba(255,255,255,0.5);">
+                                <span>✓ Sala virtual</span>
+                                <span>✓ Sin comisiones</span>
+                                <span>✓ Soporte</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -918,7 +978,7 @@
     loadSubscriptionStatus(); // Cargar estado de suscripción
 
     // ============================================
-    // FUNCIONALIDAD DE SUSCRIPCIÓN STRIPE
+    // FUNCIONALIDAD DE MEMBRESÍA STRIPE
     // ============================================
     
     async function loadSubscriptionStatus() {
@@ -931,68 +991,92 @@
             
             if (!data.success) {
                 console.error('Error cargando suscripción:', data.error);
+                // Mostrar estado inactivo por defecto
+                showMembershipState('inactive', { isFounder: false });
                 return;
             }
             
             const { subscription } = data;
-            const section = document.getElementById('subscriptionSection');
-            const statusDiv = document.getElementById('subscriptionStatus');
-            const subscribeBtn = document.getElementById('btnActivateSubscription');
-            const manageBtn = document.getElementById('btnManageBilling');
-            const priceDiv = document.getElementById('subscriptionPrice');
-            const founderPrice = document.getElementById('founderPrice');
-            const card = document.getElementById('subscriptionCard');
-            
-            // Mostrar sección
-            section.style.display = 'block';
-            
-            // Mostrar precio de fundador si aplica
-            if (subscription.isFounder) {
-                priceDiv.style.display = 'none';
-                founderPrice.style.display = 'block';
-            }
             
             // Actualizar UI según estado
             switch(subscription.status) {
                 case 'active':
-                    card.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-                    statusDiv.innerHTML = '✅ Suscripción Activa';
-                    if (subscription.expiresAt) {
-                        const expiryDate = new Date(subscription.expiresAt).toLocaleDateString();
-                        statusDiv.innerHTML += `<br><span style="font-size:10px;">Válida hasta: ${expiryDate}</span>`;
-                    }
-                    subscribeBtn.style.display = 'none';
-                    manageBtn.style.display = 'block';
+                    showMembershipState('active', subscription);
                     break;
                     
                 case 'past_due':
-                    card.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
-                    statusDiv.innerHTML = '⚠️ Pago Pendiente<br><span style="font-size:10px;">Por favor actualiza tu método de pago</span>';
-                    subscribeBtn.style.display = 'none';
-                    manageBtn.style.display = 'block';
+                    showMembershipState('pastdue', subscription);
                     break;
                     
                 case 'cancelled':
-                    card.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
-                    statusDiv.innerHTML = '❌ Suscripción Cancelada<br><span style="font-size:10px;">Reactiva para continuar</span>';
-                    subscribeBtn.textContent = '🔄 Reactivar Suscripción';
-                    subscribeBtn.style.display = 'block';
+                case 'expired':
+                    showMembershipState('cancelled', subscription);
                     break;
                     
                 case 'trial':
                 default:
-                    statusDiv.innerHTML = '🎁 Período de Prueba<br><span style="font-size:10px;">Activa tu membresía</span>';
-                    subscribeBtn.style.display = 'block';
+                    showMembershipState('inactive', subscription);
                     break;
             }
             
         } catch (error) {
             console.error('Error cargando estado de suscripción:', error);
+            showMembershipState('inactive', { isFounder: false });
+        }
+    }
+    
+    function showMembershipState(state, subscription) {
+        // Ocultar todos los estados
+        document.getElementById('membershipActive').style.display = 'none';
+        document.getElementById('membershipPastDue').style.display = 'none';
+        document.getElementById('membershipInactive').style.display = 'none';
+        
+        const isFounder = subscription.isFounder || false;
+        
+        switch(state) {
+            case 'active':
+                document.getElementById('membershipActive').style.display = 'block';
+                if (subscription.expiresAt) {
+                    const date = new Date(subscription.expiresAt);
+                    document.getElementById('membershipExpiry').textContent = `Renueva: ${date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}`;
+                }
+                break;
+                
+            case 'pastdue':
+                document.getElementById('membershipPastDue').style.display = 'block';
+                break;
+                
+            case 'cancelled':
+                document.getElementById('membershipInactive').style.display = 'block';
+                document.getElementById('membershipTrialText').style.display = 'none';
+                document.getElementById('membershipCancelledText').style.display = 'block';
+                document.getElementById('btnActivateMembership').textContent = '🔄 Reactivar Membresía';
+                updateFounderPrice(isFounder);
+                break;
+                
+            case 'inactive':
+            default:
+                document.getElementById('membershipInactive').style.display = 'block';
+                document.getElementById('membershipTrialText').style.display = 'inline-block';
+                document.getElementById('membershipCancelledText').style.display = 'none';
+                document.getElementById('btnActivateMembership').textContent = '💳 Activar Membresía';
+                updateFounderPrice(isFounder);
+                break;
+        }
+    }
+    
+    function updateFounderPrice(isFounder) {
+        if (isFounder) {
+            document.getElementById('priceRegular').style.display = 'none';
+            document.getElementById('priceFounder').style.display = 'block';
+        } else {
+            document.getElementById('priceRegular').style.display = 'block';
+            document.getElementById('priceFounder').style.display = 'none';
         }
     }
     
     async function handleSubscription() {
-        const btn = document.getElementById('btnActivateSubscription');
+        const btn = document.getElementById('btnActivateMembership');
         const originalText = btn.textContent;
         
         try {
