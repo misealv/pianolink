@@ -1183,50 +1183,56 @@ router.post('/verify-mercadopago', async (req, res) => {
         const mpEmail = mpPayment?.payer?.email || email;
         
         // 2. Buscar WelcomeKit por external_reference o email
+        // NOTA: El modelo usa 'clientEmail', no 'customer.email'
         let welcomeKit = null;
         if (mpExternalRef) {
             // external_reference format: kit_TIMESTAMP_EMAIL
             const refEmail = mpExternalRef.split('_').slice(2).join('_');
             welcomeKit = await WelcomeKit.findOne({ 
-                'customer.email': refEmail 
+                clientEmail: refEmail 
             }).sort({ createdAt: -1 });
         }
         if (!welcomeKit && mpEmail) {
             welcomeKit = await WelcomeKit.findOne({ 
-                'customer.email': mpEmail.toLowerCase() 
+                clientEmail: mpEmail.toLowerCase() 
             }).sort({ createdAt: -1 });
         }
         if (!welcomeKit && email) {
             welcomeKit = await WelcomeKit.findOne({ 
-                'customer.email': email.toLowerCase() 
+                clientEmail: email.toLowerCase() 
             }).sort({ createdAt: -1 });
         }
         
+        // Si no existe WelcomeKit, crearlo ahora con los datos disponibles
         if (!welcomeKit) {
-            console.log('[WelcomeKit-MP] WelcomeKit no encontrado, mostrando éxito genérico');
-            return res.json({
-                success: true,
-                welcomeKit: {
-                    id: 'PENDING',
-                    status: 'paid',
-                    kitType: 'setup_only',
-                    products: [],
-                    shipping: null,
-                    shippingDays: null,
-                    payment: mpPayment ? {
-                        amount: mpPayment.transaction_amount,
-                        currency: mpPayment.currency_id
-                    } : null
+            console.log('[WelcomeKit-MP] WelcomeKit no encontrado, creando uno nuevo...');
+            
+            const finalEmail = mpEmail || email;
+            const finalName = payerNameParam || 'Estudiante';
+            
+            // Crear WelcomeKit básico
+            const welcomeKitData = {
+                clientName: finalName,
+                clientEmail: finalEmail,
+                kitType: 'setup_only',
+                products: [],
+                payment: {
+                    provider: 'mercadopago',
+                    externalOrderId: mpPayment?.id ? String(mpPayment.id) : null,
+                    amount: mpPayment?.transaction_amount || 0,
+                    currency: mpPayment?.currency_id || 'CLP',
+                    status: isApproved ? 'completed' : 'pending',
+                    paidAt: isApproved ? new Date() : null
                 },
-                user: { email: mpEmail || email, name: payerNameParam || 'Estudiante' },
-                students: [],
-                nextSteps: [
-                    'Recibirás un email de confirmación',
-                    'Te contactaremos por WhatsApp para coordinar tu sesión',
-                    'Podrás agendar tu sesión de Setup + Clase de prueba'
-                ],
-                magicLinkUrl: null
-            });
+                shipping: {
+                    status: 'not_required',
+                    address: { country: 'CL' }
+                },
+                overallStatus: isApproved ? 'paid' : 'pending_payment'
+            };
+            
+            welcomeKit = await WelcomeKit.create(welcomeKitData);
+            console.log(`[WelcomeKit-MP] ✅ WelcomeKit creado: ${welcomeKit._id}`);
         }
         
         // 3. Actualizar WelcomeKit con datos del pago
