@@ -156,11 +156,12 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
         let cablePrice = 0;
         if (includesCable) {
             const KitProduct = require('../models/KitProduct');
-            // Buscar un cable activo en el catálogo
+            // Buscar cualquier cable en el catálogo (sin filtro isActive)
             const cableProduct = await KitProduct.findOne({ 
-                category: 'cable', 
-                isActive: true 
+                category: 'cable'
             });
+            
+            console.log(`[Stripe Kit] Cable encontrado:`, cableProduct ? cableProduct.name : 'NINGUNO');
             
             if (cableProduct) {
                 // Obtener margen de cables desde config (default 40%)
@@ -168,8 +169,10 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
                 const costPrice = cableProduct.fulfillment?.costPrice || cableProduct.defaultPrice || 5;
                 // Precio = costo × (1 + margen/100)
                 cablePrice = Math.round(costPrice * (1 + cableMargin / 100) * 100) / 100;
+                console.log(`[Stripe Kit] Costo: $${costPrice}, Margen: ${cableMargin}%, Precio final cable: $${cablePrice}`);
             } else {
                 cablePrice = 15; // Fallback
+                console.log(`[Stripe Kit] No hay cables en DB, usando fallback $15`);
             }
         }
         
