@@ -139,9 +139,14 @@ app.get('/recuperar/:token', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'recuperar-password.html'));
 });
 
-// Landing de ventas del Welcome Kit (para buyer persona Elena)
-app.get(['/comenzar', '/empezar', '/tu-sueno-piano'], (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'welcome-kit-landing.html'));
+// Landing de ventas del Welcome Kit (para buyer persona Elena) - Día 88
+app.get(['/comenzar', '/empezar', '/tu-sueno-piano', '/dia-88'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'comenzar.html'));
+});
+
+// Landing para profesores (postulación programa fundadores)
+app.get(['/profesores-fundadores', '/ser-profesor', '/ensenar'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'landing.html'));
 });
 
 // Ruta limpia para Welcome Kit (checkout) - Versión 2
@@ -317,8 +322,8 @@ app.get('/', (req, res) => {
       return res.sendFile(path.join(__dirname, 'public', 'index.html'));
   }
   
-  // B) Si entra limpio (localhost:3000) -> Mostrar Landing Page
-  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+  // B) Si entra limpio (localhost:3000) -> Mostrar Landing Día 88 (estudiantes)
+  res.sendFile(path.join(__dirname, 'public', 'comenzar.html'));
 });
 
 
