@@ -158,13 +158,22 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
         const setupPricing = config?.regionalPricing?.setupOnly?.find(p => p.regionCode === countryCode) ||
                             config?.regionalPricing?.setupOnly?.find(p => p.regionCode === 'DEFAULT');
         
-        const servicePrice = setupPricing?.price || 10;
-        const currency = setupPricing?.currency || 'USD';
+        let servicePrice = setupPricing?.price || 10;
+        let currency = setupPricing?.currency || 'USD';
         
         // Precio del cable (desde config o default)
         const cablePricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === countryCode) ||
                             config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === 'DEFAULT');
-        const cablePrice = includesCable ? (cablePricing?.cablePrice || 4) : 0;
+        let cablePrice = includesCable ? (cablePricing?.cablePrice || 4) : 0;
+        
+        // MercadoPago Chile SOLO acepta CLP
+        // Si el precio está en USD, convertir a CLP
+        if (countryCode === 'CL' && currency === 'USD') {
+            const USD_TO_CLP = 950; // Tipo de cambio aproximado
+            servicePrice = Math.round(servicePrice * USD_TO_CLP);
+            cablePrice = Math.round(cablePrice * USD_TO_CLP);
+            currency = 'CLP';
+        }
         
         const totalPrice = servicePrice + cablePrice;
         
