@@ -681,6 +681,15 @@
   </div>
 
   <script>
+    // Verificar si viene de Stripe ANTES de verificar login
+    const urlParamsEarly = new URLSearchParams(window.location.search);
+    const pendingSessionId = urlParamsEarly.get('session_id');
+    if (urlParamsEarly.get('subscription') === 'success' && pendingSessionId) {
+        // Guardar session_id para procesar después
+        localStorage.setItem('pendingStripeSession', pendingSessionId);
+        console.log('[Dashboard] Session ID guardado para activar:', pendingSessionId);
+    }
+    
     const user = JSON.parse(localStorage.getItem('pianoUser'));
     if (!user || user.role !== 'teacher') window.location.href = 'login.html';
     const API_URL = '/api/teacher'; 
@@ -1189,11 +1198,16 @@ El sistema está en modo TEST.`;
         alert(message);
     }
     
-    // Verificar si regresa de Stripe con éxito
+    // Verificar si regresa de Stripe con éxito o hay session pendiente
     const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session_id');
+    let sessionId = urlParams.get('session_id');
     
-    if (urlParams.get('subscription') === 'success' && sessionId) {
+    // Si no viene en URL, revisar localStorage
+    if (!sessionId) {
+        sessionId = localStorage.getItem('pendingStripeSession');
+    }
+    
+    if ((urlParams.get('subscription') === 'success' && sessionId) || sessionId) {
         // Activar membresía usando el session_id
         setTimeout(async () => {
             try {
@@ -1209,6 +1223,9 @@ El sistema está en modo TEST.`;
                 });
                 
                 const data = await response.json();
+                
+                // Limpiar session pendiente
+                localStorage.removeItem('pendingStripeSession');
                 
                 if (data.success) {
                     console.log('[Dashboard] ✅ Membresía activada:', data);
@@ -1226,6 +1243,7 @@ El sistema está en modo TEST.`;
                 }
             } catch (error) {
                 console.error('[Dashboard] Error:', error);
+                localStorage.removeItem('pendingStripeSession');
                 alert('✅ Pago completado. Tu membresía se activará en unos minutos.');
             }
         }, 1000);
