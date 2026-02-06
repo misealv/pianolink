@@ -683,15 +683,22 @@
                         
                         <!-- Cable Type Selection (only if needs cable) -->
                         <div id="cable-type-section" style="margin-top: 20px;">
-                            <h4 style="margin-bottom: 10px; color: var(--text-secondary);">¿Qué tipo de conexión tiene tu teclado?</h4>
+                            <h4 style="margin-bottom: 10px; color: var(--text-secondary);">¿Qué tipo de conexión tiene tu teclado? <span style="font-weight: normal; font-size: 12px;">(opcional)</span></h4>
                             <div class="cable-types-grid" id="cable-types-grid">
                                 <!-- Se llena dinámicamente -->
                             </div>
                             
+                            <!-- Mensaje de ayuda -->
+                            <div style="background: rgba(0, 210, 106, 0.1); border: 1px solid rgba(0, 210, 106, 0.3); border-radius: 10px; padding: 15px; margin-top: 15px;">
+                                <p style="margin: 0; color: #00d26a; font-size: 14px;">
+                                    💡 <strong>¿No lo sabes?</strong> Déjalo sin seleccionar. Te ayudaremos a identificarlo en la sesión de setup.
+                                </p>
+                            </div>
+                            
                             <div class="form-group" style="margin-top: 15px;">
-                                <label>Modelo de tu teclado (opcional)</label>
+                                <label>Modelo de tu teclado</label>
                                 <input type="text" id="keyboard-model" placeholder="Ej: Yamaha P-125, Casio CDP-S100...">
-                                <small style="color: var(--text-secondary);">Nos ayuda a verificar que enviaremos el cable correcto</small>
+                                <small style="color: var(--text-secondary);">Con esto podemos identificar el cable correcto</small>
                             </div>
                         </div>
                         
@@ -846,7 +853,7 @@
         let countries = [];
         let currentPricing = null;
         let needsCable = true;
-        let selectedCableType = 'USB_B';
+        let selectedCableType = null; // Ninguno seleccionado por defecto
         
         // Cable catalog (precios vienen del backend/admin)
         const cableTypes = [
@@ -999,11 +1006,7 @@
                 return;
             }
             
-            // Validate step 2 -> 3
-            if (step === 3 && needsCable && !selectedCableType) {
-                alert('Por favor selecciona el tipo de cable');
-                return;
-            }
+            // Step 2 -> 3: Cable es opcional, no validamos
             
             // Validate step 3 -> 4
             if (step === 4) {
