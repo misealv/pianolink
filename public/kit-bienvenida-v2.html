@@ -479,6 +479,13 @@
         }
 
         /* Pay Button */
+        .payment-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
         .btn-pay {
             width: 100%;
             padding: 16px;
@@ -493,8 +500,15 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            margin-top: 10px;
             transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-pay.btn-stripe {
+            background: linear-gradient(135deg, #635bff 0%, #8b5cf6 100%);
+        }
+
+        .btn-pay.btn-mercadopago {
+            background: linear-gradient(135deg, #00a2e8 0%, #009ee3 100%);
         }
 
         .btn-pay:hover {
@@ -737,10 +751,17 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn-pay" id="btnPay">
-                            <span>💳</span>
-                            Pagar con Tarjeta
-                        </button>
+                        <!-- Payment Buttons -->
+                        <div class="payment-buttons">
+                            <button type="button" class="btn-pay btn-stripe" id="btnStripe" onclick="processPayment('stripe')">
+                                <span>💳</span>
+                                Pagar con Tarjeta (Internacional)
+                            </button>
+                            <button type="button" class="btn-pay btn-mercadopago" id="btnMP" onclick="processPayment('mercadopago')">
+                                <span>🇨🇱</span>
+                                Pagar con MercadoPago (Chile)
+                            </button>
+                        </div>
                     </form>
 
                     <div class="security-badges">
@@ -1018,119 +1039,135 @@
             return beneficiaries;
         }
 
-        // Form submit
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Validate form
+        function validateForm() {
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const whatsapp = document.getElementById('whatsapp').value.trim();
+            
+            if (!name || !email || !whatsapp) {
+                showError('Por favor completa todos los campos requeridos');
+                return false;
+            }
+            
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showError('Por favor ingresa un email válido');
+                return false;
+            }
+            
+            if (studentType === 'child') {
+                const beneficiaries = getBeneficiaries();
+                if (beneficiaries.length === 0) {
+                    showError('Por favor ingresa los datos de al menos un estudiante');
+                    return false;
+                }
+            }
+            
+            if (selectedProducts.length > 0) {
+                const street = document.getElementById('street').value.trim();
+                const city = document.getElementById('city').value.trim();
+                if (!street || !city) {
+                    showError('Por favor ingresa la dirección de envío');
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        // Process payment
+        async function processPayment(provider) {
+            if (!validateForm()) return;
+            
+            const btn = provider === 'stripe' 
+                ? document.getElementById('btnStripe') 
+                : document.getElementById('btnMP');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Procesando...';
+            loadingOverlay.classList.add('active');
+            errorMessage.style.display = 'none';
             
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const country = document.getElementById('country').value;
             const whatsapp = document.getElementById('whatsapp').value.trim();
-            
-            // Validate
-            if (!name || !email || !whatsapp) {
-                showError('Por favor completa todos los campos requeridos');
-                return;
-            }
-            
-            // Email validation
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                showError('Por favor ingresa un email válido');
-                return;
-            }
-            
-            // Beneficiary validation
-            let beneficiaries = [];
-            
-            if (studentType === 'child') {
-                beneficiaries = getBeneficiaries();
-                
-                if (beneficiaries.length === 0) {
-                    showError('Por favor ingresa los datos de al menos un estudiante');
-                    return;
-                }
-            }
-            
-            // Address validation if physical products
-            let street = '', city = '', postalCode = '';
-            if (selectedProducts.length > 0) {
-                street = document.getElementById('street').value.trim();
-                city = document.getElementById('city').value.trim();
-                postalCode = document.getElementById('postalCode').value.trim();
-                
-                if (!street || !city) {
-                    showError('Por favor ingresa la dirección de envío');
-                    return;
-                }
-            }
-            
-            // Show loading
-            loadingOverlay.classList.add('active');
-            errorMessage.style.display = 'none';
+            const beneficiaries = getBeneficiaries();
             
             try {
-                const response = await fetch('/api/welcome-kit/checkout', {
+                // First, create checkout record
+                const checkoutRes = await fetch('/api/welcome-kit/checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        // Buyer info
                         name,
                         email,
                         whatsapp,
                         country,
-                        
-                        // Student type
                         studentType,
-                        
-                        // Beneficiaries (can be multiple if studentType === 'child')
                         beneficiaries: beneficiaries.length > 0 ? beneficiaries : null,
-                        // Keep single beneficiary for backward compatibility
                         beneficiaryName: beneficiaries[0]?.name || null,
                         beneficiaryAge: beneficiaries[0]?.age || null,
-                        
-                        // Kit type
                         kitType: selectedProducts.length > 0 ? 'full' : 'setup_only',
-                        
-                        // Products
                         productIds: selectedProducts,
-                        
-                        // Shipping (if products)
-                        street,
-                        city,
-                        postalCode
+                        street: document.getElementById('street')?.value?.trim() || '',
+                        city: document.getElementById('city')?.value?.trim() || '',
+                        postalCode: document.getElementById('postalCode')?.value?.trim() || ''
                     })
                 });
                 
-                const data = await response.json();
-                
-                // Ahora usamos Stripe en lugar de PayPal
-                if (!data.success) {
-                    throw new Error(data.error || 'Error creando el pago');
+                const checkoutData = await checkoutRes.json();
+                if (!checkoutData.success) {
+                    throw new Error(checkoutData.error || 'Error guardando datos');
                 }
                 
-                // Llamar a Stripe
-                const stripeRes = await fetch('/api/payment/create-kit-payment-stripe', {
+                // Then, create payment with selected provider
+                const endpoint = provider === 'stripe' 
+                    ? '/api/payment/create-kit-payment-stripe'
+                    : '/api/payment/create-kit-payment-mercadopago';
+                
+                const paymentRes = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         name,
                         email,
-                        country
+                        country,
+                        kitType: selectedProducts.length > 0 ? 'full' : 'setup_only',
+                        cableType: selectedProducts.length > 0 ? 'GENERIC' : 'NONE'
                     })
                 });
                 
-                const stripeData = await stripeRes.json();
+                const paymentData = await paymentRes.json();
                 
-                if (stripeData.success && stripeData.checkoutUrl) {
-                    window.location.href = stripeData.checkoutUrl;
-                } else {
-                    throw new Error(stripeData.error || 'Error con Stripe');
+                if (!paymentData.success) {
+                    throw new Error(paymentData.error || 'Error creando pago');
                 }
+                
+                // Redirect to payment
+                const checkoutUrl = provider === 'mercadopago' 
+                    ? (paymentData.sandboxUrl || paymentData.checkoutUrl)
+                    : paymentData.checkoutUrl;
+                    
+                if (checkoutUrl) {
+                    window.location.href = checkoutUrl;
+                } else {
+                    throw new Error('No se recibió URL de pago');
+                }
+                
             } catch (error) {
                 console.error('Error:', error);
                 showError(error.message);
                 loadingOverlay.classList.remove('active');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
             }
+        }
+
+        // Prevent form submit (we use buttons now)
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
         });
 
         function showError(message) {
