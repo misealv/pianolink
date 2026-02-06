@@ -149,8 +149,12 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
         }
         const setupPrice = setupPricing?.price || 35;
         
-        // Determinar si incluye cable
-        const includesCable = kitType !== 'setup_only' && cableType !== 'NONE' && cableType;
+        // Determinar si incluye cable:
+        // - kitType debe ser 'full' (no 'setup_only')
+        // - cableType no debe ser 'NONE' ni null/undefined
+        const includesCable = kitType === 'full' || (kitType !== 'setup_only' && cableType && cableType !== 'NONE');
+        
+        console.log(`[Stripe Kit] kitType: ${kitType}, cableType: ${cableType}, includesCable: ${includesCable}`);
         
         // 2. Calcular precio del cable (costo AliExpress + margen)
         let cablePrice = 0;
