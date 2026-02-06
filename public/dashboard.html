@@ -1191,16 +1191,44 @@ El sistema está en modo TEST.`;
     
     // Verificar si regresa de Stripe con éxito
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('subscription') === 'success') {
-        // Intentar sincronizar automáticamente
+    const sessionId = urlParams.get('session_id');
+    
+    if (urlParams.get('subscription') === 'success' && sessionId) {
+        // Activar membresía usando el session_id
         setTimeout(async () => {
-            const synced = await syncSubscriptionFromStripe();
-            if (synced) {
-                alert('🎉 ¡Suscripción activada exitosamente!');
-            } else {
+            try {
+                console.log('[Dashboard] Activando membresía con session_id:', sessionId);
+                
+                const response = await fetch('/api/payment/stripe/activate-from-session', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ sessionId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log('[Dashboard] ✅ Membresía activada:', data);
+                    alert('🎉 ¡Membresía activada exitosamente! Bienvenido a PianoLink.');
+                    loadSubscriptionStatus();
+                } else {
+                    console.error('[Dashboard] Error activando:', data.error);
+                    // Intentar sincronización alternativa
+                    const synced = await syncSubscriptionFromStripe();
+                    if (synced) {
+                        alert('🎉 ¡Suscripción activada exitosamente!');
+                    } else {
+                        alert('✅ Pago completado. Tu membresía se activará en unos minutos.');
+                    }
+                }
+            } catch (error) {
+                console.error('[Dashboard] Error:', error);
                 alert('✅ Pago completado. Tu membresía se activará en unos minutos.');
             }
-        }, 2000);
+        }, 1000);
         
         // Limpiar URL
         window.history.replaceState({}, document.title, window.location.pathname);

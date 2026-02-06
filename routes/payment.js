@@ -534,6 +534,99 @@ router.get('/stripe/subscription-status', protect, async (req, res) => {
 });
 
 /**
+ * POST /api/payment/stripe/activate-from-session
+ * Activar membresía usando session_id de Stripe Checkout
+ * (Funciona aunque el webhook no esté configurado)
+ */
+router.post('/stripe/activate-from-session', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { sessionId } = req.body;
+
+        if (!sessionId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Session ID requerido'
+            });
+        }
+
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo profesores pueden acceder' 
+            });
+        }
+
+        if (!StripeService.isConfigured()) {
+            return res.status(503).json({
+                success: false,
+                error: 'Stripe no está configurado'
+            });
+        }
+
+        // Obtener la sesión de Stripe
+        const { stripe } = require('../config/stripe');
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+        // Verificar que la sesión sea del profesor correcto
+        const teacherIdInSession = session.metadata?.teacherId;
+        if (teacherIdInSession !== userId.toString()) {
+            return res.status(403).json({
+                success: false,
+                error: 'Esta sesión no pertenece a tu cuenta'
+            });
+        }
+
+        // Verificar que el pago fue exitoso
+        if (session.payment_status !== 'paid') {
+            return res.status(400).json({
+                success: false,
+                error: 'El pago no ha sido completado'
+            });
+        }
+
+        // Obtener la suscripción
+        const subscriptionId = session.subscription;
+        if (!subscriptionId) {
+            return res.status(400).json({
+                success: false,
+                error: 'No se encontró suscripción en la sesión'
+            });
+        }
+
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+        // Activar la membresía
+        await User.findByIdAndUpdate(userId, {
+            'teacherData.stripeSubscriptionId': subscription.id,
+            'teacherData.stripePriceId': subscription.items?.data[0]?.price?.id,
+            'teacherData.subscriptionStatus': StripeService.mapStripeStatus(subscription.status),
+            'teacherData.subscriptionExpiresAt': new Date(subscription.current_period_end * 1000)
+        });
+
+        console.log(`[Stripe] ✅ Membresía activada desde session_id para: ${user.email}`);
+
+        res.json({
+            success: true,
+            message: '¡Membresía activada exitosamente!',
+            subscription: {
+                status: subscription.status,
+                expiresAt: new Date(subscription.current_period_end * 1000)
+            }
+        });
+
+    } catch (error) {
+        console.error('[Stripe] Error activando desde session:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+/**
  * POST /api/payment/stripe/sync-subscription
  * Sincronizar estado de suscripción desde Stripe
  * (Para desarrollo o cuando el webhook falla)
