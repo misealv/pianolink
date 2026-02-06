@@ -195,28 +195,38 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
                           currency === 'ARS' ? 'ARS' : 
                           currency === 'MXN' ? 'MXN' : 'CLP';
 
-        // Crear preferencia de pago
+        // Separar nombre y apellido para MercadoPago
+        const nameParts = name.trim().split(/\s+/);
+        const firstName = nameParts[0] || name;
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : name;
+        const externalRef = `kit_${Date.now()}_${email}`;
+        const baseUrl = process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev';
+
+        // Crear preferencia de pago con todos los campos requeridos por MP
         const preference = {
             items: [{
+                id: includesCable ? 'KIT-FULL-DIA88' : 'SETUP-CLASE-PRUEBA',
                 title: productName,
                 description: productDescription,
+                category_id: 'services',
                 quantity: 1,
                 currency_id: mpCurrency,
                 unit_price: totalPrice
             }],
             payer: {
                 email: email,
-                name: name.split(' ')[0],
-                surname: name.split(' ').slice(1).join(' ') || name
+                first_name: firstName,
+                last_name: lastName
             },
             back_urls: {
-                success: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/kit-success?provider=mercadopago&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
-                failure: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/welcome-kit?error=payment_failed`,
-                pending: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/kit-pending?email=${encodeURIComponent(email)}`
+                success: `${baseUrl}/kit-success?provider=mercadopago&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
+                failure: `${baseUrl}/welcome-kit?error=payment_failed`,
+                pending: `${baseUrl}/kit-pending?email=${encodeURIComponent(email)}`
             },
             auto_return: 'approved',
-            external_reference: `kit_${Date.now()}_${email}`,
-            notification_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/api/webhooks/mercadopago`,
+            external_reference: externalRef,
+            notification_url: `${baseUrl}/api/webhooks/mercadopago`,
+            statement_descriptor: 'PIANOLINK',
             metadata: {
                 type: 'kit_purchase',
                 customerName: name,
