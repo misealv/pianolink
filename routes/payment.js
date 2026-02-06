@@ -583,8 +583,8 @@ router.post('/stripe/activate-from-session', protect, async (req, res) => {
         console.log('[Stripe] 👤 Email del usuario actual:', user.email);
 
         // Verificar que la sesión sea del profesor correcto
-        // Primero intentamos por ID, pero si el usuario recreó la cuenta usamos email
-        const teacherIdInSession = session.metadata?.teacherId;
+        // Nota: la clave en metadata es 'pianolink_teacher_id' (ver config/stripe.js)
+        const teacherIdInSession = session.metadata?.pianolink_teacher_id;
         const customerEmail = session.customer_details?.email?.toLowerCase();
         const userEmail = user.email?.toLowerCase();
         
