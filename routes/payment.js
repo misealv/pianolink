@@ -131,6 +131,10 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
     try {
         const { email, name, country, kitType, cableType } = req.body;
 
+        console.log('[Stripe Kit] ========================================');
+        console.log('[Stripe Kit] Datos recibidos:', JSON.stringify(req.body));
+        console.log('[Stripe Kit] ========================================');
+
         if (!email || !name) {
             return res.status(400).json({ 
                 success: false, 
@@ -138,61 +142,35 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
             });
         }
 
-        // Obtener configuración global
-        const config = await GlobalConfig.findOne({ isDefault: true });
-        const countryCode = country?.toUpperCase() || 'US';
+        // Precios fijos
+        const SERVICE_PRICE = 35; // Setup + Clase
+        const CABLE_PRICE = 4;    // Cable MIDI
         
-        // 1. Obtener precio del servicio (Setup + Clase) desde setupOnly
-        let setupPricing = config?.regionalPricing?.setupOnly?.find(p => p.regionCode === countryCode);
-        if (!setupPricing) {
-            setupPricing = config?.regionalPricing?.setupOnly?.find(p => p.regionCode === 'DEFAULT');
-        }
-        const setupPrice = setupPricing?.price || 35;
+        // Determinar si incluye cable basado en kitType
+        // kitType = 'full' significa que quiere cable
+        // kitType = 'setup_only' significa que ya tiene cable
+        const includesCable = kitType === 'full';
         
-        // Determinar si incluye cable:
-        // - kitType debe ser 'full' (no 'setup_only')
-        // - cableType no debe ser 'NONE' ni null/undefined
-        const includesCable = kitType === 'full' || (kitType !== 'setup_only' && cableType && cableType !== 'NONE');
-        
-        console.log(`[Stripe Kit] kitType: ${kitType}, cableType: ${cableType}, includesCable: ${includesCable}`);
-        
-        // 2. Calcular precio del cable (costo AliExpress + margen)
-        let cablePrice = 0;
-        if (includesCable) {
-            const KitProduct = require('../models/KitProduct');
-            // Buscar cualquier cable en el catálogo (sin filtro isActive)
-            const cableProduct = await KitProduct.findOne({ 
-                category: 'cable'
-            });
-            
-            console.log(`[Stripe Kit] Cable encontrado:`, cableProduct ? cableProduct.name : 'NINGUNO');
-            
-            if (cableProduct) {
-                // Obtener margen de cables desde config (default 40%)
-                const cableMargin = config?.productMargins?.cable || 40;
-                const costPrice = cableProduct.fulfillment?.costPrice || cableProduct.defaultPrice || 5;
-                // Precio = costo × (1 + margen/100)
-                cablePrice = Math.round(costPrice * (1 + cableMargin / 100) * 100) / 100;
-                console.log(`[Stripe Kit] Costo: $${costPrice}, Margen: ${cableMargin}%, Precio final cable: $${cablePrice}`);
-            } else {
-                cablePrice = 15; // Fallback
-                console.log(`[Stripe Kit] No hay cables en DB, usando fallback $15`);
-            }
-        }
-        
-        // 3. Precio total = servicio + cable (si aplica)
+        // Calcular precio total
+        const setupPrice = SERVICE_PRICE;
+        const cablePrice = includesCable ? CABLE_PRICE : 0;
         const totalPrice = setupPrice + cablePrice;
-        const currency = (setupPricing?.currency || 'USD').toLowerCase();
+        const currency = 'usd';
         const priceInCents = Math.round(totalPrice * 100);
+        const countryCode = (country || 'US').toUpperCase();
         
-        console.log(`[Stripe Kit] País: ${countryCode}, Setup: $${setupPrice}, Cable: ${includesCable ? '$' + cablePrice : 'N/A'}, Total: $${totalPrice} ${currency.toUpperCase()}`);
+        console.log('[Stripe Kit] kitType:', kitType);
+        console.log('[Stripe Kit] includesCable:', includesCable);
+        console.log('[Stripe Kit] Precio servicio: $' + setupPrice);
+        console.log('[Stripe Kit] Precio cable: $' + cablePrice);
+        console.log('[Stripe Kit] TOTAL: $' + totalPrice);
         
         // Descripción según el tipo de kit
         const productName = includesCable 
             ? 'Kit Completo PianoLink - Día 88'
             : 'Setup + Clase de Prueba PianoLink';
         const productDescription = includesCable
-            ? `Cable MIDI Premium + Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma`
+            ? 'Cable MIDI Premium + Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma'
             : 'Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma';
 
         const { getStripeClient } = require('../config/stripe');
@@ -221,14 +199,16 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
                 country: countryCode,
                 kitType: includesCable ? 'full' : 'setup_only',
                 cableType: cableType || 'NONE',
-                setupPrice,
-                cablePrice,
-                totalPrice,
-                currency: currency.toUpperCase()
+                setupPrice: setupPrice.toString(),
+                cablePrice: cablePrice.toString(),
+                totalPrice: totalPrice.toString(),
+                currency: 'USD'
             },
             success_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/kit-success?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
-            cancel_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/kit-bienvenida`
+            cancel_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/welcome-kit`
         });
+
+        console.log('[Stripe Kit] Sesión creada:', session.id, '- URL:', session.url);
 
         res.json({
             success: true,

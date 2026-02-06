@@ -998,11 +998,15 @@
         function updatePriceDisplay() {
             if (!currentPricing) return;
             
-            // El precio viene del backend (admin config)
-            const price = currentPricing.price || 35;
+            // Precios fijos
+            const SERVICE_PRICE = 35; // Setup + Clase
+            const CABLE_PRICE = 4;    // Cable MIDI
+            
+            // Calcular precio total según selección
+            const totalPrice = needsCable ? (SERVICE_PRICE + CABLE_PRICE) : SERVICE_PRICE;
             const currency = currentPricing.currency || 'USD';
             
-            document.getElementById('price').textContent = price;
+            document.getElementById('price').textContent = totalPrice;
             document.getElementById('currency').textContent = currency;
             
             if (needsCable) {
@@ -1063,7 +1067,11 @@
         
         function updateReview() {
             const country = countries.find(c => c.code === selectedCountry);
-            const price = currentPricing?.price || 35;
+            
+            // Precios fijos
+            const SERVICE_PRICE = 35;
+            const CABLE_PRICE = 4;
+            const totalPrice = needsCable ? (SERVICE_PRICE + CABLE_PRICE) : SERVICE_PRICE;
             const currency = currentPricing?.currency || 'USD';
             
             // Kit type
@@ -1075,8 +1083,8 @@
             if (needsCable) {
                 cableRow.style.display = 'flex';
                 const cable = cableTypes.find(c => c.code === selectedCableType);
-                document.getElementById('review-cable-type').textContent = `(${cable.name})`;
-                document.getElementById('review-cable-price').textContent = 'Incluido';
+                document.getElementById('review-cable-type').textContent = cable ? `(${cable.name})` : '(Por definir)';
+                document.getElementById('review-cable-price').textContent = `+$${CABLE_PRICE}`;
             } else {
                 cableRow.style.display = 'none';
             }
@@ -1095,7 +1103,7 @@
             }
             
             // Total
-            document.getElementById('review-total').textContent = `${currency} ${price}`;
+            document.getElementById('review-total').textContent = `${currency} ${totalPrice}`;
         }
         
         function toggleBeneficiary() {
