@@ -1117,7 +1117,7 @@
 
                         <button type="submit" class="btn-pay" id="btnPay">
                             <span>💳</span>
-                            Pagar con PayPal
+                            Pagar con Tarjeta
                         </button>
                     </form>
 
@@ -1358,11 +1358,24 @@
 
                 const data = await response.json();
 
-                if (data.success && data.approveLink) {
-                    // Redirect to PayPal
-                    window.location.href = data.approveLink;
-                } else {
+                // Usar Stripe en lugar de PayPal
+                if (!data.success) {
                     throw new Error(data.error || 'Error creando el pago');
+                }
+                
+                // Llamar a Stripe
+                const stripeRes = await fetch('/api/payment/create-kit-payment-stripe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, country })
+                });
+                
+                const stripeData = await stripeRes.json();
+                
+                if (stripeData.success && stripeData.checkoutUrl) {
+                    window.location.href = stripeData.checkoutUrl;
+                } else {
+                    throw new Error(stripeData.error || 'Error con Stripe');
                 }
             } catch (error) {
                 console.error('Error:', error);
