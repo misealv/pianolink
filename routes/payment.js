@@ -579,17 +579,31 @@ router.post('/stripe/activate-from-session', protect, async (req, res) => {
         const { stripe } = require('../config/stripe');
         const session = await stripe.checkout.sessions.retrieve(sessionId);
         console.log('[Stripe] ✅ Sesión encontrada, payment_status:', session.payment_status);
+        console.log('[Stripe] 📧 Email del cliente en Stripe:', session.customer_details?.email);
+        console.log('[Stripe] 👤 Email del usuario actual:', user.email);
 
         // Verificar que la sesión sea del profesor correcto
+        // Primero intentamos por ID, pero si el usuario recreó la cuenta usamos email
         const teacherIdInSession = session.metadata?.teacherId;
-        console.log('[Stripe] 🔍 Comparando IDs - Sesión:', teacherIdInSession, '| Usuario:', userId.toString());
-        if (teacherIdInSession !== userId.toString()) {
-            console.log('[Stripe] ❌ IDs no coinciden');
+        const customerEmail = session.customer_details?.email?.toLowerCase();
+        const userEmail = user.email?.toLowerCase();
+        
+        console.log('[Stripe] 🔍 Comparando - ID Sesión:', teacherIdInSession, '| ID Usuario:', userId.toString());
+        console.log('[Stripe] 🔍 Comparando - Email Cliente:', customerEmail, '| Email Usuario:', userEmail);
+        
+        // Verificar por ID O por email (para casos donde el usuario recreó la cuenta)
+        const matchById = teacherIdInSession === userId.toString();
+        const matchByEmail = customerEmail && userEmail && customerEmail === userEmail;
+        
+        if (!matchById && !matchByEmail) {
+            console.log('[Stripe] ❌ Ni ID ni Email coinciden');
             return res.status(403).json({
                 success: false,
                 error: 'Esta sesión no pertenece a tu cuenta'
             });
         }
+        
+        console.log('[Stripe] ✅ Verificación exitosa por:', matchById ? 'ID' : 'Email');
 
         // Verificar que el pago fue exitoso
         if (session.payment_status !== 'paid') {
