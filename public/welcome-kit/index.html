@@ -1130,17 +1130,22 @@
                 const name = document.getElementById('name').value;
                 const email = document.getElementById('email').value;
                 
+                // Preparar datos para el pago
+                const paymentData = {
+                    name,
+                    email,
+                    country: selectedCountry,
+                    cableType: needsCable ? (selectedCableType || 'GENERIC') : 'NONE',
+                    kitType: needsCable ? 'full' : 'setup_only'
+                };
+                
+                console.log('[PianoLink] Enviando a Stripe:', paymentData);
+                
                 // Llamar al endpoint de Stripe que lee precio del admin
                 const res = await fetch('/api/payment/create-kit-payment-stripe', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name,
-                        email,
-                        country: selectedCountry,
-                        cableType: needsCable ? selectedCableType : 'NONE',
-                        kitType: needsCable ? 'full' : 'setup_only'
-                    })
+                    body: JSON.stringify(paymentData)
                 });
                 
                 const data = await res.json();
