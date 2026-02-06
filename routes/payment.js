@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const fetch = require('node-fetch');
 const User = require('../models/User');
+const GlobalConfig = require('../models/GlobalConfig');
 const { protect } = require('../middleware/authMiddleware');
 const StripeService = require('../services/StripeService');
 
@@ -128,7 +129,7 @@ router.post('/create-kit-payment', async (req, res) => {
 // ============================================
 router.post('/create-kit-payment-stripe', async (req, res) => {
     try {
-        const { email, name } = req.body;
+        const { email, name, country } = req.body;
 
         if (!email || !name) {
             return res.status(400).json({ 
@@ -136,6 +137,21 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
                 error: 'Email y nombre son requeridos' 
             });
         }
+
+        // Obtener precio desde GlobalConfig
+        const config = await GlobalConfig.findOne({ isDefault: true });
+        const countryCode = country?.toUpperCase() || 'US';
+        
+        // Buscar precio para el país o usar DEFAULT
+        let pricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === countryCode);
+        if (!pricing) {
+            pricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === 'DEFAULT');
+        }
+        
+        // Fallback si no hay configuración
+        const kitPrice = pricing?.price || 39;
+        const currency = (pricing?.currency || 'USD').toLowerCase();
+        const priceInCents = Math.round(kitPrice * 100);
 
         const stripe = StripeService.stripe;
         
@@ -145,20 +161,23 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
             customer_email: email,
             line_items: [{
                 price_data: {
-                    currency: 'usd',
+                    currency: currency,
                     product_data: {
-                        name: 'Kit de Bienvenida PianoLink',
-                        description: 'Cable MIDI + Sesión setup + Clase prueba 30min',
+                        name: 'Kit de Inicio PianoLink - Día 88',
+                        description: 'Cable MIDI Premium + 1ra Clase GRATIS + Setup Técnico Guiado + Guía de Inicio (Valor $150)',
                         images: ['https://pianolink-v4.fly.dev/img/kit-bienvenida.png']
                     },
-                    unit_amount: 1500, // $15.00 en centavos
+                    unit_amount: priceInCents,
                 },
                 quantity: 1,
             }],
             metadata: {
                 type: 'kit_purchase',
                 customerName: name,
-                customerEmail: email
+                customerEmail: email,
+                country: countryCode,
+                priceLocal: kitPrice,
+                currency: currency.toUpperCase()
             },
             success_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/kit-success?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
             cancel_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/kit-bienvenida`

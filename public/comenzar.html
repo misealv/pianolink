@@ -3,1025 +3,1978 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PianoLink | Tu Sueño de Tocar Piano Empieza el Día 88</title>
-    <meta name="description" content="Del dolor de mi escuela cerrada nació esto. Para Aurora. Para ti. Clases de piano online con tecnología MIDI. Solo 88 cupos disponibles.">
-    
-    <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="PianoLink - Tu Sueño de Tocar Piano Empieza Día 88">
-    <meta property="og:description" content="Del dolor de mi escuela cerrada nació esto. Para Aurora. Para ti. 88 cupos disponibles.">
-    <meta property="og:image" content="https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=1200&h=630&fit=crop">
-    <meta property="og:url" content="https://pianolink.pro/comenzar">
-    <meta property="og:type" content="website">
-    
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="PianoLink - Tu Sueño de Tocar Piano">
-    <meta name="twitter:description" content="Clases de piano online 1-a-1 con tecnología MIDI. Solo 88 cupos disponibles.">
+    <title>Tu Sueño de Tocar Piano Comienza el Día 88 | PianoLink</title>
+    <meta name="description" content="Del dolor de mi escuela cerrada nació esto. Para Aurora. Para ti. Clases de piano online 1-a-1 con tecnología MIDI. Solo 88 cupos disponibles.">
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/logoclaropianolink.jpg">
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Open Graph -->
+    <meta property="og:title" content="PianoLink - Tu Sueño de Tocar Piano Empieza Día 88">
+    <meta property="og:description" content="Del dolor de mi escuela cerrada nació esto. Para Aurora. Para ti. 88 cupos disponibles.">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=1200&h=630&fit=crop">
+    <meta property="og:type" content="website">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Tracking Scripts -->
     <script src="/tracking-scripts.js"></script>
     
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'ivory': '#FDFCFB',
-                        'silk': '#F7F6F4',
-                        'pearl': '#F0EFED',
-                        'midnight': '#1A2332',
-                        'charcoal': '#2C3440',
-                        'brand-orange': '#FF764D',
-                        'brand-orange-dark': '#E5603A',
-                        'warm': '#FFF8F5',
-                    },
-                    fontFamily: {
-                        'serif': ['Cormorant Garamond', 'Georgia', 'serif'],
-                        'sans': ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                }
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #e94560;
+            --accent-light: #ff6b6b;
+            --gold: #d4af37;
+            --gold-light: #f4d03f;
+            --text: #1a1a1a;
+            --text-light: #6b7280;
+            --bg: #fefefe;
+            --bg-warm: #faf8f5;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        .font-display {
+            font-family: 'Playfair Display', Georgia, serif;
+        }
+        
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            position: relative;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+        
+        @media (max-width: 1024px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 40px;
+                padding: 100px 24px 60px;
             }
         }
-    </script>
-    
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid rgba(233, 69, 96, 0.4);
+            color: #ff8a8a;
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.6s ease;
         }
         
-        .font-serif {
-            font-family: 'Cormorant Garamond', Georgia, serif;
+        .countdown-inline {
+            display: inline-flex;
+            gap: 6px;
+            font-family: monospace;
+            font-weight: 700;
         }
         
-        /* Gradient text */
-        .gradient-text {
-            background: linear-gradient(135deg, #FF764D 0%, #FF9A7A 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .countdown-inline span {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
         }
         
-        /* Countdown styling */
-        .countdown-box {
-            background: linear-gradient(135deg, #FF764D 0%, #FF9A7A 100%);
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 600;
+            color: white;
+            line-height: 1.15;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.6s ease 0.1s both;
         }
         
-        /* Soft shadows */
-        .shadow-soft {
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        .hero h1 span {
+            color: var(--gold-light);
+            font-style: italic;
         }
         
-        .shadow-accent {
-            box-shadow: 0 8px 30px rgba(255, 118, 77, 0.25);
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 32px;
+            max-width: 500px;
+            animation: fadeInUp 0.6s ease 0.2s both;
         }
         
-        /* Benefit card hover */
-        .benefit-card {
+        @media (max-width: 1024px) {
+            .hero-subtitle {
+                margin: 0 auto 32px;
+            }
+        }
+        
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.6s ease 0.3s both;
+        }
+        
+        @media (max-width: 1024px) {
+            .hero-cta {
+                justify-content: center;
+            }
+        }
+        
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            color: var(--primary);
+            padding: 18px 36px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(212, 175, 55, 0.5);
+        }
+        
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: transparent;
+            color: white;
+            padding: 18px 36px;
+            border-radius: 100px;
+            font-weight: 500;
+            font-size: 16px;
+            text-decoration: none;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             transition: all 0.3s ease;
         }
         
-        .benefit-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
         }
         
-        /* Timeline styling */
-        .timeline-line {
+        .hero-visual {
+            position: relative;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+        
+        .hero-image-wrapper {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4);
+        }
+        
+        .hero-image-wrapper img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .hero-image-wrapper::after {
+            content: '';
             position: absolute;
-            left: 24px;
-            top: 48px;
+            inset: 0;
+            background: linear-gradient(to top, rgba(26, 26, 46, 0.3), transparent 50%);
+        }
+        
+        .floating-card {
+            position: absolute;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .floating-card.card-1 {
+            top: 20%;
+            left: -40px;
+            animation-delay: 0s;
+        }
+        
+        .floating-card.card-2 {
+            bottom: 20%;
+            right: -40px;
+            animation-delay: 1.5s;
+        }
+        
+        @media (max-width: 1024px) {
+            .floating-card {
+                display: none;
+            }
+        }
+        
+        .floating-card-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .floating-card-text {
+            font-size: 14px;
+        }
+        
+        .floating-card-text strong {
+            display: block;
+            font-size: 16px;
+            color: var(--primary);
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Social Proof Bar */
+        .social-proof-bar {
+            background: var(--bg-warm);
+            padding: 24px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .social-proof-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 48px;
+            flex-wrap: wrap;
+        }
+        
+        .proof-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        
+        .proof-item strong {
+            color: var(--text);
+            font-size: 20px;
+        }
+        
+        .proof-item .icon {
+            font-size: 24px;
+        }
+        
+        /* Story Section */
+        .story-section {
+            padding: 100px 24px;
+            background: white;
+        }
+        
+        .section-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 60px;
+        }
+        
+        .section-label {
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent);
+            margin-bottom: 16px;
+        }
+        
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        
+        .section-title span {
+            color: var(--gold);
+        }
+        
+        .section-subtitle {
+            font-size: 1.125rem;
+            color: var(--text-light);
+        }
+        
+        .story-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+        
+        @media (max-width: 900px) {
+            .story-content {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+        }
+        
+        .story-timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+        
+        .story-timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
             bottom: 0;
             width: 2px;
-            background: linear-gradient(to bottom, #FF764D, #FFE4DB);
+            background: linear-gradient(to bottom, var(--gold), var(--gold-light), #eee);
         }
         
-        /* FAQ accordion */
+        .timeline-item {
+            position: relative;
+            padding-bottom: 32px;
+        }
+        
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+        
+        .timeline-dot {
+            position: absolute;
+            left: -33px;
+            top: 0;
+            width: 32px;
+            height: 32px;
+            background: white;
+            border: 3px solid var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .timeline-item:last-child .timeline-dot {
+            background: var(--gold);
+        }
+        
+        .timeline-item h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        
+        .timeline-item p {
+            font-size: 15px;
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+        
+        .story-quote {
+            background: var(--bg-warm);
+            padding: 40px;
+            border-radius: 24px;
+            border-left: 4px solid var(--gold);
+        }
+        
+        .story-quote blockquote {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-style: italic;
+            color: var(--primary);
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        
+        .story-quote blockquote span {
+            color: var(--gold);
+            font-style: normal;
+        }
+        
+        .story-quote .author {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        
+        /* Problem Section */
+        .problem-section {
+            padding: 100px 24px;
+            background: var(--bg-warm);
+        }
+        
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+        
+        .problem-card {
+            background: white;
+            padding: 32px;
+            border-radius: 20px;
+            border: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+        
+        .problem-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        }
+        
+        .problem-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(233, 69, 96, 0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        
+        .problem-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+        
+        .problem-card p {
+            color: var(--text-light);
+            font-size: 15px;
+        }
+        
+        /* Solution Section */
+        .solution-section {
+            padding: 100px 24px;
+            background: white;
+        }
+        
+        .solution-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+        
+        @media (max-width: 900px) {
+            .solution-content {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+        }
+        
+        .solution-image {
+            position: relative;
+        }
+        
+        .solution-image img {
+            width: 100%;
+            border-radius: 24px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+        }
+        
+        .solution-text h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            color: var(--primary);
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+        
+        .solution-text h2 span {
+            color: var(--gold);
+        }
+        
+        .solution-text > p {
+            font-size: 1.125rem;
+            color: var(--text-light);
+            margin-bottom: 32px;
+        }
+        
+        .benefit-list {
+            list-style: none;
+            margin-bottom: 32px;
+        }
+        
+        .benefit-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        
+        .benefit-list .check {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .benefit-list strong {
+            color: var(--primary);
+        }
+        
+        /* Technology Section */
+        .tech-section {
+            padding: 100px 24px;
+            background: var(--primary);
+            position: relative;
+        }
+        
+        .tech-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(212, 175, 55, 0.1) 0%, transparent 50%);
+        }
+        
+        .tech-content {
+            position: relative;
+            z-index: 10;
+        }
+        
+        .tech-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .tech-header .section-label {
+            color: var(--gold-light);
+        }
+        
+        .tech-header .section-title {
+            color: white;
+        }
+        
+        .tech-header .section-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+            margin-bottom: 48px;
+        }
+        
+        .tech-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 32px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tech-card-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(212, 175, 55, 0.2);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        
+        .tech-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 12px;
+        }
+        
+        .tech-card p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 15px;
+            margin-bottom: 16px;
+        }
+        
+        .tech-card .highlight {
+            color: var(--gold-light);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .tech-comparison {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tech-comparison h3 {
+            color: white;
+            font-size: 1.25rem;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        @media (max-width: 600px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .comparison-col h4 {
+            color: var(--gold-light);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+        
+        .comparison-col.negative h4 {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .comparison-col ul {
+            list-style: none;
+        }
+        
+        .comparison-col ul li {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .comparison-col.negative ul li {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .tech-note {
+            text-align: center;
+            margin-top: 24px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+        
+        .tech-note strong {
+            color: var(--gold-light);
+        }
+        
+        /* Kit Section */
+        .kit-section {
+            padding: 100px 24px;
+            background: var(--bg-warm);
+            position: relative;
+        }
+        
+        .kit-showcase {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+        
+        @media (max-width: 900px) {
+            .kit-showcase {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+        }
+        
+        .kit-image {
+            position: relative;
+        }
+        
+        .kit-image img {
+            width: 100%;
+            border-radius: 24px;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.15);
+        }
+        
+        .kit-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--accent);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 100px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .kit-details {
+            background: white;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+        }
+        
+        .kit-details h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.75rem;
+            color: var(--primary);
+            margin-bottom: 24px;
+        }
+        
+        .kit-includes {
+            list-style: none;
+            margin-bottom: 32px;
+        }
+        
+        .kit-includes li {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .kit-includes li:last-child {
+            border-bottom: none;
+        }
+        
+        .kit-includes .item-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+        
+        .kit-includes .item-info h4 {
+            font-size: 1rem;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+        
+        .kit-includes .item-info p {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        
+        .kit-includes .item-value {
+            font-size: 13px;
+            color: var(--gold);
+            margin-left: auto;
+            white-space: nowrap;
+        }
+        
+        .kit-pricing {
+            background: var(--bg-warm);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+        
+        .kit-pricing .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .kit-pricing .original-price {
+            font-size: 1.25rem;
+            color: var(--text-light);
+            text-decoration: line-through;
+        }
+        
+        .kit-pricing .current-price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        
+        .kit-pricing .current-price small {
+            font-size: 1rem;
+            font-weight: 400;
+            color: var(--text-light);
+        }
+        
+        .kit-pricing .savings {
+            background: var(--accent);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .kit-cta {
+            width: 100%;
+            padding: 20px 32px;
+            font-size: 18px;
+            justify-content: center;
+        }
+        
+        .kit-guarantee {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        
+        /* Día 88 Section */
+        .dia88-section {
+            padding: 100px 24px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .dia88-section::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .dia88-content {
+            position: relative;
+            z-index: 10;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .dia88-content h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .dia88-content h2 span {
+            color: var(--gold-light);
+        }
+        
+        .dia88-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+        
+        @media (max-width: 700px) {
+            .dia88-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .dia88-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .dia88-item .icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+        
+        .dia88-item .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gold-light);
+        }
+        
+        .dia88-item .label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .dia88-offer {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            padding: 40px;
+            border-radius: 24px;
+            margin-bottom: 40px;
+        }
+        
+        .dia88-offer h3 {
+            color: var(--primary);
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+        }
+        
+        .dia88-offer .price {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        
+        .dia88-offer p {
+            color: var(--primary);
+            opacity: 0.8;
+        }
+        
+        .countdown-big {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .countdown-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px 24px;
+            border-radius: 16px;
+            min-width: 90px;
+        }
+        
+        .countdown-box .number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--gold-light);
+            display: block;
+        }
+        
+        .countdown-box .label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Testimonials */
+        .testimonials-section {
+            padding: 100px 24px;
+            background: white;
+        }
+        
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 32px;
+            margin-top: 60px;
+        }
+        
+        @media (max-width: 400px) {
+            .testimonials-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .testimonial-card {
+            background: var(--bg-warm);
+            padding: 32px;
+            border-radius: 24px;
+            border: 1px solid #eee;
+            position: relative;
+        }
+        
+        .testimonial-card::before {
+            content: '"';
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 80px;
+            font-family: 'Playfair Display', serif;
+            color: var(--gold);
+            opacity: 0.2;
+            line-height: 1;
+        }
+        
+        .testimonial-stars {
+            color: var(--gold);
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+        
+        .testimonial-text {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            color: var(--text);
+            margin-bottom: 24px;
+            font-style: italic;
+        }
+        
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .testimonial-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .testimonial-info h4 {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+        
+        .testimonial-info p {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        
+        /* How it Works */
+        .how-section {
+            padding: 100px 24px;
+            background: var(--bg-warm);
+        }
+        
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 32px;
+            margin-top: 60px;
+        }
+        
+        @media (max-width: 900px) {
+            .steps-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .steps-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .step-card {
+            text-align: center;
+            position: relative;
+        }
+        
+        .step-card::after {
+            content: '→';
+            position: absolute;
+            right: -20px;
+            top: 40px;
+            font-size: 24px;
+            color: var(--gold);
+        }
+        
+        .step-card:last-child::after {
+            display: none;
+        }
+        
+        @media (max-width: 900px) {
+            .step-card::after {
+                display: none;
+            }
+        }
+        
+        .step-number {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border: 3px solid var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            color: var(--gold);
+            margin: 0 auto 24px;
+        }
+        
+        .step-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+        
+        .step-card p {
+            font-size: 15px;
+            color: var(--text-light);
+        }
+        
+        /* FAQ */
+        .faq-section {
+            padding: 100px 24px;
+            background: white;
+        }
+        
+        .faq-grid {
+            max-width: 800px;
+            margin: 60px auto 0;
+        }
+        
+        .faq-item {
+            border-bottom: 1px solid #eee;
+        }
+        
+        .faq-question {
+            width: 100%;
+            padding: 24px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .faq-question:hover {
+            color: var(--gold);
+        }
+        
+        .faq-question .icon {
+            font-size: 24px;
+            color: var(--gold);
+            transition: transform 0.3s ease;
+        }
+        
+        .faq-item.open .faq-question .icon {
+            transform: rotate(45deg);
+        }
+        
         .faq-answer {
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease;
         }
         
-        .faq-answer.open {
+        .faq-item.open .faq-answer {
             max-height: 500px;
         }
         
-        /* Sticky CTA */
+        .faq-answer p {
+            padding-bottom: 24px;
+            color: var(--text-light);
+            line-height: 1.7;
+        }
+        
+        /* Final CTA */
+        .final-cta-section {
+            padding: 120px 24px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .final-cta-section::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .final-cta-content {
+            position: relative;
+            z-index: 10;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .final-cta-content h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            color: white;
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+        
+        .final-cta-content h2 span {
+            color: var(--gold-light);
+            font-style: italic;
+        }
+        
+        .final-cta-content p {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 40px;
+        }
+        
+        .final-cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .urgency-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid rgba(233, 69, 96, 0.4);
+            color: #ff8a8a;
+            padding: 12px 24px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 32px;
+        }
+        
+        /* Footer */
+        footer {
+            background: #0d0d15;
+            padding: 60px 24px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .footer-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 16px;
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 32px;
+            justify-content: center;
+            margin: 24px 0;
+            flex-wrap: wrap;
+        }
+        
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-links a:hover {
+            color: var(--gold);
+        }
+        
+        .footer-copy {
+            font-size: 13px;
+            margin-top: 24px;
+        }
+        
+        /* Sticky CTA Mobile */
         .sticky-cta {
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 16px 24px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 100;
         }
         
-        .sticky-cta.visible {
-            transform: translateY(0);
+        @media (max-width: 768px) {
+            .sticky-cta {
+                display: block;
+            }
+            
+            .final-cta-section {
+                padding-bottom: 160px;
+            }
         }
         
-        /* Price strike */
-        .price-strike {
-            text-decoration: line-through;
-            color: #999;
+        .sticky-cta .btn-primary {
+            width: 100%;
+            justify-content: center;
         }
     </style>
 </head>
-
-<body class="bg-ivory text-slate-800 antialiased">
-    
-    <!-- =====================================================
-         NAVIGATION
-         ===================================================== -->
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-b border-slate-200/60 shadow-soft">
-        <div class="max-w-6xl mx-auto px-4 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <!-- Logo -->
-                <a href="/" class="flex items-center gap-2">
-                    <img src="/logoclaropianolink.jpg" alt="PianoLink" class="h-10 w-auto rounded-lg">
-                    <span class="font-bold text-midnight hidden sm:inline">PianoLink</span>
-                </a>
-                
-                <!-- Badge Día 88 -->
-                <div class="hidden md:flex items-center gap-2 bg-brand-orange/10 text-brand-orange px-4 py-2 rounded-full text-sm font-semibold">
-                    🎹 Lanzamiento Día 88 - Solo 88 Cupos
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <div class="hero-badge">
+                    <span>🎹</span>
+                    <span>Lanzamiento Día 88 — </span>
+                    <div class="countdown-inline">
+                        <span id="hero-days">00</span>d
+                        <span id="hero-hours">00</span>h
+                        <span id="hero-mins">00</span>m
+                    </div>
                 </div>
-                
-                <!-- CTA -->
-                <a href="#kit" class="bg-brand-orange text-white px-5 py-2.5 rounded-full font-semibold text-sm hover:bg-brand-orange-dark transition-colors">
-                    Reservar Cupo
-                </a>
-            </div>
-        </div>
-    </nav>
-    
-    <!-- =====================================================
-         HERO SECTION
-         ===================================================== -->
-    <section class="relative min-h-screen flex items-center pt-20 pb-16 overflow-hidden">
-        <!-- Background Image -->
-        <div class="absolute inset-0 z-0">
-            <img src="https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=1600&q=80" 
-                 alt="Piano" 
-                 class="w-full h-full object-cover opacity-20">
-            <div class="absolute inset-0 bg-gradient-to-b from-ivory via-ivory/95 to-ivory"></div>
-        </div>
-        
-        <div class="relative z-10 max-w-5xl mx-auto px-4 text-center">
-            
-            <!-- Countdown Badge -->
-            <div class="inline-flex items-center gap-3 bg-white border-2 border-brand-orange/30 rounded-full px-6 py-3 mb-8 shadow-soft">
-                <span class="text-brand-orange font-bold">⏰ Lanzamiento en:</span>
-                <div id="countdown" class="flex gap-2 font-mono font-bold text-midnight">
-                    <span id="days" class="bg-brand-orange/10 px-2 py-1 rounded">00</span>d
-                    <span id="hours" class="bg-brand-orange/10 px-2 py-1 rounded">00</span>h
-                    <span id="mins" class="bg-brand-orange/10 px-2 py-1 rounded">00</span>m
+                <h1>El sueño de tocar piano que siempre <span>postergaste</span></h1>
+                <p class="hero-subtitle">Desde los 4 años, el piano me llamaba. Hoy, ayudo a adultos como tú a vivir esa misma emoción. Clases 1-a-1 con profesores certificados, desde tu casa.</p>
+                <div class="hero-cta">
+                    <a href="#kit" class="btn-primary">
+                        <span>🎹 Reservar Cupo Día 88 — Desde $35</span>
+                    </a>
+                    <a href="#como-funciona" class="btn-secondary">
+                        <span>Ver cómo funciona ↓</span>
+                    </a>
                 </div>
             </div>
-            
-            <!-- Main Headline -->
-            <h1 class="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6 text-midnight">
-                El Sueño de Tocar Piano<br>
-                <span class="gradient-text">que Siempre Postergaste</span>
-            </h1>
-            
-            <!-- Subheadline with Story -->
-            <p class="text-lg sm:text-xl lg:text-2xl text-slate-600 max-w-3xl mx-auto mb-8 leading-relaxed">
-                Desde los 4 años, el piano me llamaba. Hoy, ayudo a adultos como tú 
-                a vivir esa misma emoción. <strong class="text-midnight">Clases 1-a-1 con profesores certificados</strong>, 
-                desde tu casa.
-            </p>
-            
-            <!-- Trust Bar -->
-            <div class="flex flex-wrap justify-center gap-6 mb-10 text-sm text-slate-500">
-                <div class="flex items-center gap-2">
-                    <span class="text-yellow-500">⭐⭐⭐⭐⭐</span>
-                    <span>4.9/5</span>
+            <div class="hero-visual">
+                <div class="hero-image-wrapper">
+                    <img src="https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=600&h=700&fit=crop" alt="Persona adulta tocando piano">
                 </div>
-                <div class="flex items-center gap-2">
-                    <span>👨‍🏫</span>
-                    <span>15 Profesores Certificados</span>
+                <div class="floating-card card-1">
+                    <div class="floating-card-icon">🎯</div>
+                    <div class="floating-card-text">
+                        <strong>Solo 88 cupos</strong>
+                        <span>Lanzamiento exclusivo</span>
+                    </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span>🌎</span>
-                    <span>Estudiantes en 3 Países</span>
+                <div class="floating-card card-2">
+                    <div class="floating-card-icon">⭐</div>
+                    <div class="floating-card-text">
+                        <strong>15 profesores</strong>
+                        <span>certificados</span>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Dual CTA -->
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="#kit" 
-                   class="w-full sm:w-auto bg-brand-orange text-white px-10 py-5 rounded-2xl font-bold text-lg shadow-accent hover:bg-brand-orange-dark transition-all hover:scale-105">
-                    🎹 Reservar Cupo Día 88 - $39 USD
-                </a>
-                <a href="#como-funciona" 
-                   class="w-full sm:w-auto text-slate-600 hover:text-brand-orange font-semibold py-4 transition-colors">
-                    Ver Cómo Funciona ↓
-                </a>
-            </div>
-            
-            <!-- Scarcity -->
-            <p class="mt-8 text-sm text-slate-500">
-                🔥 <strong class="text-brand-orange">Solo 88 cupos disponibles</strong> - 29 de marzo, 11:59 PM
-            </p>
-        </div>
-    </section>
-    
-    <!-- =====================================================
-         TRUST BAR
-         ===================================================== -->
-    <section class="py-8 bg-white border-y border-slate-200">
-        <div class="max-w-6xl mx-auto px-4">
-            <div class="flex flex-wrap justify-center items-center gap-8 text-slate-400 text-sm">
-                <span>🛡️ Garantía 30 días</span>
-                <span>🔒 Pago seguro con Stripe</span>
-                <span>📦 Envío gratis incluido</span>
-                <span>💳 Todas las tarjetas</span>
             </div>
         </div>
     </section>
     
-    <!-- =====================================================
-         LA HISTORIA DETRÁS DE PIANOLINK
-         ===================================================== -->
-    <section id="historia" class="py-20 lg:py-28 bg-warm">
-        <div class="max-w-4xl mx-auto px-4">
-            
-            <div class="text-center mb-12">
-                <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-midnight mb-4">
-                    Por Qué Existe <span class="gradient-text">PianoLink</span>
-                </h2>
-                <p class="text-slate-600 text-lg">Una historia que empezó hace mucho tiempo...</p>
+    <!-- Social Proof Bar -->
+    <div class="social-proof-bar">
+        <div class="social-proof-content">
+            <div class="proof-item">
+                <span class="icon">⭐</span>
+                <div><strong>4.9</strong> valoración</div>
+            </div>
+            <div class="proof-item">
+                <span class="icon">👨‍🏫</span>
+                <div><strong>15</strong> profesores certificados</div>
+            </div>
+            <div class="proof-item">
+                <span class="icon">🌎</span>
+                <div><strong>3</strong> países</div>
+            </div>
+            <div class="proof-item">
+                <span class="icon">🛡️</span>
+                <div>Garantía <strong>30 días</strong></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Story Section -->
+    <section class="story-section" id="historia">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">Por qué existe PianoLink</span>
+                <h2 class="section-title">Una historia que empezó hace <span>mucho tiempo</span></h2>
             </div>
             
-            <!-- Founder Story -->
-            <div class="bg-white rounded-3xl p-8 lg:p-12 shadow-soft border border-slate-100">
-                
-                <!-- Timeline -->
-                <div class="relative pl-16 space-y-10">
-                    <div class="timeline-line"></div>
-                    
-                    <!-- Age 4 -->
-                    <div class="relative">
-                        <div class="absolute left-[-40px] w-12 h-12 bg-brand-orange/10 rounded-full flex items-center justify-center">
-                            <span class="text-xl">🎄</span>
-                        </div>
-                        <h3 class="font-bold text-midnight text-lg mb-2">4 años - El primer llamado</h3>
-                        <p class="text-slate-600">
-                            Pedí un piano para Navidad. No sabía tocar una sola nota, 
-                            pero el sonido me emocionaba como nada más. Algo en mí sabía 
-                            que eso era lo mío.
-                        </p>
+            <div class="story-content">
+                <div class="story-timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-dot">🎄</div>
+                        <h4>4 años — El primer llamado</h4>
+                        <p>Pedí un piano para Navidad. No sabía tocar una sola nota, pero el sonido me emocionaba como nada más.</p>
                     </div>
-                    
-                    <!-- Age 10 -->
-                    <div class="relative">
-                        <div class="absolute left-[-40px] w-12 h-12 bg-brand-orange/10 rounded-full flex items-center justify-center">
-                            <span class="text-xl">🎹</span>
-                        </div>
-                        <h3 class="font-bold text-midnight text-lg mb-2">10 años - El regalo que cambió todo</h3>
-                        <p class="text-slate-600">
-                            <strong class="text-midnight">Recibí un teclado de 3 octavas.</strong> 
-                            Una de las alegrías más grandes de mi vida. Pasaba horas explorando cada tecla, 
-                            cada sonido, cada posibilidad.
-                        </p>
+                    <div class="timeline-item">
+                        <div class="timeline-dot">🎹</div>
+                        <h4>10 años — El regalo que cambió todo</h4>
+                        <p>Recibí un teclado de 3 octavas. Una de las alegrías más grandes de mi vida. Pasaba horas explorando cada tecla.</p>
                     </div>
-                    
-                    <!-- Conservatorio -->
-                    <div class="relative">
-                        <div class="absolute left-[-40px] w-12 h-12 bg-brand-orange/10 rounded-full flex items-center justify-center">
-                            <span class="text-xl">🎓</span>
-                        </div>
-                        <h3 class="font-bold text-midnight text-lg mb-2">Años de formación</h3>
-                        <p class="text-slate-600">
-                            Conservatorio. Técnica clásica. Y luego, años cultivando mi propio 
-                            lenguaje en música latinoamericana. El piano se convirtió en mi voz.
-                        </p>
+                    <div class="timeline-item">
+                        <div class="timeline-dot">🎓</div>
+                        <h4>Años de formación</h4>
+                        <p>Conservatorio. Técnica clásica. Y luego, años cultivando mi propio lenguaje en música latinoamericana.</p>
                     </div>
-                    
-                    <!-- Resonancias -->
-                    <div class="relative">
-                        <div class="absolute left-[-40px] w-12 h-12 bg-brand-orange/10 rounded-full flex items-center justify-center">
-                            <span class="text-xl">🏫</span>
-                        </div>
-                        <h3 class="font-bold text-midnight text-lg mb-2">2018 - Resonancias</h3>
-                        <p class="text-slate-600">
-                            El día que supe que venía mi hija Aurora, creé mi escuela de piano "Resonancias". 
-                            Quería enseñar a otros lo que el piano me había dado a mí.
-                        </p>
+                    <div class="timeline-item">
+                        <div class="timeline-dot">🏫</div>
+                        <h4>2018 — Resonancias</h4>
+                        <p>El día que supe que venía mi hija Aurora, creé mi escuela de piano. La escuela cerró por falta de estudiantes.</p>
                     </div>
-                    
-                    <!-- Aurora -->
-                    <div class="relative">
-                        <div class="absolute left-[-40px] w-12 h-12 bg-brand-orange/10 rounded-full flex items-center justify-center">
-                            <span class="text-xl">💔</span>
-                        </div>
-                        <h3 class="font-bold text-midnight text-lg mb-2">El cierre y el renacer</h3>
-                        <p class="text-slate-600">
-                            La escuela cerró por falta de estudiantes. Un día, mi hija me dijo: 
-                            <em class="text-midnight font-medium">"Papá, quiero una casa con jardín."</em>
-                        </p>
-                    </div>
-                    
-                    <!-- PianoLink -->
-                    <div class="relative">
-                        <div class="absolute left-[-40px] w-12 h-12 bg-brand-orange rounded-full flex items-center justify-center">
-                            <span class="text-xl">✨</span>
-                        </div>
-                        <h3 class="font-bold text-midnight text-lg mb-2">Hoy - PianoLink</h3>
-                        <p class="text-slate-600">
-                            Del dolor nació esto. <strong class="text-brand-orange">La creatividad cura.</strong> 
-                            Construí la plataforma que hubiera querido tener: tecnología que 
-                            conecta maestros y estudiantes sin importar la distancia.
-                        </p>
+                    <div class="timeline-item">
+                        <div class="timeline-dot">✨</div>
+                        <h4>Hoy — PianoLink</h4>
+                        <p>Mi hija me dijo: "Papá, quiero una casa con jardín." Del dolor nació esto. La creatividad cura.</p>
                     </div>
                 </div>
                 
-                <!-- Quote -->
-                <div class="mt-12 pt-8 border-t border-slate-100">
-                    <blockquote class="font-serif text-2xl lg:text-3xl italic text-center text-midnight leading-relaxed">
-                        "Tenías 8 años cuando viste a alguien tocar piano. 
-                        Pensaste: <span class="text-brand-orange not-italic">'Algún día seré yo.'</span><br>
+                <div class="story-quote">
+                    <blockquote>
+                        "Tenías 8 años cuando viste a alguien tocar piano. Pensaste: <span>'Algún día seré yo.'</span><br><br>
                         Hoy es ese día."
                     </blockquote>
+                    <p class="author">— Fundador de PianoLink</p>
                 </div>
-                
-                <!-- CTA -->
-                <div class="mt-8 text-center">
-                    <a href="#kit" class="inline-flex items-center gap-2 text-brand-orange font-semibold hover:underline">
-                        Sé parte de esta historia →
+            </div>
+        </div>
+    </section>
+    
+    <!-- Problem Section -->
+    <section class="problem-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">¿Te suena familiar?</span>
+                <h2 class="section-title">Los miedos que te han detenido</h2>
+                <p class="section-subtitle">No estás solo. Miles de adultos han sentido exactamente lo mismo antes de dar el primer paso.</p>
+            </div>
+            
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <div class="problem-icon">😰</div>
+                    <h3>"Soy muy viejo/a para aprender"</h3>
+                    <p>La mayoría de nuestros estudiantes tienen entre 28 y 55 años. Tu cerebro adulto tiene ventajas: disciplina, motivación y capacidad de entender conceptos complejos.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">⏰</div>
+                    <h3>"No tengo tiempo"</h3>
+                    <p>Clases online desde tu casa. Sin traslados. Horarios flexibles. 30 minutos de práctica diaria son suficientes para ver progreso real.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">📱</div>
+                    <h3>"Las apps no funcionan"</h3>
+                    <p>YouTube y apps como Simply Piano son útiles para empezar, pero sin un profesor que te corrija en tiempo real, desarrollas malos hábitos.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">💸</div>
+                    <h3>"Gastar sin ver resultados"</h3>
+                    <p>Por eso ofrecemos garantía de 30 días. Si no ves progreso, te devolvemos tu dinero. Sin preguntas. El riesgo es nuestro.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Solution Section -->
+    <section class="solution-section" id="como-funciona">
+        <div class="section-container">
+            <div class="solution-content">
+                <div class="solution-image">
+                    <img src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=600&h=500&fit=crop" alt="Momento de satisfacción tocando piano">
+                </div>
+                <div class="solution-text">
+                    <h2>Imagina tocar tu canción favorita <span>con tus propias manos</span></h2>
+                    <p>No es un sueño. Es exactamente lo que cientos de adultos como tú han logrado. Y tú puedes ser el siguiente.</p>
+                    
+                    <ul class="benefit-list">
+                        <li>
+                            <span class="check">✓</span>
+                            <div><strong>Clases desde tu casa</strong> — Aprende a tu ritmo, sin desplazamientos ni horarios rígidos</div>
+                        </li>
+                        <li>
+                            <span class="check">✓</span>
+                            <div><strong>Profesor real, no videos</strong> — Interacción en tiempo real con retroalimentación personalizada</div>
+                        </li>
+                        <li>
+                            <span class="check">✓</span>
+                            <div><strong>Tú eliges tu profesor</strong> — Explora nuestro catálogo por experiencia, precio o disponibilidad</div>
+                        </li>
+                        <li>
+                            <span class="check">✓</span>
+                            <div><strong>Profesores certificados</strong> — Nos tomamos muy en serio la selección. Solo los mejores.</div>
+                        </li>
+                    </ul>
+                    
+                    <a href="#kit" class="btn-primary">
+                        <span>🎹 Quiero empezar</span>
+                        <span>→</span>
                     </a>
                 </div>
             </div>
         </div>
     </section>
     
-    <!-- =====================================================
-         EL PROBLEMA
-         ===================================================== -->
-    <section class="py-20 lg:py-28 bg-white">
-        <div class="max-w-5xl mx-auto px-4">
-            
-            <div class="text-center mb-16">
-                <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-midnight mb-4">
-                    ¿Te Suena Familiar?
-                </h2>
+    <!-- Technology Section -->
+    <section class="tech-section">
+        <div class="section-container tech-content">
+            <div class="tech-header">
+                <span class="section-label">Nuestra tecnología</span>
+                <h2 class="section-title">Mejor que Zoom para clases de piano</h2>
+                <p class="section-subtitle">No es magia. Es ingeniería diseñada específicamente para enseñar piano online.</p>
             </div>
             
-            <div class="grid md:grid-cols-2 gap-6">
-                
-                <div class="benefit-card p-8 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div class="text-3xl mb-4">😓</div>
-                    <h3 class="font-bold text-midnight text-lg mb-3">"Soy muy viejo/a para aprender"</h3>
-                    <p class="text-slate-600">
-                        La mayoría de nuestros estudiantes tienen entre 28 y 55 años. 
-                        Tu cerebro adulto tiene ventajas que un niño no tiene: disciplina, 
-                        motivación intrínseca, y la capacidad de entender conceptos complejos rápidamente.
-                    </p>
+            <div class="tech-grid">
+                <div class="tech-card">
+                    <div class="tech-card-icon">🎵</div>
+                    <h3>Audio MIDI sin Compresión</h3>
+                    <p>Zoom comprime el audio y pierde matices. Nosotros transmitimos las notas MIDI directamente con todos los matices dinámicos intactos.</p>
+                    <span class="highlight">→ Tu pianissimo suena como pianissimo</span>
                 </div>
-                
-                <div class="benefit-card p-8 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div class="text-3xl mb-4">⏰</div>
-                    <h3 class="font-bold text-midnight text-lg mb-3">"No tengo tiempo"</h3>
-                    <p class="text-slate-600">
-                        Clases online desde tu casa. Sin traslados. Horarios flexibles. 
-                        30 minutos de práctica diaria son suficientes para ver progreso real. 
-                        <strong>Tú eliges cuándo y con quién.</strong>
-                    </p>
-                </div>
-                
-                <div class="benefit-card p-8 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div class="text-3xl mb-4">📱</div>
-                    <h3 class="font-bold text-midnight text-lg mb-3">"Las apps gratuitas no funcionan"</h3>
-                    <p class="text-slate-600">
-                        YouTube y apps como Simply Piano son útiles para empezar, 
-                        pero sin un profesor que te corrija en tiempo real, desarrollas malos hábitos 
-                        difíciles de corregir después.
-                    </p>
-                </div>
-                
-                <div class="benefit-card p-8 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div class="text-3xl mb-4">💸</div>
-                    <h3 class="font-bold text-midnight text-lg mb-3">"Gastar sin ver resultados"</h3>
-                    <p class="text-slate-600">
-                        Por eso ofrecemos <strong class="text-brand-orange">garantía de 30 días</strong>. 
-                        Si no ves progreso, te devolvemos tu dinero. Sin preguntas. 
-                        El riesgo es nuestro, no tuyo.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <!-- =====================================================
-         LA SOLUCIÓN
-         ===================================================== -->
-    <section id="como-funciona" class="py-20 lg:py-28 bg-ivory">
-        <div class="max-w-5xl mx-auto px-4">
-            
-            <div class="text-center mb-16">
-                <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-midnight mb-4">
-                    Cómo Funciona <span class="gradient-text">PianoLink</span>
-                </h2>
-                <p class="text-slate-600 text-lg max-w-2xl mx-auto">
-                    En 4 simples pasos, estarás tocando piano con un profesor dedicado a ti.
-                </p>
-            </div>
-            
-            <div class="grid md:grid-cols-4 gap-8">
-                
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-brand-orange/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <span class="text-3xl">📦</span>
-                    </div>
-                    <div class="text-brand-orange font-bold text-sm mb-2">PASO 1</div>
-                    <h3 class="font-bold text-midnight mb-2">Recibe tu Kit</h3>
-                    <p class="text-slate-600 text-sm">
-                        Te enviamos el cable MIDI a la puerta de tu casa. Incluido en el precio.
-                    </p>
-                </div>
-                
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-brand-orange/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <span class="text-3xl">🔧</span>
-                    </div>
-                    <div class="text-brand-orange font-bold text-sm mb-2">PASO 2</div>
-                    <h3 class="font-bold text-midnight mb-2">Configuramos Juntos</h3>
-                    <p class="text-slate-600 text-sm">
-                        Videollamada de 15 min con un experto para dejar todo funcionando.
-                    </p>
-                </div>
-                
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-brand-orange/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <span class="text-3xl">👨‍🏫</span>
-                    </div>
-                    <div class="text-brand-orange font-bold text-sm mb-2">PASO 3</div>
-                    <h3 class="font-bold text-midnight mb-2">Elige tu Profesor</h3>
-                    <p class="text-slate-600 text-sm">
-                        Explora nuestro catálogo. Elige por experiencia, precio o disponibilidad.
-                    </p>
-                </div>
-                
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-brand-orange/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <span class="text-3xl">🎹</span>
-                    </div>
-                    <div class="text-brand-orange font-bold text-sm mb-2">PASO 4</div>
-                    <h3 class="font-bold text-midnight mb-2">¡Empieza a Tocar!</h3>
-                    <p class="text-slate-600 text-sm">
-                        Tu primera clase gratis. Después, compra paquetes según tu ritmo.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <!-- =====================================================
-         TECNOLOGÍA MIDI EXPLICADA
-         ===================================================== -->
-    <section class="py-20 lg:py-28 bg-white">
-        <div class="max-w-5xl mx-auto px-4">
-            
-            <div class="text-center mb-16">
-                <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-midnight mb-4">
-                    Tecnología que <span class="gradient-text">Marca la Diferencia</span>
-                </h2>
-                <p class="text-slate-600 text-lg max-w-2xl mx-auto">
-                    No es magia. Es ingeniería diseñada específicamente para clases de piano.
-                </p>
-            </div>
-            
-            <div class="grid md:grid-cols-2 gap-8 mb-12">
-                
-                <!-- Benefit 1: Audio -->
-                <div class="benefit-card p-8 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-brand-orange/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <span class="text-2xl">🎵</span>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-midnight text-lg mb-2">Audio MIDI sin Compresión</h3>
-                            <p class="text-slate-600 mb-3">
-                                Zoom comprime el audio y pierde matices. Nosotros transmitimos 
-                                las notas MIDI directamente: tu profesor escucha exactamente lo que tocas, 
-                                con todos los matices dinámicos intactos.
-                            </p>
-                            <p class="text-brand-orange text-sm font-medium">
-                                → Tu <em>pianissimo</em> suena como <em>pianissimo</em>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Benefit 2: Visual -->
-                <div class="benefit-card p-8 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-brand-orange/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <span class="text-2xl">👁️</span>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-midnight text-lg mb-2">El Profesor Ve Cada Nota</h3>
-                            <p class="text-slate-600 mb-3">
-                                En tiempo real, tu profesor ve exactamente qué teclas presionas 
-                                y con qué velocidad. Puede corregirte al instante, 
-                                como si estuviera sentado a tu lado.
-                            </p>
-                            <p class="text-brand-orange text-sm font-medium">
-                                → Correcciones precisas e inmediatas
-                            </p>
-                        </div>
-                    </div>
+                <div class="tech-card">
+                    <div class="tech-card-icon">👁️</div>
+                    <h3>El Profesor Ve Cada Nota</h3>
+                    <p>En tiempo real, tu profesor ve exactamente qué teclas presionas y con qué velocidad. Puede corregirte al instante.</p>
+                    <span class="highlight">→ Correcciones precisas e inmediatas</span>
                 </div>
             </div>
             
-            <!-- Comparison -->
-            <div class="bg-slate-900 text-white rounded-2xl p-8 lg:p-10">
-                <h3 class="font-bold text-xl mb-6 text-center">PianoLink vs. Zoom: Comparación Honesta</h3>
-                
-                <div class="grid md:grid-cols-2 gap-6">
-                    <div class="bg-white/10 rounded-xl p-6">
-                        <h4 class="font-bold text-brand-orange mb-4">✓ Lo que SÍ hacemos mejor</h4>
-                        <ul class="space-y-2 text-slate-300 text-sm">
+            <div class="tech-comparison">
+                <h3>Comparación Honesta: PianoLink vs. Zoom</h3>
+                <div class="comparison-grid">
+                    <div class="comparison-col">
+                        <h4>✓ Lo que SÍ hacemos mejor</h4>
+                        <ul>
                             <li>• Audio sin compresión (mejor calidad)</li>
                             <li>• Visualización de notas en tiempo real</li>
                             <li>• Correcciones más precisas</li>
                             <li>• Interfaz diseñada para piano</li>
                         </ul>
                     </div>
-                    <div class="bg-white/10 rounded-xl p-6">
-                        <h4 class="font-bold text-slate-400 mb-4">✗ Lo que NO podemos hacer (aún)</h4>
-                        <ul class="space-y-2 text-slate-400 text-sm">
-                            <li>• Tocar a dúo sincronizados (limitación de internet)</li>
+                    <div class="comparison-col negative">
+                        <h4>✗ Lo que NO podemos hacer (aún)</h4>
+                        <ul>
+                            <li>• Tocar a dúo sincronizados</li>
                             <li>• Latencia cero (físicamente imposible)</li>
                             <li>• Reemplazar la clase presencial 100%</li>
                         </ul>
                     </div>
                 </div>
-                
-                <p class="text-center text-slate-400 text-sm mt-6">
-                    Somos honestos sobre lo que podemos y no podemos hacer. 
-                    <strong class="text-white">Mejor que Zoom para piano</strong>, pero no perfecto. Todavía.
-                </p>
+                <p class="tech-note">Somos honestos sobre lo que podemos y no podemos hacer. <strong>Mejor que Zoom para piano</strong>, pero no perfecto. Todavía.</p>
             </div>
         </div>
     </section>
     
-    <!-- =====================================================
-         EL KIT DE INICIO
-         ===================================================== -->
-    <section id="kit" class="py-20 lg:py-28 bg-warm">
-        <div class="max-w-4xl mx-auto px-4">
-            
-            <div class="text-center mb-12">
-                <div class="inline-flex items-center gap-2 bg-brand-orange/10 text-brand-orange px-4 py-2 rounded-full text-sm font-semibold mb-4">
-                    🎁 OFERTA DÍA 88 - SOLO HASTA EL 29 DE MARZO
-                </div>
-                <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-midnight mb-4">
-                    Kit de Inicio PianoLink
-                </h2>
-                <p class="text-slate-600 text-lg">Todo lo que necesitas para comenzar</p>
+    <!-- Kit Section -->
+    <section class="kit-section" id="kit">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">🎁 Oferta Día 88 — Solo hasta el 29 de marzo</span>
+                <h2 class="section-title">Kit de Inicio <span>PianoLink</span></h2>
+                <p class="section-subtitle">Todo lo que necesitas para comenzar tu viaje musical</p>
             </div>
             
-            <!-- Price Card -->
-            <div class="bg-white rounded-3xl p-8 lg:p-12 shadow-soft border-2 border-brand-orange/20">
-                
-                <!-- Price -->
-                <div class="text-center mb-8">
-                    <p class="text-slate-400 mb-2">
-                        <span class="price-strike text-2xl">$150 USD</span>
-                    </p>
-                    <p class="text-5xl lg:text-6xl font-bold text-brand-orange mb-2">
-                        $39 <span class="text-2xl text-slate-400">USD</span>
-                    </p>
-                    <p class="text-green-600 font-semibold">
-                        ✓ Ahorras $111 (74% descuento)
-                    </p>
+            <div class="kit-showcase">
+                <div class="kit-image">
+                    <img src="https://images.unsplash.com/photo-1552422535-c45813c61732?w=600&h=500&fit=crop" alt="Kit de Bienvenida PianoLink">
+                    <span class="kit-badge">🔥 Solo 88 cupos</span>
                 </div>
                 
-                <!-- What's Included -->
-                <div class="space-y-4 mb-8">
-                    <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl">
-                        <span class="text-2xl">🔌</span>
-                        <div>
-                            <h4 class="font-bold text-midnight">Cable MIDI Premium</h4>
-                            <p class="text-slate-600 text-sm">Tuyo para siempre. Envío gratis incluido. <span class="text-slate-400">Valor $25</span></p>
-                        </div>
-                    </div>
+                <div class="kit-details">
+                    <h3>Todo incluido para empezar</h3>
                     
-                    <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl">
-                        <span class="text-2xl">🎓</span>
-                        <div>
-                            <h4 class="font-bold text-midnight">1ra Clase GRATIS</h4>
-                            <p class="text-slate-600 text-sm">Con el profesor que tú elijas. <span class="text-slate-400">Valor $50</span></p>
-                        </div>
-                    </div>
+                    <ul class="kit-includes">
+                        <li>
+                            <div class="item-icon">🔌</div>
+                            <div class="item-info">
+                                <h4>Cable MIDI Premium</h4>
+                                <p>Según tu teclado (USB-B, USB-C, MIDI, etc.) + envío gratis</p>
+                            </div>
+                            <span class="item-value">Valor $25-40</span>
+                        </li>
+                        <li>
+                            <div class="item-icon">🎓</div>
+                            <div class="item-info">
+                                <h4>1ra Clase GRATIS</h4>
+                                <p>Con el profesor que tú elijas del catálogo.</p>
+                            </div>
+                            <span class="item-value">Valor $50</span>
+                        </li>
+                        <li>
+                            <div class="item-icon">🔧</div>
+                            <div class="item-info">
+                                <h4>Setup Técnico Guiado</h4>
+                                <p>Videollamada de 15 min para configurar todo.</p>
+                            </div>
+                            <span class="item-value">Valor $30</span>
+                        </li>
+                        <li>
+                            <div class="item-icon">📚</div>
+                            <div class="item-info">
+                                <h4>Guía de Inicio + Partitura</h4>
+                                <p>Material para tu primera semana.</p>
+                            </div>
+                            <span class="item-value">Valor $20</span>
+                        </li>
+                        <li>
+                            <div class="item-icon">💎</div>
+                            <div class="item-info">
+                                <h4>Badge "Miembro Fundador"</h4>
+                                <p>Exclusivo para los primeros 88.</p>
+                            </div>
+                            <span class="item-value">Exclusivo</span>
+                        </li>
+                    </ul>
                     
-                    <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl">
-                        <span class="text-2xl">🔧</span>
-                        <div>
-                            <h4 class="font-bold text-midnight">Setup Técnico Guiado</h4>
-                            <p class="text-slate-600 text-sm">Videollamada de 15 min para configurar todo. <span class="text-slate-400">Valor $30</span></p>
+                    <div class="kit-pricing">
+                        <div class="price-row">
+                            <div>
+                                <span class="original-price">$150 USD</span>
+                                <div class="current-price">Desde $35 <small>USD</small></div>
+                            </div>
+                            <span class="savings">Ahorras hasta 77%</span>
                         </div>
-                    </div>
-                    
-                    <div class="flex items-start gap-4 p-4 bg-slate-50 rounded-xl">
-                        <span class="text-2xl">📚</span>
-                        <div>
-                            <h4 class="font-bold text-midnight">Guía de Inicio + Partitura Digital</h4>
-                            <p class="text-slate-600 text-sm">Material para tu primera semana. <span class="text-slate-400">Valor $20</span></p>
+                        <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: -5px 0 15px; text-align: center;">
+                            Precio final según tu tipo de cable ($35-$38)
+                        </p>
+                        <a href="/welcome-kit" class="btn-primary kit-cta">
+                            <span>🎹 Obtener Mi Kit de Inicio</span>
+                        </a>
+                        <div class="kit-guarantee">
+                            <span>🛡️</span>
+                            <span>Garantía de satisfacción 30 días</span>
                         </div>
-                    </div>
-                    
-                    <div class="flex items-start gap-4 p-4 bg-brand-orange/5 rounded-xl border border-brand-orange/20">
-                        <span class="text-2xl">💎</span>
-                        <div>
-                            <h4 class="font-bold text-midnight">Badge "Miembro Fundador"</h4>
-                            <p class="text-slate-600 text-sm">Solo para los primeros 88. <span class="text-brand-orange font-semibold">Exclusivo Día 88</span></p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- CTA Button -->
-                <a href="/welcome-kit" 
-                   class="block w-full bg-brand-orange text-white text-center py-5 rounded-xl font-bold text-lg shadow-accent hover:bg-brand-orange-dark transition-all hover:scale-[1.02]">
-                    🎹 Obtener Mi Kit - $39 USD
-                </a>
-                
-                <!-- Trust Elements -->
-                <div class="flex flex-wrap justify-center gap-6 mt-6 text-sm text-slate-500">
-                    <span>🛡️ Garantía 30 días</span>
-                    <span>🔒 Pago seguro</span>
-                    <span>📦 Envío gratis</span>
-                </div>
-                
-                <!-- Comparison -->
-                <div class="mt-8 pt-8 border-t border-slate-100 text-center">
-                    <p class="text-slate-600 mb-2">Después del kit: <strong class="text-midnight">$100/mes</strong> (4 clases)</p>
-                    <p class="text-slate-500 text-sm">vs. Clases presenciales: $320/mes → <strong class="text-green-600">Ahorras $220/mes</strong></p>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <!-- =====================================================
-         DÍA 88: POR QUÉ ES ESPECIAL
-         ===================================================== -->
-    <section class="py-20 lg:py-28 bg-slate-900 text-white">
-        <div class="max-w-4xl mx-auto px-4">
-            
-            <div class="text-center mb-12">
-                <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-                    Por Qué el <span class="text-brand-orange">29 de Marzo</span> es Especial
-                </h2>
-            </div>
-            
-            <!-- Synchronicities -->
-            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-                <div class="text-center p-6 bg-white/5 rounded-2xl">
-                    <div class="text-4xl mb-2">🎹</div>
-                    <p class="text-2xl font-bold text-brand-orange">88</p>
-                    <p class="text-slate-400 text-sm">Teclas del piano</p>
-                </div>
-                <div class="text-center p-6 bg-white/5 rounded-2xl">
-                    <div class="text-4xl mb-2">📅</div>
-                    <p class="text-2xl font-bold text-brand-orange">Día 88</p>
-                    <p class="text-slate-400 text-sm">del año 2026</p>
-                </div>
-                <div class="text-center p-6 bg-white/5 rounded-2xl">
-                    <div class="text-4xl mb-2">🎂</div>
-                    <p class="text-2xl font-bold text-brand-orange">Cumpleaños</p>
-                    <p class="text-slate-400 text-sm">del fundador</p>
-                </div>
-                <div class="text-center p-6 bg-white/5 rounded-2xl">
-                    <div class="text-4xl mb-2">👥</div>
-                    <p class="text-2xl font-bold text-brand-orange">88</p>
-                    <p class="text-slate-400 text-sm">cupos exclusivos</p>
-                </div>
-            </div>
-            
-            <!-- Founder Benefit -->
-            <div class="bg-gradient-to-r from-brand-orange to-brand-orange-dark rounded-2xl p-8 lg:p-10 text-center">
-                <h3 class="font-bold text-2xl mb-4">🏆 Beneficio Exclusivo Primeros 88</h3>
-                <p class="text-3xl lg:text-4xl font-bold mb-4">
-                    Precio fundador: <span class="underline">$88/mes</span> congelado de por vida
-                </p>
-                <p class="text-white/80 mb-6">
-                    Después del lanzamiento: $100/mes. <strong>Tú pagas $88 para siempre.</strong>
-                </p>
-                <a href="#kit" class="inline-block bg-white text-brand-orange px-8 py-4 rounded-xl font-bold hover:bg-slate-100 transition-colors">
-                    Asegurar Mi Cupo Fundador
-                </a>
-            </div>
-            
-            <!-- Countdown -->
-            <div class="mt-12 text-center">
-                <p class="text-slate-400 mb-4">Tiempo restante para el lanzamiento:</p>
-                <div class="flex justify-center gap-4">
-                    <div class="bg-white/10 rounded-xl p-4 min-w-[80px]">
-                        <p id="countdown-days" class="text-3xl font-bold text-brand-orange">00</p>
-                        <p class="text-xs text-slate-400">DÍAS</p>
-                    </div>
-                    <div class="bg-white/10 rounded-xl p-4 min-w-[80px]">
-                        <p id="countdown-hours" class="text-3xl font-bold text-brand-orange">00</p>
-                        <p class="text-xs text-slate-400">HORAS</p>
-                    </div>
-                    <div class="bg-white/10 rounded-xl p-4 min-w-[80px]">
-                        <p id="countdown-mins" class="text-3xl font-bold text-brand-orange">00</p>
-                        <p class="text-xs text-slate-400">MIN</p>
-                    </div>
-                    <div class="bg-white/10 rounded-xl p-4 min-w-[80px]">
-                        <p id="countdown-secs" class="text-3xl font-bold text-brand-orange">00</p>
-                        <p class="text-xs text-slate-400">SEG</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
     
-    <!-- =====================================================
-         TESTIMONIOS
-         ===================================================== -->
-    <section class="py-20 lg:py-28 bg-white">
-        <div class="max-w-5xl mx-auto px-4">
+    <!-- Día 88 Section -->
+    <section class="dia88-section">
+        <div class="dia88-content">
+            <h2>Por qué el <span>29 de marzo</span> es especial</h2>
             
-            <div class="text-center mb-16">
-                <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-midnight mb-4">
-                    Lo que Dicen Nuestros <span class="gradient-text">Estudiantes</span>
-                </h2>
+            <div class="dia88-grid">
+                <div class="dia88-item">
+                    <div class="icon">🎹</div>
+                    <div class="number">88</div>
+                    <div class="label">Teclas del piano</div>
+                </div>
+                <div class="dia88-item">
+                    <div class="icon">📅</div>
+                    <div class="number">Día 88</div>
+                    <div class="label">del año 2026</div>
+                </div>
+                <div class="dia88-item">
+                    <div class="icon">🎂</div>
+                    <div class="number">Cumple</div>
+                    <div class="label">del fundador</div>
+                </div>
+                <div class="dia88-item">
+                    <div class="icon">👥</div>
+                    <div class="number">88</div>
+                    <div class="label">cupos exclusivos</div>
+                </div>
             </div>
             
-            <div class="grid md:grid-cols-3 gap-8">
-                
-                <!-- Testimonial 1 -->
-                <div class="benefit-card bg-slate-50 rounded-2xl p-8 border border-slate-100">
-                    <div class="flex items-center gap-4 mb-4">
-                        <img src="https://randomuser.me/api/portraits/women/44.jpg" 
-                             alt="María L." 
-                             class="w-14 h-14 rounded-full object-cover">
-                        <div>
-                            <p class="font-bold text-midnight">María L.</p>
-                            <p class="text-slate-500 text-sm">42 años, Arquitecta</p>
-                        </div>
-                    </div>
-                    <div class="text-yellow-500 mb-3">⭐⭐⭐⭐⭐</div>
-                    <p class="text-slate-600 italic">
-                        "Pensé que era muy tarde para aprender. Después de 3 meses, 
-                        estoy tocando piezas que nunca imaginé. Mi profesor ve exactamente 
-                        qué corrijo y eso acelera todo."
-                    </p>
+            <div class="dia88-offer">
+                <h3>🏆 Beneficio Exclusivo Primeros 88</h3>
+                <div class="price">$88/mes congelado de por vida</div>
+                <p>Después del lanzamiento: $100/mes. Tú pagas $88 para siempre.</p>
+            </div>
+            
+            <div class="countdown-big">
+                <div class="countdown-box">
+                    <span class="number" id="countdown-days">00</span>
+                    <span class="label">Días</span>
                 </div>
-                
-                <!-- Testimonial 2 -->
-                <div class="benefit-card bg-slate-50 rounded-2xl p-8 border border-slate-100">
-                    <div class="flex items-center gap-4 mb-4">
-                        <img src="https://randomuser.me/api/portraits/men/32.jpg" 
-                             alt="Carlos R." 
-                             class="w-14 h-14 rounded-full object-cover">
-                        <div>
-                            <p class="font-bold text-midnight">Carlos R.</p>
-                            <p class="text-slate-500 text-sm">35 años, Ingeniero</p>
-                        </div>
-                    </div>
-                    <div class="text-yellow-500 mb-3">⭐⭐⭐⭐⭐</div>
-                    <p class="text-slate-600 italic">
-                        "La diferencia con Zoom es enorme. El audio es cristalino 
-                        y mi profesora puede corregir mi técnica en tiempo real. 
-                        Vale cada peso invertido."
-                    </p>
+                <div class="countdown-box">
+                    <span class="number" id="countdown-hours">00</span>
+                    <span class="label">Horas</span>
                 </div>
-                
-                <!-- Testimonial 3 -->
-                <div class="benefit-card bg-slate-50 rounded-2xl p-8 border border-slate-100">
-                    <div class="flex items-center gap-4 mb-4">
-                        <img src="https://randomuser.me/api/portraits/women/68.jpg" 
-                             alt="Ana S." 
-                             class="w-14 h-14 rounded-full object-cover">
-                        <div>
-                            <p class="font-bold text-midnight">Ana S.</p>
-                            <p class="text-slate-500 text-sm">Madre de Lucas (8 años)</p>
-                        </div>
-                    </div>
-                    <div class="text-yellow-500 mb-3">⭐⭐⭐⭐⭐</div>
-                    <p class="text-slate-600 italic">
-                        "Mi hijo esperaba las clases con ansias. Sin traslados, 
-                        desde casa, con una profesora increíble. La tecnología 
-                        hace que sea casi como tenerla al lado."
-                    </p>
+                <div class="countdown-box">
+                    <span class="number" id="countdown-mins">00</span>
+                    <span class="label">Min</span>
+                </div>
+                <div class="countdown-box">
+                    <span class="number" id="countdown-secs">00</span>
+                    <span class="label">Seg</span>
                 </div>
             </div>
         </div>
     </section>
     
-    <!-- =====================================================
-         FAQ
-         ===================================================== -->
-    <section class="py-20 lg:py-28 bg-ivory">
-        <div class="max-w-3xl mx-auto px-4">
-            
-            <div class="text-center mb-16">
-                <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-midnight mb-4">
-                    Preguntas Frecuentes
-                </h2>
+    <!-- Testimonials -->
+    <section class="testimonials-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">Testimonios</span>
+                <h2 class="section-title">Adultos como tú que cumplieron su sueño</h2>
+                <p class="section-subtitle">Historias reales de personas que dieron el primer paso</p>
             </div>
             
-            <div class="space-y-4">
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">"Pensé que era muy tarde para aprender. Después de 3 meses, estoy tocando piezas que nunca imaginé. Mi profesor ve exactamente qué corrijo y eso acelera todo."</p>
+                    <div class="testimonial-author">
+                        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="María" class="testimonial-avatar">
+                        <div class="testimonial-info">
+                            <h4>María L.</h4>
+                            <p>42 años, Arquitecta — Chile</p>
+                        </div>
+                    </div>
+                </div>
                 
-                <!-- FAQ 1 -->
-                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between font-bold text-midnight hover:bg-slate-50 transition-colors">
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">"La diferencia con Zoom es enorme. El audio es cristalino y mi profesora puede corregir mi técnica en tiempo real. Vale cada peso invertido."</p>
+                    <div class="testimonial-author">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Carlos" class="testimonial-avatar">
+                        <div class="testimonial-info">
+                            <h4>Carlos R.</h4>
+                            <p>35 años, Ingeniero — México</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">"Mi hijo esperaba las clases con ansias. Sin traslados, desde casa, con una profesora increíble. La tecnología hace que sea casi como tenerla al lado."</p>
+                    <div class="testimonial-author">
+                        <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Ana" class="testimonial-avatar">
+                        <div class="testimonial-info">
+                            <h4>Ana S.</h4>
+                            <p>Madre de Lucas (8 años) — Colombia</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- How it Works -->
+    <section class="how-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">Cómo funciona</span>
+                <h2 class="section-title">De soñar a tocar en 4 simples pasos</h2>
+            </div>
+            
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3>Recibe tu Kit</h3>
+                    <p>Te enviamos el cable MIDI a la puerta de tu casa. Envío gratis incluido.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3>Configuramos juntos</h3>
+                    <p>Videollamada de 15 min con un experto para dejar todo funcionando.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3>Elige tu profesor</h3>
+                    <p>Explora nuestro catálogo. Elige por experiencia, precio o disponibilidad.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h3>¡Empieza a tocar!</h3>
+                    <p>Tu primera clase es gratis. Después, compra paquetes según tu ritmo.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- FAQ -->
+    <section class="faq-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-label">Preguntas frecuentes</span>
+                <h2 class="section-title">Resolvemos tus dudas</h2>
+            </div>
+            
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <button class="faq-question">
                         <span>¿Por qué solo 88 cupos?</span>
-                        <span class="faq-icon text-brand-orange">+</span>
+                        <span class="icon">+</span>
                     </button>
-                    <div class="faq-answer px-6 pb-5">
-                        <p class="text-slate-600">
-                            Tenemos 15 profesores elite actualmente. Cada uno puede tomar un máximo de 
-                            estudiantes nuevos para garantizar calidad. 88 es el número simbólico 
-                            (88 teclas del piano + día 88 del año). Cuando estos 88 estudiantes 
-                            estén activos, abriremos más cupos con nuevos profesores.
-                        </p>
+                    <div class="faq-answer">
+                        <p>Tenemos 15 profesores elite actualmente. Cada uno puede tomar un máximo de estudiantes nuevos para garantizar calidad. 88 es el número simbólico (88 teclas del piano + día 88 del año). Cuando estos 88 estudiantes estén activos, abriremos más cupos con nuevos profesores.</p>
                     </div>
                 </div>
                 
-                <!-- FAQ 2 -->
-                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between font-bold text-midnight hover:bg-slate-50 transition-colors">
+                <div class="faq-item">
+                    <button class="faq-question">
                         <span>¿Cómo funciona la tecnología MIDI?</span>
-                        <span class="faq-icon text-brand-orange">+</span>
+                        <span class="icon">+</span>
                     </button>
-                    <div class="faq-answer px-6 pb-5">
-                        <p class="text-slate-600">
-                            Tu piano/teclado se conecta a tu computadora con un cable MIDI (incluido en el kit). 
-                            Durante la clase, tu profesor ve exactamente qué notas tocas en su pantalla en tiempo real. 
-                            Además, el audio se transmite sin compresión (a diferencia de Zoom que comprime y pierde calidad). 
-                            Esto permite correcciones precisas e instantáneas.
-                        </p>
+                    <div class="faq-answer">
+                        <p>Tu piano/teclado se conecta a tu computadora con un cable MIDI (incluido en el kit). Durante la clase, tu profesor ve exactamente qué notas tocas en su pantalla en tiempo real. Además, el audio se transmite sin compresión. Esto permite correcciones precisas e instantáneas.</p>
                     </div>
                 </div>
                 
-                <!-- FAQ 3 -->
-                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between font-bold text-midnight hover:bg-slate-50 transition-colors">
+                <div class="faq-item">
+                    <button class="faq-question">
                         <span>¿Puedo tocar canciones a dúo con mi profesor?</span>
-                        <span class="faq-icon text-brand-orange">+</span>
+                        <span class="icon">+</span>
                     </button>
-                    <div class="faq-answer px-6 pb-5">
-                        <p class="text-slate-600">
-                            <strong>No por ahora.</strong> Aunque nuestra tecnología reduce la latencia, 
-                            tocar sincronizados aún no es posible (limitación técnica de internet). 
-                            PERO, tu profesor puede escucharte con calidad de estudio y ver cada nota que tocas, 
-                            lo cual hace las correcciones mucho más precisas que en Zoom.
-                        </p>
+                    <div class="faq-answer">
+                        <p><strong>No por ahora.</strong> Aunque nuestra tecnología reduce la latencia, tocar sincronizados aún no es posible (limitación técnica de internet). PERO, tu profesor puede escucharte con calidad de estudio y ver cada nota que tocas, lo cual hace las correcciones mucho más precisas que en Zoom.</p>
                     </div>
                 </div>
                 
-                <!-- FAQ 4 -->
-                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between font-bold text-midnight hover:bg-slate-50 transition-colors">
+                <div class="faq-item">
+                    <button class="faq-question">
                         <span>¿Qué pasa si me pierdo el lanzamiento del 29 de marzo?</span>
-                        <span class="faq-icon text-brand-orange">+</span>
+                        <span class="icon">+</span>
                     </button>
-                    <div class="faq-answer px-6 pb-5">
-                        <p class="text-slate-600">
-                            Podrás unirte después, pero: (1) El precio del kit subirá a $59, 
-                            (2) El plan mensual será $100 (vs. $88/mes congelado para fundadores), 
-                            (3) No recibirás el badge exclusivo "Miembro Fundador". 
-                            Si estás interesado, te recomendamos aprovechar el Día 88.
-                        </p>
+                    <div class="faq-answer">
+                        <p>Podrás unirte después, pero: (1) El precio del kit subirá a $59, (2) El plan mensual será $100 (vs. $88/mes congelado para fundadores), (3) No recibirás el badge exclusivo "Miembro Fundador". Si estás interesado, te recomendamos aprovechar el Día 88.</p>
                     </div>
                 </div>
                 
-                <!-- FAQ 5 -->
-                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between font-bold text-midnight hover:bg-slate-50 transition-colors">
+                <div class="faq-item">
+                    <button class="faq-question">
                         <span>¿Cómo elijo a mi profesor?</span>
-                        <span class="faq-icon text-brand-orange">+</span>
+                        <span class="icon">+</span>
                     </button>
-                    <div class="faq-answer px-6 pb-5">
-                        <p class="text-slate-600">
-                            Dentro de la plataforma encontrarás un catálogo de profesores certificados. 
-                            Puedes filtrar por experiencia, precio, disponibilidad y estilo musical. 
-                            <strong>Nos tomamos muy en serio la selección:</strong> los profesores postulan 
-                            y elegimos solo a los más calificados. Tu primera clase es gratis para 
-                            que pruebes antes de comprometerte.
-                        </p>
+                    <div class="faq-answer">
+                        <p>Dentro de la plataforma encontrarás un catálogo de profesores certificados. Puedes filtrar por experiencia, precio, disponibilidad y estilo musical. <strong>Nos tomamos muy en serio la selección:</strong> los profesores postulan y elegimos solo a los más calificados. Tu primera clase es gratis para que pruebes.</p>
                     </div>
                 </div>
                 
-                <!-- FAQ 6 -->
-                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between font-bold text-midnight hover:bg-slate-50 transition-colors">
-                        <span>¿Qué pasa si no me gusta? ¿Hay garantía?</span>
-                        <span class="faq-icon text-brand-orange">+</span>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>¿Hay garantía si no me gusta?</span>
+                        <span class="icon">+</span>
                     </button>
-                    <div class="faq-answer px-6 pb-5">
-                        <p class="text-slate-600">
-                            <strong>Garantía de 30 días.</strong> Si no estás satisfecho por cualquier razón, 
-                            te devolvemos el 100% de tu dinero. Sin preguntas, sin letra pequeña. 
-                            El cable es tuyo de todas formas. El riesgo es nuestro, no tuyo.
-                        </p>
+                    <div class="faq-answer">
+                        <p><strong>Garantía de 30 días.</strong> Si no estás satisfecho por cualquier razón, te devolvemos el 100% de tu dinero. Sin preguntas, sin letra pequeña. El cable es tuyo de todas formas. El riesgo es nuestro, no tuyo.</p>
                     </div>
                 </div>
                 
-                <!-- FAQ 7 -->
-                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    <button class="faq-toggle w-full px-6 py-5 text-left flex items-center justify-between font-bold text-midnight hover:bg-slate-50 transition-colors">
-                        <span>¿Necesito saber algo de música para empezar?</span>
-                        <span class="faq-icon text-brand-orange">+</span>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>¿Cuánto cuestan las clases después del kit?</span>
+                        <span class="icon">+</span>
                     </button>
-                    <div class="faq-answer px-6 pb-5">
-                        <p class="text-slate-600">
-                            <strong>No.</strong> Muchos de nuestros estudiantes son principiantes absolutos. 
-                            Nuestros profesores tienen experiencia enseñando desde cero. 
-                            Solo necesitas un teclado con conexión MIDI (cualquier teclado de 61 teclas o más funciona), 
-                            una computadora, y las ganas de aprender.
-                        </p>
+                    <div class="faq-answer">
+                        <p>Cada profesor fija su tarifa (desde $15 USD por clase). Puedes comprar paquetes de 4, 8 o 12 clases con descuentos. Para los primeros 88 miembros, el precio mensual de $88 (4 clases) queda congelado de por vida.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
     
-    <!-- =====================================================
-         CTA FINAL
-         ===================================================== -->
-    <section class="py-20 lg:py-28 bg-warm">
-        <div class="max-w-3xl mx-auto px-4 text-center">
+    <!-- Final CTA -->
+    <section class="final-cta-section">
+        <div class="final-cta-content">
+            <h2>¿Listo para empezar <span>tu viaje musical?</span></h2>
+            <p>A los 10 años, recibir mi teclado fue una de las alegrías más grandes de mi vida. Hoy, quiero que sientas esa misma emoción. Tu momento es ahora.</p>
             
-            <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-midnight mb-6">
-                ¿Listo para Empezar<br>
-                <span class="gradient-text">Tu Viaje Musical?</span>
-            </h2>
+            <div class="final-cta-buttons">
+                <a href="/welcome-kit" class="btn-primary">
+                    <span>🎹 Reservar Mi Cupo — Desde $35 USD</span>
+                </a>
+            </div>
             
-            <p class="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
-                A los 10 años, recibir mi teclado fue una de las alegrías más grandes de mi vida. 
-                Hoy, quiero que sientas esa misma emoción. 
-                <strong class="text-midnight">Tu momento es ahora.</strong>
-            </p>
-            
-            <a href="/welcome-kit" 
-               class="inline-block bg-brand-orange text-white px-12 py-5 rounded-2xl font-bold text-xl shadow-accent hover:bg-brand-orange-dark transition-all hover:scale-105">
-                🎹 Reservar Mi Cupo - $39 USD
-            </a>
-            
-            <p class="mt-6 text-sm text-slate-500">
-                🛡️ Garantía 30 días • 📦 Envío gratis • 🔒 Pago seguro
-            </p>
-            
-            <p class="mt-4 text-brand-orange font-semibold">
-                Solo 88 cupos disponibles - Lanzamiento 29 de marzo
-            </p>
+            <div class="urgency-badge">
+                <span>⏰</span>
+                <span>Solo 88 cupos — Lanzamiento 29 de marzo</span>
+            </div>
         </div>
     </section>
     
-    <!-- =====================================================
-         FOOTER
-         ===================================================== -->
-    <footer class="py-12 bg-white border-t border-slate-200">
-        <div class="max-w-6xl mx-auto px-4">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-                
-                <!-- Logo -->
-                <div class="flex items-center gap-3">
-                    <img src="/logoclaropianolink.jpg" alt="PianoLink" class="h-8 w-auto opacity-60">
-                    <span class="text-slate-400">PianoLink</span>
-                </div>
-                
-                <!-- Copyright -->
-                <p class="text-sm text-slate-500">
-                    © 2026 PianoLink. Hecho con ❤️ para músicos soñadores.
-                </p>
-                
-                <!-- Links -->
-                <div class="flex items-center gap-6 text-sm text-slate-500">
-                    <a href="#" class="hover:text-brand-orange transition-colors">Privacidad</a>
-                    <a href="#" class="hover:text-brand-orange transition-colors">Términos</a>
-                    <a href="mailto:hola@pianolink.pro" class="hover:text-brand-orange transition-colors">Contacto</a>
-                </div>
-            </div>
+    <!-- Footer -->
+    <footer>
+        <div class="footer-logo">🎹 PianoLink</div>
+        <p>La plataforma de clases de piano online para adultos</p>
+        <div class="footer-links">
+            <a href="/terminos">Términos de servicio</a>
+            <a href="/privacidad">Política de privacidad</a>
+            <a href="mailto:hola@pianolink.pro">Contacto</a>
         </div>
+        <p class="footer-copy">© 2026 PianoLink. Hecho con ❤️ para músicos soñadores.</p>
     </footer>
     
-    <!-- =====================================================
-         STICKY CTA (Mobile)
-         ===================================================== -->
-    <div id="stickyCta" class="sticky-cta fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 z-40 md:hidden">
-        <a href="/welcome-kit" 
-           class="block w-full bg-brand-orange text-white text-center py-4 rounded-xl font-bold shadow-accent">
-            🎹 Reservar Cupo - $39 USD
+    <!-- Sticky CTA Mobile -->
+    <div class="sticky-cta">
+        <a href="/welcome-kit" class="btn-primary">
+            <span>🎹 Reservar Cupo — Desde $35</span>
         </a>
     </div>
     
-    <!-- =====================================================
-         JAVASCRIPT
-         ===================================================== -->
     <script>
         // ===========================================
         // Countdown Timer - Target: March 29, 2026 23:59:59
@@ -1033,9 +1986,9 @@
             const distance = targetDate - now;
             
             if (distance < 0) {
-                document.getElementById('days').textContent = '00';
-                document.getElementById('hours').textContent = '00';
-                document.getElementById('mins').textContent = '00';
+                document.getElementById('hero-days').textContent = '00';
+                document.getElementById('hero-hours').textContent = '00';
+                document.getElementById('hero-mins').textContent = '00';
                 document.getElementById('countdown-days').textContent = '00';
                 document.getElementById('countdown-hours').textContent = '00';
                 document.getElementById('countdown-mins').textContent = '00';
@@ -1049,9 +2002,9 @@
             const secs = Math.floor((distance % (1000 * 60)) / 1000);
             
             // Hero countdown
-            document.getElementById('days').textContent = days.toString().padStart(2, '0');
-            document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
-            document.getElementById('mins').textContent = mins.toString().padStart(2, '0');
+            document.getElementById('hero-days').textContent = days.toString().padStart(2, '0');
+            document.getElementById('hero-hours').textContent = hours.toString().padStart(2, '0');
+            document.getElementById('hero-mins').textContent = mins.toString().padStart(2, '0');
             
             // Section countdown
             document.getElementById('countdown-days').textContent = days.toString().padStart(2, '0');
@@ -1066,78 +2019,63 @@
         // ===========================================
         // FAQ Accordion
         // ===========================================
-        document.querySelectorAll('.faq-toggle').forEach(button => {
+        document.querySelectorAll('.faq-question').forEach(button => {
             button.addEventListener('click', () => {
-                const answer = button.nextElementSibling;
-                const icon = button.querySelector('.faq-icon');
+                const item = button.parentElement;
+                const isOpen = item.classList.contains('open');
                 
-                // Close all other FAQs
-                document.querySelectorAll('.faq-answer').forEach(a => {
-                    if (a !== answer) {
-                        a.classList.remove('open');
-                        a.previousElementSibling.querySelector('.faq-icon').textContent = '+';
-                    }
-                });
+                // Close all
+                document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
                 
-                // Toggle current
-                answer.classList.toggle('open');
-                icon.textContent = answer.classList.contains('open') ? '−' : '+';
-            });
-        });
-        
-        // ===========================================
-        // Sticky CTA visibility
-        // ===========================================
-        const stickyCta = document.getElementById('stickyCta');
-        const kitSection = document.getElementById('kit');
-        
-        function checkStickyVisibility() {
-            const kitRect = kitSection.getBoundingClientRect();
-            const scrollY = window.scrollY;
-            
-            // Show sticky CTA after scrolling past 500px but hide when kit section is visible
-            if (scrollY > 500 && kitRect.bottom < 0) {
-                stickyCta.classList.add('visible');
-            } else if (kitRect.top < window.innerHeight && kitRect.bottom > 0) {
-                stickyCta.classList.remove('visible');
-            } else if (scrollY > 500) {
-                stickyCta.classList.add('visible');
-            } else {
-                stickyCta.classList.remove('visible');
-            }
-        }
-        
-        window.addEventListener('scroll', checkStickyVisibility);
-        checkStickyVisibility();
-        
-        // ===========================================
-        // Smooth scroll for anchor links
-        // ===========================================
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
+                // Open clicked if wasn't open
+                if (!isOpen) {
+                    item.classList.add('open');
                 }
             });
         });
         
         // ===========================================
+        // Smooth scroll for anchor links
+        // ===========================================
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+        
+        // ===========================================
+        // Hide sticky CTA when near footer
+        // ===========================================
+        const stickyCta = document.querySelector('.sticky-cta');
+        const footer = document.querySelector('footer');
+        
+        if (stickyCta && footer) {
+            window.addEventListener('scroll', () => {
+                const footerRect = footer.getBoundingClientRect();
+                if (footerRect.top < window.innerHeight) {
+                    stickyCta.style.opacity = '0';
+                    stickyCta.style.pointerEvents = 'none';
+                } else {
+                    stickyCta.style.opacity = '1';
+                    stickyCta.style.pointerEvents = 'auto';
+                }
+            });
+        }
+        
+        // ===========================================
         // Tracking
         // ===========================================
-        // Track page view
         if (typeof fbq !== 'undefined') {
             fbq('track', 'ViewContent', {
-                content_name: 'Landing Estudiantes Día 88',
+                content_name: 'Landing Día 88',
                 content_category: 'Landing Page'
             });
         }
         
-        // Track CTA clicks
         document.querySelectorAll('a[href="/welcome-kit"], a[href="#kit"]').forEach(link => {
             link.addEventListener('click', () => {
                 if (typeof fbq !== 'undefined') {
@@ -1152,6 +2090,5 @@
             });
         });
     </script>
-    
 </body>
 </html>

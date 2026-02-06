@@ -392,6 +392,36 @@
             justify-content: center;
         }
         
+        /* Stripe Button */
+        .stripe-button {
+            width: 100%;
+            background: linear-gradient(135deg, #635BFF, #7A73FF);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .stripe-button:hover {
+            background: linear-gradient(135deg, #5851EA, #6B63FF);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 91, 255, 0.3);
+        }
+        
+        .stripe-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
         /* Loading */
         .loading {
             display: none;
@@ -774,7 +804,7 @@
                             <hr style="border: none; border-top: 1px solid var(--border); margin: 15px 0;">
                             <div style="display: flex; justify-content: space-between;">
                                 <strong>Total</strong>
-                                <strong style="color: var(--primary); font-size: 20px;" id="review-total">USD 55</strong>
+                                <strong style="color: var(--primary); font-size: 20px;" id="review-total">USD 35</strong>
                             </div>
                         </div>
                         
@@ -782,14 +812,14 @@
                             📦 <span id="shipping-days">Envío: 3-5 días hábiles</span>
                         </div>
                         
-                        <div id="paypal-button-container"></div>
+                        <div id="paypal-button-container" style="margin: 20px 0;"></div>
                         
                         <button type="button" class="btn btn-secondary" onclick="goToStep(3)">
                             ← Modificar datos
                         </button>
                         
                         <div class="security-note">
-                            🔒 Pago seguro procesado por PayPal
+                            🔒 Pago seguro procesado por Stripe
                         </div>
                     </div>
                     
@@ -807,8 +837,8 @@
         </footer>
     </div>
     
-    <!-- PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"></script>
+    <!-- Stripe SDK -->
+    <script src="https://js.stripe.com/v3/"></script>
     
     <script>
         // State
@@ -818,7 +848,7 @@
         let needsCable = true;
         let selectedCableType = 'USB_B';
         
-        // Cable catalog
+        // Cable catalog (precios vienen del backend/admin)
         const cableTypes = [
             { 
                 code: 'USB_B', 
@@ -947,17 +977,17 @@
         function updatePriceDisplay() {
             if (!currentPricing) return;
             
-            // Get the right price based on cable choice
-            const price = needsCable ? currentPricing.price : (currentPricing.setupOnlyPrice || Math.floor(currentPricing.price * 0.5));
+            // El precio viene del backend (admin config)
+            const price = currentPricing.price || 35;
+            const currency = currentPricing.currency || 'USD';
             
             document.getElementById('price').textContent = price;
-            document.getElementById('currency').textContent = currentPricing.currency;
+            document.getElementById('currency').textContent = currency;
             
             if (needsCable) {
-                document.getElementById('shipping-note').textContent = 
-                    currentPricing.includesShipping ? '✓ Envío incluido' : '+ Envío (ver detalles)';
+                document.getElementById('shipping-note').textContent = '✓ Envío incluido';
             } else {
-                document.getElementById('shipping-note').textContent = '✓ Solo Setup + Clase';
+                document.getElementById('shipping-note').textContent = '✓ Solo Setup + Clase (ya tienes cable)';
             }
         }
         
@@ -998,8 +1028,8 @@
                 // Update review
                 updateReview();
                 
-                // Initialize PayPal
-                initPayPal();
+                // Initialize Stripe
+                initStripeCheckout();
             }
             
             // Update UI
@@ -1016,11 +1046,12 @@
         
         function updateReview() {
             const country = countries.find(c => c.code === selectedCountry);
-            const price = needsCable ? country.price : (country.setupOnlyPrice || Math.floor(country.price * 0.5));
+            const price = currentPricing?.price || 35;
+            const currency = currentPricing?.currency || 'USD';
             
             // Kit type
             const kitLabel = document.getElementById('review-kit-label');
-            kitLabel.textContent = needsCable ? '📦 Welcome Kit Completo' : '🎓 Setup + Clase de Prueba';
+            kitLabel.textContent = needsCable ? '📦 Kit de Inicio Completo' : '🎓 Setup + Clase (ya tengo cable)';
             
             // Cable row
             const cableRow = document.getElementById('review-cable-row');
@@ -1028,6 +1059,7 @@
                 cableRow.style.display = 'flex';
                 const cable = cableTypes.find(c => c.code === selectedCableType);
                 document.getElementById('review-cable-type').textContent = `(${cable.name})`;
+                document.getElementById('review-cable-price').textContent = 'Incluido';
             } else {
                 cableRow.style.display = 'none';
             }
@@ -1036,17 +1068,17 @@
             const shippingRow = document.getElementById('review-shipping-row');
             if (needsCable) {
                 shippingRow.style.display = 'flex';
-                document.getElementById('review-country').textContent = country.name;
-                document.getElementById('review-shipping').textContent = country.includesShipping ? 'Incluido' : 'Por calcular';
+                document.getElementById('review-country').textContent = country?.name || 'Internacional';
+                document.getElementById('review-shipping').textContent = 'Incluido';
                 document.getElementById('shipping-info').style.display = 'flex';
-                document.getElementById('shipping-days').textContent = `Envío: ${country.shippingDays}`;
+                document.getElementById('shipping-days').textContent = `Envío: ${country?.shippingDays || '7-15 días'}`;
             } else {
                 shippingRow.style.display = 'none';
                 document.getElementById('shipping-info').style.display = 'none';
             }
             
             // Total
-            document.getElementById('review-total').textContent = `${country.currency} ${price}`;
+            document.getElementById('review-total').textContent = `${currency} ${price}`;
         }
         
         function toggleBeneficiary() {
@@ -1054,105 +1086,65 @@
             document.getElementById('beneficiary-fields').classList.toggle('show', isGuardian);
         }
         
-        // PayPal Integration
-        let paypalInitialized = false;
+        // Stripe Integration
+        let stripeInitialized = false;
         
-        function initPayPal() {
-            if (paypalInitialized) return;
-            paypalInitialized = true;
+        function initStripeCheckout() {
+            if (stripeInitialized) return;
+            stripeInitialized = true;
             
             const container = document.getElementById('paypal-button-container');
-            container.innerHTML = ''; // Clear
+            container.innerHTML = `
+                <button id="stripe-checkout-btn" class="stripe-button" onclick="processStripePayment()">
+                    💳 Pagar con Tarjeta
+                </button>
+                <p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-top: 10px;">
+                    Pago seguro con Stripe 🔒
+                </p>
+            `;
+        }
+        
+        async function processStripePayment() {
+            const btn = document.getElementById('stripe-checkout-btn');
+            btn.disabled = true;
+            btn.textContent = 'Procesando...';
             
-            paypal.Buttons({
-                style: {
-                    layout: 'vertical',
-                    color: 'gold',
-                    shape: 'rect',
-                    label: 'pay'
-                },
+            try {
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
                 
-                createOrder: async function() {
-                    const country = countries.find(c => c.code === selectedCountry);
-                    
-                    const formData = {
-                        name: document.getElementById('name').value,
-                        email: document.getElementById('email').value,
-                        whatsapp: document.getElementById('whatsapp').value,
+                // Llamar al endpoint de Stripe que lee precio del admin
+                const res = await fetch('/api/payment/create-kit-payment-stripe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        email,
                         country: selectedCountry,
-                        kitType: needsCable ? 'full' : 'setup_only',
                         cableType: needsCable ? selectedCableType : 'NONE',
-                        keyboardModel: document.getElementById('keyboard-model')?.value || ''
-                    };
-                    
-                    // Address (only if needs cable)
-                    if (needsCable) {
-                        formData.street = document.getElementById('street').value;
-                        formData.city = document.getElementById('city').value;
-                        formData.state = document.getElementById('state').value;
-                        formData.postalCode = document.getElementById('postalCode').value;
-                    }
-                    
-                    // Beneficiary
-                    if (document.getElementById('is-guardian').checked) {
-                        formData.beneficiaryName = document.getElementById('beneficiary-name').value;
-                        formData.beneficiaryAge = document.getElementById('beneficiary-age').value;
-                    }
-                    
-                    const res = await fetch('/api/welcome-kit/checkout', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(formData)
-                    });
-                    
-                    const data = await res.json();
-                    
-                    if (!data.success) {
-                        throw new Error(data.error || 'Error creando orden');
-                    }
-                    
-                    // Save for later
-                    window.welcomeKitId = data.welcomeKitId;
-                    
-                    return data.orderId;
-                },
+                        kitType: needsCable ? 'full' : 'setup_only'
+                    })
+                });
                 
-                onApprove: async function(data) {
-                    showLoading(true);
-                    
-                    try {
-                        const res = await fetch('/api/welcome-kit/verify', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                orderId: data.orderID,
-                                welcomeKitId: window.welcomeKitId
-                            })
-                        });
-                        
-                        const result = await res.json();
-                        
-                        if (result.success) {
-                            // Redirect to success page
-                            window.location.href = `/welcome-kit/success?id=${result.welcomeKit.id}`;
-                        } else {
-                            throw new Error(result.error || 'Error verificando pago');
-                        }
-                    } catch (error) {
-                        alert('Error: ' + error.message);
-                        showLoading(false);
-                    }
-                },
+                const data = await res.json();
                 
-                onError: function(err) {
-                    console.error('PayPal error:', err);
-                    alert('Error procesando el pago. Por favor intenta de nuevo.');
-                },
-                
-                onCancel: function() {
-                    console.log('Pago cancelado');
+                if (!data.success) {
+                    throw new Error(data.error || 'Error creando sesión de pago');
                 }
-            }).render('#paypal-button-container');
+                
+                // Redirigir a Stripe Checkout
+                if (data.checkoutUrl) {
+                    window.location.href = data.checkoutUrl;
+                } else {
+                    throw new Error('No se recibió URL de checkout');
+                }
+                
+            } catch (error) {
+                console.error('Stripe error:', error);
+                alert('Error: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = '💳 Pagar con Tarjeta';
+            }
         }
         
         function showLoading(show) {
