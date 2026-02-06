@@ -129,7 +129,7 @@ router.post('/create-kit-payment', async (req, res) => {
 // ============================================
 router.post('/create-kit-payment-stripe', async (req, res) => {
     try {
-        const { email, name, country } = req.body;
+        const { email, name, country, kitType, cableType } = req.body;
 
         if (!email || !name) {
             return res.status(400).json({ 
@@ -148,10 +148,25 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
             pricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === 'DEFAULT');
         }
         
-        // Fallback si no hay configuración
-        const kitPrice = pricing?.price || 39;
+        // Calcular precio total:
+        // - setupOnlyPrice: precio base del setup ($35 desde admin)
+        // - price: precio del cable según país
+        const setupPrice = pricing?.setupOnlyPrice || 35;
+        const cablePrice = pricing?.price || 15;
+        const includesCable = kitType !== 'setup_only' && cableType !== 'NONE';
+        
+        // Precio total = setup + cable (si aplica)
+        const totalPrice = includesCable ? (setupPrice + cablePrice) : setupPrice;
         const currency = (pricing?.currency || 'USD').toLowerCase();
-        const priceInCents = Math.round(kitPrice * 100);
+        const priceInCents = Math.round(totalPrice * 100);
+        
+        // Descripción según el tipo de kit
+        const productName = includesCable 
+            ? 'Kit Completo PianoLink - Día 88'
+            : 'Setup + Clase de Prueba PianoLink';
+        const productDescription = includesCable
+            ? `Cable MIDI Premium + Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma`
+            : 'Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma';
 
         const { getStripeClient } = require('../config/stripe');
         const stripe = getStripeClient();
@@ -164,8 +179,8 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
                 price_data: {
                     currency: currency,
                     product_data: {
-                        name: 'Kit de Inicio PianoLink - Día 88',
-                        description: 'Cable MIDI Premium + 1ra Clase GRATIS + Setup Técnico Guiado + Guía de Inicio (Valor $150)',
+                        name: productName,
+                        description: productDescription,
                         images: ['https://pianolink-v4.fly.dev/img/kit-bienvenida.png']
                     },
                     unit_amount: priceInCents,
@@ -177,7 +192,11 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
                 customerName: name,
                 customerEmail: email,
                 country: countryCode,
-                priceLocal: kitPrice,
+                kitType: includesCable ? 'full' : 'setup_only',
+                cableType: cableType || 'NONE',
+                setupPrice,
+                cablePrice: includesCable ? cablePrice : 0,
+                totalPrice,
                 currency: currency.toUpperCase()
             },
             success_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/kit-success?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
