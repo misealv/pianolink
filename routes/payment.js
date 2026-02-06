@@ -138,27 +138,33 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
             });
         }
 
-        // Obtener precio desde GlobalConfig
+        // Obtener configuración global
         const config = await GlobalConfig.findOne({ isDefault: true });
         const countryCode = country?.toUpperCase() || 'US';
         
-        // Buscar precio para el país o usar DEFAULT
-        let pricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === countryCode);
-        if (!pricing) {
-            pricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === 'DEFAULT');
+        // Obtener precio del servicio (Setup + Clase) desde setupOnly
+        let setupPricing = config?.regionalPricing?.setupOnly?.find(p => p.regionCode === countryCode);
+        if (!setupPricing) {
+            setupPricing = config?.regionalPricing?.setupOnly?.find(p => p.regionCode === 'DEFAULT');
         }
+        const setupPrice = setupPricing?.price || 35;
         
-        // Calcular precio total:
-        // - setupOnlyPrice: precio base del setup ($35 desde admin)
-        // - price: precio del cable según país
-        const setupPrice = pricing?.setupOnlyPrice || 35;
-        const cablePrice = pricing?.price || 15;
-        const includesCable = kitType !== 'setup_only' && cableType !== 'NONE';
+        // Obtener precio del cable desde welcomeKit (es el precio del cable, no del kit completo)
+        let cablePricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === countryCode);
+        if (!cablePricing) {
+            cablePricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === 'DEFAULT');
+        }
+        const cableBasePrice = cablePricing?.price || 15;
         
-        // Precio total = setup + cable (si aplica)
-        const totalPrice = includesCable ? (setupPrice + cablePrice) : setupPrice;
-        const currency = (pricing?.currency || 'USD').toLowerCase();
+        // Determinar si incluye cable
+        const includesCable = kitType !== 'setup_only' && cableType !== 'NONE' && cableType;
+        
+        // Precio total = servicio + cable (si aplica)
+        const totalPrice = includesCable ? (setupPrice + cableBasePrice) : setupPrice;
+        const currency = (setupPricing?.currency || 'USD').toLowerCase();
         const priceInCents = Math.round(totalPrice * 100);
+        
+        console.log(`[Stripe Kit] País: ${countryCode}, Setup: $${setupPrice}, Cable: ${includesCable ? '$' + cableBasePrice : 'N/A'}, Total: $${totalPrice} ${currency.toUpperCase()}`);
         
         // Descripción según el tipo de kit
         const productName = includesCable 
