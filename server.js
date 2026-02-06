@@ -12,10 +12,6 @@ dotenv.config();
 console.log('[SERVER] 🚀 Iniciando PianoLink...');
 console.log(`[SERVER] 🌍 Entorno: ${process.env.NODE_ENV}`);
 
-// DEBUG: Ver si las variables están cargadas
-console.log('[SERVER] 🔍 DEBUG - MONGO_URI existe:', !!process.env.MONGO_URI);
-console.log('[SERVER] 🔍 DEBUG - Variables disponibles:', Object.keys(process.env).filter(k => !k.startsWith('npm_')).join(', '));
-
 connectDB();
 
 // ✨ NUEVO: Inicializar sistema de eventos y listeners

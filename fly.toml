@@ -1,7 +1,7 @@
 # Fly.io Configuration - PianoLink
 # Servidor en São Paulo, Brasil para menor latencia a Chile/Argentina
 
-app = "pianolink-latam"
+app = "pianolink-v4"
 primary_region = "gru"  # GRU = Guarulhos, São Paulo, Brasil 🇧🇷
 
 [build]

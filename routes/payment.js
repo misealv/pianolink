@@ -534,6 +534,98 @@ router.get('/stripe/subscription-status', protect, async (req, res) => {
 });
 
 /**
+ * POST /api/payment/stripe/sync-by-email
+ * Buscar y activar suscripciones existentes por email
+ * Útil cuando el usuario recreó su cuenta pero ya había pagado
+ */
+router.post('/stripe/sync-by-email', protect, async (req, res) => {
+    console.log('[Stripe] 🔄 Solicitud de sincronización por email');
+    
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo profesores pueden acceder' 
+            });
+        }
+
+        if (!StripeService.isConfigured()) {
+            return res.status(503).json({
+                success: false,
+                error: 'Stripe no está configurado'
+            });
+        }
+
+        const { stripe } = require('../config/stripe');
+        
+        // Buscar customers con este email
+        const customers = await stripe.customers.list({
+            email: user.email,
+            limit: 5
+        });
+        
+        console.log('[Stripe] 📧 Buscando customers con email:', user.email);
+        console.log('[Stripe] 👥 Customers encontrados:', customers.data.length);
+        
+        if (customers.data.length === 0) {
+            return res.json({
+                success: false,
+                error: 'No se encontraron suscripciones asociadas a tu email'
+            });
+        }
+        
+        // Buscar suscripciones activas
+        for (const customer of customers.data) {
+            const subscriptions = await stripe.subscriptions.list({
+                customer: customer.id,
+                status: 'active',
+                limit: 1
+            });
+            
+            if (subscriptions.data.length > 0) {
+                const subscription = subscriptions.data[0];
+                console.log('[Stripe] ✅ Suscripción activa encontrada:', subscription.id);
+                
+                // Activar la membresía
+                await User.findByIdAndUpdate(userId, {
+                    'teacherData.stripeCustomerId': customer.id,
+                    'teacherData.stripeSubscriptionId': subscription.id,
+                    'teacherData.stripePriceId': subscription.items?.data[0]?.price?.id,
+                    'teacherData.subscriptionStatus': 'active',
+                    'teacherData.subscriptionExpiresAt': new Date(subscription.current_period_end * 1000)
+                });
+                
+                console.log(`[Stripe] ✅ Membresía sincronizada para: ${user.email}`);
+                
+                return res.json({
+                    success: true,
+                    message: '¡Membresía sincronizada exitosamente!',
+                    subscription: {
+                        status: subscription.status,
+                        expiresAt: new Date(subscription.current_period_end * 1000)
+                    }
+                });
+            }
+        }
+        
+        return res.json({
+            success: false,
+            error: 'No se encontraron suscripciones activas para tu email'
+        });
+
+    } catch (error) {
+        console.error('[Stripe] Error sincronizando por email:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+/**
  * POST /api/payment/stripe/activate-from-session
  * Activar membresía usando session_id de Stripe Checkout
  * (Funciona aunque el webhook no esté configurado)

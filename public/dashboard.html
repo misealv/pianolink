@@ -498,6 +498,11 @@
                                 💳 Activar Membresía
                             </button>
                             
+                            <!-- Botón para sincronizar manualmente si ya pagó -->
+                            <button onclick="manualSyncMembership()" style="width: 100%; padding: 8px; margin-top: 8px; background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.borderColor='rgba(99,102,241,0.5)'; this.style.color='rgba(255,255,255,0.9)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'; this.style.color='rgba(255,255,255,0.6)'">
+                                🔄 ¿Ya pagaste? Sincronizar
+                            </button>
+                            
                             <!-- Beneficios mini -->
                             <div style="margin-top: 12px; display: flex; justify-content: center; gap: 15px; font-size: 9px; color: rgba(255,255,255,0.5);">
                                 <span>✓ Sala virtual</span>
@@ -1218,17 +1223,33 @@
     // Función para sincronizar estado de suscripción desde Stripe
     async function syncSubscriptionFromStripe() {
         try {
-            console.log('[Dashboard] Sincronizando estado desde Stripe...');
-            const response = await fetch('/api/payment/stripe/sync-subscription', {
+            console.log('[Dashboard] 🔄 Sincronizando estado desde Stripe por email...');
+            
+            // Primero intentar el endpoint original
+            let response = await fetch('/api/payment/stripe/sync-subscription', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${user.token}` }
             });
             
-            const data = await response.json();
+            let data = await response.json();
             
             if (data.success) {
                 console.log('[Dashboard] ✅ Estado sincronizado:', data.subscription);
-                // Recargar estado de membresía
+                loadSubscriptionStatus();
+                return true;
+            }
+            
+            // Si falla, intentar el nuevo endpoint de búsqueda por email
+            console.log('[Dashboard] 🔄 Intentando sincronización por email...');
+            response = await fetch('/api/payment/stripe/sync-by-email', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            
+            data = await response.json();
+            
+            if (data.success) {
+                console.log('[Dashboard] ✅ Estado sincronizado por email:', data.subscription);
                 loadSubscriptionStatus();
                 return true;
             } else {
@@ -1238,6 +1259,37 @@
         } catch (error) {
             console.error('[Dashboard] Error sincronizando:', error);
             return false;
+        }
+    }
+    
+    // Función para sincronización manual (botón visible al usuario)
+    async function manualSyncMembership() {
+        try {
+            const btn = event.target;
+            btn.textContent = '⏳ Sincronizando...';
+            btn.disabled = true;
+            
+            console.log('[Dashboard] 🔄 Sincronización manual iniciada...');
+            
+            const response = await fetch('/api/payment/stripe/sync-by-email', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('🎉 ¡Membresía sincronizada exitosamente!');
+                loadSubscriptionStatus();
+            } else {
+                alert('⚠️ ' + (data.error || 'No se encontraron pagos pendientes para tu email. Intenta hacer el pago primero.'));
+            }
+            
+            btn.textContent = '🔄 ¿Ya pagaste? Sincronizar';
+            btn.disabled = false;
+        } catch (error) {
+            console.error('[Dashboard] Error en sincronización manual:', error);
+            alert('❌ Error de conexión. Intenta de nuevo.');
         }
     }
     
