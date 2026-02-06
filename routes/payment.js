@@ -142,29 +142,43 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
         const config = await GlobalConfig.findOne({ isDefault: true });
         const countryCode = country?.toUpperCase() || 'US';
         
-        // Obtener precio del servicio (Setup + Clase) desde setupOnly
+        // 1. Obtener precio del servicio (Setup + Clase) desde setupOnly
         let setupPricing = config?.regionalPricing?.setupOnly?.find(p => p.regionCode === countryCode);
         if (!setupPricing) {
             setupPricing = config?.regionalPricing?.setupOnly?.find(p => p.regionCode === 'DEFAULT');
         }
         const setupPrice = setupPricing?.price || 35;
         
-        // Obtener precio del cable desde welcomeKit (es el precio del cable, no del kit completo)
-        let cablePricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === countryCode);
-        if (!cablePricing) {
-            cablePricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === 'DEFAULT');
-        }
-        const cableBasePrice = cablePricing?.price || 15;
-        
         // Determinar si incluye cable
         const includesCable = kitType !== 'setup_only' && cableType !== 'NONE' && cableType;
         
-        // Precio total = servicio + cable (si aplica)
-        const totalPrice = includesCable ? (setupPrice + cableBasePrice) : setupPrice;
+        // 2. Calcular precio del cable (costo AliExpress + margen)
+        let cablePrice = 0;
+        if (includesCable) {
+            const KitProduct = require('../models/KitProduct');
+            // Buscar un cable activo en el catálogo
+            const cableProduct = await KitProduct.findOne({ 
+                category: 'cable', 
+                isActive: true 
+            });
+            
+            if (cableProduct) {
+                // Obtener margen de cables desde config (default 40%)
+                const cableMargin = config?.productMargins?.cable || 40;
+                const costPrice = cableProduct.fulfillment?.costPrice || cableProduct.defaultPrice || 5;
+                // Precio = costo × (1 + margen/100)
+                cablePrice = Math.round(costPrice * (1 + cableMargin / 100) * 100) / 100;
+            } else {
+                cablePrice = 15; // Fallback
+            }
+        }
+        
+        // 3. Precio total = servicio + cable (si aplica)
+        const totalPrice = setupPrice + cablePrice;
         const currency = (setupPricing?.currency || 'USD').toLowerCase();
         const priceInCents = Math.round(totalPrice * 100);
         
-        console.log(`[Stripe Kit] País: ${countryCode}, Setup: $${setupPrice}, Cable: ${includesCable ? '$' + cableBasePrice : 'N/A'}, Total: $${totalPrice} ${currency.toUpperCase()}`);
+        console.log(`[Stripe Kit] País: ${countryCode}, Setup: $${setupPrice}, Cable: ${includesCable ? '$' + cablePrice : 'N/A'}, Total: $${totalPrice} ${currency.toUpperCase()}`);
         
         // Descripción según el tipo de kit
         const productName = includesCable 
@@ -201,7 +215,7 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
                 kitType: includesCable ? 'full' : 'setup_only',
                 cableType: cableType || 'NONE',
                 setupPrice,
-                cablePrice: includesCable ? cablePrice : 0,
+                cablePrice,
                 totalPrice,
                 currency: currency.toUpperCase()
             },
