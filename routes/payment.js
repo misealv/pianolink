@@ -539,20 +539,27 @@ router.get('/stripe/subscription-status', protect, async (req, res) => {
  * (Funciona aunque el webhook no esté configurado)
  */
 router.post('/stripe/activate-from-session', protect, async (req, res) => {
+    console.log('[Stripe] 🎯 Solicitud de activación desde session_id recibida');
+    console.log('[Stripe] 👤 Usuario:', req.user?.email);
+    console.log('[Stripe] 📦 Body:', JSON.stringify(req.body));
+    
     try {
         const userId = req.user._id;
         const { sessionId } = req.body;
 
         if (!sessionId) {
+            console.log('[Stripe] ❌ Falta session_id');
             return res.status(400).json({
                 success: false,
                 error: 'Session ID requerido'
             });
         }
 
+        console.log('[Stripe] 🔍 Buscando usuario:', userId);
         const user = await User.findById(userId);
 
         if (!user || user.role !== 'teacher') {
+            console.log('[Stripe] ❌ Usuario no válido o no es profesor:', user?.role);
             return res.status(403).json({ 
                 success: false, 
                 error: 'Solo profesores pueden acceder' 
@@ -560,6 +567,7 @@ router.post('/stripe/activate-from-session', protect, async (req, res) => {
         }
 
         if (!StripeService.isConfigured()) {
+            console.log('[Stripe] ❌ Stripe no configurado');
             return res.status(503).json({
                 success: false,
                 error: 'Stripe no está configurado'
@@ -567,12 +575,16 @@ router.post('/stripe/activate-from-session', protect, async (req, res) => {
         }
 
         // Obtener la sesión de Stripe
+        console.log('[Stripe] 📡 Consultando sesión en Stripe:', sessionId);
         const { stripe } = require('../config/stripe');
         const session = await stripe.checkout.sessions.retrieve(sessionId);
+        console.log('[Stripe] ✅ Sesión encontrada, payment_status:', session.payment_status);
 
         // Verificar que la sesión sea del profesor correcto
         const teacherIdInSession = session.metadata?.teacherId;
+        console.log('[Stripe] 🔍 Comparando IDs - Sesión:', teacherIdInSession, '| Usuario:', userId.toString());
         if (teacherIdInSession !== userId.toString()) {
+            console.log('[Stripe] ❌ IDs no coinciden');
             return res.status(403).json({
                 success: false,
                 error: 'Esta sesión no pertenece a tu cuenta'
@@ -581,6 +593,7 @@ router.post('/stripe/activate-from-session', protect, async (req, res) => {
 
         // Verificar que el pago fue exitoso
         if (session.payment_status !== 'paid') {
+            console.log('[Stripe] ❌ Pago no completado:', session.payment_status);
             return res.status(400).json({
                 success: false,
                 error: 'El pago no ha sido completado'
@@ -589,7 +602,9 @@ router.post('/stripe/activate-from-session', protect, async (req, res) => {
 
         // Obtener la suscripción
         const subscriptionId = session.subscription;
+        console.log('[Stripe] 📋 Subscription ID:', subscriptionId);
         if (!subscriptionId) {
+            console.log('[Stripe] ❌ No hay suscripción en la sesión');
             return res.status(400).json({
                 success: false,
                 error: 'No se encontró suscripción en la sesión'

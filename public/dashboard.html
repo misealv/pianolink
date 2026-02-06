@@ -685,14 +685,78 @@
     const urlParamsEarly = new URLSearchParams(window.location.search);
     const pendingSessionId = urlParamsEarly.get('session_id');
     if (urlParamsEarly.get('subscription') === 'success' && pendingSessionId) {
-        // Guardar session_id para procesar después
+        // Guardar session_id para procesar después del login
         localStorage.setItem('pendingStripeSession', pendingSessionId);
-        console.log('[Dashboard] Session ID guardado para activar:', pendingSessionId);
+        console.log('[Dashboard] 💾 Session ID guardado para activar después:', pendingSessionId);
+        // Limpiar URL inmediatamente para evitar problemas
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
     
     const user = JSON.parse(localStorage.getItem('pianoUser'));
-    if (!user || user.role !== 'teacher') window.location.href = 'login.html';
-    const API_URL = '/api/teacher'; 
+    if (!user || user.role !== 'teacher') {
+        console.log('[Dashboard] ⚠️ No hay usuario o no es teacher, redirigiendo a login');
+        window.location.href = 'login.html';
+    }
+    const API_URL = '/api/teacher';
+
+    // Función para activar membresía con session pendiente
+    async function activatePendingMembership() {
+        const sessionId = localStorage.getItem('pendingStripeSession');
+        if (!sessionId) {
+            console.log('[Dashboard] No hay sesión pendiente de Stripe');
+            return false;
+        }
+        
+        console.log('[Dashboard] 🔄 Encontrada sesión pendiente:', sessionId);
+        console.log('[Dashboard] 👤 Usuario actual:', user?.email, 'Token:', user?.token ? 'Sí' : 'No');
+        
+        if (!user || !user.token) {
+            console.error('[Dashboard] ❌ No hay token de usuario válido');
+            return false;
+        }
+        
+        try {
+            console.log('[Dashboard] 📡 Llamando a /api/payment/stripe/activate-from-session...');
+            
+            const response = await fetch('/api/payment/stripe/activate-from-session', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${user.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ sessionId })
+            });
+            
+            console.log('[Dashboard] 📥 Respuesta HTTP:', response.status);
+            const data = await response.json();
+            console.log('[Dashboard] 📦 Datos:', JSON.stringify(data));
+            
+            // Limpiar siempre
+            localStorage.removeItem('pendingStripeSession');
+            
+            if (data.success) {
+                console.log('[Dashboard] ✅ Membresía activada exitosamente');
+                alert('🎉 ¡Membresía activada exitosamente! Bienvenido a PianoLink.');
+                loadSubscriptionStatus();
+                return true;
+            } else {
+                console.error('[Dashboard] ❌ Error del servidor:', data.error);
+                // Intentar sincronización alternativa
+                const synced = await syncSubscriptionFromStripe();
+                if (synced) {
+                    alert('🎉 ¡Suscripción activada exitosamente!');
+                    return true;
+                }
+                alert('⚠️ ' + (data.error || 'Error activando membresía. Intenta recargar la página.'));
+                return false;
+            }
+        } catch (error) {
+            console.error('[Dashboard] ❌ Error de red:', error);
+            localStorage.removeItem('pendingStripeSession');
+            alert('❌ Error de conexión. Por favor recarga la página.');
+            return false;
+        }
+    } 
 
     async function loadData() {
         document.getElementById('welcomeName').textContent = user.name;
@@ -1198,62 +1262,29 @@ El sistema está en modo TEST.`;
         alert(message);
     }
     
-    // Verificar si regresa de Stripe con éxito o hay session pendiente
-    const urlParams = new URLSearchParams(window.location.search);
-    let sessionId = urlParams.get('session_id');
-    
-    // Si no viene en URL, revisar localStorage
-    if (!sessionId) {
-        sessionId = localStorage.getItem('pendingStripeSession');
-    }
-    
-    if ((urlParams.get('subscription') === 'success' && sessionId) || sessionId) {
-        // Activar membresía usando el session_id
-        setTimeout(async () => {
-            try {
-                console.log('[Dashboard] Activando membresía con session_id:', sessionId);
-                
-                const response = await fetch('/api/payment/stripe/activate-from-session', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${user.token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ sessionId })
-                });
-                
-                const data = await response.json();
-                
-                // Limpiar session pendiente
-                localStorage.removeItem('pendingStripeSession');
-                
-                if (data.success) {
-                    console.log('[Dashboard] ✅ Membresía activada:', data);
-                    alert('🎉 ¡Membresía activada exitosamente! Bienvenido a PianoLink.');
-                    loadSubscriptionStatus();
-                } else {
-                    console.error('[Dashboard] Error activando:', data.error);
-                    // Intentar sincronización alternativa
-                    const synced = await syncSubscriptionFromStripe();
-                    if (synced) {
-                        alert('🎉 ¡Suscripción activada exitosamente!');
-                    } else {
-                        alert('✅ Pago completado. Tu membresía se activará en unos minutos.');
-                    }
-                }
-            } catch (error) {
-                console.error('[Dashboard] Error:', error);
-                localStorage.removeItem('pendingStripeSession');
-                alert('✅ Pago completado. Tu membresía se activará en unos minutos.');
-            }
-        }, 1000);
+    // Ejecutar activación de membresía pendiente al cargar
+    // Esperar a que todo esté listo antes de intentar activar
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('[Dashboard] 🚀 DOM cargado, verificando membresía pendiente...');
         
-        // Limpiar URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (urlParams.get('subscription') === 'cancelled') {
-        alert('La suscripción fue cancelada. Puedes intentarlo nuevamente cuando quieras.');
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
+        // Verificar si hay URL de cancelación
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('subscription') === 'cancelled') {
+            alert('La suscripción fue cancelada. Puedes intentarlo nuevamente cuando quieras.');
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return;
+        }
+        
+        // Pequeño delay para asegurar que el token esté disponible
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Intentar activar membresía pendiente
+        const activated = await activatePendingMembership();
+        
+        if (activated) {
+            console.log('[Dashboard] ✅ Proceso de activación completado');
+        }
+    });
     
   </script>
 </body>
