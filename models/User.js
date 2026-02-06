@@ -35,6 +35,28 @@ const userSchema = mongoose.Schema({
     stripeSubscriptionId: { type: String, default: '' },
     stripePriceId: { type: String, default: '' },
     
+    // ==================== TARIFA Y PAQUETES ====================
+    // Tarifa por clase en USD (mínimo $15)
+    hourlyRate: { type: Number, default: 25, min: 15 },
+    
+    // Paquetes de clases con descuento
+    packages: [{
+      classes: { type: Number, required: true },      // Número de clases
+      discountPercent: { type: Number, default: 0 },  // % descuento (ej: 10 = 10%)
+      isActive: { type: Boolean, default: true }
+    }],
+    
+    // Perfil público
+    profile: {
+      isPublic: { type: Boolean, default: true },     // Visible en catálogo
+      specialties: [{ type: String }],                 // Ej: ['clásico', 'jazz', 'niños']
+      experience: { type: String, default: '' },       // Descripción de experiencia
+      education: { type: String, default: '' },        // Formación
+      languages: [{ type: String, default: 'español' }], // Idiomas
+      videoUrl: { type: String, default: '' },         // Video de presentación
+      acceptsTrialClass: { type: Boolean, default: true } // Acepta clase de prueba
+    },
+    
     // Ganancias (por clases a alumnos de plataforma)
     earnings: {
       pending: { type: Number, default: 0 },    // Por cobrar

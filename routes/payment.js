@@ -123,6 +123,135 @@ router.post('/create-kit-payment', async (req, res) => {
     }
 });
 
+// ============================================
+// 1b. KIT DE BIENVENIDA CON STRIPE
+// ============================================
+router.post('/create-kit-payment-stripe', async (req, res) => {
+    try {
+        const { email, name } = req.body;
+
+        if (!email || !name) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Email y nombre son requeridos' 
+            });
+        }
+
+        const stripe = StripeService.stripe;
+        
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            mode: 'payment',
+            customer_email: email,
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: 'Kit de Bienvenida PianoLink',
+                        description: 'Cable MIDI + Sesión setup + Clase prueba 30min',
+                        images: ['https://pianolink-v4.fly.dev/img/kit-bienvenida.png']
+                    },
+                    unit_amount: 1500, // $15.00 en centavos
+                },
+                quantity: 1,
+            }],
+            metadata: {
+                type: 'kit_purchase',
+                customerName: name,
+                customerEmail: email
+            },
+            success_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/kit-success?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
+            cancel_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/kit-bienvenida`
+        });
+
+        res.json({
+            success: true,
+            sessionId: session.id,
+            checkoutUrl: session.url
+        });
+
+    } catch (error) {
+        console.error('[Stripe] Error en create-kit-payment:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Verificar pago del kit con Stripe
+router.post('/verify-kit-payment-stripe', async (req, res) => {
+    try {
+        const { sessionId } = req.body;
+
+        if (!sessionId) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'sessionId es requerido' 
+            });
+        }
+
+        const stripe = StripeService.stripe;
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+        if (session.payment_status === 'paid') {
+            const email = session.customer_email || session.metadata.customerEmail;
+            const name = session.metadata.customerName;
+
+            // Verificar si el usuario ya existe
+            let user = await User.findOne({ email });
+
+            if (!user) {
+                // Crear nuevo usuario
+                const [firstName, ...lastNameParts] = name.split(' ');
+                const lastName = lastNameParts.join(' ') || firstName;
+
+                user = await User.create({
+                    name: firstName,
+                    lastName: lastName,
+                    email: email,
+                    password: Math.random().toString(36).slice(-8), // Password temporal
+                    role: 'student',
+                    kitPurchased: true,
+                    kitPurchaseDate: new Date(),
+                    stripeSessionId: sessionId
+                });
+
+                console.log(`[Kit-Stripe] Usuario creado: ${user.email}`);
+            } else {
+                // Usuario ya existe, actualizar flag de kit
+                user.kitPurchased = true;
+                user.kitPurchaseDate = new Date();
+                user.stripeSessionId = sessionId;
+                await user.save();
+                console.log(`[Kit-Stripe] Usuario actualizado: ${user.email}`);
+            }
+
+            res.json({
+                success: true,
+                user: {
+                    id: user._id,
+                    email: user.email,
+                    name: `${user.name} ${user.lastName || ''}`.trim(),
+                    kitPurchased: true
+                }
+            });
+        } else {
+            res.status(400).json({ 
+                success: false, 
+                error: 'Pago no completado',
+                status: session.payment_status
+            });
+        }
+    } catch (error) {
+        console.error('[Stripe] Error en verify-kit-payment:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
 // Verificar pago del kit y crear usuario
 router.post('/verify-kit-payment', async (req, res) => {
     try {

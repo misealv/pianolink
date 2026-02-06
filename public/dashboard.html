@@ -619,6 +619,192 @@
 
         </div>
     </form>
+
+    <!-- ==================== SECCIÓN TARIFAS Y PAQUETES ==================== -->
+    <div class="card" style="margin-top: 30px;">
+        <h2>💰 Tarifas y Paquetes</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <!-- Tarifa por clase -->
+            <div>
+                <div style="background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(79,70,229,0.1) 100%); border-radius: 12px; padding: 20px; border: 1px solid rgba(99,102,241,0.2);">
+                    <div style="font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Tu tarifa por clase</div>
+                    
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 24px;">$</span>
+                        <input type="number" id="hourlyRateInput" min="15" step="1" value="25" 
+                               style="font-size: 32px; font-weight: 700; width: 100px; background: transparent; border: none; border-bottom: 2px solid var(--accent); color: white; text-align: center;">
+                        <span style="font-size: 14px; color: #888;">USD</span>
+                    </div>
+                    
+                    <div style="margin-top: 15px; font-size: 11px; color: #666;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Tú recibes (80%):</span>
+                            <span id="teacherEarnsDisplay" style="color: #4ade80; font-weight: 600;">$20.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Estudiante paga:</span>
+                            <span id="studentPaysDisplay" style="color: #fbbf24; font-weight: 600;">$31.25</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px; font-size: 9px; color: #555; text-align: center;">
+                        Mínimo: $15 USD | PianoLink cobra 20% de comisión
+                    </div>
+                </div>
+                
+                <button type="button" onclick="saveHourlyRate()" style="width: 100%; margin-top: 15px; padding: 12px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                    💾 Guardar Tarifa
+                </button>
+            </div>
+            
+            <!-- Paquetes con descuento -->
+            <div>
+                <div style="font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">Paquetes con Descuento</div>
+                
+                <div id="packagesContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Los paquetes se cargan dinámicamente -->
+                </div>
+                
+                <button type="button" onclick="addPackage()" style="width: 100%; margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.05); color: #888; border: 1px dashed #444; border-radius: 8px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='#444'">
+                    ➕ Agregar Paquete
+                </button>
+                
+                <button type="button" onclick="savePackages()" style="width: 100%; margin-top: 10px; padding: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                    💾 Guardar Paquetes
+                </button>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 15px; background: rgba(251,191,36,0.1); border-radius: 8px; border: 1px solid rgba(251,191,36,0.2);">
+            <div style="font-size: 11px; color: #fbbf24;">
+                💡 <strong>Política de tarifas:</strong> Tu nueva tarifa aplica solo a nuevos estudiantes. 
+                Los estudiantes actuales mantienen su tarifa congelada por 1 año desde su primera compra.
+            </div>
+        </div>
+    </div>
+    <!-- ==================== FIN TARIFAS Y PAQUETES ==================== -->
+
+    <!-- ==================== SECCIÓN MI PERFIL PÚBLICO ==================== -->
+    <div class="panel teacher-only" id="publicProfilePanel" style="margin-top: 30px;">
+        <h2>🌐 Mi Perfil Público</h2>
+        <p style="color: #888; font-size: 13px; margin-bottom: 20px;">
+            Este perfil será visible para estudiantes que busquen profesores en el catálogo.
+        </p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <!-- Columna Izquierda -->
+            <div>
+                <!-- Visible en catálogo -->
+                <div style="background: #1a1a1a; border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="profileIsPublic" onchange="savePublicProfile()" 
+                               style="width: 20px; height: 20px; accent-color: #6366f1;">
+                        <span style="font-weight: 600;">Visible en catálogo de profesores</span>
+                    </label>
+                    <div style="font-size: 12px; color: #888; margin-top: 8px; margin-left: 30px;">
+                        Los estudiantes podrán encontrarte y reservar clases
+                    </div>
+                </div>
+
+                <!-- Acepta clase de prueba -->
+                <div style="background: #1a1a1a; border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="profileAcceptsTrialClass" onchange="savePublicProfile()" 
+                               style="width: 20px; height: 20px; accent-color: #22c55e;">
+                        <span style="font-weight: 600;">Acepto clases de prueba</span>
+                    </label>
+                    <div style="font-size: 12px; color: #888; margin-top: 8px; margin-left: 30px;">
+                        Estudiantes con kit de bienvenida pueden agendar su clase de prueba contigo
+                    </div>
+                </div>
+
+                <!-- Especialidades -->
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">🎯 Especialidades</label>
+                    <div id="specialtiesContainer" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="newSpecialty" placeholder="Ej: Jazz, Clásico, Niños..." 
+                               style="flex: 1; padding: 10px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white;">
+                        <button type="button" onclick="addSpecialty()" 
+                                style="padding: 10px 15px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            + Agregar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Idiomas -->
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">🗣️ Idiomas</label>
+                    <div id="languagesContainer" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="newLanguage" placeholder="Ej: Español, Inglés, Portugués..." 
+                               style="flex: 1; padding: 10px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white;">
+                        <button type="button" onclick="addLanguage()" 
+                                style="padding: 10px 15px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            + Agregar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha -->
+            <div>
+                <!-- Biografía -->
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">📝 Biografía corta</label>
+                    <textarea id="profileBio" placeholder="Cuéntale a tus futuros estudiantes sobre ti..." 
+                              rows="4" onchange="savePublicProfile()"
+                              style="width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white; resize: vertical;"></textarea>
+                    <div style="font-size: 11px; color: #666; text-align: right;">Máx. 500 caracteres</div>
+                </div>
+
+                <!-- Experiencia -->
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">📜 Experiencia</label>
+                    <textarea id="profileExperience" placeholder="Tu experiencia como profesor/músico..." 
+                              rows="3" onchange="savePublicProfile()"
+                              style="width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white; resize: vertical;"></textarea>
+                </div>
+
+                <!-- Formación -->
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">🎓 Formación</label>
+                    <textarea id="profileEducation" placeholder="Tu formación académica musical..." 
+                              rows="3" onchange="savePublicProfile()"
+                              style="width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white; resize: vertical;"></textarea>
+                </div>
+
+                <!-- Video de presentación -->
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">🎬 Video de presentación (YouTube)</label>
+                    <input type="url" id="profileVideoUrl" placeholder="https://youtube.com/watch?v=..." 
+                           onchange="savePublicProfile()"
+                           style="width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white;">
+                    <div style="font-size: 11px; color: #666;">Pega el link de un video tuyo tocando o presentándote</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista previa -->
+        <div style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 12px; border: 1px solid #6366f1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 12px; color: #818cf8; text-transform: uppercase; letter-spacing: 1px;">Vista previa de tu perfil</span>
+                <a id="profilePreviewLink" href="#" target="_blank" 
+                   style="font-size: 13px; color: #6366f1; text-decoration: none;">
+                    Ver perfil público →
+                </a>
+            </div>
+            <div id="profilePreview" style="color: #888; font-size: 14px;">
+                Completa tu perfil para ver la vista previa
+            </div>
+        </div>
+
+        <!-- Mensaje de guardado -->
+        <div id="profileSaveStatus" style="margin-top: 15px; padding: 10px; border-radius: 8px; text-align: center; display: none;"></div>
+    </div>
+    <!-- ==================== FIN MI PERFIL PÚBLICO ==================== -->
+
   </main>
 
   <!-- Modal de Edición de Perfil -->
@@ -1336,7 +1522,353 @@ El sistema está en modo TEST.`;
         if (activated) {
             console.log('[Dashboard] ✅ Proceso de activación completado');
         }
+        
+        // Cargar tarifas y paquetes
+        loadRatesAndPackages();
     });
+    
+    // ==================== TARIFAS Y PAQUETES ====================
+    let currentPackages = [];
+    
+    // Cargar tarifas y paquetes del profesor
+    async function loadRatesAndPackages() {
+        try {
+            const response = await fetch('/api/teacher-profile/my-rates', {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                const rates = data.rates;
+                document.getElementById('hourlyRateInput').value = rates.teacherEarns;
+                updateRateDisplay(rates.teacherEarns);
+                
+                currentPackages = rates.packages || [];
+                renderPackages();
+            }
+        } catch (error) {
+            console.error('[Dashboard] Error cargando tarifas:', error);
+        }
+    }
+    
+    // Actualizar display de tarifa
+    function updateRateDisplay(teacherRate) {
+        const studentPrice = (teacherRate / 0.80).toFixed(2);
+        document.getElementById('teacherEarnsDisplay').textContent = `$${teacherRate.toFixed(2)}`;
+        document.getElementById('studentPaysDisplay').textContent = `$${studentPrice}`;
+    }
+    
+    // Event listener para cambio de tarifa
+    document.getElementById('hourlyRateInput').addEventListener('input', function() {
+        const rate = parseFloat(this.value) || 15;
+        updateRateDisplay(rate);
+        renderPackages(); // Actualizar precios de paquetes
+    });
+    
+    // Guardar tarifa
+    async function saveHourlyRate() {
+        const rate = parseFloat(document.getElementById('hourlyRateInput').value);
+        
+        if (rate < 15) {
+            alert('⚠️ La tarifa mínima es $15 USD');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/teacher-profile/my-rates', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${user.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ hourlyRate: rate })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('✅ Tarifa actualizada correctamente');
+            } else {
+                alert('❌ ' + (data.error || 'Error al guardar'));
+            }
+        } catch (error) {
+            console.error('[Dashboard] Error guardando tarifa:', error);
+            alert('❌ Error de conexión');
+        }
+    }
+    
+    // Renderizar paquetes
+    function renderPackages() {
+        const container = document.getElementById('packagesContainer');
+        const teacherRate = parseFloat(document.getElementById('hourlyRateInput').value) || 25;
+        const studentPrice = teacherRate / 0.80;
+        
+        if (currentPackages.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+                    No hay paquetes configurados.<br>
+                    Los paquetes permiten ofrecer descuentos por compra de múltiples clases.
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = currentPackages.map((pkg, index) => {
+            const pricePerClass = studentPrice * (1 - pkg.discountPercent / 100);
+            const total = pricePerClass * pkg.classes;
+            
+            return `
+                <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid #333;">
+                    <input type="number" value="${pkg.classes}" min="2" max="50" 
+                           onchange="updatePackage(${index}, 'classes', this.value)"
+                           style="width: 50px; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: white; text-align: center;">
+                    <span style="color: #888; font-size: 12px;">clases</span>
+                    
+                    <input type="number" value="${pkg.discountPercent}" min="0" max="50" 
+                           onchange="updatePackage(${index}, 'discountPercent', this.value)"
+                           style="width: 50px; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: white; text-align: center;">
+                    <span style="color: #888; font-size: 12px;">% off</span>
+                    
+                    <div style="flex: 1; text-align: right;">
+                        <div style="font-size: 14px; font-weight: 600; color: #4ade80;">$${total.toFixed(0)}</div>
+                        <div style="font-size: 10px; color: #666;">($${pricePerClass.toFixed(2)}/clase)</div>
+                    </div>
+                    
+                    <button onclick="removePackage(${index})" style="background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 16px;">✕</button>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // Agregar paquete
+    function addPackage() {
+        currentPackages.push({ classes: 4, discountPercent: 10, isActive: true });
+        renderPackages();
+    }
+    
+    // Actualizar paquete
+    function updatePackage(index, field, value) {
+        currentPackages[index][field] = parseInt(value);
+        renderPackages();
+    }
+    
+    // Eliminar paquete
+    function removePackage(index) {
+        currentPackages.splice(index, 1);
+        renderPackages();
+    }
+    
+    // Guardar paquetes
+    async function savePackages() {
+        try {
+            const response = await fetch('/api/teacher-profile/packages', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${user.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ packages: currentPackages })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('✅ Paquetes guardados correctamente');
+            } else {
+                alert('❌ ' + (data.error || 'Error al guardar'));
+            }
+        } catch (error) {
+            console.error('[Dashboard] Error guardando paquetes:', error);
+            alert('❌ Error de conexión');
+        }
+    }
+
+    // ==================== PERFIL PÚBLICO ====================
+    
+    let publicProfile = {
+        isPublic: true,
+        specialties: [],
+        languages: ['Español'],
+        experience: '',
+        education: '',
+        videoUrl: '',
+        acceptsTrialClass: true
+    };
+    
+    // Cargar perfil público
+    async function loadPublicProfile() {
+        try {
+            const response = await fetch('/api/teacher-profile/my-profile', {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            const data = await response.json();
+            
+            if (data.success && data.profile) {
+                publicProfile = { ...publicProfile, ...data.profile };
+                renderPublicProfileForm();
+            }
+        } catch (error) {
+            console.error('[Dashboard] Error cargando perfil público:', error);
+        }
+    }
+    
+    // Renderizar formulario de perfil
+    function renderPublicProfileForm() {
+        document.getElementById('profileIsPublic').checked = publicProfile.isPublic !== false;
+        document.getElementById('profileAcceptsTrialClass').checked = publicProfile.acceptsTrialClass !== false;
+        document.getElementById('profileBio').value = user.bio || '';
+        document.getElementById('profileExperience').value = publicProfile.experience || '';
+        document.getElementById('profileEducation').value = publicProfile.education || '';
+        document.getElementById('profileVideoUrl').value = publicProfile.videoUrl || '';
+        
+        renderSpecialties();
+        renderLanguages();
+        updateProfilePreview();
+    }
+    
+    // Renderizar especialidades
+    function renderSpecialties() {
+        const container = document.getElementById('specialtiesContainer');
+        container.innerHTML = (publicProfile.specialties || []).map((s, i) => `
+            <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(99,102,241,0.2); color: #818cf8; padding: 6px 12px; border-radius: 20px; font-size: 13px;">
+                ${s}
+                <button onclick="removeSpecialty(${i})" style="background: none; border: none; color: #818cf8; cursor: pointer; font-size: 16px; line-height: 1;">×</button>
+            </span>
+        `).join('');
+    }
+    
+    function addSpecialty() {
+        const input = document.getElementById('newSpecialty');
+        const value = input.value.trim();
+        if (value && !publicProfile.specialties.includes(value)) {
+            publicProfile.specialties.push(value);
+            renderSpecialties();
+            savePublicProfile();
+            input.value = '';
+        }
+    }
+    
+    function removeSpecialty(index) {
+        publicProfile.specialties.splice(index, 1);
+        renderSpecialties();
+        savePublicProfile();
+    }
+    
+    // Renderizar idiomas
+    function renderLanguages() {
+        const container = document.getElementById('languagesContainer');
+        container.innerHTML = (publicProfile.languages || []).map((l, i) => `
+            <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(34,197,94,0.2); color: #4ade80; padding: 6px 12px; border-radius: 20px; font-size: 13px;">
+                ${l}
+                <button onclick="removeLanguage(${i})" style="background: none; border: none; color: #4ade80; cursor: pointer; font-size: 16px; line-height: 1;">×</button>
+            </span>
+        `).join('');
+    }
+    
+    function addLanguage() {
+        const input = document.getElementById('newLanguage');
+        const value = input.value.trim();
+        if (value && !publicProfile.languages.includes(value)) {
+            publicProfile.languages.push(value);
+            renderLanguages();
+            savePublicProfile();
+            input.value = '';
+        }
+    }
+    
+    function removeLanguage(index) {
+        publicProfile.languages.splice(index, 1);
+        renderLanguages();
+        savePublicProfile();
+    }
+    
+    // Guardar perfil público
+    let saveProfileTimeout = null;
+    async function savePublicProfile() {
+        // Debounce para evitar muchas llamadas
+        clearTimeout(saveProfileTimeout);
+        saveProfileTimeout = setTimeout(async () => {
+            const statusEl = document.getElementById('profileSaveStatus');
+            statusEl.style.display = 'block';
+            statusEl.style.background = 'rgba(99,102,241,0.2)';
+            statusEl.style.color = '#818cf8';
+            statusEl.textContent = '⏳ Guardando...';
+            
+            try {
+                const profileData = {
+                    isPublic: document.getElementById('profileIsPublic').checked,
+                    acceptsTrialClass: document.getElementById('profileAcceptsTrialClass').checked,
+                    specialties: publicProfile.specialties,
+                    languages: publicProfile.languages,
+                    experience: document.getElementById('profileExperience').value,
+                    education: document.getElementById('profileEducation').value,
+                    videoUrl: document.getElementById('profileVideoUrl').value
+                };
+                
+                const response = await fetch('/api/teacher-profile/my-profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusEl.style.background = 'rgba(34,197,94,0.2)';
+                    statusEl.style.color = '#4ade80';
+                    statusEl.textContent = '✅ Perfil guardado';
+                    updateProfilePreview();
+                    setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('[Dashboard] Error guardando perfil:', error);
+                statusEl.style.background = 'rgba(239,68,68,0.2)';
+                statusEl.style.color = '#ef4444';
+                statusEl.textContent = '❌ Error al guardar';
+            }
+        }, 500);
+    }
+    
+    // Actualizar vista previa
+    function updateProfilePreview() {
+        const preview = document.getElementById('profilePreview');
+        const link = document.getElementById('profilePreviewLink');
+        const isPublic = document.getElementById('profileIsPublic').checked;
+        
+        link.href = `/profesor/${user.slug}`;
+        
+        if (!isPublic) {
+            preview.innerHTML = '<span style="color: #f59e0b;">⚠️ Tu perfil está oculto. Activa "Visible en catálogo" para aparecer.</span>';
+            return;
+        }
+        
+        const specialties = publicProfile.specialties.length > 0 
+            ? publicProfile.specialties.slice(0, 3).join(', ') 
+            : 'Sin especialidades';
+            
+        preview.innerHTML = `
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #6366f1, #818cf8); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white;">
+                    ${user.name.charAt(0)}
+                </div>
+                <div>
+                    <div style="font-weight: 700; font-size: 16px; color: white;">${user.name}</div>
+                    <div style="font-size: 13px; color: #888;">${specialties}</div>
+                    <div style="font-size: 14px; color: #4ade80; margin-top: 4px;">$${document.getElementById('hourlyRateInput').value || 25}/clase</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Cargar perfil al inicio
+    if (user.role === 'teacher') {
+        loadPublicProfile();
+    }
     
   </script>
 </body>

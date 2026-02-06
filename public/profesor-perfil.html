@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profesor | PianoLink</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0a;
+            --bg-card: #141414;
+            --border: #2a2a2a;
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --text-main: #e0e0e0;
+            --text-muted: #888;
+            --success: #4ade80;
+            --warning: #fbbf24;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(180deg, rgba(99,102,241,0.1) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 40px;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+        .back-link:hover { color: var(--accent-light); }
+
+        /* Main */
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        /* Profile Header */
+        .profile-header {
+            display: grid;
+            grid-template-columns: 200px 1fr 300px;
+            gap: 40px;
+            margin-bottom: 40px;
+            align-items: start;
+        }
+
+        .profile-photo {
+            width: 200px;
+            height: 200px;
+            border-radius: 20px;
+            object-fit: cover;
+            border: 4px solid var(--accent);
+        }
+        .profile-photo-placeholder {
+            width: 200px;
+            height: 200px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 72px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .profile-info h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+        .profile-country {
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+        .profile-bio {
+            font-size: 15px;
+            line-height: 1.7;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+        .profile-languages {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .language-tag {
+            background: rgba(255,255,255,0.05);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Price Card */
+        .price-card {
+            background: var(--bg-card);
+            border: 2px solid var(--accent);
+            border-radius: 20px;
+            padding: 30px;
+            position: sticky;
+            top: 20px;
+        }
+        .price-card h3 {
+            font-size: 14px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+        .price-main {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--success);
+            margin-bottom: 5px;
+        }
+        .price-main span {
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+        .price-note {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .package-list {
+            margin-bottom: 20px;
+        }
+        .package-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .package-item:last-child { border-bottom: none; }
+        .package-classes {
+            font-weight: 600;
+        }
+        .package-discount {
+            background: var(--warning);
+            color: #000;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .package-price {
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .btn-book {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            text-decoration: none;
+        }
+        .btn-book:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99,102,241,0.3);
+        }
+
+        .trial-banner {
+            background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.15));
+            border: 1px solid rgba(251,191,36,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .trial-banner-text {
+            font-size: 13px;
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        /* Sections */
+        .profile-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .section-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 25px;
+        }
+        .section-card h2 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .specialties-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .specialty-tag {
+            background: rgba(99,102,241,0.15);
+            color: var(--accent-light);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .info-text {
+            font-size: 14px;
+            line-height: 1.8;
+            color: var(--text-muted);
+        }
+
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .no-video {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Loading & Error */
+        .loading, .error {
+            text-align: center;
+            padding: 100px 20px;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .profile-header {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            .profile-photo, .profile-photo-placeholder {
+                margin: 0 auto;
+            }
+            .price-card {
+                position: static;
+            }
+            .profile-sections {
+                grid-template-columns: 1fr;
+            }
+            .main { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">🎹 PianoLink</a>
+            <a href="/profesores.html" class="back-link">← Volver al catálogo</a>
+        </div>
+    </header>
+
+    <main class="main" id="mainContent">
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Cargando perfil...</p>
+        </div>
+    </main>
+
+    <script>
+        // Obtener slug de la URL
+        const slug = window.location.pathname.split('/').pop();
+
+        // Cargar perfil del profesor
+        async function loadProfile() {
+            try {
+                const response = await fetch(`/api/teacher-profile/public/${slug}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderProfile(data.teacher);
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                console.error('Error cargando perfil:', error);
+                showError('Error de conexión');
+            }
+        }
+
+        // Renderizar perfil
+        function renderProfile(teacher) {
+            document.title = `${teacher.name} | PianoLink`;
+            
+            const main = document.getElementById('mainContent');
+            
+            // Construir lista de paquetes
+            let packagesHTML = '';
+            if (teacher.packages && teacher.packages.length > 0) {
+                packagesHTML = `
+                    <div class="package-list">
+                        ${teacher.packages.map(pkg => `
+                            <div class="package-item">
+                                <span class="package-classes">${pkg.classes} clases</span>
+                                ${pkg.discountPercent > 0 ? `<span class="package-discount">-${pkg.discountPercent}%</span>` : ''}
+                                <span class="package-price">$${pkg.total.toFixed(0)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            // Video embed (YouTube/Vimeo)
+            let videoHTML = '<div class="no-video">📹 No hay video de presentación</div>';
+            if (teacher.videoUrl) {
+                const youtubeMatch = teacher.videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+                if (youtubeMatch) {
+                    videoHTML = `
+                        <div class="video-container">
+                            <iframe src="https://www.youtube.com/embed/${youtubeMatch[1]}" allowfullscreen></iframe>
+                        </div>
+                    `;
+                }
+            }
+
+            main.innerHTML = `
+                <div class="profile-header">
+                    ${teacher.photo 
+                        ? `<img src="${teacher.photo}" class="profile-photo" alt="${teacher.name}">`
+                        : `<div class="profile-photo-placeholder">${teacher.name.charAt(0)}</div>`
+                    }
+                    
+                    <div class="profile-info">
+                        <h1>${teacher.name}</h1>
+                        <div class="profile-country">${teacher.country || '🌎 Internacional'}</div>
+                        <p class="profile-bio">${teacher.bio || 'Profesor de piano con experiencia en enseñanza online.'}</p>
+                        
+                        ${teacher.languages && teacher.languages.length > 0 ? `
+                            <div class="profile-languages">
+                                ${teacher.languages.map(l => `<span class="language-tag">🗣️ ${l}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="price-card">
+                        <h3>Precio por clase</h3>
+                        <div class="price-main">$${teacher.pricePerClass.toFixed(0)} <span>USD</span></div>
+                        <div class="price-note">Clase de 45-60 minutos</div>
+                        
+                        ${packagesHTML}
+                        
+                        <a href="/comprar-clases.html?profesor=${teacher.slug}" class="btn-book">
+                            📅 Reservar Clase
+                        </a>
+                        
+                        ${teacher.acceptsTrialClass ? `
+                            <div class="trial-banner">
+                                <div class="trial-banner-text">🎁 Clase de prueba incluida en el kit</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <div class="profile-sections">
+                    <div class="section-card">
+                        <h2>🎯 Especialidades</h2>
+                        ${teacher.specialties && teacher.specialties.length > 0 
+                            ? `<div class="specialties-list">${teacher.specialties.map(s => `<span class="specialty-tag">${s}</span>`).join('')}</div>`
+                            : '<p class="info-text">No se han especificado especialidades.</p>'
+                        }
+                    </div>
+
+                    <div class="section-card">
+                        <h2>🎓 Formación</h2>
+                        <p class="info-text">${teacher.education || 'Información no disponible.'}</p>
+                    </div>
+
+                    <div class="section-card">
+                        <h2>📝 Experiencia</h2>
+                        <p class="info-text">${teacher.experience || 'Información no disponible.'}</p>
+                    </div>
+
+                    <div class="section-card">
+                        <h2>🎬 Video de Presentación</h2>
+                        ${videoHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Mostrar error
+        function showError(message) {
+            document.getElementById('mainContent').innerHTML = `
+                <div class="error">
+                    <h2>😔 Profesor no encontrado</h2>
+                    <p>${message || 'Este perfil no está disponible.'}</p>
+                    <a href="/profesores.html" class="btn-book" style="width: auto; display: inline-block; margin-top: 20px;">Ver todos los profesores</a>
+                </div>
+            `;
+        }
+
+        // Cargar al inicio
+        loadProfile();
+    </script>
+</body>
+</html>

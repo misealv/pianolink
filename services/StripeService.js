@@ -681,7 +681,7 @@ class StripeService {
         console.log(`[StripeService] 💳 Checkout completado: ${session.id}`);
 
         const metadata = session.metadata || {};
-        const teacherId = metadata[stripeConfig.metadataKeys.teacherId];
+        const teacherId = metadata[stripeConfig.metadataKeys.teacherId] || metadata.teacherId;
         
         // CASO 1: Suscripción de profesor
         if (metadata.subscriptionType === 'teacher_platform') {
@@ -711,9 +711,19 @@ class StripeService {
             }
         }
         
-        // CASO 2: Pago de clases (estudiante)
-        const studentId = metadata[stripeConfig.metadataKeys.studentId];
-        const classCount = parseInt(metadata.classCount) || 1;
+        // CASO 2: Compra de clases del marketplace (type: 'class_purchase')
+        if (metadata.type === 'class_purchase') {
+            return await this.handleClassPurchase(session, metadata);
+        }
+        
+        // CASO 3: Compra del Kit de Bienvenida (type: 'kit_purchase')
+        if (metadata.type === 'kit_purchase') {
+            return await this.handleKitPurchase(session, metadata);
+        }
+        
+        // CASO 4: Pago de clases legacy (estudiante directo)
+        const studentId = metadata[stripeConfig.metadataKeys.studentId] || metadata.studentId;
+        const classCount = parseInt(metadata.classCount) || parseInt(metadata.classes) || 1;
 
         if (!teacherId || !studentId) {
             console.error('[StripeService] Metadata incompleta en checkout');
@@ -753,6 +763,171 @@ class StripeService {
 
         } catch (error) {
             console.error('[StripeService] Error procesando checkout:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Manejar compra de clases del marketplace
+     * Crea/actualiza StudentEnrollment con tarifa congelada
+     */
+    static async handleClassPurchase(session, metadata) {
+        const { studentId, teacherId, classes, discountPercent, teacherRate, pricePerClass } = metadata;
+        const classCount = parseInt(classes);
+        const rate = parseFloat(teacherRate);
+        const totalAmount = session.amount_total / 100; // Convertir de centavos
+        
+        const PLATFORM_COMMISSION = 0.20; // 20%
+
+        console.log(`[StripeService] 🎹 Procesando compra marketplace: ${classCount} clases`);
+
+        try {
+            // Importar modelo si no está disponible
+            const StudentEnrollment = require('../models/StudentEnrollment');
+            
+            // Buscar o crear enrollment
+            let enrollment = await StudentEnrollment.findOne({
+                student: studentId,
+                teacher: teacherId
+            });
+
+            if (!enrollment) {
+                // Crear nuevo enrollment con tarifa congelada por 1 año
+                const now = new Date();
+                const oneYearLater = new Date(now);
+                oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+
+                enrollment = new StudentEnrollment({
+                    student: studentId,
+                    teacher: teacherId,
+                    frozenRate: rate,
+                    rateFrozenAt: now,
+                    rateLockedUntil: oneYearLater,
+                    classesPurchased: 0,
+                    classesRemaining: 0,
+                    classesCompleted: 0,
+                    status: 'active'
+                });
+            }
+
+            // Calcular ganancias
+            const platformEarnings = totalAmount * PLATFORM_COMMISSION;
+            const teacherEarnings = totalAmount - platformEarnings;
+
+            // Registrar la compra
+            enrollment.purchases.push({
+                date: new Date(),
+                classes: classCount,
+                totalPaid: totalAmount,
+                pricePerClass: parseFloat(pricePerClass),
+                platformEarnings: platformEarnings,
+                teacherEarnings: teacherEarnings,
+                stripeSessionId: session.id,
+                stripePaymentIntent: session.payment_intent
+            });
+
+            // Actualizar contadores
+            enrollment.classesPurchased += classCount;
+            enrollment.classesRemaining += classCount;
+
+            await enrollment.save();
+
+            // También actualizar ganancias pendientes del profesor
+            await User.findByIdAndUpdate(teacherId, {
+                $inc: { 
+                    'teacherData.earnings.pending': teacherEarnings,
+                    'teacherData.earnings.totalClasses': classCount
+                }
+            });
+
+            console.log(`[StripeService] ✅ Compra marketplace procesada:`);
+            console.log(`   - Clases: ${classCount}`);
+            console.log(`   - Profesor gana: $${teacherEarnings.toFixed(2)}`);
+            console.log(`   - Plataforma: $${platformEarnings.toFixed(2)}`);
+
+            return { success: true, enrollmentId: enrollment._id };
+
+        } catch (error) {
+            console.error('[StripeService] Error procesando compra marketplace:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Manejar compra del Kit de Bienvenida
+     * Crea usuario si no existe o actualiza kitPurchased
+     */
+    static async handleKitPurchase(session, metadata) {
+        const { customerName, customerEmail } = metadata;
+        const email = session.customer_email || customerEmail;
+        const name = customerName || session.customer_details?.name || 'Usuario';
+
+        console.log(`[StripeService] 🎁 Procesando compra Kit de Bienvenida: ${email}`);
+
+        try {
+            // Verificar si el usuario ya existe
+            let user = await User.findOne({ email });
+            let isNewUser = false;
+
+            if (!user) {
+                // Crear nuevo usuario
+                const [firstName, ...lastNameParts] = name.split(' ');
+                const lastName = lastNameParts.join(' ') || '';
+                const tempPassword = Math.random().toString(36).slice(-8);
+
+                user = await User.create({
+                    name: firstName,
+                    lastName: lastName,
+                    email: email,
+                    password: tempPassword, // Se hasheará por el pre-save hook
+                    role: 'student',
+                    kitPurchased: true,
+                    kitPurchaseDate: new Date(),
+                    stripeSessionId: session.id
+                });
+
+                isNewUser = true;
+                console.log(`[StripeService] ✅ Usuario creado: ${user.email}`);
+            } else {
+                // Usuario ya existe, actualizar flag de kit
+                user.kitPurchased = true;
+                user.kitPurchaseDate = new Date();
+                user.stripeSessionId = session.id;
+                await user.save();
+                console.log(`[StripeService] ✅ Usuario actualizado: ${user.email}`);
+            }
+
+            // Registrar pago
+            await Payment.create({
+                provider: 'stripe',
+                externalPaymentId: session.payment_intent,
+                sessionId: session.id,
+                amount: session.amount_total,
+                currency: session.currency.toUpperCase(),
+                status: 'approved',
+                payer: {
+                    email: email,
+                    name: name
+                },
+                metadata: {
+                    type: 'kit_purchase',
+                    userId: user._id.toString(),
+                    isNewUser
+                },
+                processedAt: new Date()
+            });
+
+            console.log(`[StripeService] 🎁 Kit de Bienvenida procesado para ${email}`);
+
+            return { 
+                success: true, 
+                userId: user._id,
+                isNewUser,
+                email: user.email
+            };
+
+        } catch (error) {
+            console.error('[StripeService] Error procesando kit purchase:', error.message);
             return { success: false, error: error.message };
         }
     }

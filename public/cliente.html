@@ -373,6 +373,142 @@
             color: var(--text-muted);
         }
 
+        /* ==================== PRÓXIMA CLASE ==================== */
+        .next-class-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #6366f1;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .next-class-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #6366f1, #818cf8, #6366f1);
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        .next-class-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        .next-class-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #818cf8;
+            font-weight: 600;
+        }
+        .next-class-countdown {
+            background: rgba(99, 102, 241, 0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #a5b4fc;
+            font-weight: 500;
+        }
+        .next-class-countdown.live {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .next-class-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .teacher-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #6366f1;
+        }
+        .teacher-avatar-placeholder {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #818cf8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+        }
+        .next-class-details h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .next-class-time {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+        .next-class-time strong {
+            color: #fbbf24;
+        }
+        .btn-enter-class {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            text-decoration: none;
+        }
+        .btn-enter-class:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+        .btn-enter-class:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+        .btn-enter-class.live {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            animation: glow 1.5s infinite;
+        }
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(34, 197, 94, 0.5); }
+        }
+        .no-class-scheduled {
+            text-align: center;
+            padding: 30px;
+            background: var(--card);
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        .no-class-scheduled p {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+
         /* Orders/Tracking Section */
         .orders-section {
             margin-bottom: 32px;
@@ -1400,11 +1536,12 @@
         // Cargar datos del usuario
         async function loadDashboard() {
             try {
-                const [userRes, paymentsRes, subscriptionRes, ordersRes] = await Promise.all([
+                const [userRes, paymentsRes, subscriptionRes, ordersRes, nextClassRes] = await Promise.all([
                     fetch('/api/client/me', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/client/payments', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/client/subscription', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('/api/client/orders', { headers: { 'Authorization': `Bearer ${token}` } })
+                    fetch('/api/client/orders', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/bookings/my-next', { headers: { 'Authorization': `Bearer ${token}` } })
                 ]);
 
                 if (!userRes.ok) {
@@ -1415,11 +1552,12 @@
                 const paymentsData = await paymentsRes.json();
                 const subscription = await subscriptionRes.json();
                 const ordersData = await ordersRes.json();
+                const nextClassData = nextClassRes.ok ? await nextClassRes.json() : { hasNext: false };
 
                 // Guardar referencia para uso en agendamiento
                 currentUserData = user;
 
-                renderDashboard(user, paymentsData.payments, subscription, ordersData.orders);
+                renderDashboard(user, paymentsData.payments, subscription, ordersData.orders, nextClassData);
             } catch (error) {
                 console.error('Error cargando dashboard:', error);
                 if (error.message === 'No autorizado') {
@@ -1429,12 +1567,18 @@
             }
         }
 
-        function renderDashboard(user, payments, subscription, orders) {
+        // Variable global para actualizar countdown
+        let nextClassInterval = null;
+
+        function renderDashboard(user, payments, subscription, orders, nextClass) {
             // Actualizar nombre en header
             document.getElementById('userName').textContent = user.name;
 
             const students = user.clientData?.managedStudents || [];
             const isGuardian = students.length > 0;
+
+            // Renderizar tarjeta de próxima clase
+            const nextClassHTML = renderNextClass(nextClass);
 
             const main = document.getElementById('mainContent');
             main.innerHTML = `
@@ -1443,6 +1587,9 @@
                     <h1>¡Hola, ${user.name.split(' ')[0]}! 👋</h1>
                     <p>${isGuardian ? `Gestionas ${students.length} estudiante(s)` : 'Tu panel de clases de piano'}</p>
                 </section>
+
+                <!-- Próxima Clase -->
+                ${nextClassHTML}
 
                 <!-- Stats -->
                 <section class="stats-grid">
@@ -2358,6 +2505,148 @@
                 btn.disabled = false;
                 btn.textContent = originalText;
             }
+        }
+
+        // ==================== PRÓXIMA CLASE ====================
+        
+        function renderNextClass(nextClassData) {
+            // Limpiar intervalo anterior
+            if (nextClassInterval) {
+                clearInterval(nextClassInterval);
+                nextClassInterval = null;
+            }
+
+            if (!nextClassData || !nextClassData.hasNext) {
+                return `
+                    <div class="no-class-scheduled">
+                        <p>📅 No tienes clases programadas</p>
+                        <button class="btn btn-primary" onclick="scheduleClass()">Agendar una clase</button>
+                    </div>
+                `;
+            }
+
+            const booking = nextClassData.booking;
+            const teacher = booking.teacher;
+            const classDate = new Date(booking.scheduledStart);
+            
+            // Formatear fecha y hora
+            const dateOptions = { weekday: 'long', day: 'numeric', month: 'long' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit' };
+            const formattedDate = classDate.toLocaleDateString('es-ES', dateOptions);
+            const formattedTime = classDate.toLocaleTimeString('es-ES', timeOptions);
+            
+            // Determinar estado del botón
+            const canJoin = nextClassData.canJoinNow;
+            const minutes = nextClassData.minutesUntilClass;
+            
+            // URL de la sala del profesor
+            const roomUrl = `/c/${teacher.slug}`;
+            
+            // Guardar datos para el countdown
+            window.nextClassData = {
+                scheduledStart: booking.scheduledStart,
+                canJoinAt: nextClassData.canJoinAt,
+                roomUrl: roomUrl,
+                teacherName: teacher.name
+            };
+            
+            // Iniciar countdown
+            setTimeout(() => startNextClassCountdown(), 100);
+            
+            return `
+                <div class="next-class-card">
+                    <div class="next-class-header">
+                        <span class="next-class-title">🎹 Tu próxima clase</span>
+                        <span class="next-class-countdown ${canJoin ? 'live' : ''}" id="nextClassCountdown">
+                            ${canJoin ? '🟢 Sala abierta' : getCountdownText(minutes)}
+                        </span>
+                    </div>
+                    
+                    <div class="next-class-info">
+                        ${teacher.branding?.profilePhotoUrl 
+                            ? `<img src="${teacher.branding.profilePhotoUrl}" class="teacher-avatar" alt="${teacher.name}">`
+                            : `<div class="teacher-avatar-placeholder">${teacher.name.charAt(0)}</div>`
+                        }
+                        <div class="next-class-details">
+                            <h3>Clase con ${teacher.name}</h3>
+                            <div class="next-class-time">
+                                📅 ${formattedDate}<br>
+                                ⏰ <strong>${formattedTime}</strong> (${booking.duration} min)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <a href="${roomUrl}" 
+                       class="btn-enter-class ${canJoin ? 'live' : ''}" 
+                       id="btnEnterClass"
+                       ${canJoin ? '' : 'onclick="return alertWaitTime(event)"'}>
+                        ${canJoin ? '🚀 Entrar a la Clase' : '⏳ Esperando hora de clase'}
+                    </a>
+                </div>
+            `;
+        }
+
+        function getCountdownText(minutes) {
+            if (minutes <= 0) return '🟢 ¡Es hora!';
+            if (minutes < 60) return `⏳ En ${minutes} min`;
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            if (hours < 24) return `⏳ En ${hours}h ${mins}m`;
+            const days = Math.floor(hours / 24);
+            return `📅 En ${days} día${days > 1 ? 's' : ''}`;
+        }
+
+        function startNextClassCountdown() {
+            if (!window.nextClassData) return;
+            
+            nextClassInterval = setInterval(() => {
+                const now = new Date();
+                const classTime = new Date(window.nextClassData.scheduledStart);
+                const canJoinAt = new Date(window.nextClassData.canJoinAt);
+                
+                const minutesUntilClass = Math.round((classTime - now) / 60000);
+                const canJoinNow = now >= canJoinAt;
+                
+                const countdownEl = document.getElementById('nextClassCountdown');
+                const btnEl = document.getElementById('btnEnterClass');
+                
+                if (!countdownEl || !btnEl) {
+                    clearInterval(nextClassInterval);
+                    return;
+                }
+                
+                if (canJoinNow) {
+                    countdownEl.textContent = '🟢 Sala abierta';
+                    countdownEl.classList.add('live');
+                    btnEl.textContent = '🚀 Entrar a la Clase';
+                    btnEl.classList.add('live');
+                    btnEl.onclick = null;
+                } else {
+                    countdownEl.textContent = getCountdownText(minutesUntilClass);
+                }
+                
+                // Si la clase ya pasó hace más de 1 hora, recargar
+                if (minutesUntilClass < -60) {
+                    clearInterval(nextClassInterval);
+                    loadDashboard();
+                }
+            }, 30000); // Actualizar cada 30 segundos
+        }
+
+        function alertWaitTime(event) {
+            if (!window.nextClassData) return false;
+            
+            const canJoinAt = new Date(window.nextClassData.canJoinAt);
+            const now = new Date();
+            
+            if (now >= canJoinAt) {
+                return true; // Permitir entrar
+            }
+            
+            const waitMinutes = Math.round((canJoinAt - now) / 60000);
+            alert(`⏳ La sala se abre ${waitMinutes} minutos antes de la clase.\n\nPodrás entrar a las ${canJoinAt.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}`);
+            event.preventDefault();
+            return false;
         }
 
         // Iniciar

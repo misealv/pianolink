@@ -171,10 +171,21 @@ app.use('/api/client', require('./routes/clientRoutes')); // Panel del cliente
 app.use('/api/availability', require('./routes/availabilityRoutes')); // Calendario disponibilidad
 app.use('/api/bookings', require('./routes/bookingRoutes')); // Reservas de clases
 app.use('/api/diagnostic', require('./routes/diagnosticRoutes')); // Auditoría de diagnóstico
+app.use('/api/teacher-profile', require('./routes/teacherProfile')); // Perfil público y tarifas
+app.use('/api/class-purchase', require('./routes/classPurchase')); // Compra de clases
 
 // Ruta para página de éxito del Welcome Kit (sin .html)
 app.get('/welcome-kit/success', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'welcome-kit', 'success.html'));
+});
+
+// Catálogo y perfiles de profesores (URLs limpias)
+app.get('/profesores', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'profesores.html'));
+});
+
+app.get('/profesor/:slug', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'profesor-perfil.html'));
 });
 
 // Ruta para Mi Kit (dashboard del cliente)
@@ -1891,8 +1902,9 @@ function formatUptime(seconds) {
 }
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`🎹 PianoLink V4 (State-Aware Relay) corriendo en puerto ${PORT}`);
+const HOST = '0.0.0.0';
+server.listen(PORT, HOST, () => {
+    console.log(`🎹 PianoLink V4 (State-Aware Relay) corriendo en ${HOST}:${PORT}`);
     console.log(`📡 Entorno: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔒 CORS: ${process.env.NODE_ENV === 'production' ? 'Restringido' : 'Desarrollo'}`);
     console.log('[Lifecycle] Graceful shutdown configurado.');

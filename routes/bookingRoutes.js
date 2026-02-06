@@ -107,6 +107,73 @@ router.get('/teacher', protect, async (req, res) => {
 });
 
 /**
+ * GET /api/bookings/my-next
+ * Obtener la próxima clase del usuario (estudiante o profesor)
+ */
+router.get('/my-next', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const now = new Date();
+        
+        // Buscar próxima clase (pendiente o confirmada, no cancelada)
+        let query = {
+            scheduledStart: { $gte: new Date(now.getTime() - 30 * 60 * 1000) }, // Desde 30 min atrás (por si ya empezó)
+            status: { $in: ['pending', 'confirmed', 'in_progress'] }
+        };
+        
+        // Dependiendo del rol
+        if (req.user.role === 'teacher') {
+            query.teacherId = userId;
+        } else {
+            query.$or = [
+                { studentId: userId },
+                { clientId: userId }
+            ];
+        }
+        
+        const nextBooking = await Booking.findOne(query)
+            .sort({ scheduledStart: 1 })
+            .populate('teacherId', 'name branding.profilePhotoUrl slug')
+            .populate('studentId', 'name')
+            .lean();
+        
+        if (!nextBooking) {
+            return res.json({ 
+                success: true, 
+                hasNext: false,
+                booking: null 
+            });
+        }
+        
+        // Calcular si puede entrar (15 min antes)
+        const canJoinAt = new Date(nextBooking.scheduledStart.getTime() - 15 * 60 * 1000);
+        const canJoinNow = now >= canJoinAt;
+        const minutesUntilClass = Math.round((nextBooking.scheduledStart - now) / 60000);
+        
+        res.json({
+            success: true,
+            hasNext: true,
+            booking: {
+                _id: nextBooking._id,
+                scheduledStart: nextBooking.scheduledStart,
+                scheduledEnd: nextBooking.scheduledEnd,
+                duration: nextBooking.duration,
+                status: nextBooking.status,
+                teacher: nextBooking.teacherId,
+                student: nextBooking.studentId
+            },
+            canJoinNow,
+            canJoinAt,
+            minutesUntilClass
+        });
+        
+    } catch (error) {
+        console.error('Error obteniendo próxima clase:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
  * GET /api/bookings/:id
  * Obtener detalle de una reserva
  */
@@ -416,6 +483,86 @@ router.post('/:id/rate', protect, async (req, res) => {
     } catch (error) {
         console.error('Error calificando:', error);
         res.status(500).json({ message: error.message });
+    }
+});
+
+/**
+ * GET /api/bookings/:id/room-access
+ * Verificar si el usuario puede acceder a la sala de una reserva
+ */
+router.get('/:id/room-access', protect, async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id)
+            .populate('teacherId', 'name branding.profilePhotoUrl slug')
+            .populate('studentId', 'name');
+        
+        if (!booking) {
+            return res.status(404).json({ 
+                success: false, 
+                canAccess: false,
+                error: 'Reserva no encontrada' 
+            });
+        }
+        
+        // Verificar que es participante
+        const isTeacher = booking.teacherId._id.toString() === req.user._id.toString();
+        const isStudent = booking.studentId._id.toString() === req.user._id.toString();
+        const isClient = booking.clientId?.toString() === req.user._id.toString();
+        
+        if (!isTeacher && !isStudent && !isClient) {
+            return res.status(403).json({ 
+                success: false, 
+                canAccess: false,
+                error: 'No tienes acceso a esta clase' 
+            });
+        }
+        
+        // Verificar estado
+        if (['cancelled', 'no_show', 'completed'].includes(booking.status)) {
+            return res.json({ 
+                success: true, 
+                canAccess: false,
+                error: `Esta clase está ${booking.status === 'completed' ? 'finalizada' : 'cancelada'}`,
+                booking: {
+                    _id: booking._id,
+                    status: booking.status
+                }
+            });
+        }
+        
+        // Verificar tiempo (15 min antes)
+        const now = new Date();
+        const canJoinAt = new Date(booking.scheduledStart.getTime() - 15 * 60 * 1000);
+        const canJoinNow = now >= canJoinAt;
+        const minutesUntilClass = Math.round((booking.scheduledStart - now) / 60000);
+        
+        // Determinar rol del usuario en esta clase
+        const userRole = isTeacher ? 'teacher' : 'student';
+        
+        // Generar roomId basado en booking
+        const roomId = `class-${booking._id}`;
+        
+        res.json({
+            success: true,
+            canAccess: canJoinNow,
+            waitTime: canJoinNow ? 0 : Math.round((canJoinAt - now) / 60000),
+            minutesUntilClass,
+            userRole,
+            roomId,
+            booking: {
+                _id: booking._id,
+                scheduledStart: booking.scheduledStart,
+                scheduledEnd: booking.scheduledEnd,
+                duration: booking.duration,
+                status: booking.status,
+                teacher: booking.teacherId,
+                student: booking.studentId
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error verificando acceso:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
