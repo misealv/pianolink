@@ -125,6 +125,120 @@ router.post('/create-kit-payment', async (req, res) => {
 });
 
 // ============================================
+// 1c. KIT DE BIENVENIDA CON MERCADOPAGO
+// ============================================
+router.post('/create-kit-payment-mercadopago', async (req, res) => {
+    try {
+        const { email, name, country, kitType, cableType } = req.body;
+
+        console.log('[MercadoPago Kit] ========================================');
+        console.log('[MercadoPago Kit] Datos recibidos:', JSON.stringify(req.body));
+        console.log('[MercadoPago Kit] ========================================');
+
+        if (!email || !name) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Email y nombre son requeridos' 
+            });
+        }
+
+        const accessToken = process.env.MP_ACCESS_TOKEN;
+        if (!accessToken) {
+            return res.status(500).json({ 
+                success: false, 
+                error: 'MercadoPago no está configurado' 
+            });
+        }
+
+        // Precios en CLP (pesos chilenos)
+        const SERVICE_PRICE_CLP = 30000; // Setup + Clase (~$35 USD)
+        const CABLE_PRICE_CLP = 3500;    // Cable MIDI (~$4 USD)
+        
+        const includesCable = kitType === 'full';
+        const totalPrice = SERVICE_PRICE_CLP + (includesCable ? CABLE_PRICE_CLP : 0);
+        
+        const productName = includesCable 
+            ? 'Kit Completo PianoLink - Día 88'
+            : 'Setup + Clase de Prueba PianoLink';
+        const productDescription = includesCable
+            ? 'Cable MIDI Premium + Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma'
+            : 'Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma';
+
+        console.log('[MercadoPago Kit] kitType:', kitType);
+        console.log('[MercadoPago Kit] includesCable:', includesCable);
+        console.log('[MercadoPago Kit] TOTAL CLP: $' + totalPrice);
+
+        // Crear preferencia de pago
+        const preference = {
+            items: [{
+                title: productName,
+                description: productDescription,
+                quantity: 1,
+                currency_id: 'CLP',
+                unit_price: totalPrice
+            }],
+            payer: {
+                email: email,
+                name: name.split(' ')[0],
+                surname: name.split(' ').slice(1).join(' ') || name
+            },
+            back_urls: {
+                success: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/kit-success?provider=mercadopago&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
+                failure: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/welcome-kit?error=payment_failed`,
+                pending: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/kit-pending?email=${encodeURIComponent(email)}`
+            },
+            auto_return: 'approved',
+            external_reference: `kit_${Date.now()}_${email}`,
+            notification_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/api/webhooks/mercadopago`,
+            metadata: {
+                type: 'kit_purchase',
+                customerName: name,
+                customerEmail: email,
+                country: country || 'CL',
+                kitType: includesCable ? 'full' : 'setup_only',
+                cableType: cableType || 'NONE'
+            }
+        };
+
+        const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(preference)
+        });
+
+        const data = await response.json();
+
+        if (data.id) {
+            console.log('[MercadoPago Kit] Preferencia creada:', data.id);
+            console.log('[MercadoPago Kit] URL:', data.init_point);
+            
+            res.json({
+                success: true,
+                preferenceId: data.id,
+                checkoutUrl: data.init_point, // Producción
+                sandboxUrl: data.sandbox_init_point // Test
+            });
+        } else {
+            console.error('[MercadoPago Kit] Error:', data);
+            res.status(500).json({ 
+                success: false, 
+                error: data.message || 'Error creando preferencia' 
+            });
+        }
+
+    } catch (error) {
+        console.error('[MercadoPago] Error en create-kit-payment:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// ============================================
 // 1b. KIT DE BIENVENIDA CON STRIPE
 // ============================================
 router.post('/create-kit-payment-stripe', async (req, res) => {

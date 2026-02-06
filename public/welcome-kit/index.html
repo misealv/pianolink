@@ -1124,11 +1124,14 @@
             
             const container = document.getElementById('paypal-button-container');
             container.innerHTML = `
-                <button id="stripe-checkout-btn" class="stripe-button" onclick="processStripePayment()">
-                    💳 Pagar con Tarjeta
+                <button id="stripe-checkout-btn" class="stripe-button" onclick="processStripePayment()" style="width: 100%; padding: 15px; background: #635bff; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-bottom: 10px;">
+                    💳 Pagar con Tarjeta (Internacional)
+                </button>
+                <button id="mp-checkout-btn" class="mercadopago-button" onclick="processMercadoPagoPayment()" style="width: 100%; padding: 15px; background: #00a2e8; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">
+                    🇨🇱 Pagar con MercadoPago (Chile)
                 </button>
                 <p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-top: 10px;">
-                    Pago seguro con Stripe 🔒
+                    Pagos seguros 🔒 Stripe + MercadoPago
                 </p>
             `;
         }
@@ -1177,7 +1180,54 @@
                 console.error('Stripe error:', error);
                 alert('Error: ' + error.message);
                 btn.disabled = false;
-                btn.textContent = '💳 Pagar con Tarjeta';
+                btn.textContent = '💳 Pagar con Tarjeta (Internacional)';
+            }
+        }
+        
+        async function processMercadoPagoPayment() {
+            const btn = document.getElementById('mp-checkout-btn');
+            btn.disabled = true;
+            btn.textContent = 'Procesando...';
+            
+            try {
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                
+                const paymentData = {
+                    name,
+                    email,
+                    country: 'CL',
+                    cableType: needsCable ? (selectedCableType || 'GENERIC') : 'NONE',
+                    kitType: needsCable ? 'full' : 'setup_only'
+                };
+                
+                console.log('[PianoLink] Enviando a MercadoPago:', paymentData);
+                
+                const res = await fetch('/api/payment/create-kit-payment-mercadopago', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(paymentData)
+                });
+                
+                const data = await res.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Error creando preferencia de pago');
+                }
+                
+                // En modo TEST usar sandboxUrl, en producción usar checkoutUrl
+                const checkoutUrl = data.sandboxUrl || data.checkoutUrl;
+                if (checkoutUrl) {
+                    window.location.href = checkoutUrl;
+                } else {
+                    throw new Error('No se recibió URL de checkout');
+                }
+                
+            } catch (error) {
+                console.error('MercadoPago error:', error);
+                alert('Error: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = '🇨🇱 Pagar con MercadoPago (Chile)';
             }
         }
         
