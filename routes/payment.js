@@ -153,7 +153,8 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
         const currency = (pricing?.currency || 'USD').toLowerCase();
         const priceInCents = Math.round(kitPrice * 100);
 
-        const stripe = StripeService.stripe;
+        const { getStripeClient } = require('../config/stripe');
+        const stripe = getStripeClient();
         
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
