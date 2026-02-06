@@ -1145,10 +1145,8 @@
                     throw new Error(paymentData.error || 'Error creando pago');
                 }
                 
-                // Redirect to payment
-                const checkoutUrl = provider === 'mercadopago' 
-                    ? (paymentData.sandboxUrl || paymentData.checkoutUrl)
-                    : paymentData.checkoutUrl;
+                // Redirect to payment (producción)
+                const checkoutUrl = paymentData.checkoutUrl;
                     
                 if (checkoutUrl) {
                     window.location.href = checkoutUrl;

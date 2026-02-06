@@ -150,12 +150,22 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
             });
         }
 
-        // Precios en CLP (pesos chilenos)
-        const SERVICE_PRICE_CLP = 30000; // Setup + Clase (~$35 USD)
-        const CABLE_PRICE_CLP = 3500;    // Cable MIDI (~$4 USD)
+        // Leer precio desde admin (GlobalConfig)
+        const config = await GlobalConfig.findOne({ isDefault: true });
+        const countryCode = (country || 'CL').toUpperCase();
         
-        const includesCable = kitType === 'full';
-        const totalPrice = SERVICE_PRICE_CLP + (includesCable ? CABLE_PRICE_CLP : 0);
+        const setupPricing = config?.regionalPricing?.setupOnly?.find(p => p.regionCode === countryCode) ||
+                            config?.regionalPricing?.setupOnly?.find(p => p.regionCode === 'DEFAULT');
+        
+        const servicePrice = setupPricing?.price || 10;
+        const currency = setupPricing?.currency || 'USD';
+        
+        // Precio del cable (desde config o default)
+        const cablePricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === countryCode) ||
+                            config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === 'DEFAULT');
+        const cablePrice = includesCable ? (cablePricing?.cablePrice || 4) : 0;
+        
+        const totalPrice = servicePrice + cablePrice;
         
         const productName = includesCable 
             ? 'Kit Completo PianoLink - Día 88'
@@ -166,7 +176,14 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
 
         console.log('[MercadoPago Kit] kitType:', kitType);
         console.log('[MercadoPago Kit] includesCable:', includesCable);
-        console.log('[MercadoPago Kit] TOTAL CLP: $' + totalPrice);
+        console.log('[MercadoPago Kit] Precio servicio:', servicePrice, currency);
+        console.log('[MercadoPago Kit] Precio cable:', cablePrice, currency);
+        console.log('[MercadoPago Kit] TOTAL:', totalPrice, currency);
+
+        // Mapeo de monedas para MercadoPago
+        const mpCurrency = currency === 'CLP' ? 'CLP' : 
+                          currency === 'ARS' ? 'ARS' : 
+                          currency === 'MXN' ? 'MXN' : 'CLP';
 
         // Crear preferencia de pago
         const preference = {
@@ -174,7 +191,7 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
                 title: productName,
                 description: productDescription,
                 quantity: 1,
-                currency_id: 'CLP',
+                currency_id: mpCurrency,
                 unit_price: totalPrice
             }],
             payer: {
