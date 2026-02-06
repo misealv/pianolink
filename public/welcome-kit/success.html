@@ -372,14 +372,40 @@
     <script>
         async function verifyPayment() {
             const params = new URLSearchParams(window.location.search);
-            // PayPal envía 'token' como orderId y también tenemos nuestro 'ref'
-            const orderId = params.get('token');
-            const ref = params.get('ref');
+            // Detectar proveedor de pago
+            const provider = params.get('provider');
+            const paypalToken = params.get('token');
+            const mpPaymentId = params.get('collection_id') || params.get('payment_id');
+            const mpStatus = params.get('collection_status') || params.get('status');
+            const mpExternalRef = params.get('external_reference');
+            const emailParam = params.get('email');
+            const nameParam = params.get('name');
+            const stripeSessionId = params.get('session_id');
             
             const loadingEl = document.getElementById('loading');
             const contentEl = document.getElementById('content');
             
-            if (!orderId) {
+            let endpoint, body;
+            
+            if (provider === 'mercadopago' || mpPaymentId) {
+                // === MERCADOPAGO ===
+                endpoint = '/api/welcome-kit/verify-mercadopago';
+                body = {
+                    paymentId: mpPaymentId,
+                    externalReference: mpExternalRef,
+                    email: emailParam ? decodeURIComponent(emailParam) : null,
+                    name: nameParam ? decodeURIComponent(nameParam) : null
+                };
+            } else if (stripeSessionId) {
+                // === STRIPE ===
+                endpoint = '/api/payment/verify-kit-payment-stripe';
+                body = { sessionId: stripeSessionId };
+            } else if (paypalToken) {
+                // === PAYPAL (flujo original) ===
+                endpoint = '/api/welcome-kit/verify';
+                body = { orderId: paypalToken };
+            } else {
+                // Sin datos de pago - mostrar éxito genérico
                 loadingEl.innerHTML = `
                     <p style="color: var(--text-secondary);">
                         ¡Gracias por tu compra! 🎉<br><br>
@@ -393,11 +419,10 @@
             }
             
             try {
-                // Verificar el pago en el backend
-                const res = await fetch('/api/welcome-kit/verify', {
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId })
+                    body: JSON.stringify(body)
                 });
                 
                 const data = await res.json();

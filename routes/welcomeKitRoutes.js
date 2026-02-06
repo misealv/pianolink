@@ -1131,6 +1131,343 @@ router.post('/verify', async (req, res) => {
 });
 
 /**
+ * POST /api/welcome-kit/verify-mercadopago
+ * Verifica el pago de MercadoPago y completa el proceso (mismo flujo que PayPal)
+ */
+router.post('/verify-mercadopago', async (req, res) => {
+    try {
+        const { paymentId, externalReference, email, name: payerNameParam } = req.body;
+        
+        console.log('[WelcomeKit-MP] Verificando pago:', { paymentId, externalReference, email });
+        
+        if (!paymentId && !externalReference) {
+            return res.status(400).json({ success: false, error: 'paymentId o externalReference requerido' });
+        }
+        
+        // 1. Verificar pago con API de MercadoPago
+        const accessToken = process.env.MP_ACCESS_TOKEN;
+        if (!accessToken) {
+            return res.status(500).json({ success: false, error: 'MercadoPago no configurado' });
+        }
+        
+        let mpPayment = null;
+        if (paymentId) {
+            const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (mpRes.ok) {
+                mpPayment = await mpRes.json();
+            }
+        }
+        
+        // Si no tenemos payment, buscar por external_reference
+        if (!mpPayment && externalReference) {
+            const searchRes = await fetch(`https://api.mercadopago.com/v1/payments/search?external_reference=${externalReference}`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (searchRes.ok) {
+                const searchData = await searchRes.json();
+                if (searchData.results && searchData.results.length > 0) {
+                    mpPayment = searchData.results[0];
+                }
+            }
+        }
+        
+        if (!mpPayment) {
+            // Aún sin pago verificado - mostrar éxito genérico (el webhook lo procesará)
+            console.log('[WelcomeKit-MP] No se encontró pago aún, buscando WelcomeKit por email...');
+        }
+        
+        const isApproved = mpPayment && mpPayment.status === 'approved';
+        const mpExternalRef = mpPayment?.external_reference || externalReference;
+        const mpEmail = mpPayment?.payer?.email || email;
+        
+        // 2. Buscar WelcomeKit por external_reference o email
+        let welcomeKit = null;
+        if (mpExternalRef) {
+            // external_reference format: kit_TIMESTAMP_EMAIL
+            const refEmail = mpExternalRef.split('_').slice(2).join('_');
+            welcomeKit = await WelcomeKit.findOne({ 
+                'customer.email': refEmail 
+            }).sort({ createdAt: -1 });
+        }
+        if (!welcomeKit && mpEmail) {
+            welcomeKit = await WelcomeKit.findOne({ 
+                'customer.email': mpEmail.toLowerCase() 
+            }).sort({ createdAt: -1 });
+        }
+        if (!welcomeKit && email) {
+            welcomeKit = await WelcomeKit.findOne({ 
+                'customer.email': email.toLowerCase() 
+            }).sort({ createdAt: -1 });
+        }
+        
+        if (!welcomeKit) {
+            console.log('[WelcomeKit-MP] WelcomeKit no encontrado, mostrando éxito genérico');
+            return res.json({
+                success: true,
+                welcomeKit: {
+                    id: 'PENDING',
+                    status: 'paid',
+                    kitType: 'setup_only',
+                    products: [],
+                    shipping: null,
+                    shippingDays: null,
+                    payment: mpPayment ? {
+                        amount: mpPayment.transaction_amount,
+                        currency: mpPayment.currency_id
+                    } : null
+                },
+                user: { email: mpEmail || email, name: payerNameParam || 'Estudiante' },
+                students: [],
+                nextSteps: [
+                    'Recibirás un email de confirmación',
+                    'Te contactaremos por WhatsApp para coordinar tu sesión',
+                    'Podrás agendar tu sesión de Setup + Clase de prueba'
+                ],
+                magicLinkUrl: null
+            });
+        }
+        
+        // 3. Actualizar WelcomeKit con datos del pago
+        if (isApproved) {
+            welcomeKit.payment = welcomeKit.payment || {};
+            welcomeKit.payment.paidAt = new Date();
+            welcomeKit.payment.provider = 'mercadopago';
+            welcomeKit.payment.externalOrderId = String(mpPayment.id);
+            welcomeKit.payment.amount = mpPayment.transaction_amount;
+            welcomeKit.payment.currency = mpPayment.currency_id;
+            if (welcomeKit.shipping && welcomeKit.shipping.status === 'pending_payment') {
+                welcomeKit.shipping.status = 'processing';
+            }
+            welcomeKit.overallStatus = 'paid';
+        }
+        
+        // 4. Obtener datos del checkout guardados
+        const checkoutData = welcomeKit.get('_checkoutData') || {};
+        const payerEmail = checkoutData.email || mpEmail || email;
+        const payerName = checkoutData.name || payerNameParam || 'Estudiante';
+        const studentType = checkoutData.studentType || 'self';
+        
+        // 5. Crear o actualizar usuario (mismo flujo que PayPal)
+        let user = await User.findOne({ email: payerEmail?.toLowerCase() });
+        let student = null;
+        let generatedMagicLinkToken = null;
+        
+        const crypto = require('crypto');
+        const magicLinkToken = crypto.randomBytes(32).toString('hex');
+        const magicLinkExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        generatedMagicLinkToken = magicLinkToken;
+        
+        if (!user && payerEmail) {
+            const tempPassword = crypto.randomBytes(16).toString('hex');
+            
+            if (studentType === 'self') {
+                user = await User.create({
+                    name: payerName,
+                    email: payerEmail.toLowerCase(),
+                    password: tempPassword,
+                    whatsapp: checkoutData.whatsapp || '',
+                    country: welcomeKit.shipping?.address?.country || 'CL',
+                    role: 'student',
+                    classesRemaining: 1,
+                    classesCompleted: 0,
+                    studentData: {
+                        source: 'platform',
+                        level: 'beginner',
+                        age: checkoutData.beneficiaryAge || null
+                    },
+                    kitPurchased: true,
+                    kitPurchaseDate: new Date(),
+                    magicLinkToken: magicLinkToken,
+                    magicLinkExpires: magicLinkExpires,
+                    mustChangePassword: true
+                });
+                student = user;
+                console.log(`[WelcomeKit-MP] 🎹 Estudiante creado: ${user.email}`);
+                
+            } else {
+                const allBeneficiaries = checkoutData.beneficiaries || 
+                    (checkoutData.beneficiaryName ? [{ name: checkoutData.beneficiaryName, age: checkoutData.beneficiaryAge }] : []);
+                
+                const managedStudents = allBeneficiaries
+                    .filter(b => b.name)
+                    .map(b => ({
+                        name: b.name,
+                        age: b.age || null,
+                        classesRemaining: 1,
+                        classesUsed: 0
+                    }));
+                
+                user = await User.create({
+                    name: payerName,
+                    email: payerEmail.toLowerCase(),
+                    password: tempPassword,
+                    whatsapp: checkoutData.whatsapp || '',
+                    country: welcomeKit.shipping?.address?.country || 'CL',
+                    role: 'client',
+                    clientData: {
+                        accountType: 'guardian',
+                        managedStudents: managedStudents
+                    },
+                    kitPurchased: true,
+                    kitPurchaseDate: new Date(),
+                    magicLinkToken: magicLinkToken,
+                    magicLinkExpires: magicLinkExpires,
+                    mustChangePassword: true
+                });
+                console.log(`[WelcomeKit-MP] 👤 Apoderado creado: ${user.email} con ${managedStudents.length} estudiante(s)`);
+            }
+            
+            // Enviar email de bienvenida con Magic Link
+            try {
+                const frontendUrl = process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev';
+                const magicLinkUrl = `${frontendUrl}/acceso/${magicLinkToken}`;
+                
+                const emailHtml = generateWelcomeKitEmail({
+                    clientName: user.name,
+                    clientEmail: user.email,
+                    magicLinkUrl: magicLinkUrl,
+                    students: user.clientData?.managedStudents || [],
+                    kitType: welcomeKit.kitType,
+                    totalPaid: welcomeKit.payment?.amount,
+                    currency: welcomeKit.payment?.currency || 'CLP',
+                    orderId: mpPayment?.id || 'MP-' + Date.now()
+                });
+                
+                await EmailService.sendSafe({
+                    to: user.email,
+                    subject: '🎹 ¡Bienvenido a PianoLink! Tu kit está listo',
+                    html: emailHtml
+                });
+                console.log(`[WelcomeKit-MP] 📧 Email con magic link enviado a: ${user.email}`);
+            } catch (emailError) {
+                console.error('[WelcomeKit-MP] ⚠️ Error enviando email:', emailError.message);
+            }
+            
+        } else if (user) {
+            generatedMagicLinkToken = null; // Usuario ya existe, no necesita magic link
+            user.kitPurchased = true;
+            user.kitPurchaseDate = new Date();
+            
+            const allBeneficiaries = checkoutData.beneficiaries || 
+                (checkoutData.beneficiaryName ? [{ name: checkoutData.beneficiaryName, age: checkoutData.beneficiaryAge }] : []);
+            
+            if (studentType === 'child' && allBeneficiaries.length > 0) {
+                user.clientData = user.clientData || { accountType: 'guardian', managedStudents: [] };
+                user.clientData.accountType = 'guardian';
+                user.clientData.managedStudents = user.clientData.managedStudents || [];
+                
+                allBeneficiaries.forEach(b => {
+                    if (b.name) {
+                        user.clientData.managedStudents.push({
+                            name: b.name,
+                            age: b.age || null,
+                            classesRemaining: 1,
+                            classesUsed: 0
+                        });
+                    }
+                });
+            }
+            
+            await user.save();
+            console.log(`[WelcomeKit-MP] 👤 Usuario existente actualizado: ${user.email}`);
+        }
+        
+        // 6. Vincular usuario al WelcomeKit
+        if (user) {
+            welcomeKit.clientId = user._id;
+        }
+        await welcomeKit.save();
+        
+        // 7. CJDropshipping para productos físicos
+        const hasPhysicalProducts = welcomeKit.products && welcomeKit.products.length > 0;
+        if (hasPhysicalProducts) {
+            try {
+                console.log(`[WelcomeKit-MP] 📦 Creando orden en CJDropshipping...`);
+                welcomeKit._checkoutData = checkoutData;
+                const cjOrder = await CJDropshipping.createOrder(welcomeKit);
+                welcomeKit.shipping.fulfillment = {
+                    provider: 'cjdropshipping',
+                    externalOrderId: cjOrder.cjOrderId,
+                    orderNumber: cjOrder.orderNumber,
+                    shipmentOrderId: cjOrder.shipmentOrderId,
+                    status: cjOrder.orderStatus,
+                    costPrice: cjOrder.orderAmount,
+                    createdAt: new Date()
+                };
+                await welcomeKit.save();
+                console.log(`[WelcomeKit-MP] ✅ Orden CJ creada: ${cjOrder.cjOrderId}`);
+            } catch (cjError) {
+                console.error(`[WelcomeKit-MP] ⚠️ Error CJ:`, cjError.message);
+                welcomeKit.shipping.fulfillment = {
+                    provider: 'cjdropshipping',
+                    status: 'error',
+                    errorMessage: cjError.message,
+                    requiresManualReview: true,
+                    createdAt: new Date()
+                };
+                await welcomeKit.save();
+            }
+        }
+        
+        // 8. Notificar admin
+        await notifyAdminNewKit(welcomeKit, user);
+        
+        console.log(`[WelcomeKit-MP] ✅ Pago verificado: ${mpPayment?.id || externalReference}`);
+        
+        // 9. Respuesta
+        const nextSteps = hasPhysicalProducts
+            ? ['Recibirás un email con los detalles del envío', 'Te contactaremos por WhatsApp cuando despachemos', 'Podrás agendar tu sesión de Setup + Clase de prueba']
+            : ['Recibirás un email de confirmación', 'Te contactaremos por WhatsApp para coordinar', 'Podrás agendar tu sesión de Setup + Clase de prueba'];
+        
+        let allStudents = [];
+        if (user && user.clientData?.managedStudents?.length > 0) {
+            allStudents = user.clientData.managedStudents.map(s => ({
+                name: s.name, age: s.age, classesRemaining: s.classesRemaining || 1
+            }));
+        } else if (student) {
+            allStudents = [{ name: student.name, email: student.email, classesRemaining: student.classesRemaining || 1 }];
+        }
+        
+        let shippingDays = '5-10 días hábiles';
+        if (hasPhysicalProducts && welcomeKit.shipping?.address?.country) {
+            const config = await GlobalConfig.findOne({ isDefault: true });
+            const regionConfig = config?.regionalPricing?.welcomeKit?.find(r => r.regionCode === welcomeKit.shipping.address.country);
+            if (regionConfig?.shippingDays) {
+                shippingDays = regionConfig.shippingDays;
+                if (!shippingDays.includes('día')) shippingDays = `${shippingDays} días hábiles`;
+            }
+        }
+        
+        res.json({
+            success: true,
+            welcomeKit: {
+                id: welcomeKit._id,
+                status: welcomeKit.overallStatus,
+                kitType: welcomeKit.kitType,
+                products: welcomeKit.products || [],
+                shipping: hasPhysicalProducts ? welcomeKit.shipping?.address : null,
+                shippingDays: hasPhysicalProducts ? shippingDays : null,
+                payment: welcomeKit.payment || null
+            },
+            user: user ? { id: user._id, email: user.email, name: user.name, role: user.role } : null,
+            student: student ? { id: student._id, name: student.name, email: student.email } : null,
+            students: allStudents,
+            studentType: studentType,
+            nextSteps,
+            magicLinkUrl: generatedMagicLinkToken 
+                ? `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/acceso/${generatedMagicLinkToken}`
+                : null
+        });
+        
+    } catch (error) {
+        console.error('[WelcomeKit-MP] Error verificando pago:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
  * GET /api/welcome-kit/status/:id
  * Obtiene el estado del kit (para el cliente)
  */

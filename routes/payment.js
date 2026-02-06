@@ -85,7 +85,7 @@ router.post('/create-kit-payment', async (req, res) => {
                 brand_name: 'PianoLink',
                 locale: 'es-AR',
                 user_action: 'PAY_NOW',
-                return_url: `${process.env.FRONTEND_URL}/kit-success?email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
+                return_url: `${process.env.FRONTEND_URL}/welcome-kit/success?email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
                 cancel_url: `${process.env.FRONTEND_URL}/kit-bienvenida`
             }
         };
@@ -219,9 +219,9 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
                 last_name: lastName
             },
             back_urls: {
-                success: `${baseUrl}/kit-success?provider=mercadopago&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
+                success: `${baseUrl}/welcome-kit/success?provider=mercadopago&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
                 failure: `${baseUrl}/welcome-kit?error=payment_failed`,
-                pending: `${baseUrl}/kit-pending?email=${encodeURIComponent(email)}`
+                pending: `${baseUrl}/welcome-kit/success?status=pending&email=${encodeURIComponent(email)}`
             },
             auto_return: 'approved',
             external_reference: externalRef,
@@ -356,7 +356,7 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
                 totalPrice: totalPrice.toString(),
                 currency: 'USD'
             },
-            success_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/kit-success?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
+            success_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/welcome-kit/success?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
             cancel_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/welcome-kit`
         });
 
