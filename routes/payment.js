@@ -213,7 +213,8 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
 
         if (data.id) {
             console.log('[MercadoPago Kit] Preferencia creada:', data.id);
-            console.log('[MercadoPago Kit] URL:', data.init_point);
+            console.log('[MercadoPago Kit] URL Producción:', data.init_point);
+            console.log('[MercadoPago Kit] URL Sandbox:', data.sandbox_init_point);
             
             res.json({
                 success: true,
