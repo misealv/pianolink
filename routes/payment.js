@@ -153,6 +153,7 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
         // Leer precio desde admin (GlobalConfig)
         const config = await GlobalConfig.findOne({ isDefault: true });
         const countryCode = (country || 'CL').toUpperCase();
+        const includesCable = kitType === 'full';
         
         const setupPricing = config?.regionalPricing?.setupOnly?.find(p => p.regionCode === countryCode) ||
                             config?.regionalPricing?.setupOnly?.find(p => p.regionCode === 'DEFAULT');
