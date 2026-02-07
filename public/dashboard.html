@@ -517,6 +517,9 @@
             <button onclick="window.location.href='/teacher-availability.html'" class="action-btn btn-secondary">
                 📅 MI DISPONIBILIDAD
             </button>
+            <button onclick="togglePackagesSection()" class="action-btn btn-secondary" id="btnPackages">
+                📦 MIS PAQUETES
+            </button>
             <div id="copyFeedback" style="font-size: 10px; color: #b4e080; text-align: center; margin-top: 5px; min-height: 15px;"></div>
         </div>
 
@@ -805,7 +808,154 @@
     </div>
     <!-- ==================== FIN MI PERFIL PÚBLICO ==================== -->
 
+    <!-- ==================== MIS PAQUETES DE CLASES ==================== -->
+    <div id="packagesSection" style="display: none; margin-top: 30px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+                <h2 style="margin: 0; color: white; font-size: 20px;">📦 Mis Paquetes de Clases</h2>
+                <p style="margin: 5px 0 0; color: #888; font-size: 13px;">Configura los paquetes que tus estudiantes pueden comprar</p>
+            </div>
+            <button onclick="openPackageModal()" style="padding: 12px 20px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                ➕ Nuevo Paquete
+            </button>
+        </div>
+
+        <!-- Info sobre comisiones -->
+        <div style="background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%); border: 1px solid #3d3d5c; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 24px;">💰</div>
+                <div>
+                    <div style="color: white; font-weight: 600;">Tú recibes el 80% de cada pago</div>
+                    <div style="color: #888; font-size: 12px;">PianoLink retiene 20% por gestión de pagos, soporte y plataforma. Los pagos se liberan mensualmente por clase validada.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de paquetes -->
+        <div id="packagesList" style="display: grid; gap: 15px;">
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <div style="font-size: 48px; margin-bottom: 15px;">📦</div>
+                <div>Cargando paquetes...</div>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div id="packagesStats" style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+        </div>
+    </div>
+    <!-- ==================== FIN MIS PAQUETES ==================== -->
+
   </main>
+
+  <!-- Modal para Crear/Editar Paquete -->
+  <div id="packageModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: #1e1e1e; border-radius: 16px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; border: 1px solid #333;">
+        <div style="padding: 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+            <h3 id="packageModalTitle" style="margin: 0; color: white;">Nuevo Paquete</h3>
+            <button onclick="closePackageModal()" style="background: none; border: none; color: #888; font-size: 24px; cursor: pointer;">&times;</button>
+        </div>
+        
+        <form id="packageForm" onsubmit="savePackage(event)" style="padding: 20px;">
+            <input type="hidden" id="packageId">
+            
+            <!-- Categoría -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">CATEGORÍA *</label>
+                <select id="packageCategory" required style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
+                    <option value="piano">🎹 Clases de Piano</option>
+                    <option value="teoria">📚 Teoría Musical</option>
+                    <option value="armonia">🎼 Armonía</option>
+                    <option value="solfeo">🎵 Solfeo y Lectura</option>
+                    <option value="composicion">✍️ Composición</option>
+                    <option value="improvisacion">🎷 Improvisación</option>
+                    <option value="otro">📋 Otro</option>
+                </select>
+            </div>
+            
+            <div id="customCategoryBox" style="display: none; margin-bottom: 15px;">
+                <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">NOMBRE DE LA CATEGORÍA</label>
+                <input type="text" id="packageCategoryCustom" placeholder="Ej: Técnica Vocal" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
+            </div>
+            
+            <!-- Nombre -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">NOMBRE DEL PAQUETE *</label>
+                <input type="text" id="packageName" required placeholder="Ej: Pack Mensual 4 Clases" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
+            </div>
+            
+            <!-- Descripción -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">DESCRIPCIÓN</label>
+                <textarea id="packageDescription" rows="2" placeholder="Descripción corta del paquete..." style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white; resize: vertical;"></textarea>
+            </div>
+            
+            <!-- Grid: Clases y Duración -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">CANTIDAD DE CLASES *</label>
+                    <input type="number" id="packageClassCount" required min="1" max="100" value="4" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
+                </div>
+                <div>
+                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">DURACIÓN (min)</label>
+                    <select id="packageDuration" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
+                        <option value="30">30 minutos</option>
+                        <option value="45" selected>45 minutos</option>
+                        <option value="60">60 minutos</option>
+                        <option value="90">90 minutos</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Precio -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">PRECIO TOTAL (USD) *</label>
+                <div style="position: relative;">
+                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #888;">$</span>
+                    <input type="number" id="packagePrice" required min="5" step="1" value="40" style="width: 100%; padding: 12px 12px 12px 30px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
+                </div>
+                <div id="pricePerClass" style="font-size: 12px; color: #6366f1; margin-top: 5px;">= $10.00 USD por clase</div>
+            </div>
+            
+            <!-- Vigencia -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">VIGENCIA (días) *</label>
+                <select id="packageValidity" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
+                    <option value="30">30 días (1 mes)</option>
+                    <option value="60">60 días (2 meses)</option>
+                    <option value="90">90 días (3 meses)</option>
+                    <option value="180">180 días (6 meses)</option>
+                    <option value="365">365 días (1 año) - Máximo</option>
+                </select>
+                <div style="font-size: 11px; color: #666; margin-top: 5px;">Tiempo máximo para usar las clases del paquete</div>
+            </div>
+            
+            <!-- Opciones -->
+            <div style="margin-bottom: 20px; padding: 15px; background: #252525; border-radius: 8px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 10px;">
+                    <input type="checkbox" id="packageRecurring" checked style="width: 18px; height: 18px; accent-color: #6366f1;">
+                    <span style="color: white; font-size: 14px;">Renovación automática</span>
+                </label>
+                <div style="font-size: 11px; color: #666; margin-left: 28px;">El estudiante será cobrado automáticamente al agotar sus clases</div>
+                
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-top: 15px;">
+                    <input type="checkbox" id="packageFeatured" style="width: 18px; height: 18px; accent-color: #fbbf24;">
+                    <span style="color: white; font-size: 14px;">⭐ Destacar este paquete</span>
+                </label>
+                <div style="font-size: 11px; color: #666; margin-left: 28px;">Aparecerá primero en tu perfil público</div>
+            </div>
+            
+            <!-- Botones -->
+            <div style="display: flex; gap: 10px;">
+                <button type="button" onclick="closePackageModal()" style="flex: 1; padding: 14px; background: #333; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button type="submit" style="flex: 2; padding: 14px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    💾 Guardar Paquete
+                </button>
+            </div>
+        </form>
+    </div>
+  </div>
 
   <!-- Modal de Edición de Perfil -->
   <div id="profileModal" class="profile-modal">
@@ -1869,6 +2019,328 @@ El sistema está en modo TEST.`;
     if (user.role === 'teacher') {
         loadPublicProfile();
     }
+
+    // ==================== GESTIÓN DE PAQUETES ====================
+    
+    let packagesData = [];
+    
+    // Toggle de la sección de paquetes
+    function togglePackagesSection() {
+        const section = document.getElementById('packagesSection');
+        const isVisible = section.style.display !== 'none';
+        
+        if (isVisible) {
+            section.style.display = 'none';
+        } else {
+            section.style.display = 'block';
+            loadPackages();
+            // Scroll suave a la sección
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+    
+    // Cargar paquetes del profesor
+    async function loadPackages() {
+        const token = localStorage.getItem('pianoToken');
+        try {
+            const res = await fetch('/api/teacher-packages/my', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                packagesData = data.packages;
+                renderPackages(data.packages);
+            } else {
+                document.getElementById('packagesList').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ef4444;">
+                        Error cargando paquetes: ${data.error}
+                    </div>
+                `;
+            }
+        } catch (err) {
+            console.error('Error cargando paquetes:', err);
+            document.getElementById('packagesList').innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #ef4444;">
+                    Error de conexión
+                </div>
+            `;
+        }
+    }
+    
+    // Renderizar lista de paquetes
+    function renderPackages(packages) {
+        const container = document.getElementById('packagesList');
+        
+        if (!packages || packages.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px; background: #1e1e1e; border-radius: 12px; border: 2px dashed #333;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">📦</div>
+                    <div style="color: white; font-size: 18px; font-weight: 600; margin-bottom: 8px;">No tienes paquetes creados</div>
+                    <div style="color: #888; font-size: 14px; margin-bottom: 20px;">Crea tu primer paquete para que tus estudiantes puedan comprar clases</div>
+                    <button onclick="openPackageModal()" style="padding: 12px 24px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        ➕ Crear mi primer paquete
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        const categoryNames = {
+            'piano': '🎹 Piano',
+            'teoria': '📚 Teoría',
+            'armonia': '🎼 Armonía',
+            'solfeo': '🎵 Solfeo',
+            'composicion': '✍️ Composición',
+            'improvisacion': '🎷 Improvisación',
+            'otro': '📋 Otro'
+        };
+        
+        container.innerHTML = packages.map(pkg => `
+            <div style="background: #1e1e1e; border-radius: 12px; padding: 20px; border: 1px solid ${pkg.isActive ? '#333' : '#4a2020'}; position: relative; ${!pkg.isActive ? 'opacity: 0.7;' : ''}">
+                ${pkg.isFeatured ? '<div style="position: absolute; top: 10px; right: 10px; background: #fbbf24; color: #000; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px;">⭐ DESTACADO</div>' : ''}
+                ${!pkg.isActive ? '<div style="position: absolute; top: 10px; right: 10px; background: #ef4444; color: white; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px;">INACTIVO</div>' : ''}
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <span style="font-size: 12px; color: #888; background: #2a2a2a; padding: 4px 8px; border-radius: 4px;">
+                                ${categoryNames[pkg.category] || pkg.categoryCustom || pkg.category}
+                            </span>
+                        </div>
+                        <h3 style="margin: 0 0 5px; color: white; font-size: 18px;">${pkg.name}</h3>
+                        <p style="margin: 0; color: #888; font-size: 13px;">${pkg.description || 'Sin descripción'}</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 24px; font-weight: 700; color: #4ade80;">$${(pkg.priceUSD / 100).toFixed(0)}</div>
+                        <div style="font-size: 12px; color: #888;">USD</div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #333;">
+                    <div>
+                        <div style="font-size: 11px; color: #666; text-transform: uppercase;">Clases</div>
+                        <div style="font-size: 16px; color: white; font-weight: 600;">${pkg.classCount}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: #666; text-transform: uppercase;">Duración</div>
+                        <div style="font-size: 16px; color: white; font-weight: 600;">${pkg.classDurationMinutes} min</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: #666; text-transform: uppercase;">Por clase</div>
+                        <div style="font-size: 16px; color: #6366f1; font-weight: 600;">$${(pkg.pricePerClassUSD / 100).toFixed(2)}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: #666; text-transform: uppercase;">Vigencia</div>
+                        <div style="font-size: 16px; color: white; font-weight: 600;">${pkg.validityDays} días</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button onclick="editPackage('${pkg._id}')" style="flex: 1; padding: 10px; background: #333; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                        ✏️ Editar
+                    </button>
+                    <button onclick="togglePackageActive('${pkg._id}', ${pkg.isActive})" style="padding: 10px 15px; background: ${pkg.isActive ? '#4a2020' : '#1a4a20'}; color: ${pkg.isActive ? '#ef4444' : '#4ade80'}; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                        ${pkg.isActive ? '⏸️ Desactivar' : '▶️ Activar'}
+                    </button>
+                    ${pkg.stats?.totalSold > 0 ? '' : `<button onclick="deletePackage('${pkg._id}')" style="padding: 10px 15px; background: #4a2020; color: #ef4444; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">🗑️</button>`}
+                </div>
+                
+                ${pkg.stats?.totalSold > 0 ? `
+                <div style="margin-top: 15px; padding: 10px; background: #252525; border-radius: 6px; display: flex; justify-content: space-around; text-align: center;">
+                    <div>
+                        <div style="font-size: 18px; color: #6366f1; font-weight: 700;">${pkg.stats.totalSold}</div>
+                        <div style="font-size: 10px; color: #666;">Vendidos</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 18px; color: #4ade80; font-weight: 700;">${pkg.stats.activeSubscriptions || 0}</div>
+                        <div style="font-size: 10px; color: #666;">Activos</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 18px; color: #fbbf24; font-weight: 700;">$${((pkg.stats.revenue || 0) / 100).toFixed(0)}</div>
+                        <div style="font-size: 10px; color: #666;">Ingresos</div>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `).join('');
+    }
+    
+    // Abrir modal para nuevo paquete
+    function openPackageModal(packageId = null) {
+        const modal = document.getElementById('packageModal');
+        const form = document.getElementById('packageForm');
+        const title = document.getElementById('packageModalTitle');
+        
+        form.reset();
+        document.getElementById('packageId').value = '';
+        
+        if (packageId) {
+            // Editar paquete existente
+            const pkg = packagesData.find(p => p._id === packageId);
+            if (pkg) {
+                title.textContent = 'Editar Paquete';
+                document.getElementById('packageId').value = pkg._id;
+                document.getElementById('packageCategory').value = pkg.category;
+                document.getElementById('packageCategoryCustom').value = pkg.categoryCustom || '';
+                document.getElementById('packageName').value = pkg.name;
+                document.getElementById('packageDescription').value = pkg.description || '';
+                document.getElementById('packageClassCount').value = pkg.classCount;
+                document.getElementById('packageDuration').value = pkg.classDurationMinutes;
+                document.getElementById('packagePrice').value = pkg.priceUSD / 100;
+                document.getElementById('packageValidity').value = pkg.validityDays;
+                document.getElementById('packageRecurring').checked = pkg.isRecurring;
+                document.getElementById('packageFeatured').checked = pkg.isFeatured;
+                
+                handleCategoryChange();
+                updatePricePerClass();
+            }
+        } else {
+            title.textContent = 'Nuevo Paquete';
+        }
+        
+        modal.style.display = 'flex';
+    }
+    
+    function closePackageModal() {
+        document.getElementById('packageModal').style.display = 'none';
+    }
+    
+    function editPackage(id) {
+        openPackageModal(id);
+    }
+    
+    // Manejar cambio de categoría
+    document.getElementById('packageCategory').addEventListener('change', handleCategoryChange);
+    function handleCategoryChange() {
+        const cat = document.getElementById('packageCategory').value;
+        document.getElementById('customCategoryBox').style.display = cat === 'otro' ? 'block' : 'none';
+    }
+    
+    // Actualizar precio por clase en tiempo real
+    document.getElementById('packagePrice').addEventListener('input', updatePricePerClass);
+    document.getElementById('packageClassCount').addEventListener('input', updatePricePerClass);
+    function updatePricePerClass() {
+        const price = parseFloat(document.getElementById('packagePrice').value) || 0;
+        const classes = parseInt(document.getElementById('packageClassCount').value) || 1;
+        const perClass = price / classes;
+        document.getElementById('pricePerClass').textContent = `= $${perClass.toFixed(2)} USD por clase`;
+        
+        // Validar precio mínimo
+        if (perClass < 5) {
+            document.getElementById('pricePerClass').style.color = '#ef4444';
+            document.getElementById('pricePerClass').textContent += ' (mínimo $5/clase)';
+        } else {
+            document.getElementById('pricePerClass').style.color = '#6366f1';
+        }
+    }
+    
+    // Guardar paquete
+    async function savePackage(event) {
+        event.preventDefault();
+        
+        const token = localStorage.getItem('pianoToken');
+        const packageId = document.getElementById('packageId').value;
+        const isEdit = !!packageId;
+        
+        const price = parseFloat(document.getElementById('packagePrice').value);
+        const classes = parseInt(document.getElementById('packageClassCount').value);
+        
+        if (price / classes < 5) {
+            alert('El precio mínimo es $5 USD por clase');
+            return;
+        }
+        
+        const data = {
+            category: document.getElementById('packageCategory').value,
+            categoryCustom: document.getElementById('packageCategoryCustom').value,
+            name: document.getElementById('packageName').value,
+            description: document.getElementById('packageDescription').value,
+            classCount: classes,
+            classDurationMinutes: parseInt(document.getElementById('packageDuration').value),
+            priceUSD: Math.round(price * 100), // Convertir a centavos
+            validityDays: parseInt(document.getElementById('packageValidity').value),
+            isRecurring: document.getElementById('packageRecurring').checked,
+            isFeatured: document.getElementById('packageFeatured').checked
+        };
+        
+        try {
+            const url = isEdit ? `/api/teacher-packages/${packageId}` : '/api/teacher-packages';
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await res.json();
+            
+            if (result.success) {
+                closePackageModal();
+                loadPackages();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (err) {
+            console.error('Error guardando paquete:', err);
+            alert('Error de conexión');
+        }
+    }
+    
+    // Activar/Desactivar paquete
+    async function togglePackageActive(id, currentlyActive) {
+        const token = localStorage.getItem('pianoToken');
+        
+        try {
+            const res = await fetch(`/api/teacher-packages/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ isActive: !currentlyActive })
+            });
+            
+            const result = await res.json();
+            if (result.success) {
+                loadPackages();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (err) {
+            alert('Error de conexión');
+        }
+    }
+    
+    // Eliminar paquete
+    async function deletePackage(id) {
+        if (!confirm('¿Estás seguro de eliminar este paquete? Esta acción no se puede deshacer.')) {
+            return;
+        }
+        
+        const token = localStorage.getItem('pianoToken');
+        
+        try {
+            const res = await fetch(`/api/teacher-packages/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            const result = await res.json();
+            if (result.success) {
+                loadPackages();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (err) {
+            alert('Error de conexión');
+        }
+    }
+    // ==================== FIN GESTIÓN DE PAQUETES ====================
     
   </script>
 </body>

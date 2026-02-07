@@ -71,7 +71,8 @@ const teacherPackageSchema = new mongoose.Schema({
         type: Number,
         required: true,
         default: 30,
-        min: 7
+        min: 7,
+        max: 365  // Máximo 12 meses
     },
 
     // === COBRO RECURRENTE ===

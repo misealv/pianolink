@@ -172,6 +172,9 @@ router.post('/', authMiddleware, async (req, res) => {
             });
         }
 
+        // Vigencia máxima 365 días (12 meses)
+        const finalValidityDays = Math.min(Math.max(validityDays || 30, 7), 365);
+
         const package_ = new TeacherPackage({
             teacherId: req.user._id,
             category: category || 'piano',
@@ -181,7 +184,7 @@ router.post('/', authMiddleware, async (req, res) => {
             classCount,
             classDurationMinutes: classDurationMinutes || 45,
             priceUSD,
-            validityDays: validityDays || 30,
+            validityDays: finalValidityDays,
             isRecurring: isRecurring !== false,
             billingCycleDays: billingCycleDays || 30,
             isFeatured: isFeatured || false,
