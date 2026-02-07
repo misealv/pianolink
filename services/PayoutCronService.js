@@ -12,6 +12,7 @@ const StudentSubscription = require('../models/StudentSubscription');
 const TeacherPayout = require('../models/TeacherPayout');
 const TeacherPackage = require('../models/TeacherPackage');
 const User = require('../models/User');
+const PayoutNotificationService = require('./PayoutNotificationService');
 
 class PayoutCronService {
     
@@ -108,6 +109,17 @@ class PayoutCronService {
                     // Marcar payout como listo para revisión
                     payout.status = 'pending-review';
                     await payout.save();
+
+                    // Notificar al profesor por email
+                    try {
+                        const teacher = await User.findById(teacherId);
+                        if (teacher) {
+                            await PayoutNotificationService.notifyPayoutReady(payout, teacher);
+                            console.log(`[Cron] Email enviado a ${teacher.email}`);
+                        }
+                    } catch (emailErr) {
+                        console.error(`[Cron] Error enviando email:`, emailErr.message);
+                    }
 
                     payouts.push(payout);
                     console.log(`[Cron] Payout generado para profesor ${teacherId}: $${(payout.netPayoutUSD/100).toFixed(2)}`);

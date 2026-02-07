@@ -20,6 +20,7 @@ const mongoose = require('mongoose');
 const TeacherPayout = require('../models/TeacherPayout');
 const ClassSession = require('../models/ClassSession');
 const User = require('../models/User');
+const PayoutNotificationService = require('../services/PayoutNotificationService');
 const { protect: authMiddleware } = require('../middleware/authMiddleware');
 
 // Middleware: Solo admins
@@ -328,7 +329,8 @@ router.post('/:id/mark-paid', authMiddleware, adminOnly, async (req, res) => {
             });
         }
 
-        const payout = await TeacherPayout.findById(req.params.id);
+        const payout = await TeacherPayout.findById(req.params.id)
+            .populate('teacherId', 'name email');
         if (!payout) {
             return res.status(404).json({ success: false, error: 'Payout no encontrado' });
         }
@@ -346,6 +348,14 @@ router.post('/:id/mark-paid', authMiddleware, adminOnly, async (req, res) => {
         if (notes) {
             payout.statusHistory[payout.statusHistory.length - 1].notes += ` - ${notes}`;
             await payout.save();
+        }
+
+        // Notificar al profesor que el pago fue enviado
+        try {
+            await PayoutNotificationService.notifyPaymentSent(payout, payout.teacherId);
+            console.log(`[AdminPayouts] Email de pago enviado a ${payout.teacherId.email}`);
+        } catch (emailErr) {
+            console.error('[AdminPayouts] Error enviando email:', emailErr.message);
         }
 
         res.json({ 
@@ -934,6 +944,14 @@ router.post('/:id/verify-invoice', authMiddleware, adminOnly, async (req, res) =
 
         await payout.save();
 
+        // Notificar al profesor por email
+        try {
+            await PayoutNotificationService.notifyInvoiceVerified(payout, payout.teacherId);
+            console.log(`[AdminPayouts] Email enviado a ${payout.teacherId.email}`);
+        } catch (emailErr) {
+            console.error('[AdminPayouts] Error enviando email:', emailErr.message);
+        }
+
         console.log(`[AdminPayouts] Admin ${req.user.email} verificó documento de payout ${payout._id}`);
 
         res.json({
@@ -990,7 +1008,13 @@ router.post('/:id/reject-invoice', authMiddleware, adminOnly, async (req, res) =
 
         await payout.save();
 
-        // TODO: Notificar al profesor por email
+        // Notificar al profesor por email
+        try {
+            await PayoutNotificationService.notifyInvoiceRejected(payout, payout.teacherId, reason);
+            console.log(`[AdminPayouts] Email de rechazo enviado a ${payout.teacherId.email}`);
+        } catch (emailErr) {
+            console.error('[AdminPayouts] Error enviando email:', emailErr.message);
+        }
 
         console.log(`[AdminPayouts] Admin ${req.user.email} rechazó documento de payout ${payout._id}: ${reason}`);
 
