@@ -170,6 +170,7 @@ app.use('/api/subscription', require('./routes/subscription'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/payment', require('./routes/payment')); // PayPal payments
 app.use('/api/admin/payments', require('./routes/adminPayments')); // Admin payments
+app.use('/api/admin/payouts', require('./routes/adminPayouts')); // Admin payouts a profesores
 app.use('/api/welcome-kit', require('./routes/welcomeKitRoutes')); // Welcome Kit checkout
 app.use('/api/kit-products', require('./routes/kitProductRoutes')); // Productos del Welcome Kit
 app.use('/api/client', require('./routes/clientRoutes')); // Panel del cliente

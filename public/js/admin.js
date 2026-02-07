@@ -67,6 +67,7 @@ function loadModuleData(moduleName) {
         case 'students': loadStudents(); break;
         case 'clients': loadClients(); break;
         case 'payments': loadPaymentsDashboard(); break;
+        case 'payouts': loadPayouts(); break;
         case 'welcome-kits': loadWelcomeKits(); break;
         case 'pricing': loadPricingConfig(); break;
     }
@@ -5850,3 +5851,390 @@ async function savePricingConfig() {
     }
 }
 
+// ==================== PAYOUTS A PROFESORES ====================
+
+let currentPayoutId = null;
+
+async function loadPayouts() {
+    try {
+        // Cargar resumen
+        const summaryRes = await fetch('/api/admin/payouts/summary', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const summaryData = await summaryRes.json();
+        
+        if (summaryData.success) {
+            const s = summaryData.summary;
+            document.getElementById('payouts-pending-count').textContent = s.pendingReview;
+            document.getElementById('payouts-approved-count').textContent = s.approved;
+            document.getElementById('payouts-total-pending').textContent = `$${(s.totalPendingUSD / 100).toFixed(0)}`;
+            document.getElementById('payouts-this-month').textContent = `$${(s.paidThisMonthUSD / 100).toFixed(0)}`;
+            
+            // Actualizar badge
+            const badge = document.getElementById('payouts-badge');
+            if (badge) {
+                badge.textContent = s.pendingReview;
+                badge.style.display = s.pendingReview > 0 ? 'inline-block' : 'none';
+            }
+        }
+
+        // Obtener filtros
+        const status = document.getElementById('payouts-filter-status')?.value || '';
+        const period = document.getElementById('payouts-filter-period')?.value || '';
+        
+        let url = '/api/admin/payouts?';
+        if (status) url += `status=${status}&`;
+        if (period) url += `period=${period}&`;
+
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await res.json();
+
+        const tbody = document.getElementById('payouts-table-body');
+        
+        if (!data.success || !data.payouts.length) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:#666;">No hay payouts para mostrar</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.payouts.map(p => {
+            const teacher = p.teacherId || {};
+            const statusBadge = getPayoutStatusBadge(p.status);
+            
+            return `
+                <tr>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg, #ff764d, #ff9f7e); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;">
+                                ${(teacher.name || 'P').charAt(0)}
+                            </div>
+                            <div>
+                                <div style="font-weight:600;">${teacher.brandName || teacher.name || 'Profesor'}</div>
+                                <div style="font-size:12px; color:#888;">${teacher.email || ''}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${p.periodLabel || 'Sin período'}</td>
+                    <td>
+                        <span style="font-weight:600;">${p.totalClassesPaid || 0}</span>
+                        <span style="color:#888; font-size:12px;"> clases</span>
+                    </td>
+                    <td>$${(p.grossAmountUSD / 100).toFixed(2)}</td>
+                    <td style="color:#f59e0b;">-$${(p.platformFeeUSD / 100).toFixed(2)}</td>
+                    <td style="font-weight:700; color:#22c55e;">$${(p.finalPayoutUSD / 100).toFixed(2)}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn btn-sm" onclick="openPayoutDetail('${p._id}')" title="Ver detalle">
+                                👁️
+                            </button>
+                            ${p.status === 'pending-review' ? `
+                                <button class="btn btn-sm btn-success" onclick="approvePayout('${p._id}')" title="Aprobar">
+                                    ✓
+                                </button>
+                            ` : ''}
+                            ${p.status === 'approved' ? `
+                                <button class="btn btn-sm btn-primary" onclick="markPayoutPaid('${p._id}')" title="Marcar pagado">
+                                    💰
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('[Payouts] Error:', error);
+        document.getElementById('payouts-table-body').innerHTML = 
+            '<tr><td colspan="8" style="text-align:center; padding:40px; color:#ef4444;">Error cargando payouts</td></tr>';
+    }
+}
+
+function getPayoutStatusBadge(status) {
+    const badges = {
+        'calculating': '<span style="background:#3b82f6; color:white; padding:4px 10px; border-radius:12px; font-size:11px;">🔄 Calculando</span>',
+        'pending-review': '<span style="background:#f59e0b; color:white; padding:4px 10px; border-radius:12px; font-size:11px;">⏳ Pendiente</span>',
+        'approved': '<span style="background:#22c55e; color:white; padding:4px 10px; border-radius:12px; font-size:11px;">✓ Aprobado</span>',
+        'processing': '<span style="background:#8b5cf6; color:white; padding:4px 10px; border-radius:12px; font-size:11px;">🔄 Procesando</span>',
+        'paid': '<span style="background:#10b981; color:white; padding:4px 10px; border-radius:12px; font-size:11px;">💰 Pagado</span>',
+        'failed': '<span style="background:#ef4444; color:white; padding:4px 10px; border-radius:12px; font-size:11px;">❌ Error</span>',
+        'cancelled': '<span style="background:#6b7280; color:white; padding:4px 10px; border-radius:12px; font-size:11px;">🚫 Cancelado</span>'
+    };
+    return badges[status] || `<span style="background:#888; color:white; padding:4px 10px; border-radius:12px; font-size:11px;">${status}</span>`;
+}
+
+async function openPayoutDetail(payoutId) {
+    currentPayoutId = payoutId;
+    
+    try {
+        const res = await fetch(`/api/admin/payouts/${payoutId}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await res.json();
+        
+        if (!data.success) {
+            showNotification('Error cargando payout', 'error');
+            return;
+        }
+
+        const p = data.payout;
+        const teacher = p.teacherId || {};
+        const wallet = data.wallet || {};
+
+        const modalBody = document.getElementById('payout-modal-body');
+        modalBody.innerHTML = `
+            <div style="display:grid; gap:20px;">
+                <!-- Info Profesor -->
+                <div style="background:var(--bg-secondary); padding:20px; border-radius:12px; display:flex; align-items:center; gap:15px;">
+                    <div style="width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg, #ff764d, #ff9f7e); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:24px;">
+                        ${(teacher.name || 'P').charAt(0)}
+                    </div>
+                    <div>
+                        <h3 style="margin:0; color:var(--text-primary);">${teacher.brandName || teacher.name || 'Profesor'}</h3>
+                        <div style="color:var(--text-secondary); font-size:14px;">${teacher.email}</div>
+                        <div style="color:var(--accent-purple); font-size:13px; margin-top:4px;">
+                            ${p.periodLabel}
+                        </div>
+                    </div>
+                    <div style="margin-left:auto;">
+                        ${getPayoutStatusBadge(p.status)}
+                    </div>
+                </div>
+
+                <!-- Resumen Financiero -->
+                <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px;">
+                    <div style="background:var(--bg-card); padding:15px; border-radius:10px; text-align:center; border:1px solid var(--border-color);">
+                        <div style="font-size:24px; font-weight:700;">${p.totalClassesPaid}</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Clases pagadas</div>
+                    </div>
+                    <div style="background:var(--bg-card); padding:15px; border-radius:10px; text-align:center; border:1px solid var(--border-color);">
+                        <div style="font-size:24px; font-weight:700;">$${(p.grossAmountUSD / 100).toFixed(2)}</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Bruto</div>
+                    </div>
+                    <div style="background:var(--bg-card); padding:15px; border-radius:10px; text-align:center; border:1px solid var(--border-color);">
+                        <div style="font-size:24px; font-weight:700; color:#f59e0b;">-$${(p.platformFeeUSD / 100).toFixed(2)}</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Comisión (20%)</div>
+                    </div>
+                    <div style="background:var(--bg-card); padding:15px; border-radius:10px; text-align:center; border:1px solid #22c55e;">
+                        <div style="font-size:24px; font-weight:700; color:#22c55e;">$${(p.finalPayoutUSD / 100).toFixed(2)}</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Neto a Pagar</div>
+                    </div>
+                </div>
+
+                <!-- Método de Pago -->
+                <div style="background:var(--bg-card); padding:20px; border-radius:12px; border:1px solid var(--border-color);">
+                    <h4 style="margin:0 0 15px 0; color:var(--text-primary);">💳 Método de Pago Preferido</h4>
+                    ${wallet.preferredMethod ? `
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="font-size:24px;">${wallet.preferredMethod === 'paypal' ? '💙' : wallet.preferredMethod === 'mercadopago' ? '🟦' : '🏦'}</span>
+                            <div>
+                                <div style="font-weight:600; text-transform:capitalize;">${wallet.preferredMethod.replace('_', ' ')}</div>
+                                <div style="color:var(--text-secondary); font-size:13px;">
+                                    ${wallet.paypalEmail || wallet.mercadopagoEmail || (wallet.bankAccount ? `${wallet.bankAccount.bankName} ****${wallet.bankAccount.lastFour}` : 'No configurado')}
+                                </div>
+                            </div>
+                        </div>
+                    ` : '<div style="color:#888;">No ha configurado método de pago</div>'}
+                </div>
+
+                <!-- Ajustes -->
+                ${p.adjustments && p.adjustments.length > 0 ? `
+                <div style="background:var(--bg-card); padding:20px; border-radius:12px; border:1px solid var(--border-color);">
+                    <h4 style="margin:0 0 15px 0; color:var(--text-primary);">📝 Ajustes</h4>
+                    ${p.adjustments.map(adj => `
+                        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-color);">
+                            <span>${adj.description}</span>
+                            <span style="color:${adj.amountUSD >= 0 ? '#22c55e' : '#ef4444'}; font-weight:600;">
+                                ${adj.amountUSD >= 0 ? '+' : ''}$${(adj.amountUSD / 100).toFixed(2)}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+                ` : ''}
+
+                <!-- Acciones -->
+                <div style="display:flex; gap:10px; justify-content:flex-end; padding-top:10px; border-top:1px solid var(--border-color);">
+                    ${p.status === 'pending-review' || p.status === 'calculating' ? `
+                        <button class="btn btn-secondary" onclick="addPayoutAdjustment('${p._id}')">
+                            ➕ Agregar Ajuste
+                        </button>
+                        <button class="btn btn-danger" onclick="rejectPayout('${p._id}')">
+                            ❌ Rechazar
+                        </button>
+                        <button class="btn btn-success" onclick="approvePayout('${p._id}')">
+                            ✓ Aprobar Payout
+                        </button>
+                    ` : ''}
+                    ${p.status === 'approved' ? `
+                        <button class="btn btn-primary" onclick="markPayoutPaid('${p._id}')">
+                            💰 Marcar como Pagado
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+
+        document.getElementById('payout-modal').style.display = 'flex';
+
+    } catch (error) {
+        console.error('[Payout Detail] Error:', error);
+        showNotification('Error cargando detalle', 'error');
+    }
+}
+
+function closePayoutModal() {
+    document.getElementById('payout-modal').style.display = 'none';
+    currentPayoutId = null;
+}
+
+async function approvePayout(payoutId) {
+    const notes = prompt('Notas de aprobación (opcional):');
+    if (notes === null) return; // Canceló
+
+    try {
+        const res = await fetch(`/api/admin/payouts/${payoutId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ notes })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('✅ Payout aprobado', 'success');
+            closePayoutModal();
+            loadPayouts();
+        } else {
+            showNotification(data.error || 'Error aprobando', 'error');
+        }
+    } catch (error) {
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+async function rejectPayout(payoutId) {
+    const reason = prompt('Razón del rechazo:');
+    if (!reason) return;
+
+    try {
+        const res = await fetch(`/api/admin/payouts/${payoutId}/reject`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('Payout rechazado', 'success');
+            closePayoutModal();
+            loadPayouts();
+        } else {
+            showNotification(data.error || 'Error rechazando', 'error');
+        }
+    } catch (error) {
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+async function markPayoutPaid(payoutId) {
+    const paymentReference = prompt('Referencia de pago (ID de transacción, comprobante, etc.):');
+    if (!paymentReference) return;
+
+    const paymentMethod = prompt('Método usado (paypal, mercadopago, bank_transfer, manual):', 'manual');
+    if (!paymentMethod) return;
+
+    try {
+        const res = await fetch(`/api/admin/payouts/${payoutId}/mark-paid`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ paymentMethod, paymentReference })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('💰 Payout marcado como pagado', 'success');
+            closePayoutModal();
+            loadPayouts();
+        } else {
+            showNotification(data.error || 'Error', 'error');
+        }
+    } catch (error) {
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+async function addPayoutAdjustment(payoutId) {
+    const description = prompt('Descripción del ajuste:');
+    if (!description) return;
+
+    const amountStr = prompt('Monto en USD (positivo = bono, negativo = descuento):');
+    if (!amountStr) return;
+
+    const amountUSD = Math.round(parseFloat(amountStr) * 100); // Convertir a centavos
+    if (isNaN(amountUSD)) {
+        showNotification('Monto inválido', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/admin/payouts/${payoutId}/adjustment`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ description, amountUSD })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('Ajuste agregado', 'success');
+            openPayoutDetail(payoutId); // Recargar detalle
+        } else {
+            showNotification(data.error || 'Error', 'error');
+        }
+    } catch (error) {
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+async function generateMonthlyPayouts() {
+    if (!confirm('¿Generar payouts para el mes anterior? Esto creará payouts para todos los profesores con clases completadas.')) {
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/admin/payouts/generate-monthly', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification(`✅ ${data.message}`, 'success');
+            loadPayouts();
+        } else {
+            showNotification(data.error || 'Error generando payouts', 'error');
+        }
+    } catch (error) {
+        showNotification('Error de conexión', 'error');
+    }
+}
