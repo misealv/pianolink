@@ -92,8 +92,7 @@ const classSessionSchema = new mongoose.Schema({
     },
     validatedBy: {
         type: String,
-        enum: ['teacher', 'student', 'auto', 'admin'],
-        default: null
+        enum: ['teacher', 'student', 'auto', 'admin']
     },
 
     // === DISPUTA ===
@@ -101,8 +100,7 @@ const classSessionSchema = new mongoose.Schema({
         isDisputed: { type: Boolean, default: false },
         raisedBy: { 
             type: String, 
-            enum: ['student', 'teacher'],
-            default: null
+            enum: ['student', 'teacher']
         },
         raisedAt: { type: Date },
         reason: { type: String, default: '' },
@@ -111,8 +109,7 @@ const classSessionSchema = new mongoose.Schema({
         resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         resolution: { 
             type: String, 
-            enum: ['student-favor', 'teacher-favor', 'split', 'void'],
-            default: null
+            enum: ['student-favor', 'teacher-favor', 'split', 'void']
         },
         resolutionNotes: { type: String, default: '' }
     },
