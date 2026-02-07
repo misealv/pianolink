@@ -612,3 +612,112 @@ exports.updatePricingConfig = async (req, res) => {
         res.status(500).json({ message: 'Error actualizando configuración de precios' });
     }
 };
+
+// Actualizar precio del Kit de Bienvenida V2
+exports.updateKitV2Price = async (req, res) => {
+    try {
+        const { priceUSD } = req.body;
+        
+        // Validación
+        if (typeof priceUSD !== 'number' || priceUSD < 1) {
+            return res.status(400).json({ message: 'El precio debe ser un número válido (mínimo $1)' });
+        }
+        
+        if (priceUSD > 500) {
+            return res.status(400).json({ message: 'El precio no puede exceder $500 USD' });
+        }
+        
+        let config = await GlobalConfig.findOne({ isDefault: true });
+        
+        if (!config) {
+            config = new GlobalConfig({
+                isDefault: true,
+                welcomeKitV2: { priceUSD, enabled: true }
+            });
+        } else {
+            if (!config.welcomeKitV2) {
+                config.welcomeKitV2 = {};
+            }
+            config.welcomeKitV2.priceUSD = priceUSD;
+        }
+        
+        await config.save();
+        
+        console.log('[Admin] Precio Kit V2 actualizado a $' + priceUSD + ' USD');
+        
+        res.json({
+            message: 'Precio del Kit de Bienvenida actualizado',
+            welcomeKitV2: config.welcomeKitV2
+        });
+    } catch (error) {
+        console.error('Error actualizando precio Kit V2:', error);
+        res.status(500).json({ message: 'Error actualizando precio del Kit' });
+    }
+};
+
+/**
+ * Enviar recordatorio de membresía a un profesor específico
+ */
+exports.sendMembershipReminder = async (req, res) => {
+    try {
+        const { teacherId } = req.params;
+        const MembershipReminderService = require('../services/MembershipReminderService');
+        
+        if (!MembershipReminderService.isConfigured()) {
+            return res.status(503).json({ 
+                success: false, 
+                message: 'Servicio de email no configurado' 
+            });
+        }
+        
+        const sent = await MembershipReminderService.sendManualReminder(teacherId);
+        
+        if (sent) {
+            res.json({ 
+                success: true, 
+                message: 'Recordatorio enviado exitosamente' 
+            });
+        } else {
+            res.status(500).json({ 
+                success: false, 
+                message: 'Error enviando recordatorio' 
+            });
+        }
+    } catch (error) {
+        console.error('Error enviando recordatorio:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: error.message 
+        });
+    }
+};
+
+/**
+ * Ejecutar verificación de membresías manualmente (para testing)
+ */
+exports.runMembershipReminders = async (req, res) => {
+    try {
+        const MembershipReminderService = require('../services/MembershipReminderService');
+        
+        if (!MembershipReminderService.isConfigured()) {
+            return res.status(503).json({ 
+                success: false, 
+                message: 'Servicio de email no configurado' 
+            });
+        }
+        
+        const result = await MembershipReminderService.runDailyCheck();
+        
+        res.json({
+            success: true,
+            message: `Verificación completada: ${result.sent} recordatorios enviados`,
+            details: result
+        });
+    } catch (error) {
+        console.error('Error ejecutando verificación:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: error.message 
+        });
+    }
+};

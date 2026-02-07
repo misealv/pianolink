@@ -2111,7 +2111,7 @@
         // Cargar datos del usuario
         async function loadDashboard() {
             try {
-                const [userRes, paymentsRes, subscriptionRes, ordersRes, nextClassRes, packagesRes, mySubsRes, pendingRes] = await Promise.all([
+                const [userRes, paymentsRes, subscriptionRes, ordersRes, nextClassRes, packagesRes, mySubsRes, pendingRes, myKitRes] = await Promise.all([
                     fetch('/api/client/me', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/client/payments', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/client/subscription', { headers: { 'Authorization': `Bearer ${token}` } }),
@@ -2119,7 +2119,8 @@
                     fetch('/api/bookings/my-next', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/teacher-packages/available', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/subscriptions/my', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('/api/class-sessions/pending', { headers: { 'Authorization': `Bearer ${token}` } })
+                    fetch('/api/class-sessions/pending', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/welcome-kit/v2/my-kit', { headers: { 'Authorization': `Bearer ${token}` } })
                 ]);
 
                 if (!userRes.ok) {
@@ -2139,11 +2140,14 @@
                 // Cargar clases pendientes de confirmación
                 const pendingData = pendingRes.ok ? await pendingRes.json() : { sessions: [] };
                 pendingValidations = pendingData.sessions || [];
+                
+                // Cargar estado del Welcome Kit V2
+                const myKitData = myKitRes.ok ? await myKitRes.json() : null;
 
                 // Guardar referencia para uso en agendamiento
                 currentUserData = user;
 
-                renderDashboard(user, paymentsData.payments, subscription, ordersData.orders, nextClassData);
+                renderDashboard(user, paymentsData.payments, subscription, ordersData.orders, nextClassData, myKitData);
             } catch (error) {
                 console.error('Error cargando dashboard:', error);
                 if (error.message === 'No autorizado') {
@@ -2155,16 +2159,24 @@
 
         // Variable global para actualizar countdown
         let nextClassInterval = null;
+        // Variable global para el kit del usuario
+        let currentUserKit = null;
 
-        function renderDashboard(user, payments, subscription, orders, nextClass) {
+        function renderDashboard(user, payments, subscription, orders, nextClass, myKit) {
             // Actualizar nombre en header
             document.getElementById('userName').textContent = user.name;
+            
+            // Guardar kit para uso global
+            currentUserKit = myKit;
 
             const students = user.clientData?.managedStudents || [];
             const isGuardian = students.length > 0;
 
             // Renderizar tarjeta de próxima clase
             const nextClassHTML = renderNextClass(nextClass);
+            
+            // Renderizar estado del Onboarding Kit
+            const onboardingHTML = renderOnboardingStatus(myKit);
 
             const main = document.getElementById('mainContent');
             main.innerHTML = `
@@ -2173,6 +2185,9 @@
                     <h1>¡Hola, ${user.name.split(' ')[0]}! 👋</h1>
                     <p>${isGuardian ? `Gestionas ${students.length} estudiante(s)` : 'Tu panel de clases de piano'}</p>
                 </section>
+                
+                <!-- Onboarding Kit Status (si aplica) -->
+                ${onboardingHTML}
 
                 <!-- Clases Pendientes de Confirmar -->
                 ${renderPendingValidations()}
@@ -2355,6 +2370,125 @@
                 'paid': 'Pagado'
             };
             return statusMap[status] || 'Pagado';
+        }
+
+        // ============================================
+        // ONBOARDING KIT STATUS
+        // ============================================
+        
+        function renderOnboardingStatus(kit) {
+            // Si no hay kit o está completado, no mostrar nada
+            if (!kit || kit.overallStatus === 'completed') return '';
+            
+            const statusConfig = {
+                'pending': {
+                    icon: '📋',
+                    title: 'Pago recibido',
+                    message: 'Pronto nos pondremos en contacto para agendar tu entrevista de bienvenida.',
+                    color: '#3b82f6',
+                    step: 1
+                },
+                'entrevista_pendiente': {
+                    icon: '📞',
+                    title: 'Entrevista Agendada',
+                    message: 'Te contactaremos pronto para conocer tu equipo y darte recomendaciones personalizadas.',
+                    color: '#8b5cf6',
+                    step: 1
+                },
+                'esperando_equipo': {
+                    icon: '🛒',
+                    title: 'Adquiere tu equipo',
+                    message: 'Te enviamos un email con las recomendaciones. Cuando tengas tu cable/adaptador, haz clic en el botón.',
+                    color: '#f59e0b',
+                    step: 2,
+                    showButton: true
+                },
+                'processing': {
+                    icon: '⚙️',
+                    title: 'Setup en proceso',
+                    message: 'Estamos coordinando tu sesión de configuración.',
+                    color: '#10b981',
+                    step: 3
+                },
+                'shipped': {
+                    icon: '🎹',
+                    title: 'Clase de prueba',
+                    message: 'Tu setup está listo. Pronto agendaremos tu primera clase.',
+                    color: '#6366f1',
+                    step: 4
+                }
+            };
+            
+            const config = statusConfig[kit.overallStatus] || statusConfig['pending'];
+            const currentStep = config.step || 1;
+            
+            return `
+                <section class="onboarding-status" style="background: linear-gradient(135deg, ${config.color}15, ${config.color}05); border: 1px solid ${config.color}30; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+                    <div style="display: flex; align-items: flex-start; gap: 16px;">
+                        <div style="font-size: 48px; line-height: 1;">${config.icon}</div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: ${config.color};">
+                                🎹 Tu Onboarding PianoLink
+                            </h3>
+                            <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">${config.title}</div>
+                            <p style="color: var(--text-muted); margin: 0 0 16px 0;">${config.message}</p>
+                            
+                            <!-- Progress Steps -->
+                            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                                ${[
+                                    { num: 1, label: 'Entrevista' },
+                                    { num: 2, label: 'Equipo' },
+                                    { num: 3, label: 'Setup' },
+                                    { num: 4, label: 'Clase' }
+                                ].map(s => `
+                                    <div style="flex: 1; text-align: center;">
+                                        <div style="width: 100%; height: 4px; background: ${s.num <= currentStep ? config.color : '#e5e7eb'}; border-radius: 2px; margin-bottom: 6px;"></div>
+                                        <span style="font-size: 11px; color: ${s.num <= currentStep ? config.color : '#9ca3af'};">${s.label}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            ${config.showButton ? `
+                            <button onclick="confirmEquipmentReady()" style="background: ${config.color}; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                ✅ Ya tengo mi equipo listo
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </section>
+            `;
+        }
+        
+        async function confirmEquipmentReady() {
+            if (!currentUserKit) {
+                alert('Error: No se encontró información del kit');
+                return;
+            }
+            
+            if (!confirm('¿Confirmas que ya tienes tu cable/adaptador MIDI listo para la sesión de configuración?')) {
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/welcome-kit/v2/${currentUserKit._id}/client-ready`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (res.ok) {
+                    alert('¡Excelente! 🎉 Te contactaremos pronto para coordinar tu sesión de setup.');
+                    loadDashboard(); // Recargar para actualizar estado
+                } else {
+                    const error = await res.json();
+                    alert(error.error || 'Error al confirmar');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión');
+            }
         }
 
         // ============================================

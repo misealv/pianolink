@@ -691,17 +691,19 @@
         }
         
         .tech-comparison {
-            background: rgba(255, 255, 255, 0.05);
+            background: linear-gradient(135deg, rgba(30, 30, 35, 0.98) 0%, rgba(25, 25, 30, 0.99) 100%);
             border-radius: 20px;
             padding: 32px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         }
         
         .tech-comparison h3 {
             color: white;
-            font-size: 1.25rem;
+            font-size: 1.4rem;
             margin-bottom: 24px;
             text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         }
         
         .comparison-grid {
@@ -717,11 +719,12 @@
         }
         
         .comparison-col h4 {
-            color: var(--gold-light);
-            font-size: 14px;
+            color: var(--accent-gold);
+            font-size: 15px;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 16px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
         
         .comparison-col.negative h4 {
@@ -733,10 +736,15 @@
         }
         
         .comparison-col ul li {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 14px;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 15px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+        }
+        
+        .comparison-col ul li strong {
+            color: #fff;
         }
         
         .comparison-col.negative ul li {
@@ -746,12 +754,23 @@
         .tech-note {
             text-align: center;
             margin-top: 24px;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 15px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
         }
         
         .tech-note strong {
-            color: var(--gold-light);
+            color: var(--accent-gold);
+        }
+        
+        .midi-explanation {
+            background: rgba(20, 20, 25, 0.95) !important;
+            border: 1px solid rgba(212, 175, 55, 0.25);
+        }
+        
+        .midi-explanation p {
+            color: rgba(255, 255, 255, 0.95) !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
         }
         
         /* Kit Section */
@@ -1408,7 +1427,7 @@
                     </div>
                 </div>
                 <h1>El sueño de tocar piano que siempre <span>postergaste</span></h1>
-                <p class="hero-subtitle">Desde los 4 años, el piano me llamaba. Hoy, ayudo a adultos como tú a vivir esa misma emoción. Clases 1-a-1 con profesores certificados, desde tu casa.</p>
+                <p class="hero-subtitle">Soy Miguel Antonio. A los 4 años pedí un piano para Navidad. Ese sueño nunca me abandonó. Hoy creé PianoLink para ayudarte a cumplir el tuyo. Clases 1-a-1 con profesores certificados, desde tu casa.</p>
                 <div class="hero-cta">
                     <a href="#kit" class="btn-primary">
                         <span>🎹 Reservar Cupo Día 88 — Desde $35</span>
@@ -1466,45 +1485,52 @@
     <section class="story-section" id="historia">
         <div class="section-container">
             <div class="section-header">
-                <span class="section-label">Por qué existe PianoLink</span>
-                <h2 class="section-title">Una historia que empezó hace <span>mucho tiempo</span></h2>
+                <span class="section-label">Mi historia — Por qué creé PianoLink</span>
+                <h2 class="section-title">Te cuento cómo llegué <span>hasta aquí</span></h2>
+                <p class="section-subtitle">Soy Miguel Antonio, fundador de PianoLink. Esta es mi historia, y quizás también sea un poco la tuya.</p>
             </div>
             
             <div class="story-content">
                 <div class="story-timeline">
                     <div class="timeline-item">
                         <div class="timeline-dot">🎄</div>
-                        <h4>4 años — El primer llamado</h4>
-                        <p>Pedí un piano para Navidad. No sabía tocar una sola nota, pero el sonido me emocionaba como nada más.</p>
+                        <h4>Tenía 4 años — Mi primer sueño</h4>
+                        <p>Le pedí a mis papás un piano para Navidad. No sabía ni cómo sonaba de cerca, pero algo en mí sabía que ese instrumento iba a ser parte de mi vida.</p>
                     </div>
                     <div class="timeline-item">
                         <div class="timeline-dot">🎹</div>
-                        <h4>10 años — El regalo que cambió todo</h4>
-                        <p>Recibí un teclado de 3 octavas. Una de las alegrías más grandes de mi vida. Pasaba horas explorando cada tecla.</p>
+                        <h4>A los 10 — El regalo que lo cambió todo</h4>
+                        <p>Por fin llegó: un teclado de 3 octavas. Pasaba horas explorando cada tecla, inventando melodías. Fue amor a primera nota.</p>
                     </div>
                     <div class="timeline-item">
                         <div class="timeline-dot">🎓</div>
-                        <h4>Años de formación</h4>
-                        <p>Conservatorio. Técnica clásica. Y luego, años cultivando mi propio lenguaje en música latinoamericana.</p>
+                        <h4>Años de aprendizaje</h4>
+                        <p>Estudié en el conservatorio, aprendí técnica clásica, pero mi alma siempre quiso algo más: encontré mi voz en la música latinoamericana.</p>
                     </div>
                     <div class="timeline-item">
                         <div class="timeline-dot">🏫</div>
-                        <h4>2018 — Resonancias</h4>
-                        <p>El día que supe que venía mi hija Aurora, creé mi escuela de piano. La escuela cerró por falta de estudiantes.</p>
+                        <h4>2013 — Nació Resonancias (y Aurora)</h4>
+                        <p>Cuando supe que venía mi hija, creé mi propia escuela de piano. La llamé Resonancias. Duró poco más de 10 años. A veces los sueños necesitan transformarse.</p>
                     </div>
                     <div class="timeline-item">
                         <div class="timeline-dot">✨</div>
                         <h4>Hoy — PianoLink</h4>
-                        <p>Mi hija me dijo: "Papá, quiero una casa con jardín." Del dolor nació esto. La creatividad cura.</p>
+                        <p>Un día Aurora me dijo: "Papá, quiero una casa con jardín." Del dolor de cerrar Resonancias nació esto. Porque la creatividad siempre encuentra un camino, y es curadora.</p>
                     </div>
                 </div>
                 
-                <div class="story-quote">
-                    <blockquote>
-                        "Tenías 8 años cuando viste a alguien tocar piano. Pensaste: <span>'Algún día seré yo.'</span><br><br>
-                        Hoy es ese día."
-                    </blockquote>
-                    <p class="author">— Fundador de PianoLink</p>
+                <div class="founder-section" style="display: flex; gap: 3rem; align-items: center; flex-wrap: wrap; background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(30, 30, 35, 0.95) 100%); border-radius: 24px; padding: 3rem; margin-top: 3rem; border: 1px solid rgba(212, 175, 55, 0.2);">
+                    <div class="founder-photo" style="flex-shrink: 0; text-align: center;">
+                        <img src="/Miguel_antonio3.jpg" alt="Miguel Antonio, Fundador de PianoLink" style="width: 280px; height: auto; border-radius: 16px; object-fit: contain; border: 4px solid var(--accent-gold); box-shadow: 0 12px 40px rgba(212, 175, 55, 0.35);">
+                        <p style="margin-top: 1rem; font-size: 1.1rem; color: var(--accent-gold); font-weight: 600;">Miguel Antonio</p>
+                        <p style="font-size: 0.9rem; color: rgba(255,255,255,0.6); margin-top: 0.25rem;">Fundador de PianoLink</p>
+                    </div>
+                    <div class="story-quote" style="flex: 1; min-width: 280px;">
+                        <blockquote style="font-size: 1.3rem; line-height: 1.8;">
+                            "Sé exactamente cómo se siente ese deseo. Esa vocecita que te dice: <span>'Algún día voy a aprender.'</span><br><br>
+                            Te digo algo: hoy puede ser ese día. Y me encantaría acompañarte."
+                        </blockquote>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1549,7 +1575,7 @@
         <div class="section-container">
             <div class="solution-content">
                 <div class="solution-image">
-                    <img src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=600&h=500&fit=crop" alt="Momento de satisfacción tocando piano">
+                    <img src="https://images.unsplash.com/photo-1552422535-c45813c61732?w=600&h=500&fit=crop&q=90" alt="Mujer sonriente tocando piano">
                 </div>
                 <div class="solution-text">
                     <h2>Imagina tocar tu canción favorita <span>con tus propias manos</span></h2>
@@ -1684,6 +1710,13 @@
                         <p style="color: rgba(255,255,255,0.7); font-size: 0.95rem;">Paga con tarjeta de forma segura. Sin sorpresas, precios transparentes. Garantía de satisfacción de 30 días.</p>
                     </div>
                     
+                    <div class="benefit-card" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,55,0.2); border-radius: 16px; padding: 25px;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">🛡️</div>
+                        <h4 style="color: #d4af37; margin-bottom: 10px;">Protección Garantizada</h4>
+                        <p style="color: rgba(255,255,255,0.7); font-size: 0.95rem;">Si tu profesor no aparece, recibes tu clase de vuelta + una clase extra de compensación. Cuidamos tu inversión.</p>
+                    </div>
+                    </div>
+                    
                 </div>
             </div>
             
@@ -1704,76 +1737,68 @@
     <section class="kit-section" id="kit">
         <div class="section-container">
             <div class="section-header">
-                <span class="section-label">🎁 Oferta Día 88 — Solo hasta el 29 de marzo</span>
-                <h2 class="section-title">Kit de Inicio <span>PianoLink</span></h2>
-                <p class="section-subtitle">Todo lo que necesitas para comenzar tu viaje musical</p>
+                <span class="section-label">🎁 Tu Primer Paso</span>
+                <h2 class="section-title">Kit de Bienvenida <span>PianoLink</span></h2>
+                <p class="section-subtitle">Un acompañamiento personalizado para que empieces con el pie derecho</p>
             </div>
             
             <div class="kit-showcase">
                 <div class="kit-image">
                     <img src="https://images.unsplash.com/photo-1552422535-c45813c61732?w=600&h=500&fit=crop" alt="Kit de Bienvenida PianoLink">
-                    <span class="kit-badge">🔥 Solo 88 cupos</span>
+                    <span class="kit-badge">✨ Servicio Personalizado</span>
                 </div>
                 
                 <div class="kit-details">
-                    <h3>Todo incluido para empezar</h3>
+                    <h3>3 pasos para comenzar tu viaje musical</h3>
                     
                     <ul class="kit-includes">
                         <li>
-                            <div class="item-icon">🔌</div>
+                            <div class="item-icon">📞</div>
                             <div class="item-info">
-                                <h4>Cable MIDI Premium</h4>
-                                <p>Según tu teclado (USB-B, USB-C, MIDI, etc.) + envío gratis</p>
+                                <h4>1. Asesoría Técnica Personalizada</h4>
+                                <p>Te contactamos para entender tu situación: ¿qué teclado tienes? ¿necesitas comprar algo? Te orientamos sobre el cable MIDI, pedal de sustain, o cualquier accesorio que necesites. Sin letra chica, sin ventas forzadas.</p>
                             </div>
-                            <span class="item-value">Valor $25-40</span>
-                        </li>
-                        <li>
-                            <div class="item-icon">🎓</div>
-                            <div class="item-info">
-                                <h4>1ra Clase GRATIS</h4>
-                                <p>Con el profesor que tú elijas del catálogo.</p>
-                            </div>
-                            <span class="item-value">Valor $50</span>
+                            <span class="item-value">~20 min</span>
                         </li>
                         <li>
                             <div class="item-icon">🔧</div>
                             <div class="item-info">
-                                <h4>Setup Técnico Guiado</h4>
-                                <p>Videollamada de 15 min para configurar todo.</p>
+                                <h4>2. Sesión de Setup Técnico</h4>
+                                <p>Una vez tengas tu equipo listo, agendamos una videollamada para configurar todo juntos: conexión MIDI, audio, software. Nos aseguramos de que tu primera clase sea perfecta.</p>
                             </div>
-                            <span class="item-value">Valor $30</span>
+                            <span class="item-value">~20 min</span>
+                        </li>
+                        <li>
+                            <div class="item-icon">🎹</div>
+                            <div class="item-info">
+                                <h4>3. Clase de Prueba con Profesor</h4>
+                                <p>Tu primera clase real de piano online. 30 minutos con un profesor certificado para que experimentes la magia de nuestra tecnología MIDI y descubras si este es tu camino.</p>
+                            </div>
+                            <span class="item-value">30 min</span>
                         </li>
                         <li>
                             <div class="item-icon">📚</div>
                             <div class="item-info">
-                                <h4>Guía de Inicio + Partitura</h4>
-                                <p>Material para tu primera semana.</p>
+                                <h4>+ Material de Apoyo</h4>
+                                <p>Guía de inicio rápido, partitura para tu primera semana, y acceso a recursos exclusivos para nuevos estudiantes.</p>
                             </div>
-                            <span class="item-value">Valor $20</span>
-                        </li>
-                        <li>
-                            <div class="item-icon">💎</div>
-                            <div class="item-info">
-                                <h4>Badge "Miembro Fundador"</h4>
-                                <p>Exclusivo para los primeros 88.</p>
-                            </div>
-                            <span class="item-value">Exclusivo</span>
+                            <span class="item-value">Incluido</span>
                         </li>
                     </ul>
                     
                     <div class="kit-pricing">
                         <div class="price-row">
                             <div>
-                                <span class="original-price">$150 USD</span>
-                                <div class="current-price">Desde $35 <small>USD</small></div>
+                                <span class="original-price">$90 USD</span>
+                                <div class="current-price price-display">$44 <small>USD</small></div>
                             </div>
-                            <span class="savings">Ahorras hasta 77%</span>
+                            <span class="savings">Precio único, todo incluido</span>
                         </div>
-                        <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: -5px 0 15px; text-align: center;">
-                            Precio final según tu tipo de cable ($35-$38)
+                        <p style="font-size: 0.9rem; color: rgba(255,255,255,0.8); margin: -5px 0 15px; text-align: center; line-height: 1.5;">
+                            💡 <strong>Nota:</strong> Si necesitas comprar cable MIDI u otros accesorios, te recomendaremos dónde hacerlo. Eso corre por tu cuenta, pero te guiamos en cada paso.
                         </p>
                         <a href="/welcome-kit" class="btn-primary kit-cta">
-                            <span>🎹 Obtener Mi Kit de Inicio</span>
+                            <span>🎹 Quiero Comenzar</span>
                         </a>
                         <div class="kit-guarantee">
                             <span>🛡️</span>
@@ -2156,6 +2181,18 @@
                 }
             });
         });
+        
+        // Cargar precio dinámico del Kit V2
+        fetch('/api/welcome-kit/v2/price')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.priceUSD) {
+                    document.querySelectorAll('.price-display').forEach(el => {
+                        el.innerHTML = '$' + data.priceUSD + ' <small>USD</small>';
+                    });
+                }
+            })
+            .catch(() => console.log('Usando precio por defecto'));
     </script>
 </body>
 </html>

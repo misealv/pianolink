@@ -5,6 +5,12 @@ const globalConfigSchema = new mongoose.Schema({
     // Usamos un ID fijo o un campo 'active' para asegurar que solo haya una configuración
     isDefault: { type: Boolean, default: true, unique: true },
     
+    // ==================== KIT DE BIENVENIDA V2 ====================
+    welcomeKitV2: {
+        priceUSD: { type: Number, default: 44 },  // Precio en USD
+        enabled: { type: Boolean, default: true }
+    },
+    
     // Tracking Pixels (Facebook Pixel & Google Analytics)
     trackingScripts: {
         facebookPixel: { type: String, default: "" },

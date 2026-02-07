@@ -25,6 +25,29 @@ const EmailService = require('../services/EmailService');
 const CJDropshipping = require('../services/CJDropshippingService');
 const { generateWelcomeKitEmail } = require('../templates/welcomeKitEmail');
 
+// ==================== PRECIO KIT V2 (PÚBLICO) ====================
+
+/**
+ * GET /api/welcome-kit/v2/price
+ * Obtiene el precio actual del Kit de Bienvenida V2
+ */
+router.get('/v2/price', async (req, res) => {
+    try {
+        const config = await GlobalConfig.findOne({ isDefault: true });
+        const priceUSD = config?.welcomeKitV2?.priceUSD || 44;
+        
+        res.json({
+            success: true,
+            priceUSD,
+            currency: 'USD',
+            description: 'Asesoría técnica + Setup técnico + Clase de prueba 30 min'
+        });
+    } catch (error) {
+        console.error('Error obteniendo precio Kit V2:', error);
+        res.json({ success: true, priceUSD: 44, currency: 'USD' });
+    }
+});
+
 // ==================== HELPERS ====================
 
 // Obtener access token de PayPal
@@ -2855,6 +2878,352 @@ router.delete('/admin/products/:id', protect, adminOnly, async (req, res) => {
         
     } catch (error) {
         console.error('[Products] Error eliminando producto:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ==================== FLUJO SIMPLIFICADO V2 ($44 USD servicio) ====================
+// Estados: entrevista_pendiente → esperando_equipo → setup_pendiente → clase_pendiente → completado
+
+const WelcomeKitEmailService = require('../services/WelcomeKitEmailService');
+
+/**
+ * GET /api/welcome-kit/v2/orders
+ * Lista todas las órdenes del flujo simplificado (para admin)
+ */
+router.get('/v2/orders', protect, adminOnly, async (req, res) => {
+    try {
+        const orders = await WelcomeKit.find({ kitType: 'setup_only' })
+            .populate('clientId', 'name email whatsapp')
+            .sort({ createdAt: -1 })
+            .limit(100);
+
+        res.json({ success: true, orders });
+    } catch (error) {
+        console.error('[WelcomeKit V2] Error listando órdenes:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/welcome-kit/v2/:id/send-recommendations
+ * Admin envía email con recomendaciones de equipo post-entrevista
+ */
+router.post('/v2/:id/send-recommendations', protect, adminOnly, async (req, res) => {
+    try {
+        const { keyboardBrand, connectionType, recommendations, notes, calendarLink } = req.body;
+        
+        const kit = await WelcomeKit.findById(req.params.id);
+        if (!kit) {
+            return res.status(404).json({ success: false, error: 'Orden no encontrada' });
+        }
+
+        // Enviar email con recomendaciones
+        const emailResult = await WelcomeKitEmailService.sendEquipmentRecommendations({
+            to: kit.clientEmail,
+            clientName: kit.clientName,
+            keyboardBrand: keyboardBrand || 'Tu teclado',
+            connectionType: connectionType || 'USB-B',
+            recommendations,
+            notes,
+            calendarLink
+        });
+
+        if (!emailResult.success) {
+            return res.status(500).json({ success: false, error: 'Error enviando email: ' + emailResult.error });
+        }
+
+        // Actualizar estado y guardar datos de la entrevista
+        kit.overallStatus = 'esperando_equipo';
+        kit.cable = kit.cable || {};
+        kit.cable.keyboardModel = keyboardBrand;
+        kit.cable.type = connectionType === 'USB-B' ? 'USB_B' : 
+                        connectionType === 'USB-C' ? 'USB_C' :
+                        connectionType === 'MIDI 5-pin' ? 'MIDI_5PIN' : 'USB_B';
+        
+        // Guardar notas de la entrevista en el campo de setup
+        kit.setupSession = kit.setupSession || {};
+        kit.setupSession.technicianNotes = notes;
+        
+        await kit.save();
+
+        console.log(`[WelcomeKit V2] ✉️ Recomendaciones enviadas a ${kit.clientEmail}`);
+
+        res.json({ 
+            success: true, 
+            message: 'Email de recomendaciones enviado',
+            emailId: emailResult.messageId,
+            newStatus: 'esperando_equipo'
+        });
+    } catch (error) {
+        console.error('[WelcomeKit V2] Error enviando recomendaciones:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/welcome-kit/v2/:id/client-ready
+ * Cliente indica que ya tiene el equipo listo
+ */
+router.post('/v2/:id/client-ready', protect, async (req, res) => {
+    try {
+        const kit = await WelcomeKit.findById(req.params.id);
+        if (!kit) {
+            return res.status(404).json({ success: false, error: 'Orden no encontrada' });
+        }
+
+        // Verificar que el cliente es el dueño (o es admin)
+        if (kit.clientId && kit.clientId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, error: 'No autorizado' });
+        }
+
+        // Actualizar estado
+        kit.overallStatus = 'setup_pending';
+        kit.shipping = kit.shipping || {};
+        kit.shipping.clientConfirmedReceipt = true;
+        kit.shipping.clientConfirmedAt = new Date();
+        
+        await kit.save();
+
+        // Enviar confirmación al cliente
+        await WelcomeKitEmailService.sendEquipmentReadyConfirmation({
+            to: kit.clientEmail,
+            clientName: kit.clientName,
+            calendarLink: req.body.calendarLink || ''
+        });
+
+        console.log(`[WelcomeKit V2] ✅ Cliente ${kit.clientEmail} confirmó equipo listo`);
+
+        res.json({ 
+            success: true, 
+            message: 'Confirmación recibida, te contactaremos para agendar el setup',
+            newStatus: 'setup_pending'
+        });
+    } catch (error) {
+        console.error('[WelcomeKit V2] Error confirmando equipo:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * PUT /api/welcome-kit/v2/:id/status
+ * Admin actualiza el estado manualmente
+ */
+router.put('/v2/:id/status', protect, adminOnly, async (req, res) => {
+    try {
+        const { status, notes } = req.body;
+        
+        const validStatuses = [
+            'entrevista_pendiente',
+            'esperando_equipo', 
+            'setup_pending',
+            'setup_scheduled',
+            'trial_available',
+            'trial_scheduled',
+            'completed'
+        ];
+
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ 
+                success: false, 
+                error: `Estado inválido. Válidos: ${validStatuses.join(', ')}` 
+            });
+        }
+
+        const kit = await WelcomeKit.findById(req.params.id);
+        if (!kit) {
+            return res.status(404).json({ success: false, error: 'Orden no encontrada' });
+        }
+
+        kit.overallStatus = status;
+        
+        // Guardar notas si se proporcionan
+        if (notes) {
+            kit.setupSession = kit.setupSession || {};
+            kit.setupSession.technicianNotes = 
+                (kit.setupSession.technicianNotes || '') + '\n\n---\n' + new Date().toLocaleDateString() + ': ' + notes;
+        }
+
+        // Si se marca setup como completado, desbloquear clase de prueba
+        if (status === 'trial_available') {
+            kit.setupSession.status = 'completed';
+            kit.setupSession.completedAt = new Date();
+            kit.trialClass = kit.trialClass || {};
+            kit.trialClass.status = 'available';
+            kit.trialClass.unlockedAt = new Date();
+        }
+
+        // Si se marca como completado
+        if (status === 'completed') {
+            kit.trialClass = kit.trialClass || {};
+            kit.trialClass.status = 'completed';
+            kit.trialClass.completedAt = new Date();
+        }
+
+        await kit.save();
+
+        console.log(`[WelcomeKit V2] 📝 Estado actualizado a: ${status} para ${kit.clientEmail}`);
+
+        res.json({ 
+            success: true, 
+            message: `Estado actualizado a: ${status}`,
+            kit
+        });
+    } catch (error) {
+        console.error('[WelcomeKit V2] Error actualizando estado:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/welcome-kit/v2/my-kit
+ * Cliente obtiene el estado de su kit
+ */
+router.get('/v2/my-kit', protect, async (req, res) => {
+    try {
+        // Buscar por clientId o por email
+        const kit = await WelcomeKit.findOne({
+            $or: [
+                { clientId: req.user._id },
+                { clientEmail: req.user.email }
+            ],
+            kitType: 'setup_only'
+        }).sort({ createdAt: -1 });
+
+        if (!kit) {
+            return res.json({ success: true, kit: null });
+        }
+
+        // Traducir estados a mensajes amigables
+        const statusMessages = {
+            'paid': { step: 1, message: 'Esperando agendar tu entrevista técnica', action: null },
+            'entrevista_pendiente': { step: 1, message: 'Esperando tu entrevista técnica', action: null },
+            'esperando_equipo': { step: 2, message: 'Revisa tu email para ver las recomendaciones de equipo', action: 'confirm_equipment' },
+            'setup_pending': { step: 3, message: 'Equipo confirmado. Pronto agendaremos tu setup técnico', action: null },
+            'setup_scheduled': { step: 3, message: 'Setup técnico agendado', action: null },
+            'trial_available': { step: 4, message: '¡Listo para tu clase de prueba!', action: 'schedule_trial' },
+            'trial_scheduled': { step: 4, message: 'Clase de prueba agendada', action: null },
+            'completed': { step: 5, message: '¡Onboarding completado!', action: 'view_teachers' }
+        };
+
+        const statusInfo = statusMessages[kit.overallStatus] || { step: 1, message: kit.overallStatus, action: null };
+
+        res.json({ 
+            success: true, 
+            kit: {
+                id: kit._id,
+                status: kit.overallStatus,
+                ...statusInfo,
+                createdAt: kit.createdAt,
+                setupSession: kit.setupSession,
+                trialClass: kit.trialClass
+            }
+        });
+    } catch (error) {
+        console.error('[WelcomeKit V2] Error obteniendo kit:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/welcome-kit/v2/recommendation-templates
+ * Obtiene templates de recomendaciones por tipo de conexión
+ */
+router.get('/v2/recommendation-templates', protect, adminOnly, async (req, res) => {
+    try {
+        // Templates predefinidos para cada tipo de conexión
+        const templates = {
+            'USB-B': {
+                label: 'USB Tipo B (Yamaha, Roland, Casio)',
+                recommendations: [
+                    {
+                        name: 'Cable USB-B a USB-A (2 metros)',
+                        description: 'Cable estándar para teclados Yamaha, Roland, Casio, Korg',
+                        price: '$5-8 USD',
+                        links: [
+                            { store: 'Amazon', url: 'https://www.amazon.com/s?k=usb+b+cable+printer+2m' },
+                            { store: 'AliExpress', url: 'https://www.aliexpress.com/w/wholesale-usb-b-cable-2m.html' },
+                            { store: 'MercadoLibre CL', url: 'https://listado.mercadolibre.cl/cable-usb-tipo-b-impresora' }
+                        ],
+                        priority: 'required'
+                    }
+                ]
+            },
+            'USB-C': {
+                label: 'USB Tipo C (Teclados modernos)',
+                recommendations: [
+                    {
+                        name: 'Cable USB-C a USB-A (2 metros)',
+                        description: 'Para teclados nuevos con puerto USB-C',
+                        price: '$6-10 USD',
+                        links: [
+                            { store: 'Amazon', url: 'https://www.amazon.com/s?k=usb+c+cable+2m' },
+                            { store: 'AliExpress', url: 'https://www.aliexpress.com/w/wholesale-usb-c-cable-2m.html' },
+                            { store: 'MercadoLibre CL', url: 'https://listado.mercadolibre.cl/cable-usb-c-2-metros' }
+                        ],
+                        priority: 'required'
+                    }
+                ]
+            },
+            'MIDI 5-pin': {
+                label: 'MIDI clásico (5 pines)',
+                recommendations: [
+                    {
+                        name: 'Interfaz MIDI USB',
+                        description: 'Convierte conexión MIDI de 5 pines a USB',
+                        price: '$10-20 USD',
+                        links: [
+                            { store: 'Amazon', url: 'https://www.amazon.com/s?k=midi+to+usb+interface' },
+                            { store: 'AliExpress', url: 'https://www.aliexpress.com/w/wholesale-midi-usb-interface.html' },
+                            { store: 'MercadoLibre CL', url: 'https://listado.mercadolibre.cl/interfaz-midi-usb' }
+                        ],
+                        priority: 'required'
+                    }
+                ]
+            },
+            'Bluetooth': {
+                label: 'Bluetooth MIDI',
+                recommendations: [
+                    {
+                        name: 'No requiere cable',
+                        description: 'Tu teclado se conecta por Bluetooth. Verificaremos la compatibilidad en el setup.',
+                        price: 'Incluido',
+                        links: [],
+                        priority: 'info'
+                    }
+                ]
+            }
+        };
+
+        // Accesorios comunes para agregar
+        const commonAccessories = [
+            {
+                name: 'Pedal de Sustain',
+                description: 'Esencial para tocar piano. Cualquier pedal genérico funciona.',
+                price: '$10-20 USD',
+                links: [
+                    { store: 'Amazon', url: 'https://www.amazon.com/s?k=sustain+pedal+keyboard' },
+                    { store: 'AliExpress', url: 'https://www.aliexpress.com/w/wholesale-sustain-pedal.html' },
+                    { store: 'MercadoLibre CL', url: 'https://listado.mercadolibre.cl/pedal-sustain' }
+                ],
+                priority: 'recommended'
+            },
+            {
+                name: 'Audífonos con cable',
+                description: 'Para escuchar al profesor sin eco. Cualquier audífono sirve.',
+                price: 'Ya tienes probablemente',
+                links: [],
+                priority: 'recommended'
+            }
+        ];
+
+        res.json({ 
+            success: true, 
+            templates,
+            commonAccessories
+        });
+    } catch (error) {
+        console.error('[WelcomeKit V2] Error obteniendo templates:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });

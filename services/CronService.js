@@ -7,6 +7,7 @@ const cron = require('node-cron');
 const RoomService = require('./RoomService');
 const SubscriptionService = require('./SubscriptionService');
 const PayoutCronService = require('./PayoutCronService');
+const MembershipReminderService = require('./MembershipReminderService');
 
 class CronService {
     static jobs = [];
@@ -125,6 +126,25 @@ class CronService {
             timezone: 'UTC'
         });
         this.jobs.push(disputeEscalationJob);
+
+        // 8. Recordatorios de renovación de membresía profesor - Diario a las 09:00 Chile
+        const membershipReminderJob = cron.schedule('0 9 * * *', async () => {
+            console.log('[Cron] 📧 Verificando membresías de profesores...');
+            try {
+                const result = await MembershipReminderService.runDailyCheck();
+                if (result.sent > 0) {
+                    console.log(`[Cron] ✅ ${result.sent} recordatorios de membresía enviados`);
+                }
+                if (result.errors.length > 0) {
+                    console.log(`[Cron] ⚠️ ${result.errors.length} errores enviando recordatorios`);
+                }
+            } catch (error) {
+                console.error('[Cron] ❌ Error en recordatorios de membresía:', error);
+            }
+        }, {
+            timezone: 'America/Santiago'
+        });
+        this.jobs.push(membershipReminderJob);
 
         console.log(`[CronService] ✅ ${this.jobs.length} tareas programadas iniciadas`);
     }

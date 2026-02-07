@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kit de Bienvenida - PianoLink</title>
+    <meta name="description" content="Empieza tu viaje musical con PianoLink. Sesión de setup + clase de prueba gratis.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #ec4899;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-dark: #0f0f1a;
+            --bg-card: #1a1a2e;
+            --bg-elevated: #252542;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border: #27273a;
+            --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Background */
+        .bg-animation {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+        }
+
+        /* Header */
+        .header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 48px; height: 48px;
+            background: var(--gradient-primary);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo-text {
+            font-size: 1.5em;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Main Layout */
+        .main-content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 450px;
+            gap: 40px;
+        }
+
+        /* Left: Cart */
+        .cart-section {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid var(--border);
+        }
+
+        .cart-header {
+            margin-bottom: 25px;
+        }
+
+        .cart-header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .cart-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Cart Items */
+        .cart-items {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .cart-item {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .cart-item.required {
+            border-color: var(--success);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), var(--bg-elevated));
+        }
+
+        .cart-item.selected {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), var(--bg-elevated));
+        }
+
+        .cart-item-icon {
+            width: 50px; height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: var(--bg-dark);
+        }
+
+        .cart-item-info {
+            flex: 1;
+        }
+
+        .cart-item-info h4 {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .cart-item-info p {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .cart-item-price {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .cart-item-checkbox {
+            width: 24px; height: 24px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .cart-item-checkbox.checked {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .cart-item-checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+        }
+
+        .required-badge {
+            background: var(--success);
+            color: white;
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* Products Section */
+        .products-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .products-section h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .product-card {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .product-card:hover {
+            border-color: var(--border);
+            transform: translateY(-2px);
+        }
+
+        .product-card.selected {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), var(--bg-elevated));
+        }
+
+        .product-card img {
+            width: 80px; height: 80px;
+            object-fit: contain;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: var(--bg-dark);
+        }
+
+        .product-card .placeholder-img {
+            width: 80px; height: 80px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 10px;
+        }
+
+        .product-card h4 {
+            font-size: 13px;
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+
+        .product-card .price {
+            color: var(--primary-light);
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        /* Right: Checkout */
+        .checkout-section {
+            position: sticky;
+            top: 20px;
+        }
+
+        .checkout-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .checkout-header {
+            background: var(--gradient-primary);
+            padding: 25px;
+            text-align: center;
+        }
+
+        .checkout-header h2 {
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        .checkout-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .checkout-body {
+            padding: 25px;
+        }
+
+        /* Summary */
+        .order-summary {
+            margin-bottom: 25px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-item.total {
+            font-size: 18px;
+            font-weight: 700;
+            padding-top: 15px;
+            margin-top: 10px;
+            border-top: 2px solid var(--border);
+        }
+
+        .summary-item.total .price {
+            color: var(--success);
+        }
+
+        /* Form */
+        .checkout-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* Student Type Toggle */
+        .student-type-toggle {
+            display: flex;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 15px;
+        }
+
+        .student-type-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .student-type-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Beneficiary Section */
+        .beneficiary-section {
+            background: rgba(236, 72, 153, 0.1);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .beneficiary-section.visible {
+            display: block;
+        }
+
+        .beneficiary-section h4 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: var(--secondary);
+        }
+
+        .beneficiary-item {
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .beneficiary-item .form-row {
+            margin-bottom: 0;
+        }
+
+        .btn-remove-beneficiary {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--danger);
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-add-beneficiary {
+            background: transparent;
+            border: 1px dashed var(--secondary);
+            color: var(--secondary);
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .btn-add-beneficiary:hover {
+            background: rgba(236, 72, 153, 0.1);
+        }
+
+        /* Address Section */
+        .address-section {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .address-section h4 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: var(--accent);
+        }
+
+        /* Pay Button */
+        .payment-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-pay {
+            width: 100%;
+            padding: 16px;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-pay.btn-stripe {
+            background: linear-gradient(135deg, #635bff 0%, #8b5cf6 100%);
+        }
+
+        .btn-pay.btn-mercadopago {
+            background: linear-gradient(135deg, #00a2e8 0%, #009ee3 100%);
+        }
+
+        .btn-pay:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-pay:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Security */
+        .security-badges {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        .security-badge {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px; height: 50px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error */
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            display: none;
+        }
+
+        /* Mobile */
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .checkout-section {
+                position: static;
+            }
+        }
+
+        /* Empty state for products */
+        .no-products {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <header class="header">
+        <a href="/" class="logo">
+            <div class="logo-icon">🎹</div>
+            <span class="logo-text">PianoLink</span>
+        </a>
+    </header>
+
+    <main class="main-content">
+        <!-- Left: Cart -->
+        <section class="cart-section">
+            <div class="cart-header">
+                <h1>🛒 Tu Kit de Bienvenida</h1>
+                <p>Selecciona los productos que necesitas para empezar</p>
+            </div>
+
+            <div class="cart-items">
+                <!-- Required: Setup + Clase -->
+                <div class="cart-item required" id="serviceItem">
+                    <div class="cart-item-icon">🎓</div>
+                    <div class="cart-item-info">
+                        <h4>Sesión de Setup + Clase de Prueba <span class="required-badge">INCLUIDO</span></h4>
+                        <p>30 min • Configuración técnica + Clase demo con profesor</p>
+                    </div>
+                    <div class="cart-item-price" id="servicePrice">$10</div>
+                </div>
+            </div>
+
+            <!-- Optional Products -->
+            <div class="products-section">
+                <h3>➕ Agrega productos opcionales</h3>
+                <div class="product-grid" id="productGrid">
+                    <div class="no-products">
+                        <p>Cargando productos...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right: Checkout -->
+        <section class="checkout-section">
+            <div class="checkout-card">
+                <div class="checkout-header">
+                    <h2>💳 Resumen de Compra</h2>
+                    <p>Pago seguro con Stripe</p>
+                </div>
+
+                <div class="checkout-body">
+                    <!-- Order Summary -->
+                    <div class="order-summary" id="orderSummary">
+                        <div class="summary-item">
+                            <span>Sesión Setup + Clase</span>
+                            <span id="summaryService">$10</span>
+                        </div>
+                        <div class="summary-item total">
+                            <span>Total</span>
+                            <span class="price" id="summaryTotal">$10</span>
+                        </div>
+                    </div>
+
+                    <!-- Error Message -->
+                    <div class="error-message" id="errorMessage"></div>
+
+                    <!-- Form -->
+                    <form id="kitForm" class="checkout-form">
+                        <!-- Student Type -->
+                        <div class="form-group">
+                            <label>¿Quién tomará las clases?</label>
+                            <div class="student-type-toggle">
+                                <button type="button" class="student-type-btn active" data-type="self" onclick="setStudentType('self')">
+                                    👤 Yo mismo
+                                </button>
+                                <button type="button" class="student-type-btn" data-type="child" onclick="setStudentType('child')">
+                                    👶 Mi hijo/a
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Buyer Info -->
+                        <div class="form-group">
+                            <label for="name">Tu nombre completo</label>
+                            <input type="text" id="name" name="name" class="form-input" required placeholder="Juan Pérez">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Tu email</label>
+                            <input type="email" id="email" name="email" class="form-input" required placeholder="tu@email.com">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="country">País</label>
+                                <select id="country" name="country" class="form-input" required onchange="updatePricing()">
+                                    <option value="CL">🇨🇱 Chile</option>
+                                    <option value="MX">🇲🇽 México</option>
+                                    <option value="CO">🇨🇴 Colombia</option>
+                                    <option value="AR">🇦🇷 Argentina</option>
+                                    <option value="PE">🇵🇪 Perú</option>
+                                    <option value="ES">🇪🇸 España</option>
+                                    <option value="US">🇺🇸 USA</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="whatsapp">WhatsApp</label>
+                                <input type="tel" id="whatsapp" name="whatsapp" class="form-input" required placeholder="+56 9 1234 5678">
+                            </div>
+                        </div>
+
+                        <!-- Beneficiary Section (for child) -->
+                        <div class="beneficiary-section" id="beneficiarySection">
+                            <h4>👶 Datos de los estudiantes (tus hijos)</h4>
+                            <div id="beneficiaryList">
+                                <div class="beneficiary-item" data-index="0">
+                                    <div class="form-row">
+                                        <div class="form-group" style="flex: 2">
+                                            <label>Nombre del estudiante</label>
+                                            <input type="text" class="form-input beneficiary-name" placeholder="María Pérez">
+                                        </div>
+                                        <div class="form-group" style="flex: 1">
+                                            <label>Edad</label>
+                                            <input type="number" class="form-input beneficiary-age" placeholder="10" min="4" max="99">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-add-beneficiary" onclick="addBeneficiary()">
+                                ➕ Agregar otro hijo/a
+                            </button>
+                        </div>
+
+                        <!-- Address (only if physical products) -->
+                        <div class="address-section" id="addressSection" style="display:none;">
+                            <div class="form-group">
+                                <label for="street">Dirección de envío</label>
+                                <input type="text" id="street" name="street" class="form-input" placeholder="Calle 123, depto 4">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="city">Ciudad</label>
+                                    <input type="text" id="city" name="city" class="form-input" placeholder="Santiago">
+                                </div>
+                                <div class="form-group">
+                                    <label for="postalCode">Código Postal</label>
+                                    <input type="text" id="postalCode" name="postalCode" class="form-input" placeholder="12345">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Buttons -->
+                        <div class="payment-buttons">
+                            <button type="button" class="btn-pay btn-stripe" id="btnStripe" onclick="processPayment('stripe')">
+                                <span>💳</span>
+                                Pagar con Tarjeta (Internacional)
+                            </button>
+                            <button type="button" class="btn-pay btn-mercadopago" id="btnMP" onclick="processPayment('mercadopago')">
+                                <span>🇨🇱</span>
+                                Pagar con MercadoPago (Chile)
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="security-badges">
+                        <div class="security-badge">🔒 Pago seguro</div>
+                        <div class="security-badge">✅ Garantía 30 días</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <span style="color: white;">Procesando pago...</span>
+    </div>
+
+    <script>
+        // State
+        let selectedProducts = [];
+        let availableProducts = [];
+        let servicePrice = 10; // Default
+        let studentType = 'self';
+
+        // DOM
+        const form = document.getElementById('kitForm');
+        const productGrid = document.getElementById('productGrid');
+        const orderSummary = document.getElementById('orderSummary');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const errorMessage = document.getElementById('errorMessage');
+        const beneficiarySection = document.getElementById('beneficiarySection');
+        const addressSection = document.getElementById('addressSection');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadServicePrice();
+            loadProducts();
+            detectCountry();
+        });
+
+        // Detect country from IP
+        async function detectCountry() {
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                if (data.country_code) {
+                    const select = document.getElementById('country');
+                    const option = select.querySelector(`option[value="${data.country_code}"]`);
+                    if (option) {
+                        select.value = data.country_code;
+                        updatePricing();
+                    }
+                }
+            } catch (e) {
+                console.log('Could not detect country');
+            }
+        }
+
+        // Load service price for country
+        async function loadServicePrice() {
+            try {
+                const country = document.getElementById('country').value;
+                const res = await fetch(`/api/welcome-kit/service-pricing?country=${country}`);
+                const data = await res.json();
+                
+                if (data.success) {
+                    servicePrice = data.price || 10;
+                    document.getElementById('servicePrice').textContent = `$${servicePrice}`;
+                    updateSummary();
+                }
+            } catch (e) {
+                console.error('Error loading service price:', e);
+            }
+        }
+
+        // Load products
+        async function loadProducts() {
+            try {
+                const country = document.getElementById('country').value;
+                const res = await fetch(`/api/welcome-kit/products?country=${country}`);
+                const data = await res.json();
+                
+                if (data.success && data.products && data.products.length > 0) {
+                    availableProducts = data.products.filter(p => p.isActive !== false);
+                    renderProducts();
+                } else {
+                    productGrid.innerHTML = '<div class="no-products"><p>No hay productos adicionales disponibles</p></div>';
+                }
+            } catch (e) {
+                console.error('Error loading products:', e);
+                productGrid.innerHTML = '<div class="no-products"><p>Error cargando productos</p></div>';
+            }
+        }
+
+        // Render products
+        function renderProducts() {
+            if (availableProducts.length === 0) {
+                productGrid.innerHTML = '<div class="no-products"><p>No hay productos adicionales disponibles</p></div>';
+                return;
+            }
+
+            productGrid.innerHTML = availableProducts.map(product => {
+                const isSelected = selectedProducts.includes(product._id);
+                const price = product.defaultPrice || 0;
+                const imgHtml = product.imageUrl 
+                    ? `<img src="${product.imageUrl}" alt="${product.name}" onerror="this.outerHTML='<div class=\\'placeholder-img\\'>📦</div>'">`
+                    : `<div class="placeholder-img">📦</div>`;
+                
+                return `
+                    <div class="product-card ${isSelected ? 'selected' : ''}" 
+                         data-id="${product._id}" 
+                         onclick="toggleProduct('${product._id}')">
+                        ${imgHtml}
+                        <h4>${product.name}</h4>
+                        <div class="price">+$${price.toFixed(0)}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Toggle product selection
+        function toggleProduct(productId) {
+            console.log('Toggle product:', productId);
+            const index = selectedProducts.indexOf(productId);
+            
+            if (index === -1) {
+                selectedProducts.push(productId);
+            } else {
+                selectedProducts.splice(index, 1);
+            }
+            
+            console.log('Selected products:', selectedProducts);
+            
+            renderProducts();
+            updateSummary();
+            
+            // Show/hide address section based on physical products
+            const hasPhysicalProducts = selectedProducts.length > 0;
+            console.log('Has physical products:', hasPhysicalProducts);
+            
+            const addrSection = document.getElementById('addressSection');
+            if (addrSection) {
+                addrSection.style.display = hasPhysicalProducts ? 'block' : 'none';
+                console.log('Address section display:', addrSection.style.display);
+            } else {
+                console.error('addressSection not found!');
+            }
+            
+            // Make address fields required if there are physical products
+            const streetField = document.getElementById('street');
+            const cityField = document.getElementById('city');
+            if (streetField) streetField.required = hasPhysicalProducts;
+            if (cityField) cityField.required = hasPhysicalProducts;
+        }
+
+        // Update order summary
+        function updateSummary() {
+            // Contar beneficiarios (mínimo 1 para tipo 'self')
+            const beneficiaryCount = studentType === 'child' 
+                ? Math.max(1, document.querySelectorAll('.beneficiary-item').length)
+                : 1;
+            
+            const serviceTotalPrice = servicePrice * beneficiaryCount;
+            
+            let html = '';
+            
+            if (beneficiaryCount > 1) {
+                html += `
+                    <div class="summary-item">
+                        <span>🎓 Setup + Clase x${beneficiaryCount} estudiantes</span>
+                        <span>$${servicePrice} x ${beneficiaryCount} = $${serviceTotalPrice}</span>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="summary-item">
+                        <span>🎓 Sesión Setup + Clase</span>
+                        <span>$${servicePrice}</span>
+                    </div>
+                `;
+            }
+            
+            let total = serviceTotalPrice;
+            
+            selectedProducts.forEach(productId => {
+                const product = availableProducts.find(p => p._id === productId);
+                if (product) {
+                    const price = product.defaultPrice || 0;
+                    total += price;
+                    html += `
+                        <div class="summary-item">
+                            <span>📦 ${product.name}</span>
+                            <span>$${price.toFixed(0)}</span>
+                        </div>
+                    `;
+                }
+            });
+            
+            html += `
+                <div class="summary-item total">
+                    <span>Total</span>
+                    <span class="price" id="summaryTotal">$${total.toFixed(0)} USD</span>
+                </div>
+            `;
+            
+            orderSummary.innerHTML = html;
+        }
+
+        // Update pricing when country changes
+        function updatePricing() {
+            loadServicePrice();
+        }
+
+        // Set student type
+        function setStudentType(type) {
+            studentType = type;
+            
+            document.querySelectorAll('.student-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+            
+            beneficiarySection.classList.toggle('visible', type === 'child');
+            
+            // Actualizar resumen cuando cambia el tipo
+            updateSummary();
+        }
+
+        // Add beneficiary
+        let beneficiaryCount = 1;
+        function addBeneficiary() {
+            const list = document.getElementById('beneficiaryList');
+            const newItem = document.createElement('div');
+            newItem.className = 'beneficiary-item';
+            newItem.dataset.index = beneficiaryCount;
+            newItem.innerHTML = `
+                <button type="button" class="btn-remove-beneficiary" onclick="removeBeneficiary(this)">✕</button>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2">
+                        <label>Nombre del estudiante</label>
+                        <input type="text" class="form-input beneficiary-name" placeholder="Nombre completo">
+                    </div>
+                    <div class="form-group" style="flex: 1">
+                        <label>Edad</label>
+                        <input type="number" class="form-input beneficiary-age" placeholder="10" min="4" max="99">
+                    </div>
+                </div>
+            `;
+            list.appendChild(newItem);
+            beneficiaryCount++;
+            updateSummary();
+        }
+
+        // Remove beneficiary
+        function removeBeneficiary(btn) {
+            const item = btn.closest('.beneficiary-item');
+            if (document.querySelectorAll('.beneficiary-item').length > 1) {
+                item.remove();
+                updateSummary();
+            }
+        }
+
+        // Get all beneficiaries
+        function getBeneficiaries() {
+            const beneficiaries = [];
+            document.querySelectorAll('.beneficiary-item').forEach(item => {
+                const name = item.querySelector('.beneficiary-name')?.value?.trim();
+                const age = item.querySelector('.beneficiary-age')?.value;
+                if (name) {
+                    beneficiaries.push({
+                        name,
+                        age: age ? parseInt(age) : null
+                    });
+                }
+            });
+            return beneficiaries;
+        }
+
+        // Validate form
+        function validateForm() {
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const whatsapp = document.getElementById('whatsapp').value.trim();
+            
+            if (!name || !email || !whatsapp) {
+                showError('Por favor completa todos los campos requeridos');
+                return false;
+            }
+            
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showError('Por favor ingresa un email válido');
+                return false;
+            }
+            
+            if (studentType === 'child') {
+                const beneficiaries = getBeneficiaries();
+                if (beneficiaries.length === 0) {
+                    showError('Por favor ingresa los datos de al menos un estudiante');
+                    return false;
+                }
+            }
+            
+            if (selectedProducts.length > 0) {
+                const street = document.getElementById('street').value.trim();
+                const city = document.getElementById('city').value.trim();
+                if (!street || !city) {
+                    showError('Por favor ingresa la dirección de envío');
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        // Process payment
+        async function processPayment(provider) {
+            if (!validateForm()) return;
+            
+            const btn = provider === 'stripe' 
+                ? document.getElementById('btnStripe') 
+                : document.getElementById('btnMP');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Procesando...';
+            loadingOverlay.classList.add('active');
+            errorMessage.style.display = 'none';
+            
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const country = document.getElementById('country').value;
+            const whatsapp = document.getElementById('whatsapp').value.trim();
+            const beneficiaries = getBeneficiaries();
+            
+            try {
+                // First, create checkout record
+                const checkoutRes = await fetch('/api/welcome-kit/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        email,
+                        whatsapp,
+                        country,
+                        studentType,
+                        beneficiaries: beneficiaries.length > 0 ? beneficiaries : null,
+                        beneficiaryName: beneficiaries[0]?.name || null,
+                        beneficiaryAge: beneficiaries[0]?.age || null,
+                        kitType: selectedProducts.length > 0 ? 'full' : 'setup_only',
+                        productIds: selectedProducts,
+                        street: document.getElementById('street')?.value?.trim() || '',
+                        city: document.getElementById('city')?.value?.trim() || '',
+                        postalCode: document.getElementById('postalCode')?.value?.trim() || ''
+                    })
+                });
+                
+                const checkoutData = await checkoutRes.json();
+                if (!checkoutData.success) {
+                    throw new Error(checkoutData.error || 'Error guardando datos');
+                }
+                
+                // Then, create payment with selected provider
+                const endpoint = provider === 'stripe' 
+                    ? '/api/payment/create-kit-payment-stripe'
+                    : '/api/payment/create-kit-payment-mercadopago';
+                
+                const paymentRes = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        email,
+                        country,
+                        kitType: selectedProducts.length > 0 ? 'full' : 'setup_only',
+                        cableType: selectedProducts.length > 0 ? 'GENERIC' : 'NONE'
+                    })
+                });
+                
+                const paymentData = await paymentRes.json();
+                
+                if (!paymentData.success) {
+                    throw new Error(paymentData.error || 'Error creando pago');
+                }
+                
+                // Redirect to payment (producción)
+                const checkoutUrl = paymentData.checkoutUrl;
+                    
+                if (checkoutUrl) {
+                    window.location.href = checkoutUrl;
+                } else {
+                    throw new Error('No se recibió URL de pago');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message);
+                loadingOverlay.classList.remove('active');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // Prevent form submit (we use buttons now)
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

@@ -595,6 +595,40 @@
             </button>
         </div>
 
+        <!-- 🔔 BANNER DE RENOVACIÓN DE MEMBRESÍA -->
+        <div id="renewalBanner" style="display: none; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 10px; padding: 14px; margin-bottom: 10px; border: 2px solid #fbbf24; animation: pulse-border 2s infinite;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 28px;">⏰</div>
+                <div style="flex: 1;">
+                    <div style="color: white; font-size: 13px; font-weight: 700;" id="renewalTitle">Tu membresía vence pronto</div>
+                    <div style="color: rgba(255,255,255,0.9); font-size: 11px;" id="renewalMessage">Renueva ahora para seguir enseñando sin interrupciones</div>
+                </div>
+                <button onclick="handleSubscription()" style="background: white; color: #d97706; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                    🇨🇱 Renovar Ahora
+                </button>
+            </div>
+            <button onclick="dismissRenewalBanner()" style="position: absolute; top: 8px; right: 8px; background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 16px;">×</button>
+        </div>
+
+        <!-- 🚫 BANNER DE MEMBRESÍA EXPIRADA -->
+        <div id="expiredBanner" style="display: none; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 10px; padding: 16px; margin-bottom: 10px; border: 2px solid #f87171;">
+            <div style="text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🔒</div>
+                <div style="color: white; font-size: 15px; font-weight: 700; margin-bottom: 4px;">Membresía Expirada</div>
+                <div style="color: rgba(255,255,255,0.9); font-size: 12px; margin-bottom: 12px;">Renueva tu membresía para volver a recibir estudiantes</div>
+                <button onclick="handleSubscription()" style="background: white; color: #dc2626; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                    🇨🇱 Renovar con MercadoPago
+                </button>
+            </div>
+        </div>
+
+        <style>
+            @keyframes pulse-border {
+                0%, 100% { border-color: #fbbf24; }
+                50% { border-color: #fef3c7; }
+            }
+        </style>
+
         <div>
             <button id="btnOpenRoom" class="action-btn btn-primary">
                 ⚡ IR A MI SALA
@@ -669,8 +703,8 @@
                             </div>
                             
                             <!-- Botón -->
-                            <button id="btnActivateMembership" onclick="handleSubscription()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(99,102,241,0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(99,102,241,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(99,102,241,0.3)'">
-                                💳 Activar Membresía
+                            <button id="btnActivateMembership" onclick="handleSubscription()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #00b1ea 0%, #009ee3 100%); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,158,227,0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,158,227,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,158,227,0.3)'">
+                                🇨🇱 Activar con MercadoPago
                             </button>
                             
                             <!-- Botón para sincronizar manualmente si ya pagó -->
@@ -1843,10 +1877,12 @@
     }
     
     function showMembershipState(state, subscription) {
-        // Ocultar todos los estados
+        // Ocultar todos los estados y banners
         document.getElementById('membershipActive').style.display = 'none';
         document.getElementById('membershipPastDue').style.display = 'none';
         document.getElementById('membershipInactive').style.display = 'none';
+        document.getElementById('renewalBanner').style.display = 'none';
+        document.getElementById('expiredBanner').style.display = 'none';
         
         const isFounder = subscription.isFounder || false;
         
@@ -1855,19 +1891,34 @@
                 document.getElementById('membershipActive').style.display = 'block';
                 if (subscription.expiresAt) {
                     const date = new Date(subscription.expiresAt);
+                    const now = new Date();
+                    const daysUntilExpiry = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
+                    
                     document.getElementById('membershipExpiry').textContent = `Renueva: ${date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}`;
+                    
+                    // Mostrar banner de renovación si quedan 7 días o menos
+                    if (daysUntilExpiry <= 7 && daysUntilExpiry > 0 && !localStorage.getItem('renewalBannerDismissed')) {
+                        document.getElementById('renewalBanner').style.display = 'block';
+                        document.getElementById('renewalTitle').textContent = daysUntilExpiry === 1 
+                            ? '¡Tu membresía vence mañana!' 
+                            : `Tu membresía vence en ${daysUntilExpiry} días`;
+                        document.getElementById('renewalMessage').textContent = 'Renueva ahora para seguir enseñando sin interrupciones';
+                    }
                 }
                 break;
                 
             case 'pastdue':
                 document.getElementById('membershipPastDue').style.display = 'block';
+                document.getElementById('expiredBanner').style.display = 'block';
                 break;
                 
             case 'cancelled':
+            case 'expired':
                 document.getElementById('membershipInactive').style.display = 'block';
                 document.getElementById('membershipTrialText').style.display = 'none';
                 document.getElementById('membershipCancelledText').style.display = 'block';
-                document.getElementById('btnActivateMembership').textContent = '🔄 Reactivar Membresía';
+                document.getElementById('btnActivateMembership').innerHTML = '🔄 Reactivar Membresía';
+                document.getElementById('expiredBanner').style.display = 'block';
                 updateFounderPrice(isFounder);
                 break;
                 
@@ -1876,11 +1927,27 @@
                 document.getElementById('membershipInactive').style.display = 'block';
                 document.getElementById('membershipTrialText').style.display = 'inline-block';
                 document.getElementById('membershipCancelledText').style.display = 'none';
-                document.getElementById('btnActivateMembership').textContent = '💳 Activar Membresía';
+                document.getElementById('btnActivateMembership').innerHTML = '🇨🇱 Activar con MercadoPago';
                 updateFounderPrice(isFounder);
                 break;
         }
     }
+    
+    // Ocultar banner de renovación temporalmente (por 24 horas)
+    function dismissRenewalBanner() {
+        document.getElementById('renewalBanner').style.display = 'none';
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        localStorage.setItem('renewalBannerDismissed', tomorrow.toISOString());
+    }
+    
+    // Limpiar dismiss si ya pasó el tiempo
+    (function checkRenewalDismiss() {
+        const dismissed = localStorage.getItem('renewalBannerDismissed');
+        if (dismissed && new Date(dismissed) < new Date()) {
+            localStorage.removeItem('renewalBannerDismissed');
+        }
+    })();
     
     function updateFounderPrice(isFounder) {
         if (isFounder) {
@@ -1894,13 +1961,14 @@
     
     async function handleSubscription() {
         const btn = document.getElementById('btnActivateMembership');
-        const originalText = btn.textContent;
+        const originalText = btn.innerHTML;
         
         try {
             btn.disabled = true;
-            btn.textContent = '⏳ Procesando...';
+            btn.innerHTML = '⏳ Procesando...';
             
-            const response = await fetch('/api/payment/stripe/teacher-subscription', {
+            // Usar MercadoPago (Stripe deshabilitado temporalmente)
+            const response = await fetch('/api/payment/mercadopago/teacher-subscription', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${user.token}`,
@@ -1911,24 +1979,27 @@
             const data = await response.json();
             
             if (data.success && data.checkoutUrl) {
-                // Redirigir a Stripe Checkout
+                // Redirigir a MercadoPago Checkout
                 window.location.href = data.checkoutUrl;
             } else {
                 alert('Error: ' + (data.error || 'No se pudo crear el checkout'));
                 btn.disabled = false;
-                btn.textContent = originalText;
+                btn.innerHTML = originalText;
             }
             
         } catch (error) {
             console.error('Error:', error);
             alert('Error al procesar la solicitud');
             btn.disabled = false;
-            btn.textContent = originalText;
+            btn.innerHTML = originalText;
         }
     }
     
     async function openBillingPortal() {
         try {
+            // Portal de MercadoPago no existe, mostrar mensaje
+            alert('Para gestionar tu membresía, contacta a soporte@pianolink.net');
+            /* Stripe portal deshabilitado temporalmente
             const response = await fetch('/api/payment/stripe/customer-portal', {
                 headers: { 'Authorization': `Bearer ${user.token}` }
             });
@@ -1940,6 +2011,7 @@
             } else {
                 alert('Error: ' + (data.error || 'No se pudo abrir el portal'));
             }
+            */
             
         } catch (error) {
             console.error('Error:', error);

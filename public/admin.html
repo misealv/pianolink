@@ -559,15 +559,15 @@
                     </div>
                     <div class="mini-stat" style="background:var(--bg-card); border-radius:10px; padding:15px; text-align:center;">
                         <div style="font-size:24px; font-weight:700; color:var(--accent-yellow);" id="kit-stat-pending">0</div>
-                        <div style="font-size:11px; color:#888;">Por Enviar</div>
+                        <div style="font-size:11px; color:#888;">📞 Entrevistas</div>
                     </div>
                     <div class="mini-stat" style="background:var(--bg-card); border-radius:10px; padding:15px; text-align:center;">
                         <div style="font-size:24px; font-weight:700; color:var(--accent-orange);" id="kit-stat-transit">0</div>
-                        <div style="font-size:11px; color:#888;">En Tránsito</div>
+                        <div style="font-size:11px; color:#888;">🛒 Esperando Equipo</div>
                     </div>
                     <div class="mini-stat" style="background:var(--bg-card); border-radius:10px; padding:15px; text-align:center;">
                         <div style="font-size:24px; font-weight:700; color:var(--accent-green);" id="kit-stat-delivered">0</div>
-                        <div style="font-size:11px; color:#888;">Entregados</div>
+                        <div style="font-size:11px; color:#888;">⚙️ Setup Pendiente</div>
                     </div>
                     <div class="mini-stat" style="background:var(--bg-card); border-radius:10px; padding:15px; text-align:center;">
                         <div style="font-size:24px; font-weight:700; color:var(--accent-purple);" id="kit-stat-revenue">$0</div>
@@ -582,15 +582,47 @@
                     <div>
                         <!-- Tabs simplificados -->
                         <div class="simple-tabs" style="display:flex; gap:5px; margin-bottom:20px;">
-                            <button class="simple-tab active" data-kit-tab="products" onclick="switchSimpleKitTab('products')">
+                            <button class="simple-tab active" data-kit-tab="onboarding" onclick="switchSimpleKitTab('onboarding')">
+                                🎯 Onboarding
+                            </button>
+                            <button class="simple-tab" data-kit-tab="products" onclick="switchSimpleKitTab('products')">
                                 📦 Productos
                             </button>
                             <button class="simple-tab" data-kit-tab="orders" onclick="switchSimpleKitTab('orders')">
-                                🧾 Órdenes
+                                🧾 Órdenes Legacy
                             </button>
                             <button class="simple-tab" data-kit-tab="pricing" onclick="switchSimpleKitTab('pricing')">
                                 💰 Precios
                             </button>
+                        </div>
+                        
+                        <!-- Tab Content: Onboarding V2 ($44 USD) -->
+                        <div id="kit-tab-onboarding" class="kit-tab-content active">
+                            <div style="background:linear-gradient(135deg, #1a1a2e, #16213e); border-radius:12px; padding:20px; margin-bottom:20px; border:1px solid #d4af37;">
+                                <h3 style="color:#d4af37; margin:0 0 10px 0;">🎹 Kit de Bienvenida V2 — $44 USD</h3>
+                                <p style="color:#aaa; font-size:13px; margin:0;">
+                                    Flujo simplificado: Entrevista → Email con recomendaciones → Cliente compra equipo → Setup técnico → Clase de prueba
+                                </p>
+                            </div>
+                            
+                            <!-- Filtros por estado -->
+                            <div style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;">
+                                <button class="filter-chip active" data-v2-filter="all" onclick="filterV2Orders('all')">Todos</button>
+                                <button class="filter-chip" data-v2-filter="entrevista_pendiente" onclick="filterV2Orders('entrevista_pendiente')">📞 Entrevista Pendiente</button>
+                                <button class="filter-chip" data-v2-filter="esperando_equipo" onclick="filterV2Orders('esperando_equipo')">🛒 Esperando Equipo</button>
+                                <button class="filter-chip" data-v2-filter="setup_pending" onclick="filterV2Orders('setup_pending')">⚙️ Setup Pendiente</button>
+                                <button class="filter-chip" data-v2-filter="trial_available" onclick="filterV2Orders('trial_available')">🎓 Clase Disponible</button>
+                                <button class="filter-chip" data-v2-filter="completed" onclick="filterV2Orders('completed')">✅ Completados</button>
+                            </div>
+                            
+                            <!-- Lista de órdenes V2 -->
+                            <div id="v2-orders-list" style="display:grid; gap:12px;">
+                                <div style="text-align:center; padding:60px 20px; color:#666;">
+                                    <div style="font-size:48px; margin-bottom:15px;">🎹</div>
+                                    <p>No hay órdenes de onboarding aún</p>
+                                    <p style="font-size:12px;">Las nuevas compras del Kit $44 aparecerán aquí</p>
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Tab Content: Productos -->
@@ -1032,8 +1064,28 @@
             <!-- ==================== CONFIGURACIÓN DE PRECIOS ==================== -->
             <div id="module-pricing" class="module-view">
                 <div style="max-width:800px;">
-                    <h2 style="color:var(--text-primary); margin-bottom:10px;">💰 Configuración de Precios de Suscripciones</h2>
-                    <p style="color:var(--text-secondary); margin-bottom:30px;">Configura los precios mensuales para las suscripciones de profesores.</p>
+                    <h2 style="color:var(--text-primary); margin-bottom:10px;">💰 Configuración de Precios</h2>
+                    <p style="color:var(--text-secondary); margin-bottom:30px;">Configura los precios de suscripciones y servicios.</p>
+
+                    <!-- Kit de Bienvenida V2 -->
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:30px; margin-bottom:20px;">
+                        <h3 style="color:var(--accent-green); margin-bottom:20px;">🎹 Kit de Bienvenida (Servicio)</h3>
+                        
+                        <div class="form-group">
+                            <label>💵 Precio del Kit V2 (USD)</label>
+                            <input type="number" id="pricing-kit-v2" step="1" min="1" placeholder="44" 
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                            <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                Incluye: Asesoría técnica + Sesión de Setup + Clase de prueba 30 min
+                            </small>
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="saveKitV2Price()" style="width:100%; padding:12px; margin-top:15px;">
+                            💾 Guardar Precio Kit
+                        </button>
+                        <div id="kit-v2-price-status" style="display:none; padding:10px; border-radius:8px; margin-top:10px;"></div>
+                    </div>
 
                     <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:30px; margin-bottom:20px;">
                         <h3 style="color:var(--accent-purple); margin-bottom:20px;">👨‍🏫 Suscripción de Profesores</h3>

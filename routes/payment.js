@@ -155,16 +155,29 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
         const countryCode = (country || 'CL').toUpperCase();
         const includesCable = kitType === 'full';
         
-        const setupPricing = config?.regionalPricing?.setupOnly?.find(p => p.regionCode === countryCode) ||
-                            config?.regionalPricing?.setupOnly?.find(p => p.regionCode === 'DEFAULT');
+        // Detectar si es el nuevo Kit V2
+        const isV2 = kitType === 'welcome_kit_v2' || req.body.totalUSD;
         
-        let servicePrice = setupPricing?.price || 10;
-        let currency = setupPricing?.currency || 'USD';
+        let servicePrice, cablePrice, currency;
         
-        // Precio del cable (desde config o default)
-        const cablePricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === countryCode) ||
-                            config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === 'DEFAULT');
-        let cablePrice = includesCable ? (cablePricing?.cablePrice || 4) : 0;
+        if (isV2) {
+            // Kit V2: leer precio desde config o usar default $44 USD
+            servicePrice = config?.welcomeKitV2?.priceUSD || 44;
+            cablePrice = 0;
+            currency = 'USD';
+        } else {
+            // Kit legacy: usar config
+            const setupPricing = config?.regionalPricing?.setupOnly?.find(p => p.regionCode === countryCode) ||
+                                config?.regionalPricing?.setupOnly?.find(p => p.regionCode === 'DEFAULT');
+            
+            servicePrice = setupPricing?.price || 10;
+            currency = setupPricing?.currency || 'USD';
+            
+            // Precio del cable (desde config o default)
+            const cablePricing = config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === countryCode) ||
+                                config?.regionalPricing?.welcomeKit?.find(p => p.regionCode === 'DEFAULT');
+            cablePrice = includesCable ? (cablePricing?.cablePrice || 4) : 0;
+        }
         
         // MercadoPago Chile SOLO acepta CLP
         // Si el precio está en USD, convertir a CLP
@@ -177,12 +190,20 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
         
         const totalPrice = servicePrice + cablePrice;
         
-        const productName = includesCable 
-            ? 'Kit Completo PianoLink - Día 88'
-            : 'Setup + Clase de Prueba PianoLink';
-        const productDescription = includesCable
-            ? 'Cable MIDI Premium + Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma'
-            : 'Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma';
+        // Nombre y descripción del producto (isV2 ya está definido arriba)
+        let productName, productDescription;
+        
+        if (isV2) {
+            productName = 'Kit de Bienvenida PianoLink';
+            productDescription = '✓ Asesoría técnica personalizada (~20 min) - Te orientamos sobre cable MIDI y accesorios | ✓ Sesión de Setup Técnico (~20 min) - Configuración de conexión MIDI, audio y software | ✓ Clase de Prueba con Profesor (30 min) - Tu primera clase real con tecnología MIDI';
+        } else {
+            productName = includesCable 
+                ? 'Kit Completo PianoLink - Día 88'
+                : 'Setup + Clase de Prueba PianoLink';
+            productDescription = includesCable
+                ? 'Cable MIDI Premium + Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma'
+                : 'Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma';
+        }
 
         console.log('[MercadoPago Kit] kitType:', kitType);
         console.log('[MercadoPago Kit] includesCable:', includesCable);
@@ -294,36 +315,52 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
             });
         }
 
-        // Precios fijos
-        const SERVICE_PRICE = 35; // Setup + Clase
-        const CABLE_PRICE = 4;    // Cable MIDI
+        // Leer precio del Kit V2 desde GlobalConfig
+        const config = await GlobalConfig.findOne({ isDefault: true });
         
-        // Determinar si incluye cable basado en kitType
-        // kitType = 'full' significa que quiere cable
-        // kitType = 'setup_only' significa que ya tiene cable
+        // Detectar si es el nuevo Kit V2
+        const isV2 = kitType === 'welcome_kit_v2' || req.body.totalUSD;
+        
+        // Determinar si incluye cable (legacy)
         const includesCable = kitType === 'full';
-        
-        // Calcular precio total
-        const setupPrice = SERVICE_PRICE;
-        const cablePrice = includesCable ? CABLE_PRICE : 0;
-        const totalPrice = setupPrice + cablePrice;
-        const currency = 'usd';
-        const priceInCents = Math.round(totalPrice * 100);
         const countryCode = (country || 'US').toUpperCase();
         
+        let totalPrice, setupPrice, cablePrice;
+        
+        if (isV2) {
+            // Kit V2: leer precio desde config o usar default $44 USD
+            totalPrice = config?.welcomeKitV2?.priceUSD || 44;
+            setupPrice = totalPrice;
+            cablePrice = 0;
+        } else {
+            // Legacy pricing
+            setupPrice = 35;
+            cablePrice = includesCable ? 4 : 0;
+            totalPrice = setupPrice + cablePrice;
+        }
+        
+        const currency = 'usd';
+        const priceInCents = Math.round(totalPrice * 100);
+        
         console.log('[Stripe Kit] kitType:', kitType);
-        console.log('[Stripe Kit] includesCable:', includesCable);
+        console.log('[Stripe Kit] isV2:', isV2);
         console.log('[Stripe Kit] Precio servicio: $' + setupPrice);
         console.log('[Stripe Kit] Precio cable: $' + cablePrice);
         console.log('[Stripe Kit] TOTAL: $' + totalPrice);
         
-        // Descripción según el tipo de kit
-        const productName = includesCable 
-            ? 'Kit Completo PianoLink - Día 88'
-            : 'Setup + Clase de Prueba PianoLink';
-        const productDescription = includesCable
-            ? 'Cable MIDI Premium + Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma'
-            : 'Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma';
+        let productName, productDescription;
+        
+        if (isV2) {
+            productName = 'Kit de Bienvenida PianoLink';
+            productDescription = '✓ Asesoría técnica personalizada (~20 min) | ✓ Sesión de Setup Técnico (~20 min) | ✓ Clase de Prueba con Profesor (30 min)';
+        } else {
+            productName = includesCable 
+                ? 'Kit Completo PianoLink - Día 88'
+                : 'Setup + Clase de Prueba PianoLink';
+            productDescription = includesCable
+                ? 'Cable MIDI Premium + Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma'
+                : 'Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma';
+        }
 
         const { getStripeClient } = require('../config/stripe');
         const stripe = getStripeClient();
@@ -737,6 +774,130 @@ router.post('/stripe/teacher-subscription', protect, async (req, res) => {
 
     } catch (error) {
         console.error('[Stripe] Error en teacher-subscription:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// ============================================
+// MEMBRESÍA PROFESOR CON MERCADOPAGO
+// ============================================
+/**
+ * POST /api/payment/mercadopago/teacher-subscription
+ * Crear checkout de membresía para profesor con MercadoPago
+ */
+router.post('/mercadopago/teacher-subscription', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo profesores pueden acceder' 
+            });
+        }
+
+        // Verificar MercadoPago configurado
+        const accessToken = process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN;
+        if (!accessToken) {
+            return res.status(503).json({
+                success: false,
+                error: 'MercadoPago no está configurado'
+            });
+        }
+
+        // Obtener configuración de precios
+        const config = await GlobalConfig.findOne();
+        const isFounder = user.isFoundingMember || false;
+        
+        // Precio en USD
+        const priceUSD = isFounder 
+            ? (config?.teacherSubscription?.founder || 10)
+            : (config?.teacherSubscription?.regular || 20);
+        
+        // Convertir a CLP (MercadoPago Chile solo acepta CLP)
+        const usdToClp = config?.exchangeRates?.usdToClp || 950;
+        const priceCLP = Math.round(priceUSD * usdToClp);
+
+        const baseUrl = process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev';
+        const externalRef = `teacher_sub_${userId}_${Date.now()}`;
+
+        // Crear preferencia de pago
+        const preference = {
+            items: [{
+                id: isFounder ? 'TEACHER-FOUNDER-MONTHLY' : 'TEACHER-REGULAR-MONTHLY',
+                title: isFounder 
+                    ? 'Membresía Profesor Fundador - PianoLink' 
+                    : 'Membresía Profesor - PianoLink',
+                description: 'Membresía mensual para profesores de PianoLink. Acceso completo a la plataforma.',
+                category_id: 'services',
+                quantity: 1,
+                currency_id: 'CLP',
+                unit_price: priceCLP
+            }],
+            payer: {
+                email: user.email,
+                first_name: user.name?.split(' ')[0] || user.name,
+                last_name: user.name?.split(' ').slice(1).join(' ') || ''
+            },
+            back_urls: {
+                success: `${baseUrl}/dashboard?subscription=success&provider=mercadopago`,
+                failure: `${baseUrl}/dashboard?subscription=failed`,
+                pending: `${baseUrl}/dashboard?subscription=pending`
+            },
+            auto_return: 'approved',
+            external_reference: externalRef,
+            notification_url: `${baseUrl}/api/webhooks/mercadopago-teacher-subscription`,
+            statement_descriptor: 'PIANOLINK',
+            metadata: {
+                type: 'teacher_subscription',
+                teacherId: userId.toString(),
+                isFounder: isFounder,
+                priceUSD: priceUSD,
+                priceCLP: priceCLP
+            }
+        };
+
+        console.log('[MercadoPago Teacher Sub] Creando preferencia para:', user.email);
+        console.log('[MercadoPago Teacher Sub] Precio:', priceCLP, 'CLP (~', priceUSD, 'USD)');
+
+        const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(preference)
+        });
+
+        const data = await response.json();
+
+        if (data.id) {
+            console.log('[MercadoPago Teacher Sub] Preferencia creada:', data.id);
+            
+            res.json({
+                success: true,
+                preferenceId: data.id,
+                checkoutUrl: data.init_point,
+                sandboxUrl: data.sandbox_init_point,
+                price: {
+                    usd: priceUSD,
+                    clp: priceCLP
+                }
+            });
+        } else {
+            console.error('[MercadoPago Teacher Sub] Error:', data);
+            res.status(500).json({ 
+                success: false, 
+                error: data.message || 'Error creando preferencia' 
+            });
+        }
+
+    } catch (error) {
+        console.error('[MercadoPago] Error en teacher-subscription:', error);
         res.status(500).json({ 
             success: false, 
             error: error.message 

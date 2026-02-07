@@ -164,10 +164,12 @@ const welcomeKitSchema = new mongoose.Schema({
     overallStatus: {
         type: String,
         enum: [
-            'paid',              // Pagó, esperando envío
-            'shipping',          // En camino
-            'delivered',         // Entregado, esperando confirmar
-            'setup_pending',     // Confirmó recepción, agendar setup
+            'paid',              // Pagó, esperando envío (legacy)
+            'entrevista_pendiente', // V2: Esperando entrevista técnica
+            'esperando_equipo',  // V2: Email enviado, cliente comprando equipo
+            'shipping',          // En camino (legacy)
+            'delivered',         // Entregado, esperando confirmar (legacy)
+            'setup_pending',     // Confirmó que tiene equipo, agendar setup
             'setup_scheduled',   // Setup agendado
             'trial_available',   // Setup completado, puede agendar prueba
             'trial_scheduled',   // Prueba agendada

@@ -254,5 +254,14 @@ router.get('/config/pricing', adminController.getPricingConfig);
 // Actualizar configuración de precios
 router.put('/config/pricing', adminController.updatePricingConfig);
 
+// Actualizar precio del Kit de Bienvenida V2
+router.put('/config/kit-v2-price', adminController.updateKitV2Price);
+
+// Enviar recordatorio de membresía a profesor específico
+router.post('/teachers/:teacherId/send-membership-reminder', adminController.sendMembershipReminder);
+
+// Ejecutar verificación de membresías manualmente
+router.post('/membership-reminders/run', adminController.runMembershipReminders);
+
 
 module.exports = router;

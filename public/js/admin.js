@@ -69,7 +69,7 @@ function loadModuleData(moduleName) {
         case 'payments': loadPaymentsDashboard(); break;
         case 'payouts': loadPayouts(); break;
         case 'welcome-kits': loadWelcomeKits(); break;
-        case 'pricing': loadPricingConfig(); break;
+        case 'pricing': loadPricingConfig(); loadKitV2Price(); break;
     }
 }
 
@@ -3864,7 +3864,9 @@ function switchSimpleKitTab(tabName) {
     document.querySelector(`[data-kit-tab="${tabName}"]`)?.classList.add('active');
     document.getElementById(`kit-tab-${tabName}`)?.classList.add('active');
     
-    if (tabName === 'products') {
+    if (tabName === 'onboarding') {
+        loadV2OrdersList();
+    } else if (tabName === 'products') {
         loadKitProductsList();
     } else if (tabName === 'orders') {
         loadKitOrdersList();
@@ -3873,25 +3875,409 @@ function switchSimpleKitTab(tabName) {
     }
 }
 
+// ==================== ONBOARDING V2 ($44 USD) ====================
+let v2Orders = [];
+let currentV2Filter = 'all';
+
+async function loadV2OrdersList() {
+    const container = document.getElementById('v2-orders-list');
+    container.innerHTML = '<div style="text-align:center; padding:40px; color:#888;"><div class="spinner"></div><p>Cargando...</p></div>';
+    
+    try {
+        const res = await fetch('/api/welcome-kit/v2/orders', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        
+        if (!data.success) throw new Error(data.error);
+        
+        v2Orders = data.orders || [];
+        renderV2Orders();
+    } catch (error) {
+        console.error('Error cargando órdenes V2:', error);
+        container.innerHTML = `<div style="text-align:center; padding:40px; color:#ff5252;">Error: ${error.message}</div>`;
+    }
+}
+
+function filterV2Orders(status) {
+    currentV2Filter = status;
+    document.querySelectorAll('[data-v2-filter]').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`[data-v2-filter="${status}"]`)?.classList.add('active');
+    renderV2Orders();
+}
+
+function renderV2Orders() {
+    const container = document.getElementById('v2-orders-list');
+    
+    let filtered = v2Orders;
+    if (currentV2Filter !== 'all') {
+        filtered = v2Orders.filter(o => o.overallStatus === currentV2Filter);
+    }
+    
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:60px 20px; color:#666;">
+                <div style="font-size:48px; margin-bottom:15px;">🎹</div>
+                <p>No hay órdenes ${currentV2Filter !== 'all' ? 'en este estado' : 'de onboarding aún'}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = filtered.map(order => {
+        const statusInfo = getV2StatusInfo(order.overallStatus);
+        const createdDate = new Date(order.createdAt).toLocaleDateString('es-CL');
+        
+        return `
+            <div class="v2-order-card" style="background:var(--bg-card); border-radius:12px; padding:20px; border-left:4px solid ${statusInfo.color};">
+                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:15px;">
+                    <div>
+                        <div style="font-size:16px; font-weight:600; color:#fff;">
+                            ${order.clientName || 'Sin nombre'}
+                        </div>
+                        <div style="font-size:13px; color:#888; margin-top:4px;">
+                            ${order.clientEmail || ''} • ${order.clientWhatsapp || 'Sin WhatsApp'}
+                        </div>
+                        <div style="font-size:11px; color:#666; margin-top:4px;">
+                            Pagado: ${createdDate} • $${(order.payment?.amount || 0) / 100} ${order.payment?.currency || 'USD'}
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <span style="background:${statusInfo.bgColor}; color:${statusInfo.color}; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:500;">
+                            ${statusInfo.icon} ${statusInfo.label}
+                        </span>
+                    </div>
+                </div>
+                
+                ${order.cable?.keyboardModel ? `
+                <div style="background:rgba(212,175,55,0.1); padding:10px 15px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#d4af37;">
+                    🎹 Teclado: <strong>${order.cable.keyboardModel}</strong> 
+                    • Conexión: <strong>${order.cable.type || 'USB_B'}</strong>
+                </div>
+                ` : ''}
+                
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    ${renderV2Actions(order)}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function getV2StatusInfo(status) {
+    const statuses = {
+        'paid': { label: 'Pagado', icon: '💳', color: '#3b82f6', bgColor: 'rgba(59,130,246,0.15)' },
+        'entrevista_pendiente': { label: 'Entrevista Pendiente', icon: '📞', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.15)' },
+        'esperando_equipo': { label: 'Esperando Equipo', icon: '🛒', color: '#8b5cf6', bgColor: 'rgba(139,92,246,0.15)' },
+        'setup_pending': { label: 'Setup Pendiente', icon: '⚙️', color: '#f97316', bgColor: 'rgba(249,115,22,0.15)' },
+        'setup_scheduled': { label: 'Setup Agendado', icon: '📅', color: '#06b6d4', bgColor: 'rgba(6,182,212,0.15)' },
+        'trial_available': { label: 'Clase Disponible', icon: '🎓', color: '#10b981', bgColor: 'rgba(16,185,129,0.15)' },
+        'trial_scheduled': { label: 'Clase Agendada', icon: '📆', color: '#14b8a6', bgColor: 'rgba(20,184,166,0.15)' },
+        'completed': { label: 'Completado', icon: '✅', color: '#22c55e', bgColor: 'rgba(34,197,94,0.15)' }
+    };
+    return statuses[status] || { label: status, icon: '❓', color: '#888', bgColor: 'rgba(136,136,136,0.15)' };
+}
+
+function renderV2Actions(order) {
+    const status = order.overallStatus;
+    const orderId = order._id;
+    
+    // Acciones según estado
+    let actions = [];
+    
+    // WhatsApp siempre disponible
+    if (order.clientWhatsapp) {
+        const phone = order.clientWhatsapp.replace(/[^0-9]/g, '');
+        actions.push(`<a href="https://wa.me/${phone}" target="_blank" class="btn btn-secondary" style="font-size:11px; padding:6px 12px;">💬 WhatsApp</a>`);
+    }
+    
+    // Acciones específicas por estado
+    if (status === 'paid' || status === 'entrevista_pendiente') {
+        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="openSendRecommendationsModal('${orderId}')">📧 Enviar Recomendaciones</button>`);
+    }
+    
+    if (status === 'esperando_equipo') {
+        actions.push(`<button class="btn btn-secondary" style="font-size:11px; padding:6px 12px;" onclick="resendRecommendations('${orderId}')">📧 Reenviar Email</button>`);
+    }
+    
+    if (status === 'setup_pending') {
+        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="updateV2Status('${orderId}', 'setup_scheduled')">📅 Marcar Agendado</button>`);
+    }
+    
+    if (status === 'setup_scheduled') {
+        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="updateV2Status('${orderId}', 'trial_available')">✅ Setup Completado</button>`);
+    }
+    
+    if (status === 'trial_available') {
+        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="updateV2Status('${orderId}', 'trial_scheduled')">📅 Clase Agendada</button>`);
+    }
+    
+    if (status === 'trial_scheduled') {
+        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="updateV2Status('${orderId}', 'completed')">✅ Completar</button>`);
+    }
+    
+    // Cambiar estado manual
+    actions.push(`<button class="btn" style="font-size:11px; padding:6px 12px; background:#333; color:#888;" onclick="openChangeStatusModal('${orderId}', '${status}')">⚙️ Estado</button>`);
+    
+    return actions.join('');
+}
+
+// Modal para enviar recomendaciones
+function openSendRecommendationsModal(orderId) {
+    const order = v2Orders.find(o => o._id === orderId);
+    if (!order) return;
+    
+    // Crear modal dinámico
+    const modalHtml = `
+        <div id="send-recommendations-modal" class="modal-overlay" style="display:flex;">
+            <div class="modal-content" style="max-width:600px; max-height:90vh; overflow-y:auto;">
+                <div class="modal-header">
+                    <h3>📧 Enviar Recomendaciones de Equipo</h3>
+                    <button class="modal-close" onclick="closeSendRecommendationsModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:20px;">
+                        <div style="color:#d4af37; font-weight:600;">${order.clientName}</div>
+                        <div style="color:#888; font-size:13px;">${order.clientEmail}</div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom:15px;">
+                        <label>🎹 Marca/Modelo del teclado</label>
+                        <input type="text" id="rec-keyboard-brand" class="form-input" placeholder="Ej: Yamaha PSR-E373">
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom:15px;">
+                        <label>🔌 Tipo de conexión</label>
+                        <select id="rec-connection-type" class="form-input">
+                            <option value="USB-B">USB-B (Yamaha, Roland, Casio)</option>
+                            <option value="USB-C">USB-C (Teclados modernos)</option>
+                            <option value="MIDI 5-pin">MIDI 5-pin (Clásico)</option>
+                            <option value="Bluetooth">Bluetooth</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom:15px;">
+                        <label>📝 Notas adicionales (opcional)</label>
+                        <textarea id="rec-notes" class="form-input" rows="3" placeholder="Consejos especiales para este cliente..."></textarea>
+                    </div>
+                    
+                    <div style="background:rgba(212,175,55,0.1); padding:15px; border-radius:8px; margin-top:15px;">
+                        <div style="color:#d4af37; font-size:12px; margin-bottom:5px;">💡 El email incluirá automáticamente:</div>
+                        <ul style="color:#888; font-size:12px; margin:0; padding-left:20px;">
+                            <li>Cable recomendado según tipo de conexión</li>
+                            <li>Links de compra (Amazon, AliExpress, MercadoLibre)</li>
+                            <li>Pedal de sustain (si aplica)</li>
+                            <li>Instrucciones de próximos pasos</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeSendRecommendationsModal()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="sendRecommendationsEmail('${orderId}')">📧 Enviar Email</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeSendRecommendationsModal() {
+    document.getElementById('send-recommendations-modal')?.remove();
+}
+
+async function sendRecommendationsEmail(orderId) {
+    const keyboardBrand = document.getElementById('rec-keyboard-brand').value;
+    const connectionType = document.getElementById('rec-connection-type').value;
+    const notes = document.getElementById('rec-notes').value;
+    
+    if (!keyboardBrand) {
+        showNotification('Por favor ingresa el modelo del teclado', 'error');
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/api/welcome-kit/v2/${orderId}/send-recommendations`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                keyboardBrand,
+                connectionType,
+                notes
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (!data.success) throw new Error(data.error);
+        
+        showNotification('✅ Email de recomendaciones enviado', 'success');
+        closeSendRecommendationsModal();
+        loadV2OrdersList(); // Recargar lista
+    } catch (error) {
+        showNotification('Error: ' + error.message, 'error');
+    }
+}
+
+async function updateV2Status(orderId, newStatus) {
+    try {
+        const res = await fetch(`/api/welcome-kit/v2/${orderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        
+        showNotification(`✅ Estado actualizado a: ${newStatus}`, 'success');
+        loadV2OrdersList();
+    } catch (error) {
+        showNotification('Error: ' + error.message, 'error');
+    }
+}
+
+function openChangeStatusModal(orderId, currentStatus) {
+    const statuses = [
+        { value: 'entrevista_pendiente', label: '📞 Entrevista Pendiente' },
+        { value: 'esperando_equipo', label: '🛒 Esperando Equipo' },
+        { value: 'setup_pending', label: '⚙️ Setup Pendiente' },
+        { value: 'setup_scheduled', label: '📅 Setup Agendado' },
+        { value: 'trial_available', label: '🎓 Clase Disponible' },
+        { value: 'trial_scheduled', label: '📆 Clase Agendada' },
+        { value: 'completed', label: '✅ Completado' }
+    ];
+    
+    const options = statuses.map(s => 
+        `<option value="${s.value}" ${s.value === currentStatus ? 'selected' : ''}>${s.label}</option>`
+    ).join('');
+    
+    const modalHtml = `
+        <div id="change-status-modal" class="modal-overlay" style="display:flex;">
+            <div class="modal-content" style="max-width:400px;">
+                <div class="modal-header">
+                    <h3>⚙️ Cambiar Estado</h3>
+                    <button class="modal-close" onclick="closeChangeStatusModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nuevo estado</label>
+                        <select id="new-v2-status" class="form-input">
+                            ${options}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Notas (opcional)</label>
+                        <textarea id="status-change-notes" class="form-input" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeChangeStatusModal()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="confirmStatusChange('${orderId}')">💾 Guardar</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeChangeStatusModal() {
+    document.getElementById('change-status-modal')?.remove();
+}
+
+async function confirmStatusChange(orderId) {
+    const newStatus = document.getElementById('new-v2-status').value;
+    const notes = document.getElementById('status-change-notes').value;
+    
+    try {
+        const res = await fetch(`/api/welcome-kit/v2/${orderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: newStatus, notes })
+        });
+        
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        
+        showNotification(`✅ Estado actualizado`, 'success');
+        closeChangeStatusModal();
+        loadV2OrdersList();
+    } catch (error) {
+        showNotification('Error: ' + error.message, 'error');
+    }
+}
+
+async function resendRecommendations(orderId) {
+    const order = v2Orders.find(o => o._id === orderId);
+    if (!order) return;
+    
+    // Abrir el modal pre-llenado con datos guardados
+    openSendRecommendationsModal(orderId);
+    
+    // Pre-llenar con datos guardados
+    setTimeout(() => {
+        if (order.cable?.keyboardModel) {
+            document.getElementById('rec-keyboard-brand').value = order.cable.keyboardModel;
+        }
+        if (order.cable?.type) {
+            const typeMap = { 'USB_B': 'USB-B', 'USB_C': 'USB-C', 'MIDI_5PIN': 'MIDI 5-pin' };
+            document.getElementById('rec-connection-type').value = typeMap[order.cable.type] || 'USB-B';
+        }
+    }, 100);
+}
+
 async function loadWelcomeKitsModule() {
     // Cargar stats rápidos
     try {
-        const [productsRes, ordersRes] = await Promise.all([
+        const [productsRes, ordersRes, v2Res] = await Promise.all([
             fetch('/api/welcome-kit/admin/products', {
                 headers: { 'Authorization': `Bearer ${userSession.token}` }
             }),
             fetch('/api/welcome-kit/admin/orders', {
+                headers: { 'Authorization': `Bearer ${userSession.token}` }
+            }),
+            fetch('/api/welcome-kit/v2/orders', {
                 headers: { 'Authorization': `Bearer ${userSession.token}` }
             })
         ]);
         
         const productsData = await productsRes.json();
         const ordersData = await ordersRes.json();
+        const v2Data = await v2Res.json();
         
         // Actualizar stats
         document.getElementById('kit-stat-products').textContent = productsData.products?.length || 0;
         
-        if (ordersData.success && ordersData.orders) {
+        // Stats de V2 Onboarding
+        if (v2Data.success && v2Data.orders) {
+            const v2orders = v2Data.orders;
+            const pending = v2orders.filter(o => ['paid', 'entrevista_pendiente'].includes(o.overallStatus)).length;
+            const waitingEquip = v2orders.filter(o => o.overallStatus === 'esperando_equipo').length;
+            const setupReady = v2orders.filter(o => ['setup_pending', 'setup_scheduled'].includes(o.overallStatus)).length;
+            const completed = v2orders.filter(o => o.overallStatus === 'completed').length;
+            
+            document.getElementById('kit-stat-pending').textContent = pending;
+            document.getElementById('kit-stat-transit').textContent = waitingEquip;
+            document.getElementById('kit-stat-delivered').textContent = setupReady;
+            
+            // Calcular revenue del mes (V2 orders)
+            const thisMonth = new Date().getMonth();
+            const revenue = v2orders
+                .filter(o => new Date(o.createdAt).getMonth() === thisMonth)
+                .reduce((sum, o) => sum + ((o.payment?.amount || 0) / 100), 0);
+            document.getElementById('kit-stat-revenue').textContent = `$${revenue.toFixed(0)}`;
+        } else if (ordersData.success && ordersData.orders) {
+            // Fallback a legacy orders
             const orders = ordersData.orders;
             const pending = orders.filter(o => o.shippingStatus === 'pending' || o.shippingStatus === 'paid').length;
             const transit = orders.filter(o => o.shippingStatus === 'shipped').length;
@@ -3901,7 +4287,6 @@ async function loadWelcomeKitsModule() {
             document.getElementById('kit-stat-transit').textContent = transit;
             document.getElementById('kit-stat-delivered').textContent = delivered;
             
-            // Calcular revenue del mes
             const thisMonth = new Date().getMonth();
             const revenue = orders
                 .filter(o => new Date(o.createdAt).getMonth() === thisMonth && o.paymentStatus === 'completed')
@@ -3912,8 +4297,8 @@ async function loadWelcomeKitsModule() {
         console.error('Error cargando stats:', error);
     }
     
-    // Cargar productos por defecto
-    loadKitProductsList();
+    // Cargar V2 Onboarding por defecto (nuevo flujo)
+    loadV2OrdersList();
     
     // Cargar config DSers
     loadDSersConfig();
@@ -5780,6 +6165,73 @@ async function loadPricingConfig() {
             document.getElementById('pricing-regular').value = data.teacherSubscription.regular;
         } else {
             showNotification('Error cargando configuración de precios', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+// ==================== KIT DE BIENVENIDA V2 PRICING ====================
+
+async function loadKitV2Price() {
+    try {
+        const res = await fetch('/admin/config', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const config = await res.json();
+        
+        const priceInput = document.getElementById('pricing-kit-v2');
+        if (priceInput && config.welcomeKitV2) {
+            priceInput.value = config.welcomeKitV2.priceUSD || 44;
+        }
+    } catch (error) {
+        console.error('Error cargando precio Kit V2:', error);
+    }
+}
+
+async function saveKitV2Price() {
+    const priceInput = document.getElementById('pricing-kit-v2');
+    const statusDiv = document.getElementById('kit-v2-price-status');
+    
+    const price = parseInt(priceInput.value);
+    
+    if (isNaN(price) || price < 1) {
+        showNotification('Por favor ingresa un precio válido (mínimo $1)', 'error');
+        return;
+    }
+    
+    if (price > 500) {
+        showNotification('El precio no puede exceder $500 USD', 'error');
+        return;
+    }
+    
+    try {
+        const res = await fetch('/admin/config/kit-v2-price', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userSession.token}`
+            },
+            body: JSON.stringify({ priceUSD: price })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#10b981';
+            statusDiv.style.color = 'white';
+            statusDiv.textContent = '✅ Precio actualizado a $' + price + ' USD';
+            
+            setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
+            showNotification('Precio del Kit actualizado', 'success');
+        } else {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#ef4444';
+            statusDiv.style.color = 'white';
+            statusDiv.textContent = '❌ ' + (data.message || 'Error');
+            showNotification(data.message || 'Error guardando precio', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
