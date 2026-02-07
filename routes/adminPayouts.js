@@ -381,6 +381,19 @@ router.post('/:id/execute', authMiddleware, adminOnly, async (req, res) => {
             });
         }
 
+        // Verificar que el documento tributario esté verificado
+        const { skipInvoiceCheck } = req.body;
+        if (!skipInvoiceCheck) {
+            if (!payout.invoice || payout.invoice.status !== 'verified') {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: 'El documento tributario debe estar verificado antes de ejecutar el pago',
+                    invoiceStatus: payout.invoice?.status || 'not_submitted',
+                    hint: 'Use skipInvoiceCheck=true para omitir esta verificación (no recomendado)'
+                });
+            }
+        }
+
         const teacher = payout.teacherId;
         if (!teacher) {
             return res.status(400).json({ 
@@ -882,6 +895,147 @@ router.get('/platform-earnings', authMiddleware, adminOnly, async (req, res) => 
         });
     } catch (error) {
         console.error('[AdminPayouts] Error platform-earnings:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
+/**
+ * POST /api/admin/payouts/:id/verify-invoice
+ * Admin verifica el documento tributario del profesor
+ */
+router.post('/:id/verify-invoice', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { notes } = req.body;
+        
+        const payout = await TeacherPayout.findById(req.params.id)
+            .populate('teacherId', 'name email');
+        
+        if (!payout) {
+            return res.status(404).json({ success: false, error: 'Payout no encontrado' });
+        }
+
+        if (!payout.invoice || payout.invoice.status !== 'submitted') {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'No hay documento pendiente de verificación' 
+            });
+        }
+
+        // Marcar como verificado
+        payout.invoice.status = 'verified';
+        payout.invoice.verifiedAt = new Date();
+        payout.invoice.verifiedBy = req.user._id;
+
+        payout.statusHistory.push({
+            status: payout.status,
+            changedBy: req.user._id,
+            notes: `Documento verificado: ${payout.invoice.type} #${payout.invoice.number}${notes ? ` - ${notes}` : ''}`
+        });
+
+        await payout.save();
+
+        console.log(`[AdminPayouts] Admin ${req.user.email} verificó documento de payout ${payout._id}`);
+
+        res.json({
+            success: true,
+            message: 'Documento verificado. Ahora puede ejecutar el pago.',
+            invoice: payout.invoice
+        });
+    } catch (error) {
+        console.error('[AdminPayouts] Error verify-invoice:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
+/**
+ * POST /api/admin/payouts/:id/reject-invoice
+ * Admin rechaza el documento tributario
+ */
+router.post('/:id/reject-invoice', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { reason } = req.body;
+        
+        if (!reason) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Debe indicar la razón del rechazo' 
+            });
+        }
+        
+        const payout = await TeacherPayout.findById(req.params.id)
+            .populate('teacherId', 'name email');
+        
+        if (!payout) {
+            return res.status(404).json({ success: false, error: 'Payout no encontrado' });
+        }
+
+        if (!payout.invoice || payout.invoice.status !== 'submitted') {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'No hay documento pendiente de verificación' 
+            });
+        }
+
+        // Marcar como rechazado
+        payout.invoice.status = 'rejected';
+        payout.invoice.rejectedAt = new Date();
+        payout.invoice.rejectedBy = req.user._id;
+        payout.invoice.rejectionReason = reason;
+
+        payout.statusHistory.push({
+            status: payout.status,
+            changedBy: req.user._id,
+            notes: `Documento rechazado: ${reason}`
+        });
+
+        await payout.save();
+
+        // TODO: Notificar al profesor por email
+
+        console.log(`[AdminPayouts] Admin ${req.user.email} rechazó documento de payout ${payout._id}: ${reason}`);
+
+        res.json({
+            success: true,
+            message: 'Documento rechazado. El profesor será notificado para que envíe uno nuevo.',
+            invoice: payout.invoice
+        });
+    } catch (error) {
+        console.error('[AdminPayouts] Error reject-invoice:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
+/**
+ * GET /api/admin/payouts/pending-invoices
+ * Listar payouts con documentos pendientes de verificación
+ */
+router.get('/pending-invoices', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const payouts = await TeacherPayout.find({
+            'invoice.status': 'submitted'
+        })
+        .populate('teacherId', 'name email teacherData.paymentInfo')
+        .sort({ 'invoice.submittedAt': 1 });
+
+        res.json({
+            success: true,
+            count: payouts.length,
+            payouts: payouts.map(p => ({
+                _id: p._id,
+                teacher: {
+                    name: p.teacherId?.name,
+                    email: p.teacherId?.email
+                },
+                period: p.periodLabel,
+                amount: p.finalPayoutUSD,
+                amountFormatted: `$${(p.finalPayoutUSD / 100).toFixed(2)} USD`,
+                status: p.status,
+                invoice: p.invoice,
+                paymentMethod: p.teacherId?.teacherData?.paymentInfo?.method || 'no configurado'
+            }))
+        });
+    } catch (error) {
+        console.error('[AdminPayouts] Error pending-invoices:', error);
         res.status(500).json({ success: false, error: 'Error interno' });
     }
 });

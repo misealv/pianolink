@@ -145,6 +145,76 @@ const teacherPayoutSchema = new mongoose.Schema({
         default: ''
     },
 
+    // === DOCUMENTO TRIBUTARIO ===
+    // Genérico para: Boleta de honorarios (Chile), Factura (AR/MX/ES), Invoice (USA), etc.
+    invoice: {
+        // Tipo de documento
+        type: {
+            type: String,
+            enum: ['boleta_honorarios', 'factura', 'invoice', 'recibo', 'otro'],
+            default: 'boleta_honorarios'
+        },
+        // Número o folio del documento
+        number: {
+            type: String,
+            default: ''
+        },
+        // Fecha de emisión
+        issueDate: {
+            type: Date
+        },
+        // Monto en el documento (debe coincidir con finalPayoutUSD)
+        amount: {
+            type: Number,
+            default: 0
+        },
+        // Moneda del documento
+        currency: {
+            type: String,
+            default: 'USD'
+        },
+        // URL del documento (si se sube en futuro)
+        documentUrl: {
+            type: String,
+            default: ''
+        },
+        // Estado del documento
+        status: {
+            type: String,
+            enum: ['not_submitted', 'submitted', 'verified', 'rejected'],
+            default: 'not_submitted'
+        },
+        // Cuándo el profesor lo envió
+        submittedAt: {
+            type: Date
+        },
+        // Notas del profesor al enviar
+        submittedNotes: {
+            type: String,
+            default: ''
+        },
+        // Verificación por admin
+        verifiedAt: {
+            type: Date
+        },
+        verifiedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        // Si fue rechazado
+        rejectedAt: {
+            type: Date
+        },
+        rejectedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        rejectionReason: {
+            type: String,
+            default: ''
+        }
+    },
+
     // === SESIONES INCLUIDAS ===
     sessions: [{
         type: mongoose.Schema.Types.ObjectId,

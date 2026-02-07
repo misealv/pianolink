@@ -606,12 +606,116 @@ router.get('/teacher-earnings', authMiddleware, async (req, res) => {
                     periodStart: p.periodStart,
                     periodEnd: p.periodEnd,
                     paidAt: p.paidAt,
-                    classCount: p.sessionIds?.length || 0
+                    classCount: p.sessionIds?.length || 0,
+                    invoice: p.invoice
                 }))
             }
         });
     } catch (error) {
         console.error('[ClassSessions] Error obteniendo earnings:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
+/**
+ * GET /api/class-sessions/my-payouts
+ * Obtener payouts del profesor con detalle de documentos
+ */
+router.get('/my-payouts', protect, async (req, res) => {
+    try {
+        const teacherId = req.user._id;
+        
+        const payouts = await TeacherPayout.find({ teacherId })
+            .sort({ periodEnd: -1 })
+            .limit(24);  // Últimos 2 años
+
+        res.json({
+            success: true,
+            payouts: payouts.map(p => ({
+                _id: p._id,
+                periodLabel: p.periodLabel,
+                periodStart: p.periodStart,
+                periodEnd: p.periodEnd,
+                classCount: p.totalClassesPaid || p.classesCompleted,
+                grossAmount: p.grossAmountUSD,
+                platformFee: p.platformFeeUSD,
+                netPayout: p.netPayoutUSD,
+                finalPayout: p.finalPayoutUSD,
+                status: p.status,
+                paidAt: p.paidAt,
+                invoice: p.invoice || { status: 'not_submitted' }
+            }))
+        });
+    } catch (error) {
+        console.error('[ClassSessions] Error my-payouts:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
+/**
+ * POST /api/class-sessions/payout/:id/submit-invoice
+ * Profesor envía datos de su documento tributario
+ */
+router.post('/payout/:id/submit-invoice', protect, async (req, res) => {
+    try {
+        const { type, number, issueDate, amount, currency, notes } = req.body;
+        
+        if (!number) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Número de documento es requerido' 
+            });
+        }
+
+        const payout = await TeacherPayout.findOne({
+            _id: req.params.id,
+            teacherId: req.user._id
+        });
+
+        if (!payout) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Payout no encontrado' 
+            });
+        }
+
+        // Solo se puede enviar si está aprobado o pendiente de revisión
+        if (!['pending-review', 'approved'].includes(payout.status)) {
+            return res.status(400).json({ 
+                success: false, 
+                error: `No se puede enviar documento para un payout en estado "${payout.status}"` 
+            });
+        }
+
+        // Actualizar datos del documento
+        payout.invoice = {
+            type: type || 'boleta_honorarios',
+            number,
+            issueDate: issueDate ? new Date(issueDate) : new Date(),
+            amount: amount || payout.finalPayoutUSD,
+            currency: currency || 'USD',
+            status: 'submitted',
+            submittedAt: new Date(),
+            submittedNotes: notes || ''
+        };
+
+        payout.statusHistory.push({
+            status: payout.status,
+            changedBy: req.user._id,
+            notes: `Documento tributario enviado: ${type || 'boleta_honorarios'} #${number}`
+        });
+
+        await payout.save();
+
+        console.log(`[ClassSessions] Profesor ${req.user.email} envió documento para payout ${payout._id}`);
+
+        res.json({
+            success: true,
+            message: 'Documento enviado. El administrador lo verificará antes de procesar el pago.',
+            invoice: payout.invoice
+        });
+    } catch (error) {
+        console.error('[ClassSessions] Error submit-invoice:', error);
         res.status(500).json({ success: false, error: 'Error interno' });
     }
 });
