@@ -1733,6 +1733,171 @@
                 align-items: stretch;
             }
         }
+
+        /* ============================================
+           CLASES PENDIENTES DE CONFIRMAR
+           ============================================ */
+        .pending-validations {
+            margin-bottom: 32px;
+        }
+
+        .pending-validation-card {
+            background: var(--card);
+            border: 1px solid var(--warning);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+        }
+
+        .pending-validation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .pending-validation-info h4 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+        }
+
+        .pending-validation-meta {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .pending-validation-badge {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .pending-validation-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-confirm-class {
+            background: var(--success);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-confirm-class:hover {
+            background: #16a34a;
+            transform: translateY(-1px);
+        }
+
+        .btn-dispute {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-dispute:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Rating Stars */
+        .rating-stars {
+            display: flex;
+            gap: 4px;
+            margin: 12px 0;
+        }
+
+        .rating-stars button {
+            background: transparent;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.3;
+            transition: all 0.2s;
+        }
+
+        .rating-stars button:hover,
+        .rating-stars button.active {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .feedback-input {
+            width: 100%;
+            background: #252525;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text);
+            font-size: 14px;
+            margin: 12px 0;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .auto-confirm-notice {
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 12px;
+            color: var(--warning);
+            margin-top: 12px;
+        }
+
+        /* Modal de Disputa */
+        .dispute-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 1100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .dispute-modal.active {
+            display: flex;
+        }
+
+        .dispute-modal-content {
+            background: var(--card);
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .dispute-modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dispute-modal-body {
+            padding: 20px;
+        }
+
+        .dispute-modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
     </style>
 </head>
 <body>
@@ -1872,6 +2037,41 @@
         </div>
     </div>
 
+    <!-- Modal de Disputa -->
+    <div class="dispute-modal" id="disputeModal">
+        <div class="dispute-modal-content">
+            <div class="dispute-modal-header">
+                <h3 style="margin: 0; color: var(--danger);">⚠️ Reportar Problema con la Clase</h3>
+            </div>
+            <div class="dispute-modal-body">
+                <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+                    Si hubo algún problema con esta clase, cuéntanos qué sucedió. 
+                    Nuestro equipo revisará el caso en las próximas 48 horas.
+                </p>
+                <input type="hidden" id="disputeSessionId">
+                <label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">
+                    ¿Qué problema tuviste?
+                </label>
+                <select id="disputeReason" style="width: 100%; padding: 12px; background: #252525; border: 1px solid var(--border); border-radius: 8px; color: var(--text); margin-bottom: 16px;">
+                    <option value="">Selecciona un motivo...</option>
+                    <option value="no_show">El profesor no se presentó</option>
+                    <option value="short_class">La clase fue más corta de lo acordado</option>
+                    <option value="technical_issues">Problemas técnicos impidieron la clase</option>
+                    <option value="quality_issues">La calidad de la clase no fue la esperada</option>
+                    <option value="other">Otro motivo</option>
+                </select>
+                <label style="display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);">
+                    Describe el problema con más detalle:
+                </label>
+                <textarea id="disputeDescription" class="feedback-input" rows="4" placeholder="Cuéntanos qué pasó..."></textarea>
+            </div>
+            <div class="dispute-modal-footer">
+                <button class="btn btn-secondary" onclick="closeDisputeModal()">Cancelar</button>
+                <button class="btn" style="background: var(--danger); color: white;" onclick="submitDispute()">Enviar Reporte</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Verificar autenticación
         const token = localStorage.getItem('token');
@@ -1896,6 +2096,7 @@
         let allPackages = [];
         let mySubscriptions = [];
         let selectedPackage = null;
+        let pendingValidations = []; // Clases pendientes de confirmar
         const CATEGORY_LABELS = {
             piano: '🎹 Piano',
             teoria: '📚 Teoría Musical',
@@ -1910,14 +2111,15 @@
         // Cargar datos del usuario
         async function loadDashboard() {
             try {
-                const [userRes, paymentsRes, subscriptionRes, ordersRes, nextClassRes, packagesRes, mySubsRes] = await Promise.all([
+                const [userRes, paymentsRes, subscriptionRes, ordersRes, nextClassRes, packagesRes, mySubsRes, pendingRes] = await Promise.all([
                     fetch('/api/client/me', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/client/payments', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/client/subscription', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/client/orders', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/bookings/my-next', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/teacher-packages/available', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('/api/subscriptions/my', { headers: { 'Authorization': `Bearer ${token}` } })
+                    fetch('/api/subscriptions/my', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/class-sessions/pending', { headers: { 'Authorization': `Bearer ${token}` } })
                 ]);
 
                 if (!userRes.ok) {
@@ -1933,6 +2135,10 @@
                 // Cargar paquetes disponibles y mis suscripciones
                 allPackages = packagesRes.ok ? await packagesRes.json() : [];
                 mySubscriptions = mySubsRes.ok ? await mySubsRes.json() : [];
+                
+                // Cargar clases pendientes de confirmación
+                const pendingData = pendingRes.ok ? await pendingRes.json() : { sessions: [] };
+                pendingValidations = pendingData.sessions || [];
 
                 // Guardar referencia para uso en agendamiento
                 currentUserData = user;
@@ -1967,6 +2173,9 @@
                     <h1>¡Hola, ${user.name.split(' ')[0]}! 👋</h1>
                     <p>${isGuardian ? `Gestionas ${students.length} estudiante(s)` : 'Tu panel de clases de piano'}</p>
                 </section>
+
+                <!-- Clases Pendientes de Confirmar -->
+                ${renderPendingValidations()}
 
                 <!-- Próxima Clase -->
                 ${nextClassHTML}
@@ -2146,6 +2355,193 @@
                 'paid': 'Pagado'
             };
             return statusMap[status] || 'Pagado';
+        }
+
+        // ============================================
+        // VALIDACIÓN DE CLASES
+        // ============================================
+
+        function renderPendingValidations() {
+            if (!pendingValidations || pendingValidations.length === 0) return '';
+            
+            return `
+                <section class="pending-validations">
+                    <h2 class="section-title">⏳ Clases por Confirmar</h2>
+                    ${pendingValidations.map(session => {
+                        const teacher = session.teacherId || {};
+                        const scheduledDate = new Date(session.scheduledAt);
+                        const autoConfirmDate = new Date(session.autoConfirmAt);
+                        const hoursUntilAuto = Math.max(0, Math.ceil((autoConfirmDate - new Date()) / (1000 * 60 * 60)));
+                        
+                        return `
+                            <div class="pending-validation-card" id="validation-${session._id}">
+                                <div class="pending-validation-header">
+                                    <div class="pending-validation-info">
+                                        <h4>Clase con ${teacher.name || 'Profesor'}</h4>
+                                        <div class="pending-validation-meta">
+                                            📅 ${scheduledDate.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                            · ⏰ ${scheduledDate.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                                            ${session.durationMinutes ? ` · ${session.durationMinutes} min` : ''}
+                                        </div>
+                                        ${session.teacherNotes ? `
+                                            <div style="margin-top: 8px; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 13px; color: var(--text-muted);">
+                                                📝 "${session.teacherNotes}"
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                    <div class="pending-validation-badge">
+                                        ${session.status === 'disputed' ? '⚠️ En disputa' : 'Pendiente'}
+                                    </div>
+                                </div>
+                                
+                                ${session.status !== 'disputed' ? `
+                                    <div style="margin-bottom: 16px;">
+                                        <label style="display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+                                            ¿Cómo estuvo la clase?
+                                        </label>
+                                        <div class="rating-stars" id="rating-${session._id}">
+                                            ${[1,2,3,4,5].map(star => `
+                                                <button type="button" onclick="setRating('${session._id}', ${star})" data-star="${star}">⭐</button>
+                                            `).join('')}
+                                        </div>
+                                        <textarea 
+                                            class="feedback-input" 
+                                            id="feedback-${session._id}" 
+                                            placeholder="Comparte tu experiencia (opcional)..."
+                                            rows="2"
+                                        ></textarea>
+                                    </div>
+                                    
+                                    <div class="pending-validation-actions">
+                                        <button class="btn-confirm-class" onclick="confirmClass('${session._id}')">
+                                            ✅ Confirmar Clase
+                                        </button>
+                                        <button class="btn-dispute" onclick="openDisputeModal('${session._id}')">
+                                            ⚠️ Reportar Problema
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="auto-confirm-notice">
+                                        ⏱️ Esta clase se confirmará automáticamente en ${hoursUntilAuto}h si no respondes
+                                    </div>
+                                ` : `
+                                    <div style="padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; color: var(--danger);">
+                                        Tu reporte está siendo revisado. Te contactaremos pronto.
+                                    </div>
+                                `}
+                            </div>
+                        `;
+                    }).join('')}
+                </section>
+            `;
+        }
+
+        // Estado de rating por sesión
+        const sessionRatings = {};
+
+        function setRating(sessionId, rating) {
+            sessionRatings[sessionId] = rating;
+            const container = document.getElementById(`rating-${sessionId}`);
+            if (container) {
+                container.querySelectorAll('button').forEach(btn => {
+                    const star = parseInt(btn.dataset.star);
+                    btn.classList.toggle('active', star <= rating);
+                });
+            }
+        }
+
+        async function confirmClass(sessionId) {
+            const rating = sessionRatings[sessionId] || 5;
+            const feedback = document.getElementById(`feedback-${sessionId}`)?.value || '';
+            
+            try {
+                const res = await fetch(`/api/class-sessions/${sessionId}/student-confirm`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ rating, feedback })
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Error al confirmar');
+                }
+
+                // Remover la tarjeta con animación
+                const card = document.getElementById(`validation-${sessionId}`);
+                if (card) {
+                    card.style.transition = 'all 0.3s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(20px)';
+                    setTimeout(() => {
+                        card.remove();
+                        // Si no quedan más, quitar la sección
+                        pendingValidations = pendingValidations.filter(s => s._id !== sessionId);
+                        if (pendingValidations.length === 0) {
+                            document.querySelector('.pending-validations')?.remove();
+                        }
+                    }, 300);
+                }
+
+                alert('✅ ¡Clase confirmada! Gracias por tu feedback.');
+            } catch (error) {
+                console.error('Error confirmando clase:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function openDisputeModal(sessionId) {
+            document.getElementById('disputeSessionId').value = sessionId;
+            document.getElementById('disputeReason').value = '';
+            document.getElementById('disputeDescription').value = '';
+            document.getElementById('disputeModal').classList.add('active');
+        }
+
+        function closeDisputeModal() {
+            document.getElementById('disputeModal').classList.remove('active');
+        }
+
+        async function submitDispute() {
+            const sessionId = document.getElementById('disputeSessionId').value;
+            const reason = document.getElementById('disputeReason').value;
+            const description = document.getElementById('disputeDescription').value;
+
+            if (!reason) {
+                alert('Por favor selecciona un motivo');
+                return;
+            }
+
+            if (!description.trim()) {
+                alert('Por favor describe el problema');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/class-sessions/${sessionId}/dispute`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        reason: `${reason}: ${description}` 
+                    })
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Error al reportar');
+                }
+
+                closeDisputeModal();
+                alert('⚠️ Reporte enviado. Nuestro equipo revisará el caso.');
+                loadDashboard(); // Recargar para actualizar estado
+            } catch (error) {
+                console.error('Error reportando:', error);
+                alert('Error: ' + error.message);
+            }
         }
 
         // ============================================
