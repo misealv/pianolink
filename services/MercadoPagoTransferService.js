@@ -14,7 +14,8 @@ const axios = require('axios');
 class MercadoPagoTransferService {
     
     constructor() {
-        this.accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+        // Soporta ambos nombres de variable
+        this.accessToken = process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN;
         this.baseUrl = 'https://api.mercadopago.com';
     }
 
