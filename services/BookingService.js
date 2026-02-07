@@ -51,8 +51,7 @@ class BookingService {
                 throw new Error('SLOT_UNAVAILABLE');
             }
             
-            // 2. Verificar saldo de clases
-            // El pagador siempre es el usuario autenticado (clientId si es guardian, studentId si es estudiante directo)
+            const teacherId = slot.teacherId._id;
             const payerId = clientId || studentId;
             const payer = await User.findById(payerId).session(session);
             
@@ -60,57 +59,86 @@ class BookingService {
                 throw new Error('USER_NOT_FOUND');
             }
             
-            // Calcular clases disponibles (del pagador)
+            // 2. PRIORIDAD: Verificar suscripción activa con este profesor
+            let subscription = null;
             let availableClasses = 0;
             let managedStudentIndex = -1;
             let studentName = '';
+            let useSubscription = false;
             
-            if (payer.role === 'client' && payer.clientData?.accountType === 'guardian') {
-                // Para guardians, studentId puede ser:
-                // 1. El _id del subdocumento managedStudent
-                // 2. El nombre del estudiante
-                const managedStudents = payer.clientData.managedStudents || [];
-                
-                // Buscar por _id del subdocumento primero
-                managedStudentIndex = managedStudents.findIndex(
-                    s => s._id && s._id.toString() === studentId?.toString()
-                );
-                
-                // Si no encontró por ID, buscar por nombre
-                if (managedStudentIndex === -1 && studentId) {
-                    managedStudentIndex = managedStudents.findIndex(
-                        s => s.name?.toLowerCase() === studentId?.toLowerCase()
-                    );
-                }
-                
-                // Si todavía no encontró y solo hay un estudiante, usar ese
-                if (managedStudentIndex === -1 && managedStudents.length === 1) {
-                    managedStudentIndex = 0;
-                }
-                
-                if (managedStudentIndex >= 0) {
-                    availableClasses = managedStudents[managedStudentIndex].classesRemaining || 0;
-                    studentName = managedStudents[managedStudentIndex].name;
-                }
-            } else {
-                availableClasses = payer.classesRemaining || 0;
+            // Buscar suscripción activa con el profesor de este slot
+            subscription = await StudentSubscription.findOne({
+                studentId: payerId,
+                teacherId: teacherId,
+                status: 'active',
+                classesRemaining: { $gt: 0 },
+                validUntil: { $gt: new Date() }
+            }).session(session);
+            
+            if (subscription) {
+                // Usar suscripción
+                useSubscription = true;
+                availableClasses = subscription.classesRemaining;
                 studentName = payer.name;
+                console.log(`[BookingService] Usando suscripción ${subscription._id} con ${availableClasses} clases restantes`);
+            } else {
+                // Fallback: sistema legacy de clases sueltas
+                if (payer.role === 'client' && payer.clientData?.accountType === 'guardian') {
+                    // Para guardians, studentId puede ser:
+                    // 1. El _id del subdocumento managedStudent
+                    // 2. El nombre del estudiante
+                    const managedStudents = payer.clientData.managedStudents || [];
+                    
+                    // Buscar por _id del subdocumento primero
+                    managedStudentIndex = managedStudents.findIndex(
+                        s => s._id && s._id.toString() === studentId?.toString()
+                    );
+                    
+                    // Si no encontró por ID, buscar por nombre
+                    if (managedStudentIndex === -1 && studentId) {
+                        managedStudentIndex = managedStudents.findIndex(
+                            s => s.name?.toLowerCase() === studentId?.toLowerCase()
+                        );
+                    }
+                    
+                    // Si todavía no encontró y solo hay un estudiante, usar ese
+                    if (managedStudentIndex === -1 && managedStudents.length === 1) {
+                        managedStudentIndex = 0;
+                    }
+                    
+                    if (managedStudentIndex >= 0) {
+                        availableClasses = managedStudents[managedStudentIndex].classesRemaining || 0;
+                        studentName = managedStudents[managedStudentIndex].name;
+                    }
+                } else {
+                    availableClasses = payer.classesRemaining || 0;
+                    studentName = payer.name;
+                }
             }
             
             if (availableClasses <= 0) {
                 throw new Error('INSUFFICIENT_CLASSES');
             }
             
-            // 3. Descontar clase del saldo
-            if (payer.role === 'client' && payer.clientData?.accountType === 'guardian' && managedStudentIndex >= 0) {
+            // 3. Descontar clase del saldo correspondiente
+            if (useSubscription) {
+                // Descontar de la suscripción
+                subscription.classesRemaining--;
+                if (subscription.classesRemaining <= 0) {
+                    subscription.status = 'exhausted';
+                }
+                await subscription.save({ session });
+                console.log(`[BookingService] Clase descontada de suscripción. Restantes: ${subscription.classesRemaining}`);
+            } else if (payer.role === 'client' && payer.clientData?.accountType === 'guardian' && managedStudentIndex >= 0) {
                 payer.clientData.managedStudents[managedStudentIndex].classesRemaining--;
                 payer.clientData.managedStudents[managedStudentIndex].classesUsed = 
                     (payer.clientData.managedStudents[managedStudentIndex].classesUsed || 0) + 1;
                 payer.markModified('clientData.managedStudents');
+                await payer.save({ session });
             } else {
                 payer.classesRemaining--;
+                await payer.save({ session });
             }
-            await payer.save({ session });
             
             // 4. Actualizar slot a booked y generar sesión MIDI
             slot.status = 'booked';
@@ -122,9 +150,10 @@ class BookingService {
             // 5. Crear registro de Booking
             const booking = await Booking.create([{
                 slotId: slot._id,
-                teacherId: slot.teacherId._id,
+                teacherId: teacherId,
                 studentId: payerId, // Guardar el ID del pagador como referencia
                 clientId,
+                subscriptionId: useSubscription ? subscription._id : null, // Referencia a suscripción si aplica
                 studentName, // Guardar el nombre del estudiante
                 scheduledStart: slot.startTime,
                 scheduledEnd: slot.endTime,
@@ -202,22 +231,37 @@ class BookingService {
             
             // Reembolsar clase si aplica
             if (refundClasses) {
-                const payerId = booking.clientId || booking.studentId;
-                const payer = await User.findById(payerId).session(session);
-                
-                if (payer.role === 'client' && payer.clientData?.accountType === 'guardian') {
-                    const student = await User.findById(booking.studentId);
-                    const studentIndex = payer.clientData.managedStudents.findIndex(
-                        s => s.name.toLowerCase() === student?.name?.toLowerCase()
-                    );
-                    if (studentIndex >= 0) {
-                        payer.clientData.managedStudents[studentIndex].classesRemaining++;
-                        payer.markModified('clientData.managedStudents');
+                // PRIORIDAD: Si la reserva usó suscripción, devolver ahí
+                if (booking.subscriptionId) {
+                    const subscription = await StudentSubscription.findById(booking.subscriptionId).session(session);
+                    if (subscription) {
+                        subscription.classesRemaining++;
+                        // Si estaba exhausted, reactivar
+                        if (subscription.status === 'exhausted' && subscription.validUntil > new Date()) {
+                            subscription.status = 'active';
+                        }
+                        await subscription.save({ session });
+                        console.log(`[BookingService] Clase devuelta a suscripción ${subscription._id}. Restantes: ${subscription.classesRemaining}`);
                     }
                 } else {
-                    payer.classesRemaining++;
+                    // Fallback: sistema legacy
+                    const payerId = booking.clientId || booking.studentId;
+                    const payer = await User.findById(payerId).session(session);
+                    
+                    if (payer.role === 'client' && payer.clientData?.accountType === 'guardian') {
+                        const student = await User.findById(booking.studentId);
+                        const studentIndex = payer.clientData.managedStudents.findIndex(
+                            s => s.name.toLowerCase() === student?.name?.toLowerCase()
+                        );
+                        if (studentIndex >= 0) {
+                            payer.clientData.managedStudents[studentIndex].classesRemaining++;
+                            payer.markModified('clientData.managedStudents');
+                        }
+                    } else {
+                        payer.classesRemaining++;
+                    }
+                    await payer.save({ session });
                 }
-                await payer.save({ session });
             }
             
             await session.commitTransaction();
@@ -306,11 +350,17 @@ class BookingService {
 
         // === CREAR CLASS SESSION SI HAY SUSCRIPCIÓN ===
         try {
-            const subscription = await StudentSubscription.findOne({
-                studentId: booking.studentId,
-                teacherId: booking.teacherId,
-                status: { $in: ['active', 'paused', 'exhausted'] }
-            });
+            // Usar subscriptionId del booking si existe, sino buscar
+            let subscription = null;
+            if (booking.subscriptionId) {
+                subscription = await StudentSubscription.findById(booking.subscriptionId);
+            } else {
+                subscription = await StudentSubscription.findOne({
+                    studentId: booking.studentId,
+                    teacherId: booking.teacherId,
+                    status: { $in: ['active', 'paused', 'exhausted'] }
+                });
+            }
 
             if (subscription) {
                 // Verificar que no exista ya una sesión
@@ -405,24 +455,40 @@ class BookingService {
                 $unset: { booking: 1, midiSession: 1 }
             }, { session });
             
-            // Reembolsar clase
-            const payerId = booking.clientId || booking.studentId;
-            const payer = await User.findById(payerId).session(session);
-            
-            if (payer) {
-                if (payer.role === 'client' && payer.clientData?.accountType === 'guardian') {
-                    const student = await User.findById(booking.studentId);
-                    const studentIndex = payer.clientData.managedStudents.findIndex(
-                        s => s.name.toLowerCase() === student?.name?.toLowerCase()
-                    );
-                    if (studentIndex >= 0) {
-                        payer.clientData.managedStudents[studentIndex].classesRemaining++;
-                        payer.markModified('clientData.managedStudents');
+            // Reembolsar clase (priorizar suscripción si aplica)
+            if (booking.subscriptionId) {
+                const subscription = await StudentSubscription.findById(booking.subscriptionId).session(session);
+                if (subscription) {
+                    subscription.classesRemaining++;
+                    // Además, el profesor debe una clase de compensación por cancelar
+                    subscription.classesCancelledByTeacher = (subscription.classesCancelledByTeacher || 0) + 1;
+                    subscription.compensationClassesOwed = (subscription.compensationClassesOwed || 0) + 1;
+                    if (subscription.status === 'exhausted' && subscription.validUntil > new Date()) {
+                        subscription.status = 'active';
                     }
-                } else {
-                    payer.classesRemaining++;
+                    await subscription.save({ session });
+                    console.log(`[BookingService] Clase devuelta a suscripción por cancelación del profesor. Compensación adeudada: ${subscription.compensationClassesOwed}`);
                 }
-                await payer.save({ session });
+            } else {
+                // Fallback: sistema legacy
+                const payerId = booking.clientId || booking.studentId;
+                const payer = await User.findById(payerId).session(session);
+                
+                if (payer) {
+                    if (payer.role === 'client' && payer.clientData?.accountType === 'guardian') {
+                        const student = await User.findById(booking.studentId);
+                        const studentIndex = payer.clientData.managedStudents.findIndex(
+                            s => s.name.toLowerCase() === student?.name?.toLowerCase()
+                        );
+                        if (studentIndex >= 0) {
+                            payer.clientData.managedStudents[studentIndex].classesRemaining++;
+                            payer.markModified('clientData.managedStudents');
+                        }
+                    } else {
+                        payer.classesRemaining++;
+                    }
+                    await payer.save({ session });
+                }
             }
             
             await session.commitTransaction();
