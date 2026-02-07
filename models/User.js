@@ -67,8 +67,55 @@ const userSchema = mongoose.Schema({
     // Comisión que gana (default 80%)
     commissionPercent: { type: Number, default: 80 },
     
-    // PayPal para recibir pagos
-    paypalEmail: { type: String, default: '' }
+    // PayPal para recibir pagos (legacy)
+    paypalEmail: { type: String, default: '' },
+    
+    // ==================== DATOS DE PAGO ====================
+    paymentInfo: {
+      // País del profesor (determina opciones de pago)
+      country: { type: String, default: 'CL' },
+      
+      // Método preferido de pago
+      method: {
+        type: String,
+        enum: ['mercadopago', 'bank_transfer', 'paypal', 'wise'],
+        default: 'mercadopago'
+      },
+      
+      // MercadoPago (Chile, Argentina, México, etc.)
+      mercadopago: {
+        email: { type: String, default: '' },
+        userId: { type: String, default: '' }  // ID de cuenta MP
+      },
+      
+      // Transferencia bancaria (Chile)
+      bankTransfer: {
+        bankName: { type: String, default: '' },
+        accountType: { type: String, enum: ['corriente', 'vista', 'ahorro', ''], default: '' },
+        accountNumber: { type: String, default: '' },
+        rut: { type: String, default: '' },
+        holderName: { type: String, default: '' }
+      },
+      
+      // PayPal (internacional)
+      paypal: {
+        email: { type: String, default: '' }
+      },
+      
+      // Wise (internacional)
+      wise: {
+        email: { type: String, default: '' },
+        accountId: { type: String, default: '' }
+      },
+      
+      // Estado de verificación
+      isVerified: { type: Boolean, default: false },
+      verifiedAt: { type: Date },
+      
+      // Documento tributario (RUT, RFC, DNI, etc.)
+      taxId: { type: String, default: '' },
+      taxIdType: { type: String, default: '' }  // RUT, RFC, CUIT, NIF, etc.
+    }
   },
   
   // ==================== DATOS DE CLIENTE ====================

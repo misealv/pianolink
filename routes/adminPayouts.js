@@ -477,4 +477,152 @@ router.post('/generate-monthly', authMiddleware, adminOnly, async (req, res) => 
     }
 });
 
+/**
+ * GET /api/admin/payouts/platform-earnings
+ * Ganancias de la plataforma (comisiones 20%)
+ */
+router.get('/platform-earnings', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+        // Comisiones de clases confirmadas (escrow y pagadas)
+        const confirmedCommissions = await ClassSession.aggregate([
+            { 
+                $match: { 
+                    status: { $in: ['confirmed', 'paid'] }
+                } 
+            },
+            { 
+                $group: { 
+                    _id: null, 
+                    total: { $sum: '$platformFeeUSD' },
+                    count: { $sum: 1 }
+                } 
+            }
+        ]);
+
+        // Comisiones este mes
+        const thisMonthCommissions = await ClassSession.aggregate([
+            { 
+                $match: { 
+                    status: { $in: ['confirmed', 'paid'] },
+                    confirmedAt: { $gte: startOfMonth }
+                } 
+            },
+            { 
+                $group: { 
+                    _id: null, 
+                    total: { $sum: '$platformFeeUSD' },
+                    count: { $sum: 1 }
+                } 
+            }
+        ]);
+
+        // Comisiones mes pasado
+        const lastMonthCommissions = await ClassSession.aggregate([
+            { 
+                $match: { 
+                    status: { $in: ['confirmed', 'paid'] },
+                    confirmedAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }
+                } 
+            },
+            { 
+                $group: { 
+                    _id: null, 
+                    total: { $sum: '$platformFeeUSD' },
+                    count: { $sum: 1 }
+                } 
+            }
+        ]);
+
+        // Comisiones pendientes de confirmación (aún en validación)
+        const pendingCommissions = await ClassSession.aggregate([
+            { 
+                $match: { 
+                    status: 'pending-validation'
+                } 
+            },
+            { 
+                $group: { 
+                    _id: null, 
+                    total: { $sum: '$platformFeeUSD' },
+                    count: { $sum: 1 }
+                } 
+            }
+        ]);
+
+        // Total pagado a profesores
+        const totalPaidToTeachers = await TeacherPayout.aggregate([
+            { $match: { status: 'paid' } },
+            { $group: { _id: null, total: { $sum: '$finalPayoutUSD' } } }
+        ]);
+
+        // Ganancias por mes (últimos 6 meses)
+        const monthlyEarnings = await ClassSession.aggregate([
+            {
+                $match: {
+                    status: { $in: ['confirmed', 'paid'] },
+                    confirmedAt: { $gte: new Date(now.getFullYear(), now.getMonth() - 5, 1) }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: '$confirmedAt' },
+                        month: { $month: '$confirmedAt' }
+                    },
+                    platformFees: { $sum: '$platformFeeUSD' },
+                    teacherPayouts: { $sum: '$teacherPayoutUSD' },
+                    classCount: { $sum: 1 }
+                }
+            },
+            { $sort: { '_id.year': -1, '_id.month': -1 } }
+        ]);
+
+        res.json({
+            success: true,
+            earnings: {
+                // Totales históricos
+                totalEarned: confirmedCommissions[0]?.total || 0,
+                totalClasses: confirmedCommissions[0]?.count || 0,
+                
+                // Este mes
+                thisMonth: {
+                    earned: thisMonthCommissions[0]?.total || 0,
+                    classes: thisMonthCommissions[0]?.count || 0
+                },
+                
+                // Mes pasado
+                lastMonth: {
+                    earned: lastMonthCommissions[0]?.total || 0,
+                    classes: lastMonthCommissions[0]?.count || 0
+                },
+                
+                // Pendiente de validación (potencial)
+                pending: {
+                    potential: pendingCommissions[0]?.total || 0,
+                    classes: pendingCommissions[0]?.count || 0
+                },
+                
+                // Pagado a profesores
+                paidToTeachers: totalPaidToTeachers[0]?.total || 0,
+                
+                // Histórico mensual
+                monthly: monthlyEarnings.map(m => ({
+                    period: `${m._id.year}-${String(m._id.month).padStart(2, '0')}`,
+                    platformFees: m.platformFees,
+                    teacherPayouts: m.teacherPayouts,
+                    classCount: m.classCount
+                }))
+            }
+        });
+    } catch (error) {
+        console.error('[AdminPayouts] Error platform-earnings:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
 module.exports = router;

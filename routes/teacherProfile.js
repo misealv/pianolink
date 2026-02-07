@@ -229,6 +229,110 @@ router.put('/my-profile', protect, async (req, res) => {
 });
 
 /**
+ * GET /api/teacher-profile/my-payment-info
+ * Obtener información de pago del profesor
+ */
+router.get('/my-payment-info', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ error: 'Solo profesores pueden acceder' });
+        }
+        
+        res.json({
+            success: true,
+            paymentInfo: user.teacherData?.paymentInfo || {
+                country: 'CL',
+                method: 'mercadopago',
+                mercadopago: { email: '', userId: '' },
+                bankTransfer: {},
+                paypal: { email: user.teacherData?.paypalEmail || '' },
+                wise: {},
+                isVerified: false,
+                taxId: '',
+                taxIdType: ''
+            }
+        });
+    } catch (error) {
+        console.error('[TeacherProfile] Error obteniendo payment info:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * PUT /api/teacher-profile/my-payment-info
+ * Actualizar información de pago del profesor
+ */
+router.put('/my-payment-info', protect, async (req, res) => {
+    try {
+        const { country, method, mercadopago, bankTransfer, paypal, wise, taxId, taxIdType } = req.body;
+        
+        const user = await User.findById(req.user._id);
+        
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ error: 'Solo profesores pueden acceder' });
+        }
+        
+        // Validar que el método seleccionado tenga datos
+        const validMethods = ['mercadopago', 'bank_transfer', 'paypal', 'wise'];
+        if (method && !validMethods.includes(method)) {
+            return res.status(400).json({ error: 'Método de pago no válido' });
+        }
+        
+        // Construir actualización
+        const update = {};
+        
+        if (country) update['teacherData.paymentInfo.country'] = country;
+        if (method) update['teacherData.paymentInfo.method'] = method;
+        
+        if (mercadopago) {
+            if (mercadopago.email) update['teacherData.paymentInfo.mercadopago.email'] = mercadopago.email;
+            if (mercadopago.userId) update['teacherData.paymentInfo.mercadopago.userId'] = mercadopago.userId;
+        }
+        
+        if (bankTransfer) {
+            if (bankTransfer.bankName) update['teacherData.paymentInfo.bankTransfer.bankName'] = bankTransfer.bankName;
+            if (bankTransfer.accountType) update['teacherData.paymentInfo.bankTransfer.accountType'] = bankTransfer.accountType;
+            if (bankTransfer.accountNumber) update['teacherData.paymentInfo.bankTransfer.accountNumber'] = bankTransfer.accountNumber;
+            if (bankTransfer.rut) update['teacherData.paymentInfo.bankTransfer.rut'] = bankTransfer.rut;
+            if (bankTransfer.holderName) update['teacherData.paymentInfo.bankTransfer.holderName'] = bankTransfer.holderName;
+        }
+        
+        if (paypal) {
+            if (paypal.email) {
+                update['teacherData.paymentInfo.paypal.email'] = paypal.email;
+                // También actualizar campo legacy
+                update['teacherData.paypalEmail'] = paypal.email;
+            }
+        }
+        
+        if (wise) {
+            if (wise.email) update['teacherData.paymentInfo.wise.email'] = wise.email;
+            if (wise.accountId) update['teacherData.paymentInfo.wise.accountId'] = wise.accountId;
+        }
+        
+        if (taxId) update['teacherData.paymentInfo.taxId'] = taxId;
+        if (taxIdType) update['teacherData.paymentInfo.taxIdType'] = taxIdType;
+        
+        // Marcar como no verificado si cambian datos críticos
+        update['teacherData.paymentInfo.isVerified'] = false;
+        
+        await User.findByIdAndUpdate(req.user._id, update);
+        
+        console.log(`[TeacherProfile] ${user.email} actualizó su info de pago: ${method || 'sin cambio de método'}`);
+        
+        res.json({
+            success: true,
+            message: 'Información de pago actualizada'
+        });
+    } catch (error) {
+        console.error('[TeacherProfile] Error actualizando payment info:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
  * GET /api/teacher-profile/my-students
  * Obtener lista de estudiantes del profesor con sus tarifas congeladas
  */
