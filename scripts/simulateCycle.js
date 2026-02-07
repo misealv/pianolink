@@ -395,7 +395,7 @@ async function step6_generatePayout(teacher, sessions) {
         withdrawalFeePercent: 0,
         withdrawalFeeUSD: 0,
         finalAmountAfterFees: netPayout,
-        status: 'pending',
+        status: 'pending-review',
         sessions: sessions.map(s => s._id),
         notes: 'SIMULACIÓN - Payout generado automáticamente'
     });
