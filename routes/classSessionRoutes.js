@@ -641,6 +641,11 @@ router.get('/my-payouts', authMiddleware, async (req, res) => {
                 platformFee: p.platformFeeUSD,
                 netPayout: p.netPayoutUSD,
                 finalPayout: p.finalPayoutUSD,
+                // Datos de retiro
+                withdrawalMethod: p.withdrawalMethod,
+                withdrawalFeePercent: p.withdrawalFeePercent,
+                withdrawalFeeUSD: p.withdrawalFeeUSD,
+                finalAmountAfterFees: p.finalAmountAfterFees || p.finalPayoutUSD,
                 status: p.status,
                 paidAt: p.paidAt,
                 invoice: p.invoice || { status: 'not_submitted' }
@@ -648,6 +653,104 @@ router.get('/my-payouts', authMiddleware, async (req, res) => {
         });
     } catch (error) {
         console.error('[ClassSessions] Error my-payouts:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
+/**
+ * GET /api/class-sessions/withdrawal-options/:payoutId
+ * Obtener opciones de retiro con fees para un payout
+ */
+router.get('/withdrawal-options/:payoutId', authMiddleware, async (req, res) => {
+    try {
+        const payout = await TeacherPayout.findOne({
+            _id: req.params.payoutId,
+            teacherId: req.user._id
+        });
+
+        if (!payout) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Payout no encontrado' 
+            });
+        }
+
+        const baseAmount = payout.finalPayoutUSD || payout.netPayoutUSD;
+        const options = TeacherPayout.calculateWithdrawalOptions(baseAmount);
+
+        res.json({
+            success: true,
+            payoutId: payout._id,
+            periodLabel: payout.periodLabel,
+            baseAmountUSD: baseAmount,
+            currentMethod: payout.withdrawalMethod,
+            options
+        });
+    } catch (error) {
+        console.error('[ClassSessions] Error withdrawal-options:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
+/**
+ * POST /api/class-sessions/payout/:id/set-withdrawal-method
+ * Profesor elige su método de retiro
+ */
+router.post('/payout/:id/set-withdrawal-method', authMiddleware, async (req, res) => {
+    try {
+        const { method } = req.body;
+        
+        const validMethods = Object.keys(TeacherPayout.WITHDRAWAL_FEES);
+        if (!validMethods.includes(method)) {
+            return res.status(400).json({ 
+                success: false, 
+                error: `Método inválido. Opciones: ${validMethods.join(', ')}` 
+            });
+        }
+
+        const payout = await TeacherPayout.findOne({
+            _id: req.params.id,
+            teacherId: req.user._id
+        });
+
+        if (!payout) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Payout no encontrado' 
+            });
+        }
+
+        // Solo se puede cambiar si no está pagado
+        if (payout.status === 'paid') {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'No se puede cambiar método de un payout ya pagado' 
+            });
+        }
+
+        // Aplicar método y calcular fees
+        payout.setWithdrawalMethod(method);
+        
+        payout.statusHistory.push({
+            status: payout.status,
+            changedBy: req.user._id,
+            notes: `Método de retiro seleccionado: ${TeacherPayout.WITHDRAWAL_LABELS[method]} (fee: ${payout.withdrawalFeePercent}%)`
+        });
+
+        await payout.save();
+
+        console.log(`[ClassSessions] Profesor ${req.user.email} eligió método ${method} para payout ${payout._id}`);
+
+        res.json({
+            success: true,
+            message: `Método ${TeacherPayout.WITHDRAWAL_LABELS[method]} seleccionado`,
+            withdrawalMethod: payout.withdrawalMethod,
+            withdrawalFeePercent: payout.withdrawalFeePercent,
+            withdrawalFeeUSD: payout.withdrawalFeeUSD,
+            finalAmountAfterFees: payout.finalAmountAfterFees
+        });
+    } catch (error) {
+        console.error('[ClassSessions] Error set-withdrawal-method:', error);
         res.status(500).json({ success: false, error: 'Error interno' });
     }
 });

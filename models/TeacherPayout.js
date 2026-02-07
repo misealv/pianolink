@@ -8,6 +8,27 @@
 
 const mongoose = require('mongoose');
 
+// === FEES DE RETIRO POR MÉTODO (en porcentaje) ===
+// Estos fees los absorbe el profesor al elegir su método
+const WITHDRAWAL_FEES = {
+    bank_transfer: 0,       // Gratis en Chile
+    mercadopago: 0,         // Gratis si es cuenta MP
+    paypal: 3.0,            // 3% fee de PayPal
+    wise: 1.0,              // ~1% fee de Wise
+    crypto: 1.5,            // ~1.5% para crypto
+    manual: 0               // Sin fee (cheque, efectivo, etc.)
+};
+
+// Labels para mostrar en UI
+const WITHDRAWAL_LABELS = {
+    bank_transfer: 'Transferencia Bancaria',
+    mercadopago: 'MercadoPago',
+    paypal: 'PayPal',
+    wise: 'Wise',
+    crypto: 'Crypto',
+    manual: 'Otro/Manual'
+};
+
 const teacherPayoutSchema = new mongoose.Schema({
     // Profesor que recibe el pago
     teacherId: {
@@ -143,6 +164,25 @@ const teacherPayoutSchema = new mongoose.Schema({
     paymentErrorMessage: {
         type: String,
         default: ''
+    },
+
+    // === RETIRO (método elegido por el profesor) ===
+    withdrawalMethod: {
+        type: String,
+        enum: ['bank_transfer', 'mercadopago', 'paypal', 'wise', 'crypto', 'manual'],
+        default: 'bank_transfer'
+    },
+    withdrawalFeePercent: {
+        type: Number,
+        default: 0  // % que se descuenta del payout
+    },
+    withdrawalFeeUSD: {
+        type: Number,
+        default: 0  // Monto en centavos del fee
+    },
+    finalAmountAfterFees: {
+        type: Number,
+        default: 0  // Lo que realmente recibe el profesor
     },
 
     // === DOCUMENTO TRIBUTARIO ===
@@ -350,5 +390,46 @@ teacherPayoutSchema.statics.getOrCreateForPeriod = async function(teacherId, per
     
     return payout;
 };
+
+// Método: Establecer método de retiro y calcular fees
+teacherPayoutSchema.methods.setWithdrawalMethod = function(method) {
+    const feePercent = WITHDRAWAL_FEES[method] || 0;
+    const baseAmount = this.finalPayoutUSD || this.netPayoutUSD;
+    const feeAmount = Math.round(baseAmount * (feePercent / 100));
+    
+    this.withdrawalMethod = method;
+    this.withdrawalFeePercent = feePercent;
+    this.withdrawalFeeUSD = feeAmount;
+    this.finalAmountAfterFees = baseAmount - feeAmount;
+    
+    return this;
+};
+
+// Método estático: Calcular preview de fees para UI
+teacherPayoutSchema.statics.calculateWithdrawalOptions = function(amountUSD) {
+    const options = [];
+    
+    for (const [method, feePercent] of Object.entries(WITHDRAWAL_FEES)) {
+        const feeAmount = Math.round(amountUSD * (feePercent / 100));
+        const finalAmount = amountUSD - feeAmount;
+        
+        options.push({
+            method,
+            label: WITHDRAWAL_LABELS[method],
+            feePercent,
+            feeAmountUSD: feeAmount,
+            finalAmountUSD: finalAmount,
+            displayFee: feePercent === 0 ? 'Gratis' : `-${feePercent}%`,
+            displayFinal: `$${(finalAmount / 100).toFixed(2)}`
+        });
+    }
+    
+    // Ordenar: gratis primero, luego por fee
+    return options.sort((a, b) => a.feePercent - b.feePercent);
+};
+
+// Exportar constantes para uso externo
+teacherPayoutSchema.statics.WITHDRAWAL_FEES = WITHDRAWAL_FEES;
+teacherPayoutSchema.statics.WITHDRAWAL_LABELS = WITHDRAWAL_LABELS;
 
 module.exports = mongoose.model('TeacherPayout', teacherPayoutSchema);

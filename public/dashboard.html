@@ -3057,20 +3057,39 @@ El sistema está en modo TEST.`;
                 ${e.payoutHistory && e.payoutHistory.length > 0 ? `
                     <div style="display: flex; flex-direction: column; gap: 10px;">
                         ${e.payoutHistory.map(p => `
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #252525; border-radius: 8px;">
-                                <div>
-                                    <div style="color: white; font-weight: 500;">$${(p.amount/100).toFixed(2)} USD</div>
-                                    <div style="color: #888; font-size: 11px;">${p.classCount} clases</div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 15px;">
-                                    ${renderInvoiceStatus(p)}
-                                    <div style="text-align: right;">
+                            <div style="padding: 12px; background: #252525; border-radius: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div>
+                                        <div style="color: white; font-weight: 500;">$${(p.amount/100).toFixed(2)} USD</div>
+                                        <div style="color: #888; font-size: 11px;">${p.classCount} clases • ${p.periodLabel || ''}</div>
+                                        ${p.withdrawalFeePercent > 0 ? `
+                                            <div style="color: #f59e0b; font-size: 10px; margin-top: 4px;">
+                                                Fee retiro: -${p.withdrawalFeePercent}% → Recibes: $${((p.finalAmountAfterFees || p.amount)/100).toFixed(2)}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                                         <div style="color: ${p.status === 'paid' ? '#4ade80' : '#f59e0b'}; font-size: 12px; font-weight: 500;">
                                             ${p.status === 'paid' ? '✅ Pagado' : p.status === 'approved' ? '⏳ Aprobado' : '📋 En revisión'}
                                         </div>
                                         ${p.paidAt ? `<div style="color: #666; font-size: 10px;">${new Date(p.paidAt).toLocaleDateString('es-CL')}</div>` : ''}
                                     </div>
                                 </div>
+                                
+                                <!-- Acciones: Método de retiro + Documento -->
+                                ${p.status !== 'paid' ? `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;">
+                                        <button onclick="openWithdrawalModal('${p._id}')" 
+                                                style="padding: 6px 12px; background: ${p.withdrawalMethod ? '#333' : '#6366f1'}; color: white; border: none; border-radius: 6px; font-size: 11px; cursor: pointer;">
+                                            💳 ${p.withdrawalMethod ? (WITHDRAWAL_LABELS[p.withdrawalMethod] || p.withdrawalMethod) : 'Elegir método retiro'}
+                                        </button>
+                                        ${renderInvoiceStatus(p)}
+                                    </div>
+                                ` : `
+                                    <div style="margin-top: 8px;">
+                                        ${renderInvoiceStatus(p)}
+                                    </div>
+                                `}
                             </div>
                         `).join('')}
                     </div>
@@ -3086,6 +3105,131 @@ El sistema está en modo TEST.`;
         
         section.style.display = 'block';
         section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Constantes de métodos de retiro (sincronizado con backend)
+    const WITHDRAWAL_LABELS = {
+        bank_transfer: 'Transferencia Bancaria',
+        mercadopago: 'MercadoPago',
+        paypal: 'PayPal',
+        wise: 'Wise',
+        crypto: 'Crypto',
+        manual: 'Otro/Manual'
+    };
+
+    // Variables para modal de retiro
+    let currentWithdrawalPayoutId = null;
+    let withdrawalOptions = [];
+
+    async function openWithdrawalModal(payoutId) {
+        currentWithdrawalPayoutId = payoutId;
+        const token = localStorage.getItem('pianoToken');
+        
+        try {
+            const res = await fetch(`/api/class-sessions/withdrawal-options/${payoutId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            
+            if (!data.success) {
+                alert('Error al cargar opciones de retiro');
+                return;
+            }
+            
+            withdrawalOptions = data.options;
+            
+            // Crear o actualizar modal
+            let modal = document.getElementById('withdrawalModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'withdrawalModal';
+                document.body.appendChild(modal);
+            }
+            
+            modal.innerHTML = `
+                <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+                    <div style="background: #1e1e1e; border-radius: 16px; padding: 30px; max-width: 480px; width: 90%; border: 1px solid #333;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="color: white; margin: 0; font-size: 18px;">💳 Método de Retiro</h3>
+                            <button onclick="closeWithdrawalModal()" style="background: none; border: none; color: #888; font-size: 24px; cursor: pointer;">×</button>
+                        </div>
+                        
+                        <div style="background: #252525; padding: 12px; border-radius: 10px; margin-bottom: 20px;">
+                            <div style="color: #888; font-size: 11px;">Período: ${data.periodLabel}</div>
+                            <div style="color: white; font-size: 20px; font-weight: 700;">Monto base: $${(data.baseAmountUSD/100).toFixed(2)} USD</div>
+                        </div>
+                        
+                        <div style="color: #888; font-size: 12px; margin-bottom: 10px;">Elige cómo quieres recibir tu pago:</div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${data.options.map(opt => `
+                                <div onclick="selectWithdrawalMethod('${opt.method}')" 
+                                     style="display: flex; justify-content: space-between; align-items: center; padding: 14px; background: ${data.currentMethod === opt.method ? '#3b3b5c' : '#252525'}; border: 1px solid ${data.currentMethod === opt.method ? '#6366f1' : '#333'}; border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                                    <div>
+                                        <div style="color: white; font-weight: 500;">${opt.label}</div>
+                                        <div style="color: ${opt.feePercent === 0 ? '#4ade80' : '#f59e0b'}; font-size: 11px;">
+                                            ${opt.displayFee}
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: ${opt.feePercent === 0 ? '#4ade80' : 'white'}; font-size: 18px; font-weight: 700;">
+                                            ${opt.displayFinal}
+                                        </div>
+                                        ${opt.feeAmountUSD > 0 ? `<div style="color: #666; font-size: 10px;">-$${(opt.feeAmountUSD/100).toFixed(2)} fee</div>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div style="background: rgba(99,102,241,0.1); padding: 12px; border-radius: 8px; margin-top: 15px; border: 1px solid rgba(99,102,241,0.2);">
+                            <div style="color: #a5b4fc; font-size: 11px;">
+                                💡 Transferencia bancaria (Chile) y MercadoPago no tienen fee. 
+                                Para métodos internacionales, el fee se descuenta de tu pago.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            modal.style.display = 'block';
+        } catch (err) {
+            console.error('Error loading withdrawal options:', err);
+            alert('Error de conexión');
+        }
+    }
+
+    function closeWithdrawalModal() {
+        const modal = document.getElementById('withdrawalModal');
+        if (modal) modal.style.display = 'none';
+        currentWithdrawalPayoutId = null;
+    }
+
+    async function selectWithdrawalMethod(method) {
+        const token = localStorage.getItem('pianoToken');
+        
+        try {
+            const res = await fetch(`/api/class-sessions/payout/${currentWithdrawalPayoutId}/set-withdrawal-method`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ method })
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                closeWithdrawalModal();
+                await loadTeacherEarnings();
+                createEarningsSection();
+                alert(`✅ Método seleccionado: ${WITHDRAWAL_LABELS[method]}\nRecibirás: $${(data.finalAmountAfterFees/100).toFixed(2)} USD`);
+            } else {
+                alert(data.error || 'Error al seleccionar método');
+            }
+        } catch (err) {
+            alert('Error de conexión');
+        }
     }
 
     // Renderizar estado del documento tributario
