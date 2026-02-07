@@ -168,12 +168,116 @@ services/
   PayoutCronService.js      → Jobs automáticos
 ```
 
-## Pendientes de Implementación
+## Flujo de Pagos a Profesores
 
-1. [ ] UI en `profe.html` para gestionar paquetes
-2. [ ] UI en `cliente.html` para ver/comprar paquetes
-3. [ ] Checkout de paquetes con MercadoPago
-4. [ ] Panel admin para aprobar payouts
-5. [ ] Cobro recurrente con tokenización MP
-6. [ ] Notificaciones email (clase completada, disputa, payout)
-7. [ ] Transferencia de suscripción a otro profesor
+### Proceso Mensual Completo
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  DÍA 1 DEL MES (00:00 UTC)                                      │
+│  ─────────────────────────────                                  │
+│  🤖 Cron: generateMonthlyPayouts                                │
+│     → Agrupa clases validadas del mes anterior                  │
+│     → Calcula: 80% profesor, 20% plataforma                     │
+│     → Crea TeacherPayout con status: 'pending'                  │
+│     → Email al profesor: "Tu pago está listo para procesar"     │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  PROFESOR SUBE DOCUMENTO TRIBUTARIO                            │
+│  ───────────────────────────────────                            │
+│  Dashboard profesor → Selecciona método de retiro               │
+│     • Transferencia bancaria (0% fee)                           │
+│     • MercadoPago (0% fee)                                      │
+│     • PayPal (3% fee)                                           │
+│     • Wise (1% fee)                                             │
+│     • Crypto (1.5% fee)                                         │
+│                                                                 │
+│  Sube boleta/factura → POST /api/payouts/:id/upload-invoice     │
+│  Status cambia a: 'invoice_pending'                             │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  ADMIN VERIFICA DOCUMENTO                                       │
+│  ────────────────────────                                       │
+│  Panel Admin → /admin/payouts                                   │
+│                                                                 │
+│  Si documento OK:                                               │
+│     → POST /api/admin/payouts/:id/verify-invoice                │
+│     → Status: 'invoice_verified'                                │
+│     → Email al profesor: "Documento aprobado"                   │
+│                                                                 │
+│  Si documento tiene errores:                                    │
+│     → POST /api/admin/payouts/:id/reject-invoice                │
+│     → Status: 'invoice_rejected'                                │
+│     → Email al profesor con razón del rechazo                   │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  ADMIN EJECUTA PAGO                                             │
+│  ──────────────────                                             │
+│  Panel Admin → Ve método preferido del profesor                 │
+│                                                                 │
+│  Proceso manual:                                                │
+│     1. Transfiere desde banco/PayPal/Wise del negocio           │
+│     2. Copia número de referencia                               │
+│     3. Click "Marcar como Pagado" → ingresa referencia          │
+│     → POST /api/admin/payouts/:id/mark-paid                     │
+│     → Status: 'paid'                                            │
+│     → Email al profesor: "Pago enviado - Ref: XXXXX"            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Comisiones por Método de Retiro
+
+| Método | Fee | Monto Neto (ejemplo $100) |
+|--------|-----|---------------------------|
+| 🏦 Transferencia Bancaria | 0% | $100.00 |
+| 💳 MercadoPago | 0% | $100.00 |
+| 💰 PayPal | 3% | $97.00 |
+| 🌐 Wise | 1% | $99.00 |
+| ₿ Crypto | 1.5% | $98.50 |
+
+### Archivos del Sistema de Pagos
+
+```
+services/
+  PayoutCronService.js          → Cron jobs (auto-confirm, monthly generation)
+  PayoutNotificationService.js  → Emails para cada etapa del pago
+  MercadoPagoTransferService.js → (Reservado para futuras transferencias auto)
+
+routes/
+  classSessionRoutes.js         → Endpoints del profesor (withdrawal options)
+  adminPayouts.js               → Panel admin (verify, reject, mark-paid)
+
+jobs/
+  generateMonthlyPayouts.js     → Script standalone para testing
+```
+
+### Notas Importantes
+
+1. **MercadoPago Chile** no soporta transferencias P2P automáticas
+2. Los pagos se hacen **manualmente** desde el banco del negocio
+3. El sistema registra todas las referencias para auditoría
+4. Los profesores reciben **email en cada paso** del proceso
+
+---
+
+## Estado de Implementación
+
+### ✅ Completado
+- [x] Modelo TeacherPayout con withdrawal methods
+- [x] UI profesor para seleccionar método de retiro
+- [x] UI profesor para subir documentos tributarios
+- [x] Panel admin con verificación de documentos
+- [x] Sistema de notificaciones por email (5 tipos)
+- [x] Cron job mensual para generar payouts
+- [x] Configuración MercadoPago verificada
+
+### 📋 Pendiente
+- [ ] UI en `profe.html` para gestionar paquetes de clases
+- [ ] UI en `cliente.html` para ver/comprar paquetes
+- [ ] Checkout de paquetes con MercadoPago
+- [ ] Cobro recurrente con tokenización MP
+- [ ] Transferencia de suscripción a otro profesor
+- [ ] Integración Wise API (cuando escale a +30 profesores)
