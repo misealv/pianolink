@@ -5855,6 +5855,57 @@ async function savePricingConfig() {
 
 let currentPayoutId = null;
 
+// Helpers para payouts
+function getMethodIcon(method) {
+    const icons = {
+        bank_transfer: '🏦',
+        mercadopago: '🟦',
+        paypal: '💙',
+        wise: '🟢',
+        crypto: '₿',
+        manual: '✋'
+    };
+    return icons[method] || '💳';
+}
+
+function getMethodLabel(method) {
+    const labels = {
+        bank_transfer: 'Transferencia Bancaria',
+        mercadopago: 'MercadoPago',
+        paypal: 'PayPal',
+        wise: 'Wise',
+        crypto: 'Crypto',
+        manual: 'Manual'
+    };
+    return labels[method] || method;
+}
+
+function getInvoiceTypeLabel(type) {
+    const labels = {
+        boleta_honorarios: 'Boleta de Honorarios',
+        factura: 'Factura',
+        invoice: 'Invoice',
+        recibo: 'Recibo',
+        otro: 'Otro'
+    };
+    return labels[type] || type;
+}
+
+function getInvoiceStatusBadge(status) {
+    const badges = {
+        'not_submitted': '<span style="background:#ef4444; color:white; padding:4px 10px; border-radius:12px; font-size:11px;">❌ No enviado</span>',
+        'submitted': '<span style="background:#f59e0b; color:white; padding:4px 10px; border-radius:12px; font-size:11px;">⏳ Pendiente verificar</span>',
+        'verified': '<span style="background:#22c55e; color:white; padding:4px 10px; border-radius:12px; font-size:11px;">✅ Verificado</span>',
+        'rejected': '<span style="background:#ef4444; color:white; padding:4px 10px; border-radius:12px; font-size:11px;">❌ Rechazado</span>'
+    };
+    return badges[status] || status;
+}
+
+function canAutoExecute(payout) {
+    // Puede ejecutar automático si tiene documento verificado y método de retiro
+    return payout.invoice?.status === 'verified' && payout.withdrawalMethod;
+}
+
 async function loadPayouts() {
     try {
         // Cargar resumen
@@ -6023,12 +6074,73 @@ async function openPayoutDetail(payoutId) {
                     </div>
                 </div>
 
-                <!-- Método de Pago -->
+                <!-- Método de Retiro elegido por profesor -->
                 <div style="background:var(--bg-card); padding:20px; border-radius:12px; border:1px solid var(--border-color);">
-                    <h4 style="margin:0 0 15px 0; color:var(--text-primary);">💳 Método de Pago Preferido</h4>
-                    ${wallet.preferredMethod ? `
+                    <h4 style="margin:0 0 15px 0; color:var(--text-primary);">💳 Método de Retiro</h4>
+                    ${p.withdrawalMethod ? `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-size:24px;">${getMethodIcon(p.withdrawalMethod)}</span>
+                                <div>
+                                    <div style="font-weight:600; text-transform:capitalize;">${getMethodLabel(p.withdrawalMethod)}</div>
+                                    ${p.withdrawalFeePercent > 0 ? `
+                                        <div style="color:#f59e0b; font-size:12px;">Fee: ${p.withdrawalFeePercent}% (-$${(p.withdrawalFeeUSD / 100).toFixed(2)})</div>
+                                    ` : '<div style="color:#22c55e; font-size:12px;">Sin fee</div>'}
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:20px; font-weight:700; color:#22c55e;">$${((p.finalAmountAfterFees || p.finalPayoutUSD) / 100).toFixed(2)}</div>
+                                <div style="font-size:11px; color:var(--text-secondary);">Monto final</div>
+                            </div>
+                        </div>
+                    ` : '<div style="color:#f59e0b;">⚠️ El profesor no ha elegido método de retiro</div>'}
+                </div>
+
+                <!-- Documento Tributario -->
+                <div style="background:var(--bg-card); padding:20px; border-radius:12px; border:1px solid ${p.invoice?.status === 'verified' ? '#22c55e' : p.invoice?.status === 'submitted' ? '#f59e0b' : '#ef4444'};">
+                    <h4 style="margin:0 0 15px 0; color:var(--text-primary);">📄 Documento Tributario</h4>
+                    ${p.invoice && p.invoice.number ? `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-weight:600;">${getInvoiceTypeLabel(p.invoice.type)} #${p.invoice.number}</div>
+                                <div style="color:var(--text-secondary); font-size:12px;">
+                                    Emitido: ${p.invoice.issueDate ? new Date(p.invoice.issueDate).toLocaleDateString('es-CL') : '-'}
+                                </div>
+                            </div>
+                            <div>
+                                ${getInvoiceStatusBadge(p.invoice.status)}
+                            </div>
+                        </div>
+                        ${p.invoice.status === 'submitted' ? `
+                            <div style="display:flex; gap:10px; margin-top:15px;">
+                                <button class="btn btn-success btn-sm" onclick="verifyInvoice('${p._id}')">✓ Verificar Doc</button>
+                                <button class="btn btn-danger btn-sm" onclick="rejectInvoice('${p._id}')">✗ Rechazar</button>
+                            </div>
+                        ` : ''}
+                    ` : '<div style="color:#ef4444;">❌ El profesor no ha enviado documento tributario</div>'}
+                </div>
+
+                <!-- Método de Pago (info del profesor) -->
+                <div style="background:var(--bg-card); padding:20px; border-radius:12px; border:1px solid var(--border-color);">
+                    <h4 style="margin:0 0 15px 0; color:var(--text-primary);">🏦 Datos de Pago del Profesor</h4>
+                    ${teacher.teacherData?.paymentInfo ? `
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:13px;">
+                            <div><strong>País:</strong> ${teacher.teacherData.paymentInfo.country || 'CL'}</div>
+                            <div><strong>Método:</strong> ${teacher.teacherData.paymentInfo.method || '-'}</div>
+                            ${teacher.teacherData.paymentInfo.bankTransfer?.bankName ? `
+                                <div><strong>Banco:</strong> ${teacher.teacherData.paymentInfo.bankTransfer.bankName}</div>
+                                <div><strong>Cuenta:</strong> ****${(teacher.teacherData.paymentInfo.bankTransfer.accountNumber || '').slice(-4)}</div>
+                            ` : ''}
+                            ${teacher.teacherData.paymentInfo.paypal?.email ? `
+                                <div><strong>PayPal:</strong> ${teacher.teacherData.paymentInfo.paypal.email}</div>
+                            ` : ''}
+                            ${teacher.teacherData.paymentInfo.wise?.email ? `
+                                <div><strong>Wise:</strong> ${teacher.teacherData.paymentInfo.wise.email}</div>
+                            ` : ''}
+                        </div>
+                    ` : (wallet.preferredMethod ? `
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <span style="font-size:24px;">${wallet.preferredMethod === 'paypal' ? '💙' : wallet.preferredMethod === 'mercadopago' ? '🟦' : '🏦'}</span>
+                            <span style="font-size:24px;">${getMethodIcon(wallet.preferredMethod)}</span>
                             <div>
                                 <div style="font-weight:600; text-transform:capitalize;">${wallet.preferredMethod.replace('_', ' ')}</div>
                                 <div style="color:var(--text-secondary); font-size:13px;">
@@ -6036,7 +6148,7 @@ async function openPayoutDetail(payoutId) {
                                 </div>
                             </div>
                         </div>
-                    ` : '<div style="color:#888;">No ha configurado método de pago</div>'}
+                    ` : '<div style="color:#888;">No ha configurado datos de pago</div>')}
                 </div>
 
                 <!-- Ajustes -->
@@ -6055,7 +6167,7 @@ async function openPayoutDetail(payoutId) {
                 ` : ''}
 
                 <!-- Acciones -->
-                <div style="display:flex; gap:10px; justify-content:flex-end; padding-top:10px; border-top:1px solid var(--border-color);">
+                <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--border-color);">
                     ${p.status === 'pending-review' || p.status === 'calculating' ? `
                         <button class="btn btn-secondary" onclick="addPayoutAdjustment('${p._id}')">
                             ➕ Agregar Ajuste
@@ -6068,8 +6180,11 @@ async function openPayoutDetail(payoutId) {
                         </button>
                     ` : ''}
                     ${p.status === 'approved' ? `
+                        <button class="btn btn-secondary" onclick="executePayoutAuto('${p._id}')" ${!canAutoExecute(p) ? 'disabled title="Falta doc verificado o método de retiro"' : ''}>
+                            ⚡ Pago Automático
+                        </button>
                         <button class="btn btn-primary" onclick="markPayoutPaid('${p._id}')">
-                            💰 Marcar como Pagado
+                            💰 Marcar Pagado Manual
                         </button>
                     ` : ''}
                 </div>
@@ -6233,6 +6348,92 @@ async function generateMonthlyPayouts() {
             loadPayouts();
         } else {
             showNotification(data.error || 'Error generando payouts', 'error');
+        }
+    } catch (error) {
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+// Verificar documento tributario
+async function verifyInvoice(payoutId) {
+    if (!confirm('¿Verificar este documento tributario?')) return;
+
+    try {
+        const res = await fetch(`/api/admin/payouts/${payoutId}/verify-invoice`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('✅ Documento verificado', 'success');
+            openPayoutDetail(payoutId);
+        } else {
+            showNotification(data.error || 'Error', 'error');
+        }
+    } catch (error) {
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+// Rechazar documento tributario
+async function rejectInvoice(payoutId) {
+    const reason = prompt('Razón del rechazo del documento:');
+    if (!reason) return;
+
+    try {
+        const res = await fetch(`/api/admin/payouts/${payoutId}/reject-invoice`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification('Documento rechazado', 'success');
+            openPayoutDetail(payoutId);
+        } else {
+            showNotification(data.error || 'Error', 'error');
+        }
+    } catch (error) {
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+// Ejecutar pago automático
+async function executePayoutAuto(payoutId) {
+    if (!confirm('¿Ejecutar pago automático? Se intentará transferir usando el método seleccionado por el profesor.')) {
+        return;
+    }
+
+    showNotification('🔄 Procesando pago...', 'info');
+
+    try {
+        const res = await fetch(`/api/admin/payouts/${payoutId}/execute`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ skipInvoiceCheck: false })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showNotification(`💰 ${data.message}`, 'success');
+            closePayoutModal();
+            loadPayouts();
+        } else {
+            showNotification(data.error || 'Error ejecutando pago', 'error');
         }
     } catch (error) {
         showNotification('Error de conexión', 'error');
