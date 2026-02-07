@@ -303,9 +303,32 @@ export class SocketClient {
             localStorage.setItem('pianolink-last-room', this.roomCode);
         }
         
-        this.socket.emit("join-room", { roomCode: code, username: name, userRole: role });
+        // 🔐 Obtener userId si el estudiante está autenticado (desde panel cliente)
+        let userId = null;
+        let userEmail = null;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("auth") === "1") {
+            try {
+                const storedUser = localStorage.getItem('pianoUser');
+                if (storedUser) {
+                    const parsed = JSON.parse(storedUser);
+                    userId = parsed._id || parsed.id || null;
+                    userEmail = parsed.email || null;
+                }
+            } catch (e) {
+                console.warn('[SocketClient] Error parsing pianoUser:', e);
+            }
+        }
+        
+        this.socket.emit("join-room", { 
+            roomCode: code, 
+            username: name, 
+            userRole: role,
+            userId: userId,
+            email: userEmail
+        });
         this.startHeartbeat(); // Iniciar keepalive
-        console.log('[SocketClient] 🚪 Unido a sala, heartbeat iniciado');
+        console.log('[SocketClient] 🚪 Unido a sala, heartbeat iniciado', { userId, userEmail });
     }
 
     createRoom(payload) {

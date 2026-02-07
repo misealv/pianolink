@@ -136,15 +136,20 @@ router.get('/subscription', protect, async (req, res) => {
  */
 router.get('/orders', protect, async (req, res) => {
     try {
-        // Buscar kits por clientId o por email del usuario
+        // Buscar kits por clientId O por email (solo los que tienen pago válido)
+        // Priorizar clientId si existe, evitar traer kits de prueba sin pago
         const kits = await WelcomeKit.find({
             $or: [
                 { clientId: req.user._id },
-                { clientEmail: req.user.email?.toLowerCase() }
+                { 
+                    clientEmail: req.user.email?.toLowerCase(),
+                    'payment.status': { $in: ['completed', 'paid'] } // Solo kits con pago completado
+                }
             ]
         })
-        .select('kitType products cable shipping setupSession payment createdAt')
+        .select('kitType products cable shipping setupSession payment createdAt clientId')
         .sort({ createdAt: -1 })
+        .limit(10) // Limitar a los últimos 10 pedidos
         .lean();
 
         const orders = kits.map(kit => {

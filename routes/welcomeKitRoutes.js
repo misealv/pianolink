@@ -1352,7 +1352,7 @@ router.post('/verify-mercadopago', async (req, res) => {
             }
             
         } else if (user) {
-            generatedMagicLinkToken = null; // Usuario ya existe, no necesita magic link
+            generatedMagicLinkToken = null; // Usuario ya existe, no necesita magic link nuevo
             user.kitPurchased = true;
             user.kitPurchaseDate = new Date();
             
@@ -1378,6 +1378,29 @@ router.post('/verify-mercadopago', async (req, res) => {
             
             await user.save();
             console.log(`[WelcomeKit-MP] 👤 Usuario existente actualizado: ${user.email}`);
+            
+            // Enviar email de confirmación de compra (usuario existente)
+            try {
+                const emailHtml = generateWelcomeKitEmail({
+                    clientName: user.name,
+                    clientEmail: user.email,
+                    magicLinkUrl: null, // Ya tiene cuenta
+                    students: user.clientData?.managedStudents || [],
+                    kitType: welcomeKit.kitType,
+                    totalPaid: welcomeKit.payment?.amount,
+                    currency: welcomeKit.payment?.currency || 'CLP',
+                    orderId: mpPayment?.id || 'MP-' + Date.now()
+                });
+                
+                await EmailService.sendSafe({
+                    to: user.email,
+                    subject: '🎹 ¡Compra confirmada! Tu kit de PianoLink está listo',
+                    html: emailHtml
+                });
+                console.log(`[WelcomeKit-MP] 📧 Email de confirmación enviado a: ${user.email}`);
+            } catch (emailError) {
+                console.error('[WelcomeKit-MP] ⚠️ Error enviando email:', emailError.message);
+            }
         }
         
         // 6. Vincular usuario al WelcomeKit

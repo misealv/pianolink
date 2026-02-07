@@ -2539,8 +2539,10 @@
             const canJoin = nextClassData.canJoinNow;
             const minutes = nextClassData.minutesUntilClass;
             
-            // URL de la sala del profesor
-            const roomUrl = `/c/${teacher.slug}`;
+            // URL de la sala del profesor - usar formato que funciona para estudiantes
+            // Incluir role=student para que el sistema sepa que es alumno
+            // Y auth=1 para indicar que está logueado (el token se envía en el socket)
+            const roomUrl = `/?role=student&sala=${teacher.slug}&auth=1`;
             
             // Guardar datos para el countdown
             window.nextClassData = {

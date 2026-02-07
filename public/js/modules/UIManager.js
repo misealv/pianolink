@@ -671,11 +671,40 @@ export class UIManager {
     // --- IDENTIDAD Y OVERLAY ---
     loadIdentity() {
         const params = new URLSearchParams(window.location.search);
-        if (params.get("role") === "student") {
+        const isStudent = params.get("role") === "student";
+        const isAuth = params.get("auth") === "1";
+        
+        // Si es estudiante autenticado (desde panel cliente), auto-rellenar nombre
+        if (isStudent && isAuth) {
+            try {
+                const saved = localStorage.getItem('pianoUser');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    if (data.name && this.inputName) {
+                        this.inputName.value = data.name;
+                        // Auto-join después de un pequeño delay para asegurar que el socket esté listo
+                        setTimeout(() => {
+                            const joinBtn = document.getElementById('btn-join');
+                            if (joinBtn) joinBtn.click();
+                        }, 500);
+                        return;
+                    }
+                }
+            } catch (e) {}
+            // Si no hay usuario guardado, tratar como estudiante normal
+            if (this.inputName) this.inputName.value = "";
+            this.toggleOverlay(true, "👋 BIENVENIDO", "Escribe tu nombre en el menú izquierdo para entrar.");
+            return;
+        }
+        
+        // Estudiante sin auth: siempre pedir nombre
+        if (isStudent) {
             if (this.inputName) this.inputName.value = ""; 
             this.toggleOverlay(true, "👋 BIENVENIDO", "Escribe tu nombre en el menú izquierdo para entrar.");
             return; 
         }
+        
+        // Profesor o visitante: cargar nombre si existe
         try {
             const saved = localStorage.getItem('pianoUser');
             if (saved) {

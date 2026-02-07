@@ -664,19 +664,28 @@ io.on("connection", (socket) => {
         
         setupUserInRoom(socket, roomCode, payload.username || "Alumno", payload.userRole || "student");
         
+        // � Guardar userId/email si el estudiante está autenticado (viene del panel cliente)
+        const studentData = {
+            socketId: socket.id,
+            name: payload.username || "Alumno",
+            role: payload.userRole || "student"
+        };
+        if (payload.userId) {
+            studentData.userId = payload.userId;
+            studentData.email = payload.email;
+            console.log(`[Room] Estudiante autenticado ${payload.username} (${payload.userId}) se unió a ${roomCode}`);
+        }
+        
         // 🔍 AUDIT: Log unión a sala
         DiagnosticAuditService.logRoom('room_joined', roomCode, {
             userName: payload.username,
-            userRole: payload.userRole || 'student'
+            userRole: payload.userRole || 'student',
+            isAuthenticated: !!payload.userId
         }, { socketId: socket.id, userId: payload.userId });
         
         // Trackear estudiante que se une
         try {
-            await SessionTracker.addStudent(roomCode, {
-                socketId: socket.id,
-                name: payload.username || "Alumno",
-                role: payload.userRole || "student"
-            });
+            await SessionTracker.addStudent(roomCode, studentData);
         } catch (error) {
             console.error('[Track] Error agregando estudiante:', error);
         }
