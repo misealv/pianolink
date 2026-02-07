@@ -193,6 +193,112 @@ router.post('/paypal', async (req, res) => {
 });
 
 /**
+ * POST /api/webhooks/mercadopago-teacher-subscription
+ * Webhook para activar membresía de profesor tras pago con MercadoPago
+ */
+router.post('/mercadopago-teacher-subscription', async (req, res) => {
+    console.log('[Webhook] MercadoPago Teacher Subscription recibido');
+    
+    try {
+        // MercadoPago envía el tipo de notificación
+        const { type, data } = req.body;
+        
+        // Solo procesar pagos aprobados
+        if (type !== 'payment') {
+            console.log('[Webhook] Ignorando tipo:', type);
+            return res.status(200).send('OK');
+        }
+        
+        const paymentId = data?.id;
+        if (!paymentId) {
+            console.log('[Webhook] No payment ID');
+            return res.status(200).send('OK');
+        }
+        
+        // Obtener detalles del pago de MercadoPago
+        const accessToken = process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN;
+        const paymentRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        
+        const payment = await paymentRes.json();
+        console.log('[Webhook] Payment status:', payment.status);
+        
+        // Solo procesar pagos aprobados
+        if (payment.status !== 'approved') {
+            console.log('[Webhook] Pago no aprobado:', payment.status);
+            return res.status(200).send('OK');
+        }
+        
+        // Verificar que es un pago de membresía de profesor
+        const metadata = payment.metadata;
+        if (metadata?.type !== 'teacher_subscription') {
+            console.log('[Webhook] No es pago de membresía profesor');
+            return res.status(200).send('OK');
+        }
+        
+        const teacherId = metadata.teacherId;
+        if (!teacherId) {
+            console.error('[Webhook] No se encontró teacherId en metadata');
+            return res.status(200).send('OK');
+        }
+        
+        // Activar membresía del profesor
+        const User = require('../models/User');
+        const teacher = await User.findById(teacherId);
+        
+        if (!teacher || teacher.role !== 'teacher') {
+            console.error('[Webhook] Profesor no encontrado:', teacherId);
+            return res.status(200).send('OK');
+        }
+        
+        // Calcular fecha de expiración (30 días)
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+        
+        // Actualizar estado de membresía
+        teacher.teacherData.subscriptionStatus = 'active';
+        teacher.teacherData.subscriptionExpiresAt = expiresAt;
+        await teacher.save();
+        
+        console.log(`[Webhook] ✅ Membresía activada para ${teacher.email} hasta ${expiresAt.toISOString()}`);
+        
+        // Enviar email de confirmación (opcional)
+        try {
+            const { Resend } = require('resend');
+            const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+            
+            if (resend) {
+                await resend.emails.send({
+                    from: process.env.EMAIL_FROM || 'PianoLink <notificaciones@pianolink.net>',
+                    to: teacher.email,
+                    subject: '✅ Tu membresía PianoLink está activa',
+                    html: `
+                        <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
+                            <h2 style="color: #059669;">¡Tu membresía está activa! 🎹</h2>
+                            <p>Hola ${teacher.name},</p>
+                            <p>Tu pago ha sido procesado exitosamente. Tu membresía de profesor está activa hasta el <strong>${expiresAt.toLocaleDateString('es-CL')}</strong>.</p>
+                            <p>Ya puedes usar tu sala virtual y recibir estudiantes.</p>
+                            <a href="https://pianolink.net/dashboard" style="display: inline-block; background: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Ir a mi Dashboard</a>
+                            <p style="color: #888; font-size: 12px; margin-top: 20px;">— Equipo PianoLink</p>
+                        </div>
+                    `
+                });
+                console.log('[Webhook] Email de confirmación enviado');
+            }
+        } catch (emailErr) {
+            console.error('[Webhook] Error enviando email:', emailErr.message);
+        }
+        
+        res.status(200).send('OK');
+        
+    } catch (error) {
+        console.error('[Webhook] Error MercadoPago Teacher Sub:', error);
+        res.status(200).send('OK'); // Siempre responder 200 para evitar reintentos
+    }
+});
+
+/**
  * GET /api/webhooks/test
  * Para verificar que los endpoints están activos (dev only)
  */
@@ -202,7 +308,7 @@ router.get('/test', (req, res) => {
     }
     res.json({ 
         status: 'Webhook endpoints active',
-        endpoints: ['/stripe', '/mercadopago', '/paypal'],
+        endpoints: ['/stripe', '/mercadopago', '/mercadopago-teacher-subscription', '/paypal'],
         stripeConfigured: StripeService.isConfigured()
     });
 });
