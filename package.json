@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "axios": "^1.7.0",
     "@supabase/supabase-js": "^2.94.0",
+    "axios": "^1.13.4",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
     "crypto-js": "^4.2.0",
