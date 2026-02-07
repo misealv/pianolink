@@ -360,6 +360,267 @@ router.post('/:id/mark-paid', authMiddleware, adminOnly, async (req, res) => {
 });
 
 /**
+ * POST /api/admin/payouts/:id/execute
+ * Ejecutar pago automático vía MercadoPago (o mostrar info para pago manual)
+ */
+router.post('/:id/execute', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const MPTransferService = require('../services/MercadoPagoTransferService');
+        
+        const payout = await TeacherPayout.findById(req.params.id)
+            .populate('teacherId', 'name email teacherData');
+        
+        if (!payout) {
+            return res.status(404).json({ success: false, error: 'Payout no encontrado' });
+        }
+
+        if (payout.status !== 'approved') {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Solo se pueden ejecutar payouts aprobados' 
+            });
+        }
+
+        const teacher = payout.teacherId;
+        if (!teacher) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Profesor no encontrado' 
+            });
+        }
+
+        const paymentInfo = teacher.teacherData?.paymentInfo;
+        if (!paymentInfo || !paymentInfo.method) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'El profesor no tiene método de pago configurado',
+                requiresManual: true
+            });
+        }
+
+        // Marcar como procesando
+        payout.status = 'processing';
+        payout.statusHistory.push({
+            status: 'processing',
+            changedBy: req.user._id,
+            notes: `Iniciando pago automático vía ${paymentInfo.method}`
+        });
+        await payout.save();
+
+        try {
+            // Intentar ejecutar pago automático
+            const result = await MPTransferService.executePayoutToTeacher(payout, teacher);
+
+            if (result.success) {
+                // Pago automático exitoso
+                await payout.markPaid(result.transferId, `mercadopago-auto`);
+                
+                console.log(`[AdminPayouts] ✅ Pago automático exitoso: ${payout._id} -> ${teacher.email}`);
+
+                return res.json({
+                    success: true,
+                    message: 'Pago ejecutado exitosamente vía MercadoPago',
+                    transfer: {
+                        id: result.transferId,
+                        amount: result.amount,
+                        currency: result.currency,
+                        recipient: result.recipient,
+                        status: result.status
+                    }
+                });
+            } else if (result.requiresManual) {
+                // Método requiere pago manual
+                payout.status = 'approved'; // Revertir a aprobado
+                payout.statusHistory.push({
+                    status: 'approved',
+                    changedBy: req.user._id,
+                    notes: `Pago automático no disponible para ${paymentInfo.method}. Requiere pago manual.`
+                });
+                await payout.save();
+
+                return res.json({
+                    success: false,
+                    requiresManual: true,
+                    method: result.method,
+                    message: result.message,
+                    paymentDetails: result.paymentDetails,
+                    payout: {
+                        id: payout._id,
+                        amount: (payout.finalPayoutUSD / 100).toFixed(2),
+                        teacher: teacher.name
+                    }
+                });
+            }
+        } catch (transferError) {
+            // Error en transferencia - revertir estado
+            payout.status = 'approved';
+            payout.statusHistory.push({
+                status: 'approved',
+                changedBy: req.user._id,
+                notes: `Error en pago automático: ${transferError.message}`
+            });
+            await payout.save();
+
+            console.error('[AdminPayouts] Error en transferencia:', transferError);
+
+            return res.status(500).json({
+                success: false,
+                error: transferError.message,
+                requiresManual: true,
+                message: 'Error en pago automático. Use pago manual.',
+                paymentInfo: {
+                    method: paymentInfo.method,
+                    details: paymentInfo[paymentInfo.method === 'bank_transfer' ? 'bankTransfer' : paymentInfo.method]
+                }
+            });
+        }
+    } catch (error) {
+        console.error('[AdminPayouts] Error execute:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
+/**
+ * GET /api/admin/payouts/:id/payment-info
+ * Obtener información de pago del profesor para pago manual
+ */
+router.get('/:id/payment-info', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const payout = await TeacherPayout.findById(req.params.id)
+            .populate('teacherId', 'name email teacherData');
+        
+        if (!payout) {
+            return res.status(404).json({ success: false, error: 'Payout no encontrado' });
+        }
+
+        const teacher = payout.teacherId;
+        const paymentInfo = teacher?.teacherData?.paymentInfo || {};
+
+        res.json({
+            success: true,
+            payout: {
+                id: payout._id,
+                amount: payout.finalPayoutUSD,
+                amountFormatted: `$${(payout.finalPayoutUSD / 100).toFixed(2)} USD`,
+                period: `${payout.periodStart.toLocaleDateString('es-CL')} - ${payout.periodEnd.toLocaleDateString('es-CL')}`,
+                classCount: payout.classCount,
+                status: payout.status
+            },
+            teacher: {
+                name: teacher?.name,
+                email: teacher?.email
+            },
+            paymentInfo: {
+                country: paymentInfo.country || 'No configurado',
+                method: paymentInfo.method || 'No configurado',
+                mercadopago: paymentInfo.mercadopago || {},
+                bankTransfer: paymentInfo.bankTransfer || {},
+                paypal: paymentInfo.paypal || {},
+                wise: paymentInfo.wise || {},
+                taxId: paymentInfo.taxId,
+                taxIdType: paymentInfo.taxIdType,
+                isVerified: paymentInfo.isVerified
+            }
+        });
+    } catch (error) {
+        console.error('[AdminPayouts] Error payment-info:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
+/**
+ * POST /api/admin/payouts/execute-batch
+ * Ejecutar múltiples payouts aprobados
+ */
+router.post('/execute-batch', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { payoutIds } = req.body;
+
+        if (!payoutIds || !Array.isArray(payoutIds) || payoutIds.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Se requiere array de IDs de payouts' 
+            });
+        }
+
+        const MPTransferService = require('../services/MercadoPagoTransferService');
+        const results = {
+            successful: [],
+            failed: [],
+            requiresManual: []
+        };
+
+        for (const payoutId of payoutIds) {
+            try {
+                const payout = await TeacherPayout.findById(payoutId)
+                    .populate('teacherId', 'name email teacherData');
+
+                if (!payout || payout.status !== 'approved') {
+                    results.failed.push({
+                        payoutId,
+                        error: 'Payout no encontrado o no está aprobado'
+                    });
+                    continue;
+                }
+
+                const teacher = payout.teacherId;
+                const paymentInfo = teacher?.teacherData?.paymentInfo;
+
+                if (!paymentInfo?.method) {
+                    results.requiresManual.push({
+                        payoutId,
+                        teacherName: teacher?.name,
+                        amount: payout.finalPayoutUSD,
+                        reason: 'Sin método de pago configurado'
+                    });
+                    continue;
+                }
+
+                // Intentar pago automático
+                const result = await MPTransferService.executePayoutToTeacher(payout, teacher);
+
+                if (result.success) {
+                    await payout.markPaid(result.transferId, 'mercadopago-auto');
+                    results.successful.push({
+                        payoutId,
+                        teacherName: teacher.name,
+                        amount: result.amount,
+                        transferId: result.transferId
+                    });
+                } else if (result.requiresManual) {
+                    results.requiresManual.push({
+                        payoutId,
+                        teacherName: teacher.name,
+                        amount: payout.finalPayoutUSD,
+                        method: result.method,
+                        reason: result.message
+                    });
+                }
+            } catch (err) {
+                results.failed.push({
+                    payoutId,
+                    error: err.message
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            summary: {
+                total: payoutIds.length,
+                successful: results.successful.length,
+                failed: results.failed.length,
+                requiresManual: results.requiresManual.length
+            },
+            results
+        });
+    } catch (error) {
+        console.error('[AdminPayouts] Error execute-batch:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
+/**
  * POST /api/admin/payouts/:id/adjustment
  * Agregar ajuste al payout
  */
