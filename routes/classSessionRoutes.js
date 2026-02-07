@@ -621,7 +621,7 @@ router.get('/teacher-earnings', authMiddleware, async (req, res) => {
  * GET /api/class-sessions/my-payouts
  * Obtener payouts del profesor con detalle de documentos
  */
-router.get('/my-payouts', protect, async (req, res) => {
+router.get('/my-payouts', authMiddleware, async (req, res) => {
     try {
         const teacherId = req.user._id;
         
@@ -656,7 +656,7 @@ router.get('/my-payouts', protect, async (req, res) => {
  * POST /api/class-sessions/payout/:id/submit-invoice
  * Profesor envía datos de su documento tributario
  */
-router.post('/payout/:id/submit-invoice', protect, async (req, res) => {
+router.post('/payout/:id/submit-invoice', authMiddleware, async (req, res) => {
     try {
         const { type, number, issueDate, amount, currency, notes } = req.body;
         
