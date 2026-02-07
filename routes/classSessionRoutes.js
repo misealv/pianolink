@@ -524,4 +524,96 @@ router.post('/:id/resolve-dispute', authMiddleware, async (req, res) => {
     }
 });
 
+/**
+ * GET /api/class-sessions/teacher-earnings
+ * Resumen de ganancias del profesor
+ */
+router.get('/teacher-earnings', authMiddleware, async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({ success: false, error: 'Solo profesores' });
+        }
+
+        const teacherId = req.user._id;
+
+        // Obtener todas las sesiones del profesor
+        const [
+            pendingValidation,
+            confirmedNotPaid,
+            paidSessions,
+            allPayouts
+        ] = await Promise.all([
+            // Clases pendientes de validación (no cobradas aún)
+            ClassSession.find({
+                teacherId,
+                status: 'pending-validation'
+            }),
+            // Clases confirmadas pero pendientes de pago
+            ClassSession.find({
+                teacherId,
+                status: { $in: ['completed', 'student-noshow'] },
+                payoutStatus: { $in: ['pending', 'included-in-batch'] }
+            }),
+            // Clases ya pagadas
+            ClassSession.find({
+                teacherId,
+                payoutStatus: 'paid'
+            }),
+            // Todos los payouts del profesor
+            TeacherPayout.find({ teacherId }).sort({ periodEnd: -1 }).limit(12)
+        ]);
+
+        // Calcular totales (en centavos)
+        const pendingValidationAmount = pendingValidation.reduce((sum, s) => sum + (s.teacherPayoutUSD || 0), 0);
+        const escrowAmount = confirmedNotPaid.reduce((sum, s) => sum + (s.teacherPayoutUSD || 0), 0);
+        const totalPaidAmount = paidSessions.reduce((sum, s) => sum + (s.teacherPayoutUSD || 0), 0);
+
+        // Último payout
+        const lastPayout = allPayouts.find(p => p.status === 'paid');
+
+        // Próximo payout (pendiente o en revisión)
+        const nextPayout = allPayouts.find(p => ['pending-review', 'approved'].includes(p.status));
+
+        res.json({
+            success: true,
+            earnings: {
+                // Montos en centavos USD
+                pendingValidation: pendingValidationAmount,
+                escrow: escrowAmount,
+                totalPaid: totalPaidAmount,
+                // Totales
+                totalEarned: pendingValidationAmount + escrowAmount + totalPaidAmount,
+                // Contadores
+                classesPendingValidation: pendingValidation.length,
+                classesInEscrow: confirmedNotPaid.length,
+                classesPaid: paidSessions.length,
+                // Payouts
+                lastPayout: lastPayout ? {
+                    amount: lastPayout.netPayoutUSD,
+                    paidAt: lastPayout.paidAt,
+                    period: `${lastPayout.periodStart?.toLocaleDateString('es-CL')} - ${lastPayout.periodEnd?.toLocaleDateString('es-CL')}`
+                } : null,
+                nextPayout: nextPayout ? {
+                    amount: nextPayout.netPayoutUSD,
+                    status: nextPayout.status,
+                    classCount: nextPayout.sessionIds?.length || 0
+                } : null,
+                // Historial de payouts
+                payoutHistory: allPayouts.map(p => ({
+                    _id: p._id,
+                    amount: p.netPayoutUSD,
+                    status: p.status,
+                    periodStart: p.periodStart,
+                    periodEnd: p.periodEnd,
+                    paidAt: p.paidAt,
+                    classCount: p.sessionIds?.length || 0
+                }))
+            }
+        });
+    } catch (error) {
+        console.error('[ClassSessions] Error obteniendo earnings:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
 module.exports = router;

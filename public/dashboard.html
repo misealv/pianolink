@@ -560,6 +560,29 @@
             <div id="founderBadge" class="gold-badge">★ PROFESOR FUNDADOR</div>
         </div>
 
+        <!-- 💰 MIS GANANCIAS -->
+        <div id="earningsCard" style="background: linear-gradient(135deg, #1e2e1e 0%, #2d442d 100%); border-radius: 10px; padding: 14px; border: 1px solid #3d5c3d; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="color: #4ade80; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">💰 Mis Ganancias</div>
+                <button onclick="toggleEarningsSection()" style="background: rgba(74, 222, 128, 0.2); border: none; color: #4ade80; padding: 4px 8px; border-radius: 4px; font-size: 9px; cursor: pointer;">
+                    Ver detalle
+                </button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 8px; text-align: center;">
+                    <div id="earningsEscrow" style="color: #fbbf24; font-size: 18px; font-weight: 800;">$0</div>
+                    <div style="color: #888; font-size: 9px;">En escrow</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 8px; text-align: center;">
+                    <div id="earningsPaid" style="color: #4ade80; font-size: 18px; font-weight: 800;">$0</div>
+                    <div style="color: #888; font-size: 9px;">Total pagado</div>
+                </div>
+            </div>
+            <div id="earningsPending" style="margin-top: 8px; text-align: center; color: #888; font-size: 10px;">
+                <span id="pendingValidationCount">0</span> clases por validar
+            </div>
+        </div>
+
         <!-- Banner de Modo Prueba -->
         <div id="testModeBanner" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #60a5fa;">
             <div style="color: white; font-size: 11px; font-weight: 700; margin-bottom: 4px;">🧪 MODO PRUEBA</div>
@@ -1871,6 +1894,9 @@ El sistema está en modo TEST.`;
         
         // Cargar conteo de clases pendientes de validar
         loadValidationsCount();
+        
+        // Cargar ganancias del profesor
+        loadTeacherEarnings();
     });
     
     // ==================== TARIFAS Y PAQUETES ====================
@@ -2499,6 +2525,176 @@ El sistema está en modo TEST.`;
         } catch (err) {
             console.error('Error cargando conteo de validaciones:', err);
         }
+    }
+
+    // ============================================
+    // GANANCIAS DEL PROFESOR
+    // ============================================
+    
+    let teacherEarnings = null;
+
+    async function loadTeacherEarnings() {
+        const token = localStorage.getItem('pianoToken');
+        try {
+            const res = await fetch('/api/class-sessions/teacher-earnings', { 
+                headers: { 'Authorization': `Bearer ${token}` } 
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                teacherEarnings = data.earnings;
+                updateEarningsDisplay();
+            }
+        } catch (err) {
+            console.error('Error cargando ganancias:', err);
+        }
+    }
+
+    function updateEarningsDisplay() {
+        if (!teacherEarnings) return;
+        
+        // Convertir de centavos a dólares
+        const escrow = (teacherEarnings.escrow / 100).toFixed(0);
+        const paid = (teacherEarnings.totalPaid / 100).toFixed(0);
+        const pending = teacherEarnings.classesPendingValidation;
+        
+        document.getElementById('earningsEscrow').textContent = `$${escrow}`;
+        document.getElementById('earningsPaid').textContent = `$${paid}`;
+        document.getElementById('pendingValidationCount').textContent = pending;
+    }
+
+    function toggleEarningsSection() {
+        const section = document.getElementById('earningsSection');
+        const validationsSection = document.getElementById('validationsSection');
+        const packagesSection = document.getElementById('packagesSection');
+        
+        // Ocultar otras secciones
+        if (validationsSection) validationsSection.style.display = 'none';
+        if (packagesSection) packagesSection.style.display = 'none';
+        
+        if (!section) {
+            // Crear la sección si no existe
+            createEarningsSection();
+        } else {
+            const isVisible = section.style.display !== 'none';
+            section.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    }
+
+    function createEarningsSection() {
+        if (!teacherEarnings) {
+            alert('Cargando datos...');
+            return;
+        }
+        
+        const e = teacherEarnings;
+        const main = document.querySelector('.main');
+        
+        // Crear sección si no existe
+        let section = document.getElementById('earningsSection');
+        if (!section) {
+            section = document.createElement('div');
+            section.id = 'earningsSection';
+            section.style.cssText = 'margin-top: 30px;';
+            main.appendChild(section);
+        }
+        
+        section.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h2 style="margin: 0; color: white; font-size: 20px;">💰 Mis Ganancias</h2>
+                    <p style="margin: 5px 0 0; color: #888; font-size: 13px;">Resumen de tus ingresos por clases</p>
+                </div>
+            </div>
+
+            <!-- Resumen de Ganancias -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px;">
+                <div style="background: #1e1e1e; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #333;">
+                    <div style="color: #888; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">Por Validar</div>
+                    <div style="color: #f59e0b; font-size: 28px; font-weight: 800;">$${(e.pendingValidation/100).toFixed(0)}</div>
+                    <div style="color: #666; font-size: 11px; margin-top: 4px;">${e.classesPendingValidation} clases</div>
+                </div>
+                <div style="background: #1e1e1e; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #333;">
+                    <div style="color: #888; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">En Escrow</div>
+                    <div style="color: #fbbf24; font-size: 28px; font-weight: 800;">$${(e.escrow/100).toFixed(0)}</div>
+                    <div style="color: #666; font-size: 11px; margin-top: 4px;">${e.classesInEscrow} clases confirmadas</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #1e2e1e 0%, #2d442d 100%); border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #3d5c3d;">
+                    <div style="color: #4ade80; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">Total Pagado</div>
+                    <div style="color: #4ade80; font-size: 28px; font-weight: 800;">$${(e.totalPaid/100).toFixed(0)}</div>
+                    <div style="color: #666; font-size: 11px; margin-top: 4px;">${e.classesPaid} clases</div>
+                </div>
+                <div style="background: #1e1e1e; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #333;">
+                    <div style="color: #888; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">Total Ganado</div>
+                    <div style="color: white; font-size: 28px; font-weight: 800;">$${(e.totalEarned/100).toFixed(0)}</div>
+                    <div style="color: #666; font-size: 11px; margin-top: 4px;">Todo el historial</div>
+                </div>
+            </div>
+
+            <!-- Info sobre flujo de pagos -->
+            <div style="background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%); border: 1px solid #3d3d5c; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="font-size: 24px;">📋</div>
+                    <div>
+                        <div style="color: white; font-weight: 600;">¿Cómo funcionan los pagos?</div>
+                        <div style="color: #888; font-size: 12px; line-height: 1.6;">
+                            1. Marcas la clase como completada → 2. El estudiante confirma (o auto-confirma en 48h) → 
+                            3. El dinero pasa a "escrow" → 4. El día 1 de cada mes se genera tu pago → 5. Admin aprueba y recibes el 80%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            ${e.nextPayout ? `
+                <div style="background: linear-gradient(135deg, #1e2e1e 0%, #2d442d 100%); border: 1px solid #4ade80; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="color: #4ade80; font-size: 12px; font-weight: 600;">🎉 Próximo Pago</div>
+                            <div style="color: white; font-size: 24px; font-weight: 800; margin-top: 4px;">$${(e.nextPayout.amount/100).toFixed(2)} USD</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="color: #888; font-size: 11px;">${e.nextPayout.classCount} clases</div>
+                            <div style="color: #888; font-size: 11px;">Estado: ${e.nextPayout.status === 'pending-review' ? 'En revisión' : 'Aprobado'}</div>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+
+            <!-- Historial de Payouts -->
+            <div style="background: #1e1e1e; border-radius: 12px; padding: 20px; border: 1px solid #333;">
+                <h3 style="color: white; font-size: 16px; margin: 0 0 15px;">Historial de Pagos</h3>
+                ${e.payoutHistory && e.payoutHistory.length > 0 ? `
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        ${e.payoutHistory.map(p => `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #252525; border-radius: 8px;">
+                                <div>
+                                    <div style="color: white; font-weight: 500;">$${(p.amount/100).toFixed(2)} USD</div>
+                                    <div style="color: #888; font-size: 11px;">${p.classCount} clases</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="color: ${p.status === 'paid' ? '#4ade80' : '#f59e0b'}; font-size: 12px; font-weight: 500;">
+                                        ${p.status === 'paid' ? '✅ Pagado' : p.status === 'approved' ? '⏳ Aprobado' : '📋 En revisión'}
+                                    </div>
+                                    ${p.paidAt ? `<div style="color: #666; font-size: 10px;">${new Date(p.paidAt).toLocaleDateString('es-CL')}</div>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div style="text-align: center; padding: 30px; color: #666;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">📭</div>
+                        <div>Aún no tienes pagos registrados</div>
+                        <div style="font-size: 12px; margin-top: 5px;">Los pagos se generan el día 1 de cada mes</div>
+                    </div>
+                `}
+            </div>
+        `;
+        
+        section.style.display = 'block';
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     
     // Cargar paquetes del profesor
