@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const TimeSlot = require('../models/TimeSlot');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
+const ClassSession = require('../models/ClassSession');
+const StudentSubscription = require('../models/StudentSubscription');
 
 /**
  * Servicio para gestionar reservas de clases.
@@ -279,6 +281,7 @@ class BookingService {
     
     /**
      * Marca una clase como completada.
+     * Si hay una suscripción activa, crea ClassSession para validación y pago.
      */
     static async completeClass(bookingId, teacherId, notes = '', topics = []) {
         const booking = await Booking.findOne({
@@ -300,6 +303,60 @@ class BookingService {
         await TimeSlot.findByIdAndUpdate(booking.slotId, {
             status: 'completed'
         });
+
+        // === CREAR CLASS SESSION SI HAY SUSCRIPCIÓN ===
+        try {
+            const subscription = await StudentSubscription.findOne({
+                studentId: booking.studentId,
+                teacherId: booking.teacherId,
+                status: { $in: ['active', 'paused', 'exhausted'] }
+            });
+
+            if (subscription) {
+                // Verificar que no exista ya una sesión
+                const existingSession = await ClassSession.findOne({ bookingId: booking._id });
+                
+                if (!existingSession) {
+                    // Calcular montos (80% profesor, 20% plataforma)
+                    const pricePerClass = Math.round(subscription.totalPaidUSD / subscription.classesTotal);
+                    const platformFee = Math.round(pricePerClass * 0.20);
+                    const teacherPayout = pricePerClass - platformFee;
+
+                    const session = new ClassSession({
+                        subscriptionId: subscription._id,
+                        bookingId: booking._id,
+                        studentId: booking.studentId,
+                        teacherId: booking.teacherId,
+                        
+                        scheduledAt: booking.scheduledStart,
+                        startedAt: booking.actualStart,
+                        endedAt: new Date(),
+                        durationMinutes: booking.actualDuration || booking.duration,
+                        
+                        category: subscription.category,
+                        status: 'pending-validation',
+                        
+                        teacherMarkedComplete: true,
+                        teacherMarkedAt: new Date(),
+                        teacherNotes: notes,
+                        
+                        // Auto-confirmar en 48h si estudiante no responde
+                        autoConfirmAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+                        disputeWindowEndsAt: new Date(Date.now() + 96 * 60 * 60 * 1000),
+                        
+                        pricePerClassUSD: pricePerClass,
+                        teacherPayoutUSD: teacherPayout,
+                        platformFeeUSD: platformFee
+                    });
+
+                    await session.save();
+                    console.log(`[BookingService] ClassSession creada: ${session._id} para booking ${booking._id}`);
+                }
+            }
+        } catch (err) {
+            // No fallar la operación principal si la creación de session falla
+            console.error('[BookingService] Error creando ClassSession:', err.message);
+        }
         
         return booking;
     }

@@ -179,6 +179,11 @@ app.use('/api/diagnostic', require('./routes/diagnosticRoutes')); // Auditoría 
 app.use('/api/teacher-profile', require('./routes/teacherProfile')); // Perfil público y tarifas
 app.use('/api/class-purchase', require('./routes/classPurchase')); // Compra de clases
 
+// === SISTEMA DE SUSCRIPCIONES ESTUDIANTE-PROFESOR ===
+app.use('/api/teacher-packages', require('./routes/teacherPackageRoutes')); // Paquetes de clases
+app.use('/api/subscriptions', require('./routes/subscriptionRoutes')); // Suscripciones de estudiantes
+app.use('/api/class-sessions', require('./routes/classSessionRoutes')); // Sesiones y validación
+
 // Ruta para página de éxito del Welcome Kit (sin .html)
 app.get('/welcome-kit/success', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'welcome-kit', 'success.html'));
