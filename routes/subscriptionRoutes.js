@@ -19,7 +19,7 @@ const StudentSubscription = require('../models/StudentSubscription');
 const TeacherPackage = require('../models/TeacherPackage');
 const ClassSession = require('../models/ClassSession');
 const User = require('../models/User');
-const { authMiddleware } = require('../middleware/auth');
+const { protect: authMiddleware } = require('../middleware/authMiddleware');
 
 // Comisión de PianoLink (20%)
 const PLATFORM_FEE_PERCENT = 20;

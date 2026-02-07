@@ -19,7 +19,7 @@ const ClassSession = require('../models/ClassSession');
 const StudentSubscription = require('../models/StudentSubscription');
 const TeacherPayout = require('../models/TeacherPayout');
 const Booking = require('../models/Booking');
-const { authMiddleware } = require('../middleware/auth');
+const { protect: authMiddleware } = require('../middleware/authMiddleware');
 
 // Ventana de disputa en horas
 const DISPUTE_WINDOW_HOURS = 48;

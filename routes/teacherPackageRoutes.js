@@ -17,7 +17,7 @@ const mongoose = require('mongoose');
 const TeacherPackage = require('../models/TeacherPackage');
 const StudentSubscription = require('../models/StudentSubscription');
 const User = require('../models/User');
-const { authMiddleware } = require('../middleware/auth');
+const { protect: authMiddleware } = require('../middleware/authMiddleware');
 
 // Categorías disponibles con nombres en español
 const CATEGORIES = {
