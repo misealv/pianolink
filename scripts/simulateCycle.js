@@ -302,23 +302,28 @@ async function step5_conductClasses(subscription, student, teacher) {
         log('📆', 'AGENDA', `Clase agendada: ${classDate.toLocaleDateString()}`, 'blue');
         await sleep(200);
         
+        // Crear un booking ID falso para satisfacer el modelo
+        const fakeBookingId = new mongoose.Types.ObjectId();
+        
         const session = new ClassSession({
             subscriptionId: subscription._id,
-            bookingId: null,
+            bookingId: fakeBookingId,
             studentId: student._id,
             teacherId: teacher._id,
             scheduledAt: classDate,
-            completedAt: classDate,
+            startedAt: classDate,
+            endedAt: new Date(classDate.getTime() + 45 * 60 * 1000),
             durationMinutes: 45,
             status: 'completed',
             teacherMarkedComplete: true,
             teacherMarkedAt: classDate,
             studentConfirmed: true,
-            studentConfirmedAt: new Date(classDate.getTime() + 3600000), // 1 hora después
+            studentConfirmedAt: new Date(classDate.getTime() + 3600000),
+            validatedAt: new Date(classDate.getTime() + 172800000),
+            validatedBy: 'student',
             pricePerClassUSD: pricePerClass,
             teacherPayoutUSD: teacherPayout,
             platformFeeUSD: platformFee,
-            validatedAt: new Date(classDate.getTime() + 172800000), // 48h después
             notes: `Clase ${i} de simulación - Tema: Técnica básica de piano`
         });
         
