@@ -34,8 +34,8 @@ router.get('/my', authMiddleware, async (req, res) => {
             studentId: req.user._id,
             status: { $nin: ['cancelled'] }
         })
-        .populate('teacherId', 'name email teacherData.profile')
-        .populate('packageId', 'name category classCount priceUSD')
+        .populate('teacherId', 'name brandName email slug branding teacherData.profile')
+        .populate('packageId', 'name category classCount priceUSD validityDays')
         .sort({ updatedAt: -1 });
 
         // Agregar info de próxima clase para cada suscripción
@@ -47,7 +47,25 @@ router.get('/my', authMiddleware, async (req, res) => {
             }).sort({ scheduledAt: 1 });
 
             return {
-                ...sub.toObject(),
+                _id: sub._id,
+                status: sub.status,
+                classesRemaining: sub.classesRemaining,
+                classesUsed: sub.classesUsed,
+                expiresAt: sub.expiresAt,
+                autoRenew: sub.autoRenew,
+                escrowBalanceUSD: sub.escrowBalanceUSD,
+                compensationClassesOwed: sub.compensationClassesOwed,
+                teacher: sub.teacherId ? {
+                    _id: sub.teacherId._id,
+                    name: sub.teacherId.name,
+                    brandName: sub.teacherId.brandName || sub.teacherId.name,
+                    slug: sub.teacherId.slug
+                } : null,
+                package: sub.packageId ? {
+                    name: sub.packageId.name,
+                    category: sub.packageId.category,
+                    classCount: sub.packageId.classCount
+                } : null,
                 nextClass: nextClass ? {
                     scheduledAt: nextClass.scheduledAt,
                     status: nextClass.status
@@ -55,13 +73,11 @@ router.get('/my', authMiddleware, async (req, res) => {
             };
         }));
 
-        res.json({
-            success: true,
-            subscriptions: enriched
-        });
+        // Retornar array directo para compatibilidad con cliente
+        res.json(enriched);
     } catch (error) {
         console.error('[Subscriptions] Error obteniendo suscripciones:', error);
-        res.status(500).json({ success: false, error: 'Error interno' });
+        res.status(500).json([]);
     }
 });
 
@@ -108,15 +124,15 @@ router.get('/teacher/:teacherId', authMiddleware, async (req, res) => {
 
 /**
  * POST /api/subscriptions/purchase
- * Crear suscripción comprando un paquete
- * Body: { packageId, paymentProvider, externalPaymentId }
+ * Crear preferencia de MercadoPago para comprar un paquete
+ * Body: { packageId, autoRenew }
  */
 router.post('/purchase', authMiddleware, async (req, res) => {
     try {
-        const { packageId, paymentProvider, externalPaymentId, isTrialConversion, welcomeKitId } = req.body;
+        const { packageId, autoRenew } = req.body;
 
         // Validar paquete
-        const package_ = await TeacherPackage.findById(packageId);
+        const package_ = await TeacherPackage.findById(packageId).populate('teacherId', 'name brandName');
         if (!package_ || !package_.isActive) {
             return res.status(404).json({ 
                 success: false, 
@@ -124,22 +140,128 @@ router.post('/purchase', authMiddleware, async (req, res) => {
             });
         }
 
-        // Verificar si ya tiene suscripción activa con este profesor en esta categoría
+        // Obtener datos del estudiante
+        const student = req.user;
+        
+        // Configurar MercadoPago
+        const accessToken = process.env.MP_ACCESS_TOKEN;
+        if (!accessToken) {
+            return res.status(500).json({ 
+                success: false, 
+                error: 'Sistema de pagos no disponible' 
+            });
+        }
+
+        // Convertir precio USD a CLP (Chile)
+        const USD_TO_CLP = 950;
+        const priceInCLP = Math.round(package_.priceUSD * USD_TO_CLP);
+        
+        const teacherName = package_.teacherId?.brandName || package_.teacherId?.name || 'Profesor';
+        const externalRef = `pkg_${package_._id}_${student._id}_${Date.now()}`;
+        const baseUrl = process.env.FRONTEND_URL || 'https://www.pianolink.net';
+
+        // Separar nombre
+        const nameParts = student.name.trim().split(/\s+/);
+        const firstName = nameParts[0] || student.name;
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : student.name;
+
+        // Crear preferencia de MercadoPago
+        const preference = {
+            items: [{
+                id: `PKG-${package_._id}`,
+                title: `${package_.classCount} Clases - ${package_.name}`,
+                description: `Paquete con ${teacherName}. Válido por ${package_.validityDays} días.`,
+                category_id: 'services',
+                quantity: 1,
+                currency_id: 'CLP',
+                unit_price: priceInCLP
+            }],
+            payer: {
+                email: student.email,
+                first_name: firstName,
+                last_name: lastName
+            },
+            back_urls: {
+                success: `${baseUrl}/cliente.html?package_success=1&pkg=${package_._id}`,
+                failure: `${baseUrl}/cliente.html?package_error=1`,
+                pending: `${baseUrl}/cliente.html?package_pending=1`
+            },
+            auto_return: 'approved',
+            external_reference: externalRef,
+            notification_url: `${baseUrl}/api/webhooks/mercadopago-package`,
+            statement_descriptor: 'PIANOLINK',
+            metadata: {
+                type: 'package_purchase',
+                packageId: package_._id.toString(),
+                studentId: student._id.toString(),
+                teacherId: package_.teacherId?._id?.toString(),
+                classCount: package_.classCount,
+                priceUSD: package_.priceUSD,
+                autoRenew: autoRenew || false
+            }
+        };
+
+        const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(preference)
+        });
+
+        const data = await response.json();
+
+        if (data.id) {
+            console.log('[Package Purchase] Preferencia MP creada:', data.id);
+            
+            res.json({
+                success: true,
+                paymentUrl: data.init_point,
+                preferenceId: data.id
+            });
+        } else {
+            console.error('[Package Purchase] Error MP:', data);
+            res.status(500).json({ 
+                success: false, 
+                error: data.message || 'Error creando preferencia de pago' 
+            });
+        }
+
+    } catch (error) {
+        console.error('[Subscriptions] Error en compra:', error);
+        res.status(500).json({ success: false, error: 'Error procesando compra' });
+    }
+});
+
+/**
+ * POST /api/subscriptions/confirm-purchase
+ * Confirmar compra después de pago exitoso (llamado por webhook o manualmente)
+ */
+router.post('/confirm-purchase', async (req, res) => {
+    try {
+        const { packageId, studentId, paymentId, autoRenew } = req.body;
+
+        const package_ = await TeacherPackage.findById(packageId);
+        if (!package_) {
+            return res.status(404).json({ success: false, error: 'Paquete no encontrado' });
+        }
+
+        // Verificar si ya tiene suscripción activa
         const existingSub = await StudentSubscription.findOne({
-            studentId: req.user._id,
+            studentId,
             teacherId: package_.teacherId,
             category: package_.category,
             status: { $in: ['active', 'paused'] }
         });
 
         if (existingSub) {
-            // Agregar clases a suscripción existente (renovación)
+            // Renovar suscripción existente
             existingSub.classesRemaining += package_.classCount;
             existingSub.classesTotal += package_.classCount;
             existingSub.totalPaidUSD += package_.priceUSD;
             existingSub.escrowBalanceUSD += package_.priceUSD;
             
-            // Extender expiración
             const newExpiry = new Date(Math.max(
                 existingSub.expiresAt.getTime(),
                 Date.now()
@@ -152,82 +274,47 @@ router.post('/purchase', authMiddleware, async (req, res) => {
             
             existingSub.statusHistory.push({
                 status: 'active',
-                reason: `Renovación: +${package_.classCount} clases`
+                reason: `Renovación: +${package_.classCount} clases (pago: ${paymentId})`
             });
 
             await existingSub.save();
-
-            // Actualizar stats del paquete
             package_.stats.totalSold += 1;
             package_.stats.revenue += package_.priceUSD;
             await package_.save();
 
-            return res.json({
-                success: true,
-                subscription: existingSub,
-                isRenewal: true,
-                message: `Se agregaron ${package_.classCount} clases a tu suscripción`
-            });
+            return res.json({ success: true, subscription: existingSub, isRenewal: true });
         }
 
         // Crear nueva suscripción
         const expiresAt = new Date(Date.now() + (package_.validityDays * 24 * 60 * 60 * 1000));
-        const nextBilling = package_.isRecurring 
-            ? new Date(Date.now() + (package_.billingCycleDays * 24 * 60 * 60 * 1000))
-            : null;
 
         const subscription = new StudentSubscription({
-            studentId: req.user._id,
+            studentId,
             teacherId: package_.teacherId,
             packageId: package_._id,
             category: package_.category,
-            
             classesTotal: package_.classCount,
             classesRemaining: package_.classCount,
-            
             totalPaidUSD: package_.priceUSD,
             escrowBalanceUSD: package_.priceUSD,
-            
-            billingCycleDays: package_.billingCycleDays,
-            nextBillingDate: nextBilling,
-            autoRenew: package_.isRecurring,
-            paymentProvider: paymentProvider || 'mercadopago',
-            externalSubscriptionId: externalPaymentId || '',
-            
+            autoRenew: autoRenew || false,
+            paymentProvider: 'mercadopago',
+            externalSubscriptionId: paymentId || '',
             status: 'active',
             expiresAt,
-            
-            isTrialConversion: !!isTrialConversion,
-            welcomeKitId: welcomeKitId || null,
-            
-            statusHistory: [{
-                status: 'active',
-                reason: `Compra inicial: ${package_.name}`
-            }]
+            statusHistory: [{ status: 'active', reason: `Compra: ${package_.name}` }]
         });
 
         await subscription.save();
-
-        // Actualizar stats del paquete
         package_.stats.totalSold += 1;
         package_.stats.activeSubscriptions += 1;
         package_.stats.revenue += package_.priceUSD;
         await package_.save();
 
-        // Populate para respuesta
-        await subscription.populate('teacherId', 'name email');
-        await subscription.populate('packageId', 'name category');
-
-        res.json({
-            success: true,
-            subscription,
-            isRenewal: false,
-            message: `Suscripción creada con ${package_.classCount} clases`
-        });
-
+        res.json({ success: true, subscription, isRenewal: false });
     } catch (error) {
-        console.error('[Subscriptions] Error en compra:', error);
-        res.status(500).json({ success: false, error: 'Error procesando compra' });
+        console.error('[Subscriptions] Error confirmando compra:', error);
+        res.status(500).json({ success: false, error: 'Error procesando' });
     }
 });
 

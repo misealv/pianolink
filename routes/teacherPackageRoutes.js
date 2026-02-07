@@ -122,6 +122,46 @@ router.get('/teacher/:teacherId', async (req, res) => {
 });
 
 /**
+ * GET /api/teacher-packages/available
+ * Obtener todos los paquetes públicos de todos los profesores (para marketplace)
+ */
+router.get('/available', async (req, res) => {
+    try {
+        const packages = await TeacherPackage.find({
+            isActive: true
+        })
+        .populate('teacherId', 'name brandName slug branding teacherData')
+        .sort({ isFeatured: -1, priceUSD: 1, createdAt: -1 });
+
+        // Transformar para incluir datos del profesor
+        const result = packages.map(pkg => ({
+            _id: pkg._id,
+            name: pkg.name,
+            description: pkg.description,
+            category: pkg.category,
+            classCount: pkg.classCount,
+            classDurationMinutes: pkg.classDurationMinutes,
+            priceUSD: pkg.priceUSD,
+            validityDays: pkg.validityDays,
+            isRecurring: pkg.isRecurring,
+            isFeatured: pkg.isFeatured,
+            teacher: pkg.teacherId ? {
+                _id: pkg.teacherId._id,
+                name: pkg.teacherId.name,
+                brandName: pkg.teacherId.brandName || pkg.teacherId.name,
+                slug: pkg.teacherId.slug,
+                specialties: pkg.teacherId.teacherData?.profile?.specialties || []
+            } : null
+        }));
+
+        res.json(result);
+    } catch (error) {
+        console.error('[TeacherPackages] Error available:', error);
+        res.status(500).json({ success: false, error: 'Error interno' });
+    }
+});
+
+/**
  * POST /api/teacher-packages
  * Crear nuevo paquete
  */
