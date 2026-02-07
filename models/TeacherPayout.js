@@ -108,13 +108,16 @@ const teacherPayoutSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: [
-            'calculating',      // Agregando sesiones
-            'pending-review',   // Listo para revisión admin
-            'approved',         // Aprobado, pendiente de pago
-            'processing',       // Pago en proceso
-            'paid',             // Pagado exitosamente
-            'failed',           // Error en el pago
-            'cancelled'         // Cancelado
+            'calculating',        // Agregando sesiones
+            'pending-review',     // Listo para revisión admin
+            'invoice_pending',    // Esperando documento del profesor
+            'invoice_verified',   // Documento verificado, listo para pago
+            'invoice_rejected',   // Documento rechazado
+            'approved',           // Aprobado, pendiente de pago
+            'processing',         // Pago en proceso
+            'paid',               // Pagado exitosamente
+            'failed',             // Error en el pago
+            'cancelled'           // Cancelado
         ],
         default: 'calculating',
         index: true
