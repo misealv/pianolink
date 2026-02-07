@@ -583,9 +583,9 @@ async function main() {
     
     try {
         // Conectar a MongoDB
-        const dbUri = process.env.MONGODB_URI || process.env.DB_URI;
+        const dbUri = process.env.MONGO_URI || process.env.MONGODB_URI || process.env.DB_URI;
         if (!dbUri) {
-            console.error('❌ Error: No se encontró MONGODB_URI o DB_URI');
+            console.error('❌ Error: No se encontró MONGO_URI, MONGODB_URI o DB_URI');
             process.exit(1);
         }
         
