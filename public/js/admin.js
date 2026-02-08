@@ -4035,7 +4035,7 @@ function openSendRecommendationsModal(orderId) {
     // Crear modal dinámico
     const modalHtml = `
         <div id="send-recommendations-modal" class="modal-overlay" style="display:flex;">
-            <div class="modal-content" style="max-width:600px; max-height:90vh; overflow-y:auto;">
+            <div class="modal-content" style="max-width:700px; max-height:90vh; overflow-y:auto;">
                 <div class="modal-header">
                     <h3>📧 Enviar Recomendaciones de Equipo</h3>
                     <button class="modal-close" onclick="closeSendRecommendationsModal()">×</button>
@@ -4053,7 +4053,7 @@ function openSendRecommendationsModal(orderId) {
                     
                     <div class="form-group" style="margin-bottom:15px;">
                         <label>🔌 Tipo de conexión</label>
-                        <select id="rec-connection-type" class="form-input">
+                        <select id="rec-connection-type" class="form-input" onchange="prefillRecommendationLinks()">
                             <option value="USB-B">USB-B (Yamaha, Roland, Casio)</option>
                             <option value="USB-C">USB-C (Teclados modernos)</option>
                             <option value="MIDI 5-pin">MIDI 5-pin (Clásico)</option>
@@ -4061,30 +4061,169 @@ function openSendRecommendationsModal(orderId) {
                         </select>
                     </div>
                     
-                    <div class="form-group" style="margin-bottom:15px;">
-                        <label>📝 Notas adicionales (opcional)</label>
-                        <textarea id="rec-notes" class="form-input" rows="3" placeholder="Consejos especiales para este cliente..."></textarea>
+                    <!-- Productos recomendados editables -->
+                    <div style="border:1px solid var(--border-color); border-radius:12px; padding:20px; margin-bottom:15px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h4 style="color:#d4af37; margin:0;">🛒 Productos recomendados</h4>
+                            <button type="button" class="btn" style="font-size:11px; padding:5px 10px; background:#333;" onclick="addRecommendationItem()">+ Agregar producto</button>
+                        </div>
+                        <div id="rec-products-list">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                        <button type="button" onclick="prefillRecommendationLinks()" style="background:none; border:1px dashed #555; color:#888; padding:8px; border-radius:6px; width:100%; cursor:pointer; font-size:12px; margin-top:8px;">
+                            🔄 Recargar productos por defecto según conexión
+                        </button>
                     </div>
                     
-                    <div style="background:rgba(212,175,55,0.1); padding:15px; border-radius:8px; margin-top:15px;">
-                        <div style="color:#d4af37; font-size:12px; margin-bottom:5px;">💡 El email incluirá automáticamente:</div>
-                        <ul style="color:#888; font-size:12px; margin:0; padding-left:20px;">
-                            <li>Cable recomendado según tipo de conexión</li>
-                            <li>Links de compra (Amazon, AliExpress, MercadoLibre)</li>
-                            <li>Pedal de sustain (si aplica)</li>
-                            <li>Instrucciones de próximos pasos</li>
-                        </ul>
+                    <div class="form-group" style="margin-bottom:15px;">
+                        <label>📝 Notas adicionales para el alumno (opcional)</label>
+                        <textarea id="rec-notes" class="form-input" rows="3" placeholder="Consejos especiales, observaciones de la entrevista..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="closeSendRecommendationsModal()">Cancelar</button>
-                    <button class="btn btn-primary" onclick="sendRecommendationsEmail('${orderId}')">📧 Enviar Email</button>
+                    <button class="btn btn-primary" id="btn-send-rec" onclick="sendRecommendationsEmail('${orderId}')">📧 Enviar Email de Recomendaciones</button>
                 </div>
             </div>
         </div>
     `;
     
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Pre-cargar productos por defecto
+    prefillRecommendationLinks();
+}
+
+// Productos por defecto según tipo de conexión
+const DEFAULT_RECOMMENDATIONS = {
+    'USB-B': [
+        { name: 'Cable USB-B a USB-A (2m)', description: 'Cable estándar para Yamaha, Roland, Casio', price: '$5-8 USD', priority: 'required', links: [
+            { store: 'Amazon', url: 'https://www.amazon.com/s?k=usb+b+cable+printer+2m' },
+            { store: 'AliExpress', url: 'https://www.aliexpress.com/w/wholesale-usb-b-cable-2m.html' },
+            { store: 'MercadoLibre', url: 'https://listado.mercadolibre.cl/cable-usb-tipo-b-impresora' }
+        ]}
+    ],
+    'USB-C': [
+        { name: 'Cable USB-C a USB-A (2m)', description: 'Para teclados modernos con puerto USB-C', price: '$6-10 USD', priority: 'required', links: [
+            { store: 'Amazon', url: 'https://www.amazon.com/s?k=usb+c+cable+2m' },
+            { store: 'AliExpress', url: 'https://www.aliexpress.com/w/wholesale-usb-c-cable-2m.html' },
+            { store: 'MercadoLibre', url: 'https://listado.mercadolibre.cl/cable-usb-c-2-metros' }
+        ]}
+    ],
+    'MIDI 5-pin': [
+        { name: 'Interfaz MIDI USB', description: 'Convierte MIDI de 5 pines a USB', price: '$10-20 USD', priority: 'required', links: [
+            { store: 'Amazon', url: 'https://www.amazon.com/s?k=midi+to+usb+interface' },
+            { store: 'AliExpress', url: 'https://www.aliexpress.com/w/wholesale-midi-usb-interface.html' },
+            { store: 'MercadoLibre', url: 'https://listado.mercadolibre.cl/interfaz-midi-usb' }
+        ]}
+    ],
+    'Bluetooth': [
+        { name: 'Adaptador Bluetooth MIDI', description: 'Si solo tiene Bluetooth, considera un cable USB como respaldo', price: '$15-25 USD', priority: 'optional', links: [
+            { store: 'Amazon', url: 'https://www.amazon.com/s?k=bluetooth+midi+adapter' }
+        ]}
+    ]
+};
+
+// Productos comunes para todos
+const COMMON_RECOMMENDATIONS = [
+    { name: 'Pedal de Sustain', description: 'Esencial para tocar piano. Cualquier pedal genérico funciona.', price: '$10-20 USD', priority: 'recommended', links: [
+        { store: 'Amazon', url: 'https://www.amazon.com/s?k=sustain+pedal+keyboard' },
+        { store: 'MercadoLibre', url: 'https://listado.mercadolibre.cl/pedal-sustain' }
+    ]},
+    { name: 'Audífonos con cable', description: 'Para escuchar al profesor sin eco. Cualquier audífono sirve.', price: 'Ya tienes probablemente', priority: 'recommended', links: [] }
+];
+
+/**
+ * Pre-llena la lista de productos según el tipo de conexión seleccionado
+ */
+function prefillRecommendationLinks() {
+    const connType = document.getElementById('rec-connection-type').value;
+    const container = document.getElementById('rec-products-list');
+    container.innerHTML = '';
+    
+    const products = [...(DEFAULT_RECOMMENDATIONS[connType] || []), ...COMMON_RECOMMENDATIONS];
+    products.forEach(p => addRecommendationItem(p));
+}
+
+/**
+ * Agrega un item editable de producto recomendado
+ */
+function addRecommendationItem(prefill = null) {
+    const container = document.getElementById('rec-products-list');
+    const idx = container.children.length;
+    
+    const linksHtml = (prefill?.links || []).map(l => `${l.store}|${l.url}`).join('\n');
+    const priorityOptions = ['required', 'recommended', 'optional'].map(p => 
+        `<option value="${p}" ${prefill?.priority === p ? 'selected' : ''}>${p === 'required' ? '🔴 Necesario' : p === 'recommended' ? '🟡 Recomendado' : '⚪ Opcional'}</option>`
+    ).join('');
+    
+    const itemHtml = `
+        <div class="rec-product-item" style="background:var(--bg-dark); border:1px solid var(--border-color); border-radius:8px; padding:15px; margin-bottom:12px; position:relative;">
+            <button type="button" onclick="this.closest('.rec-product-item').remove()" style="position:absolute; top:8px; right:8px; background:none; border:none; color:#666; cursor:pointer; font-size:16px;" title="Eliminar">×</button>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                <div>
+                    <label style="font-size:11px; color:#888; display:block; margin-bottom:3px;">Nombre del producto</label>
+                    <input type="text" class="rec-prod-name form-input" value="${prefill?.name || ''}" placeholder="Ej: Cable USB-B" style="font-size:13px;">
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#888; display:block; margin-bottom:3px;">Precio referencial</label>
+                    <input type="text" class="rec-prod-price form-input" value="${prefill?.price || ''}" placeholder="Ej: $5-10 USD" style="font-size:13px;">
+                </div>
+            </div>
+            
+            <div style="margin-bottom:10px;">
+                <label style="font-size:11px; color:#888; display:block; margin-bottom:3px;">Descripción</label>
+                <input type="text" class="rec-prod-desc form-input" value="${prefill?.description || ''}" placeholder="Descripción breve" style="font-size:13px;">
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                <div>
+                    <label style="font-size:11px; color:#888; display:block; margin-bottom:3px;">Prioridad</label>
+                    <select class="rec-prod-priority form-input" style="font-size:13px;">
+                        ${priorityOptions}
+                    </select>
+                </div>
+            </div>
+            
+            <div>
+                <label style="font-size:11px; color:#888; display:block; margin-bottom:3px;">Links de compra (uno por línea: Tienda|URL)</label>
+                <textarea class="rec-prod-links form-input" rows="2" placeholder="Amazon|https://amazon.com/..." style="font-size:12px; font-family:monospace;">${linksHtml}</textarea>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', itemHtml);
+}
+
+/**
+ * Recolecta los productos del modal y los convierte a la estructura que espera el backend
+ */
+function collectRecommendationProducts() {
+    const items = document.querySelectorAll('.rec-product-item');
+    const products = [];
+    
+    items.forEach(item => {
+        const name = item.querySelector('.rec-prod-name').value.trim();
+        if (!name) return; // Ignorar items sin nombre
+        
+        const linksText = item.querySelector('.rec-prod-links').value.trim();
+        const links = linksText.split('\n').filter(l => l.includes('|')).map(l => {
+            const [store, ...urlParts] = l.split('|');
+            return { store: store.trim(), url: urlParts.join('|').trim() };
+        });
+        
+        products.push({
+            name,
+            description: item.querySelector('.rec-prod-desc').value.trim(),
+            price: item.querySelector('.rec-prod-price').value.trim(),
+            priority: item.querySelector('.rec-prod-priority').value,
+            image: '🔌',
+            links
+        });
+    });
+    
+    return products;
 }
 
 function closeSendRecommendationsModal() {
@@ -4095,11 +4234,16 @@ async function sendRecommendationsEmail(orderId) {
     const keyboardBrand = document.getElementById('rec-keyboard-brand').value;
     const connectionType = document.getElementById('rec-connection-type').value;
     const notes = document.getElementById('rec-notes').value;
+    const recommendations = collectRecommendationProducts();
     
     if (!keyboardBrand) {
         showNotification('Por favor ingresa el modelo del teclado', 'error');
         return;
     }
+    
+    // Deshabilitar botón mientras envía
+    const btn = document.getElementById('btn-send-rec');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Enviando...'; }
     
     try {
         const res = await fetch(`/api/welcome-kit/v2/${orderId}/send-recommendations`, {
@@ -4111,7 +4255,8 @@ async function sendRecommendationsEmail(orderId) {
             body: JSON.stringify({
                 keyboardBrand,
                 connectionType,
-                notes
+                notes,
+                recommendations
             })
         });
         
@@ -4119,11 +4264,12 @@ async function sendRecommendationsEmail(orderId) {
         
         if (!data.success) throw new Error(data.error);
         
-        showNotification('✅ Email de recomendaciones enviado', 'success');
+        showNotification('✅ Email de recomendaciones enviado y estado actualizado a "Esperando Equipo"', 'success');
         closeSendRecommendationsModal();
-        loadV2OrdersList(); // Recargar lista
+        loadV2OrdersList();
     } catch (error) {
         showNotification('Error: ' + error.message, 'error');
+        if (btn) { btn.disabled = false; btn.textContent = '📧 Enviar Email de Recomendaciones'; }
     }
 }
 
@@ -4201,6 +4347,14 @@ function closeChangeStatusModal() {
 async function confirmStatusChange(orderId) {
     const newStatus = document.getElementById('new-v2-status').value;
     const notes = document.getElementById('status-change-notes').value;
+    
+    // Si cambia a 'esperando_equipo', redirigir al modal de recomendaciones
+    if (newStatus === 'esperando_equipo') {
+        closeChangeStatusModal();
+        openSendRecommendationsModal(orderId);
+        showNotification('📧 Completa las recomendaciones para enviar el email al alumno', 'info');
+        return;
+    }
     
     try {
         const res = await fetch(`/api/welcome-kit/v2/${orderId}/status`, {
