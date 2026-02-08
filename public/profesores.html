@@ -47,6 +47,253 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        /* ==================== QUICK VIEW MODAL ==================== */
+        .quick-view-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+        .quick-view-overlay.active { display: flex; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .quick-view-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            max-width: 480px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.25s ease;
+            position: relative;
+        }
+        
+        .qv-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-full);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: var(--transition-fast);
+            z-index: 10;
+        }
+        .qv-close:hover {
+            background: var(--border);
+            color: var(--text-main);
+        }
+        
+        .qv-header {
+            padding: 24px 24px 16px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        
+        .qv-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: var(--radius-lg);
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 2px solid var(--border);
+        }
+        .qv-photo-placeholder {
+            width: 80px;
+            height: 80px;
+            border-radius: var(--radius-lg);
+            background: var(--accent-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+        
+        .qv-main-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .qv-name {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+        .qv-location {
+            font-size: 14px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .qv-stats {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .qv-stat {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .qv-stat.highlight {
+            color: var(--success);
+        }
+        
+        .qv-body {
+            padding: 0 24px 16px;
+        }
+        
+        .qv-bio {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+        
+        .qv-section {
+            margin-bottom: 16px;
+        }
+        .qv-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .qv-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .qv-tag {
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .qv-tag.specialty {
+            background: var(--accent-subtle);
+            color: var(--accent-light);
+        }
+        .qv-tag.language {
+            background: var(--blue-dim);
+            color: var(--blue);
+        }
+        
+        .qv-availability {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .qv-day {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--bg-elevated);
+            color: var(--text-dim);
+        }
+        .qv-day.active {
+            background: var(--success-dim);
+            color: var(--success);
+        }
+        
+        .qv-footer {
+            padding: 16px 24px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .qv-price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .qv-price {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+        .qv-price span {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        .qv-trial-badge {
+            background: var(--warning-dim);
+            color: var(--warning);
+            padding: 6px 12px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .qv-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            border: none;
+        }
+        .qv-btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        .qv-btn-primary:hover {
+            background: var(--accent-light);
+            transform: translateY(-2px);
+        }
+        .qv-btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        .qv-btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent-light);
+        }
         
         body {
             background: var(--bg-dark);
@@ -762,6 +1009,14 @@
         </div>
     </main>
 
+    <!-- Quick View Modal -->
+    <div class="quick-view-overlay" id="quickViewOverlay" onclick="closeQuickView(event)">
+        <div class="quick-view-modal" onclick="event.stopPropagation()">
+            <button class="qv-close" onclick="closeQuickView()">×</button>
+            <div id="quickViewContent"></div>
+        </div>
+    </div>
+
     <script>
         // ==================== STATE ====================
         let allTeachers = [];
@@ -972,7 +1227,7 @@
                         const hasAvailability = activeDays.length > 0;
                         
                         return `
-                            <div class="teacher-card" onclick="viewProfile('${teacher.slug}')" style="animation-delay: ${index * 0.05}s">
+                            <div class="teacher-card" onclick="openQuickView('${teacher.slug}', event)" style="animation-delay: ${index * 0.05}s">
                                 <div class="teacher-header">
                                     <div class="teacher-photo-wrapper">
                                         ${teacher.photo 
@@ -1041,6 +1296,91 @@
         function viewProfile(slug) {
             window.location.href = `/profesor/${slug}`;
         }
+
+        // ==================== QUICK VIEW MODAL ====================
+        function openQuickView(teacherSlug, event) {
+            // Evitar que se abra el perfil
+            event.stopPropagation();
+            
+            const teacher = allTeachers.find(t => t.slug === teacherSlug);
+            if (!teacher) return;
+            
+            const dayLabels = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            const activeDays = teacher.availability?.activeDays || [];
+            
+            const content = `
+                <div class="qv-header">
+                    ${teacher.photo 
+                        ? `<img src="${teacher.photo}" class="qv-photo" alt="${teacher.name}">`
+                        : `<div class="qv-photo-placeholder">${getInitials(teacher.name)}</div>`
+                    }
+                    <div class="qv-main-info">
+                        <h2 class="qv-name">${teacher.name}</h2>
+                        <div class="qv-location">
+                            ${teacher.country ? `📍 ${teacher.country}` : ''}
+                        </div>
+                        <div class="qv-stats">
+                            ${teacher.totalClasses > 0 
+                                ? `<span class="qv-stat highlight">✓ ${teacher.totalClasses} clases dadas</span>` 
+                                : '<span class="qv-stat">Nuevo profesor</span>'
+                            }
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qv-body">
+                    <p class="qv-bio">${teacher.bio || 'Profesor de piano con experiencia en enseñanza online personalizada. Metodología adaptada a cada estudiante.'}</p>
+                    
+                    <div class="qv-section">
+                        <div class="qv-section-title">Especialidades</div>
+                        <div class="qv-tags">
+                            ${teacher.specialties.map(s => `<span class="qv-tag specialty">${s}</span>`).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="qv-section">
+                        <div class="qv-section-title">Idiomas</div>
+                        <div class="qv-tags">
+                            ${teacher.languages.map(l => `<span class="qv-tag language">${l}</span>`).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="qv-section">
+                        <div class="qv-section-title">Disponibilidad semanal</div>
+                        <div class="qv-availability">
+                            ${[1, 2, 3, 4, 5, 6, 0].map(day => `
+                                <span class="qv-day ${activeDays.includes(day) ? 'active' : ''}">${dayLabels[day].substring(0,1)}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="qv-footer">
+                    <div class="qv-price-row">
+                        <div class="qv-price">$${Math.round(teacher.pricePerClass)} <span>USD/clase</span></div>
+                        ${teacher.acceptsTrialClass ? '<span class="qv-trial-badge">🎁 Clase prueba GRATIS</span>' : ''}
+                    </div>
+                    <button class="qv-btn qv-btn-primary" onclick="viewProfile('${teacher.slug}')">
+                        Ver perfil completo y agendar
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('quickViewContent').innerHTML = content;
+            document.getElementById('quickViewOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeQuickView(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('quickViewOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // Cerrar con ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeQuickView();
+        });
 
         function showError(message) {
             container.innerHTML = `
