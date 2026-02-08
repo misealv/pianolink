@@ -243,9 +243,9 @@
                                 <i class="bi bi-check-circle-fill text-success me-2"></i>
                                 Compra completada
                             </li>
-                            <li class="mb-2">
-                                <i class="bi bi-circle text-muted me-2"></i>
-                                Agendar sesión de Setup + Clase de prueba
+                            <li id="stepSchedule" class="mb-2">
+                                <i id="stepScheduleIcon" class="bi bi-circle text-muted me-2"></i>
+                                <span id="stepScheduleText">Agendar sesión de Setup + Clase de prueba</span>
                             </li>
                             <li class="mb-0">
                                 <i class="bi bi-circle text-muted me-2"></i>
@@ -726,8 +726,19 @@
         // Cargar próximas reservas
         async function loadUpcomingBookings() {
             try {
-                const token = localStorage.getItem('token');
-                if (!token) return;
+                // Intentar obtener token de múltiples fuentes
+                let token = localStorage.getItem('token');
+                
+                // Si no hay token normal, intentar desde welcomeKitData
+                if (!token) {
+                    const kitData = JSON.parse(localStorage.getItem('welcomeKitData') || '{}');
+                    token = kitData.token;
+                }
+                
+                if (!token) {
+                    console.log('No hay token disponible para cargar reservas');
+                    return;
+                }
                 
                 const response = await fetch('/api/bookings/my', {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -745,6 +756,16 @@
                     // Ocultar botón de agendar, mostrar info
                     if (selfScheduleBtn) selfScheduleBtn.classList.add('d-none');
                     if (selfScheduledInfo) selfScheduledInfo.classList.remove('d-none');
+                    
+                    // Actualizar sección "Próximos Pasos"
+                    const stepIcon = document.getElementById('stepScheduleIcon');
+                    const stepText = document.getElementById('stepScheduleText');
+                    if (stepIcon) {
+                        stepIcon.className = 'bi bi-check-circle-fill text-success me-2';
+                    }
+                    if (stepText) {
+                        stepText.textContent = 'Clase agendada ✓';
+                    }
                     
                     const section = document.getElementById('upcomingBookings');
                     const list = document.getElementById('bookingsList');
@@ -791,6 +812,16 @@
                     // No hay reservas: mostrar botón de agendar
                     if (selfScheduleBtn) selfScheduleBtn.classList.remove('d-none');
                     if (selfScheduledInfo) selfScheduledInfo.classList.add('d-none');
+                    
+                    // Resetear sección "Próximos Pasos"
+                    const stepIcon = document.getElementById('stepScheduleIcon');
+                    const stepText = document.getElementById('stepScheduleText');
+                    if (stepIcon) {
+                        stepIcon.className = 'bi bi-circle text-muted me-2';
+                    }
+                    if (stepText) {
+                        stepText.textContent = 'Agendar sesión de Setup + Clase de prueba';
+                    }
                     
                     const section = document.getElementById('upcomingBookings');
                     if (section) section.classList.add('d-none');
