@@ -355,6 +355,84 @@ class WelcomeKitEmailService {
     </html>
     `;
   }
+
+  /**
+   * Email invitando al estudiante a elegir profesor para clase de prueba
+   * Se envía al completar el setup técnico
+   */
+  async sendTrialClassInvitation(options) {
+    const { to, clientName, adminName = 'Equipo PianoLink' } = options;
+
+    const panelLink = 'https://www.pianolink.net/cliente';
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+        
+        <div style="background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%); padding: 40px 30px; text-align: center;">
+          <div style="font-size: 56px; margin-bottom: 12px;">🎹</div>
+          <h1 style="color: white; margin: 0; font-size: 26px; font-weight: 700;">¡Tu equipo está listo!</h1>
+          <p style="color: rgba(255,255,255,0.85); margin: 10px 0 0; font-size: 16px;">Es hora de tu primera clase de piano</p>
+        </div>
+        
+        <div style="padding: 40px 30px;">
+          <p style="color: #333; font-size: 16px; line-height: 1.7; margin: 0 0 20px;">
+            ¡Hola <strong>${clientName}</strong>! 🎉
+          </p>
+          <p style="color: #555; font-size: 15px; line-height: 1.7; margin: 0 0 20px;">
+            Tu sesión de setup técnico fue completada exitosamente. Todo está configurado y funcionando perfecto.
+          </p>
+          <p style="color: #555; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+            El siguiente paso es tu <strong style="color: #6366f1;">Clase de Prueba gratuita</strong> con uno de nuestros profesores certificados. Elige el que más te guste:
+          </p>
+          
+          <div style="background: #f0f0ff; border-radius: 12px; padding: 24px; margin-bottom: 24px; border-left: 4px solid #6366f1;">
+            <h3 style="color: #6366f1; margin: 0 0 12px; font-size: 16px;">🎓 ¿Qué incluye tu clase de prueba?</h3>
+            <ul style="color: #555; line-height: 2; padding-left: 20px; margin: 0;">
+              <li>Sesión de 30 minutos con un profesor certificado</li>
+              <li>Evaluación de tu nivel actual</li>
+              <li>Mini-lección personalizada</li>
+              <li>Plan de estudio recomendado</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${panelLink}" style="display: inline-block; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; text-decoration: none; padding: 16px 40px; border-radius: 10px; font-weight: bold; font-size: 16px;">
+              🎹 Elegir Profesor y Agendar Clase
+            </a>
+          </div>
+          
+          <p style="color: #888; font-size: 13px; text-align: center;">Ingresa a tu panel de estudiante para ver los profesores disponibles y agendar tu clase.</p>
+        </div>
+        
+        <div style="background: #1a1a2e; padding: 30px; text-align: center;">
+          <p style="color: #d4af37; font-weight: bold; margin: 0 0 10px;">${adminName} — PianoLink 🎹</p>
+          <p style="color: #888; font-size: 13px; margin: 0;">Clases de piano online con tecnología MIDI</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    try {
+      const result = await this.resend.emails.send({
+        from: this.fromEmail,
+        to: [to],
+        subject: '🎹 ¡Setup completado! Elige tu profesor para tu clase de prueba — PianoLink',
+        html
+      });
+      return { success: true, messageId: result.id };
+    } catch (error) {
+      console.error('[WelcomeKitEmail] Error enviando invitación trial:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 module.exports = new WelcomeKitEmailService();

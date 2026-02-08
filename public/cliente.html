@@ -2449,9 +2449,10 @@
                 'trial_available': {
                     icon: '🎹',
                     title: '¡Listo para tu Clase de Prueba!',
-                    message: 'Tu setup técnico está completado. Pronto agendaremos tu primera clase de prueba.',
+                    message: 'Tu setup técnico está completado. Elige un profesor y agenda tu primera clase de prueba.',
                     color: '#6366f1',
-                    step: 4
+                    step: 4,
+                    showTrialAction: true
                 },
                 'shipped': {
                     icon: '🎹',
@@ -2561,6 +2562,12 @@
                             ${config.showButton ? `
                             <button onclick="confirmEquipmentReady()" style="background: ${config.color}; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                                 ✅ Ya tengo mi equipo listo
+                            </button>
+                            ` : ''}
+                            
+                            ${config.showTrialAction ? `
+                            <button onclick="scheduleClass()" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; padding: 14px 28px; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 15px; box-shadow: 0 4px 15px rgba(99,102,241,0.3);">
+                                🎹 Elegir Profesor y Agendar Clase
                             </button>
                             ` : ''}
                         </div>

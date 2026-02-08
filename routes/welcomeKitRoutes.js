@@ -3611,6 +3611,21 @@ router.post('/v2/interview-slots/:slotId/complete', protect, adminOnly, async (r
                     kit.setupSession.completedAt = new Date();
                     if (notes) kit.setupSession.technicianNotes = notes;
                     kit.overallStatus = 'trial_available';
+                    await kit.save();
+
+                    // Enviar email invitando a elegir profesor para clase de prueba
+                    const adminData = await _getAdminEmailData();
+                    try {
+                        await WelcomeKitEmailService.sendTrialClassInvitation({
+                            to: kit.clientEmail || slot.booking.clientEmail,
+                            clientName: kit.clientName || slot.booking.clientName,
+                            adminName: adminData.adminName
+                        });
+                        console.log(`[Setup] ✅ Email de clase de prueba enviado a ${kit.clientEmail}`);
+                    } catch (emailErr) {
+                        console.error('[Setup] Error enviando email trial:', emailErr.message);
+                    }
+
                     console.log(`[Setup] ✅ Setup completado para kit ${kit._id}, avanzando a trial_available`);
                 } else {
                     // Completar entrevista
