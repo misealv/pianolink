@@ -74,6 +74,68 @@ router.get('/my', protect, async (req, res) => {
 });
 
 /**
+ * GET /api/bookings/my-classes
+ * Obtener clases del estudiante separadas en upcoming/past para mis-clases.html
+ */
+router.get('/my-classes', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const now = new Date();
+
+        // Buscar reservas donde el usuario es estudiante o cliente
+        const query = {
+            $or: [
+                { studentId: userId },
+                { clientId: userId }
+            ],
+            status: { $ne: 'draft' }
+        };
+
+        const bookings = await Booking.find(query)
+            .populate('teacherId', 'name branding.profilePhotoUrl slug')
+            .populate('slotId', 'startTime endTime midiSession.roomUrl')
+            .sort({ scheduledStart: -1 })
+            .limit(100)
+            .lean();
+
+        // Separar en upcoming y past
+        const upcoming = [];
+        const past = [];
+
+        for (const booking of bookings) {
+            const classTime = booking.slotId?.startTime || booking.scheduledStart;
+            const isUpcoming = new Date(classTime) > now && 
+                ['pending', 'confirmed', 'in_progress'].includes(booking.status);
+            
+            if (isUpcoming) {
+                upcoming.push(booking);
+            } else {
+                past.push(booking);
+            }
+        }
+
+        // Ordenar upcoming de más próximo a más lejano
+        upcoming.sort((a, b) => {
+            const aTime = a.slotId?.startTime || a.scheduledStart;
+            const bTime = b.slotId?.startTime || b.scheduledStart;
+            return new Date(aTime) - new Date(bTime);
+        });
+
+        // Ordenar past de más reciente a más antiguo
+        past.sort((a, b) => {
+            const aTime = a.slotId?.startTime || a.scheduledStart;
+            const bTime = b.slotId?.startTime || b.scheduledStart;
+            return new Date(bTime) - new Date(aTime);
+        });
+
+        res.json({ upcoming, past });
+    } catch (error) {
+        console.error('Error obteniendo mis clases:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
  * GET /api/bookings/teacher
  * Obtener reservas del profesor
  */
