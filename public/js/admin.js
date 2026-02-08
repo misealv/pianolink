@@ -7142,7 +7142,7 @@ async function completeInterview(slotId) {
 async function loadAdminProfile() {
     try {
         const res = await fetch('/api/welcome-kit/v2/admin-profile', {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
@@ -7225,7 +7225,7 @@ async function saveAdminProfile() {
         const res = await fetch('/api/welcome-kit/v2/admin-profile', {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${userSession.token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
