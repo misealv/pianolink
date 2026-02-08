@@ -14,11 +14,21 @@ function generateInterviewConfirmationEmail(data) {
         staffName,
         whatsappNumber,
         adminName,           // Nombre dinámico del administrador
-        adminEmail           // Email dinámico del administrador
+        adminEmail,          // Email dinámico del administrador
+        isSetup = false      // True para sesión de setup, false para entrevista
     } = data;
 
-    // Nombre del staff que conduce la entrevista (prioriza staffName del slot, luego adminName)
+    // Nombre del staff que conduce la reunión
     const displayStaffName = staffName || adminName || 'Equipo PianoLink';
+
+    // Textos dinámicos según tipo de reunión
+    const meetingTitle = isSetup ? '⚙️ ¡Setup Confirmado!' : '📅 ¡Entrevista Confirmada!';
+    const meetingSubtitle = isSetup ? 'Tu sesión de configuración técnica está agendada' : 'Tu entrevista de bienvenida está agendada';
+    const meetingCardTitle = isSetup ? 'Sesión de Setup Técnico' : 'Entrevista de Bienvenida';
+    const meetingDescription = isSetup
+        ? 'Tu sesión de configuración técnica ha sido agendada. Conectaremos tu teclado al computador y verificaremos que todo funcione correctamente.'
+        : 'Tu entrevista de bienvenida ha sido agendada exitosamente. En esta reunión evaluaremos tu equipo musical y te daremos recomendaciones personalizadas.';
+    const meetingIcon = isSetup ? '⚙️' : '🎹';
 
     const whatsappUrl = whatsappNumber
         ? `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`
@@ -35,12 +45,12 @@ function generateInterviewConfirmationEmail(data) {
     <div style="max-width:600px; margin:0 auto; background:linear-gradient(135deg, #1a1a2e, #16213e); border-radius:16px; overflow:hidden; border:1px solid #d4af3740;">
         
         <!-- Header -->
-        <div style="background:linear-gradient(135deg, #d4af37, #b8941f); padding:30px 32px; text-align:center;">
+        <div style="background:linear-gradient(135deg, ${isSetup ? '#10b981, #059669' : '#d4af37, #b8941f'}); padding:30px 32px; text-align:center;">
             <h1 style="margin:0; color:#1a1a2e; font-size:24px; font-weight:700;">
-                📅 ¡Entrevista Confirmada!
+                ${meetingTitle}
             </h1>
             <p style="margin:8px 0 0; color:#1a1a2e; opacity:0.8; font-size:14px;">
-                Tu entrevista de bienvenida está agendada
+                ${meetingSubtitle}
             </p>
         </div>
 
@@ -52,14 +62,14 @@ function generateInterviewConfirmationEmail(data) {
                 ¡Hola <strong>${clientName}</strong>! 👋
             </p>
             <p style="color:#aaa; font-size:14px; margin:0 0 24px; line-height:1.6;">
-                Tu entrevista de bienvenida ha sido agendada exitosamente. En esta reunión evaluaremos tu equipo musical y te daremos recomendaciones personalizadas.
+                ${meetingDescription}
             </p>
 
             <!-- Card de la cita -->
             <div style="background:#0d0d1a; border:1px solid #d4af3740; border-radius:12px; padding:24px; margin-bottom:24px;">
                 <div style="text-align:center; margin-bottom:16px;">
-                    <div style="font-size:48px; margin-bottom:8px;">🎹</div>
-                    <h2 style="color:#d4af37; margin:0; font-size:20px;">Entrevista de Bienvenida</h2>
+                    <div style="font-size:48px; margin-bottom:8px;">${meetingIcon}</div>
+                    <h2 style="color:${isSetup ? '#10b981' : '#d4af37'}; margin:0; font-size:20px;">${meetingCardTitle}</h2>
                 </div>
                 
                 <div style="display:block; margin-bottom:12px; padding:12px; background:rgba(212,175,55,0.1); border-radius:8px;">
@@ -96,13 +106,20 @@ function generateInterviewConfirmationEmail(data) {
             ` : ''}
 
             <!-- Qué preparar -->
-            <div style="background:#0d0d1a; border-radius:12px; padding:20px; margin-bottom:24px; border-left:3px solid #d4af37;">
-                <h3 style="color:#d4af37; margin:0 0 12px; font-size:15px;">📋 ¿Qué preparar?</h3>
+            <div style="background:#0d0d1a; border-radius:12px; padding:20px; margin-bottom:24px; border-left:3px solid ${isSetup ? '#10b981' : '#d4af37'};">
+                <h3 style="color:${isSetup ? '#10b981' : '#d4af37'}; margin:0 0 12px; font-size:15px;">📋 ¿Qué preparar?</h3>
                 <ul style="color:#aaa; font-size:14px; margin:0; padding-left:20px; line-height:1.8;">
+                    ${isSetup ? `
+                    <li>Ten tu teclado conectado al computador con el cable/adaptador</li>
+                    <li>Abre Google Chrome (navegador recomendado)</li>
+                    <li>Conecta audífonos si los tienes</li>
+                    <li>Ten acceso a internet estable</li>
+                    ` : `
                     <li>Ten tu teclado/piano a la mano</li>
                     <li>Si ya tienes cable MIDI, tenlo conectado</li>
                     <li>Usa un computador (no celular)</li>
                     <li>Ten acceso a internet estable</li>
+                    `}
                 </ul>
             </div>
 

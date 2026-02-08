@@ -7212,23 +7212,35 @@ function renderInterviewSlots(slots) {
             
             let statusBadge = '';
             let actions = '';
+            const isSetup = slot.purpose === 'setup';
+            const purposeTag = isSetup 
+                ? `<span style="background:rgba(249,115,22,0.15); color:#f97316; padding:2px 6px; border-radius:3px; font-size:10px; font-weight:600;">⚙️ SETUP</span>` 
+                : '';
             
             if (slot.status === 'available') {
                 statusBadge = `<span style="background:rgba(34,197,94,0.15); color:#22c55e; padding:3px 8px; border-radius:4px; font-size:11px;">Disponible</span>`;
                 actions = `<button onclick="deleteInterviewSlot('${slot._id}')" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:12px;" title="Eliminar">🗑️</button>`;
             } else if (slot.status === 'booked') {
                 const clientName = slot.booking?.clientName || 'Cliente';
-                statusBadge = `<span style="background:rgba(59,130,246,0.15); color:#3b82f6; padding:3px 8px; border-radius:4px; font-size:11px;">🎯 ${clientName}</span>`;
-                actions = `<button onclick="completeInterview('${slot._id}')" style="background:#10b981; border:none; color:white; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px;">✅ Completar</button>`;
+                const bookedColor = isSetup ? '#f97316' : '#3b82f6';
+                const bookedIcon = isSetup ? '⚙️' : '🎯';
+                statusBadge = `<span style="background:${bookedColor}20; color:${bookedColor}; padding:3px 8px; border-radius:4px; font-size:11px;">${bookedIcon} ${clientName}</span>`;
+                const completeLabel = isSetup ? '✅ Completar Setup' : '✅ Completar';
+                actions = `<button onclick="completeInterview('${slot._id}')" style="background:#10b981; border:none; color:white; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px;">${completeLabel}</button>`;
             } else if (slot.status === 'completed') {
                 const clientName = slot.booking?.clientName || 'Cliente';
                 statusBadge = `<span style="background:rgba(139,92,246,0.15); color:#8b5cf6; padding:3px 8px; border-radius:4px; font-size:11px;">✅ ${clientName}</span>`;
             }
             
+            const borderColor = isSetup 
+                ? (slot.status === 'booked' ? '#f97316' : slot.status === 'completed' ? '#8b5cf6' : '#22c55e')
+                : (slot.status === 'booked' ? '#3b82f6' : slot.status === 'completed' ? '#8b5cf6' : '#22c55e');
+            
             html += `
-                <div style="display:flex; align-items:center; justify-content:space-between; background:#0d0d1a; padding:10px 14px; border-radius:8px; border-left:3px solid ${slot.status === 'booked' ? '#3b82f6' : slot.status === 'completed' ? '#8b5cf6' : '#22c55e'};">
+                <div style="display:flex; align-items:center; justify-content:space-between; background:#0d0d1a; padding:10px 14px; border-radius:8px; border-left:3px solid ${borderColor};">
                     <div style="display:flex; align-items:center; gap:12px;">
                         <span style="color:#fff; font-size:13px; font-weight:500;">${time} - ${endTime}</span>
+                        ${purposeTag}
                         ${statusBadge}
                     </div>
                     <div>${actions}</div>

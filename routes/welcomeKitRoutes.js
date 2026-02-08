@@ -3279,13 +3279,15 @@ router.get('/v2/recommendation-templates', protect, adminOnly, async (req, res) 
 
 /**
  * POST /api/welcome-kit/v2/interview-availability
- * Admin configura su disponibilidad semanal y genera slots de entrevista.
+ * Admin configura su disponibilidad semanal y genera slots.
+ * Los mismos slots sirven para entrevistas y sesiones de setup.
  * Body: { weeklySlots: [{ dayOfWeek: 0-6, startTime: "HH:mm", endTime: "HH:mm" }],
  *         weeksAhead: 4, duration: 15, meetingLink: "https://...", timezone: "America/Santiago" }
  */
 router.post('/v2/interview-availability', protect, adminOnly, async (req, res) => {
     try {
         const { weeklySlots, weeksAhead = 4, duration = 15, meetingLink = '', timezone = 'America/Santiago' } = req.body;
+        const purpose = 'interview'; // Slots compartidos para entrevistas y setup
 
         if (!weeklySlots || !Array.isArray(weeklySlots) || weeklySlots.length === 0) {
             return res.status(400).json({ success: false, error: 'Debes definir al menos un bloque horario' });
@@ -3338,7 +3340,7 @@ router.post('/v2/interview-availability', protect, adminOnly, async (req, res) =
                         await OnboardingSlot.create({
                             staffId,
                             staffName,
-                            purpose: 'interview',
+                            purpose,
                             startTime: slotStart,
                             endTime: slotEnd,
                             duration,
@@ -3352,20 +3354,22 @@ router.post('/v2/interview-availability', protect, adminOnly, async (req, res) =
                         if (err.code === 11000) {
                             skipped++;
                         } else {
-                            console.error('[Interview] Error creando slot:', err.message);
+                            console.error(`[${purpose}] Error creando slot:`, err.message);
                         }
                     }
                 }
             }
         }
 
-        console.log(`[Interview] ✅ Generados ${created} slots, ${skipped} duplicados omitidos`);
+        const purposeLabel = purpose === 'setup' ? 'setup' : 'entrevista';
+        console.log(`[${purposeLabel}] ✅ Generados ${created} slots, ${skipped} duplicados omitidos`);
 
         res.json({
             success: true,
             created,
             skipped,
-            message: `Se crearon ${created} slots de entrevista para las próximas ${weeksAhead} semanas`
+            purpose,
+            message: `Se crearon ${created} slots de ${purposeLabel} para las próximas ${weeksAhead} semanas`
         });
     } catch (error) {
         console.error('[Interview] Error generando disponibilidad:', error);
@@ -3403,7 +3407,7 @@ router.get('/v2/interview-slots', protect, async (req, res) => {
 
 /**
  * GET /api/welcome-kit/v2/interview-calendar
- * Calendario completo de entrevistas para el admin (disponibles + agendadas).
+ * Calendario completo para el admin (entrevistas + setups, disponibles + agendados).
  * Query: ?from=ISO&to=ISO
  */
 router.get('/v2/interview-calendar', protect, adminOnly, async (req, res) => {
@@ -3412,8 +3416,9 @@ router.get('/v2/interview-calendar', protect, adminOnly, async (req, res) => {
         const from = req.query.from ? new Date(req.query.from) : new Date(now.setDate(now.getDate() - 7));
         const to = req.query.to ? new Date(req.query.to) : new Date(new Date().setDate(new Date().getDate() + 30));
 
+        // Buscar slots de ambos propósitos (interview + setup)
         const slots = await OnboardingSlot.find({
-            purpose: 'interview',
+            purpose: { $in: ['interview', 'setup'] },
             startTime: { $gte: from, $lte: to }
         })
         .sort({ startTime: 1 })
@@ -3579,7 +3584,7 @@ router.delete('/v2/interview-slots/:slotId', protect, adminOnly, async (req, res
 
 /**
  * POST /api/welcome-kit/v2/interview-slots/:slotId/complete
- * Admin marca una entrevista como completada.
+ * Admin marca una entrevista o setup como completada.
  */
 router.post('/v2/interview-slots/:slotId/complete', protect, adminOnly, async (req, res) => {
     try {
@@ -3600,18 +3605,143 @@ router.post('/v2/interview-slots/:slotId/complete', protect, adminOnly, async (r
         if (slot.booking?.kitId) {
             const kit = await WelcomeKit.findById(slot.booking.kitId);
             if (kit) {
-                kit.interview.completedAt = new Date();
-                if (notes) kit.interview.notes = notes;
-                // El admin puede avanzar el estado al siguiente paso manualmente
-                // o automáticamente:
-                // kit.overallStatus = 'esperando_equipo';
+                if (slot.purpose === 'setup') {
+                    // Completar setup → avanzar a trial_available
+                    kit.setupSession.status = 'completed';
+                    kit.setupSession.completedAt = new Date();
+                    if (notes) kit.setupSession.technicianNotes = notes;
+                    kit.overallStatus = 'trial_available';
+                    console.log(`[Setup] ✅ Setup completado para kit ${kit._id}, avanzando a trial_available`);
+                } else {
+                    // Completar entrevista
+                    kit.interview.completedAt = new Date();
+                    if (notes) kit.interview.notes = notes;
+                }
                 await kit.save();
             }
         }
 
-        res.json({ success: true, message: 'Entrevista marcada como completada' });
+        const label = slot.purpose === 'setup' ? 'Setup' : 'Entrevista';
+        res.json({ success: true, message: `${label} marcada como completada` });
     } catch (error) {
-        console.error('[Interview] Error completando entrevista:', error);
+        console.error('[Onboarding] Error completando slot:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+/**
+ * POST /api/welcome-kit/v2/:id/schedule-setup
+ * Cliente agenda su sesión de setup seleccionando un slot del calendario compartido.
+ * Reutiliza los mismos slots de entrevista (misma persona hace el onboarding completo).
+ * Body: { slotId: "...", timezone: "America/Santiago" }
+ */
+router.post('/v2/:id/schedule-setup', protect, async (req, res) => {
+    try {
+        const kitId = req.params.id;
+        const { slotId, timezone = 'America/Santiago' } = req.body;
+
+        if (!slotId) {
+            return res.status(400).json({ success: false, error: 'Debes seleccionar un horario' });
+        }
+
+        const kit = await WelcomeKit.findById(kitId);
+        if (!kit) {
+            return res.status(404).json({ success: false, error: 'Kit no encontrado' });
+        }
+
+        // Verificar propiedad
+        const isOwner = kit.clientId && kit.clientId.toString() === req.user._id.toString();
+        const isEmailMatch = kit.clientEmail === req.user.email;
+        if (!isOwner && !isEmailMatch) {
+            return res.status(403).json({ success: false, error: 'No tienes permiso para este kit' });
+        }
+
+        // Solo se puede agendar setup desde setup_pending
+        if (kit.overallStatus !== 'setup_pending') {
+            return res.status(400).json({
+                success: false,
+                error: `No se puede agendar setup en estado: ${kit.overallStatus}`
+            });
+        }
+
+        // Reservar el slot atómicamente — toma un slot de interview available
+        // y lo convierte en un slot de setup booked
+        const slot = await OnboardingSlot.findOneAndUpdate(
+            {
+                _id: slotId,
+                purpose: 'interview',
+                status: 'available'
+            },
+            {
+                $set: {
+                    status: 'booked',
+                    purpose: 'setup', // Reclasificar como setup al reservar
+                    booking: {
+                        kitId: kit._id,
+                        clientId: req.user._id,
+                        clientName: kit.clientName || req.user.name,
+                        clientEmail: kit.clientEmail || req.user.email,
+                        bookedAt: new Date()
+                    }
+                },
+                $inc: { version: 1 }
+            },
+            { new: true }
+        );
+
+        if (!slot) {
+            return res.status(409).json({
+                success: false,
+                error: 'Este horario ya no está disponible. Por favor elige otro.'
+            });
+        }
+
+        // Actualizar el WelcomeKit
+        kit.setupSession.status = 'scheduled';
+        kit.setupSession.scheduledAt = slot.startTime;
+        kit.overallStatus = 'setup_scheduled';
+        await kit.save();
+
+        // Formatear fecha para el email
+        const setupDate = _formatDate(slot.startTime, timezone);
+        const setupTime = _formatTime(slot.startTime, timezone);
+
+        // Enviar email de confirmación
+        const adminData = await _getAdminEmailData();
+        const emailHtml = generateInterviewConfirmationEmail({
+            clientName: kit.clientName || req.user.name,
+            clientEmail: kit.clientEmail || req.user.email,
+            interviewDate: setupDate,
+            interviewTime: setupTime,
+            interviewTimezone: timezone,
+            meetingLink: slot.meetingLink,
+            staffName: slot.staffName,
+            isSetup: true, // Flag para personalizar el template
+            ...adminData
+        });
+
+        await EmailService.sendSafe({
+            to: kit.clientEmail || req.user.email,
+            subject: '⚙️ Sesión de Setup Confirmada — PianoLink',
+            html: emailHtml
+        });
+
+        console.log(`[Setup] ✅ Setup agendado: Kit ${kitId} → Slot ${slotId} → ${setupDate} ${setupTime}`);
+
+        res.json({
+            success: true,
+            message: 'Setup agendado exitosamente',
+            setup: {
+                date: setupDate,
+                time: setupTime,
+                timezone,
+                meetingLink: slot.meetingLink,
+                staffName: slot.staffName
+            }
+        });
+    } catch (error) {
+        console.error('[Setup] Error agendando setup:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });

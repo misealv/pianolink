@@ -2359,6 +2359,10 @@
             if (myKit && ['entrevista_pendiente', 'pending', 'paid'].includes(myKit.overallStatus)) {
                 setTimeout(() => loadInterviewSlots(myKit._id), 100);
             }
+            // Si el kit está en setup_pending, cargar slots para agendar setup
+            if (myKit && myKit.overallStatus === 'setup_pending') {
+                setTimeout(() => loadSetupSlots(myKit._id), 100);
+            }
         }
 
         function getInitials(name) {
@@ -2428,10 +2432,26 @@
                 },
                 'setup_pending': {
                     icon: '⚙️',
-                    title: 'Setup pendiente',
-                    message: 'Pronto coordinaremos tu sesión de configuración técnica.',
+                    title: 'Agenda tu Sesión de Setup',
+                    message: 'Selecciona un horario para configurar tu equipo MIDI junto a nosotros (15 min). Verificaremos que todo funcione correctamente.',
                     color: '#f97316',
-                    step: 3
+                    step: 3,
+                    showSetupCalendar: true
+                },
+                'setup_scheduled': {
+                    icon: '✅',
+                    title: 'Setup Agendado',
+                    message: '',
+                    color: '#10b981',
+                    step: 3,
+                    showSetupDetails: true
+                },
+                'trial_available': {
+                    icon: '🎹',
+                    title: '¡Listo para tu Clase de Prueba!',
+                    message: 'Tu setup técnico está completado. Pronto agendaremos tu primera clase de prueba.',
+                    color: '#6366f1',
+                    step: 4
                 },
                 'shipped': {
                     icon: '🎹',
@@ -2463,6 +2483,28 @@
                             </div>
                         </div>
                         <p style="color: #aaa; font-size: 13px; margin: 0;">Te enviaremos un recordatorio antes de la entrevista. Prepara tu teclado y cable MIDI si lo tienes.</p>
+                    </div>
+                `;
+            }
+
+            // Datos del setup agendado
+            let setupDetailsHtml = '';
+            if (config.showSetupDetails && kit.setupSession?.scheduledAt) {
+                const d = new Date(kit.setupSession.scheduledAt);
+                const dateStr = d.toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const timeStr = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: true });
+                const capitalDate = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+                
+                setupDetailsHtml = `
+                    <div style="background: #0d0d1a; border: 1px solid #10b98140; border-radius: 12px; padding: 20px; margin-top: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <span style="font-size: 32px;">⚙️</span>
+                            <div>
+                                <div style="font-size: 16px; font-weight: 700; color: #fff;">${capitalDate}</div>
+                                <div style="font-size: 14px; color: #10b981; font-weight: 600;">${timeStr} — 15 minutos</div>
+                            </div>
+                        </div>
+                        <p style="color: #aaa; font-size: 13px; margin: 0;">Prepara tu teclado conectado al computador con el cable MIDI. Verificaremos que todo funcione correctamente.</p>
                     </div>
                 `;
             }
@@ -2502,8 +2544,19 @@
                             </div>
                             <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
                             ` : ''}
+
+                            ${config.showSetupCalendar ? `
+                            <div id="setup-calendar-container" style="margin-top: 12px;">
+                                <div style="text-align:center; padding:20px; color:#888;">
+                                    <div class="spinner" style="width:24px; height:24px; border:3px solid #333; border-top:3px solid ${config.color}; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 10px;"></div>
+                                    Cargando horarios disponibles...
+                                </div>
+                            </div>
+                            <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+                            ` : ''}
                             
                             ${interviewDetailsHtml}
+                            ${setupDetailsHtml}
                             
                             ${config.showButton ? `
                             <button onclick="confirmEquipmentReady()" style="background: ${config.color}; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
@@ -2752,6 +2805,206 @@
                 alert(error.message || 'Error al agendar entrevista. Intenta de nuevo.');
                 btn.disabled = false;
                 btn.textContent = '✅ Confirmar Entrevista';
+            }
+        }
+
+        // ============================================
+        // AGENDAR SESIÓN DE SETUP
+        // ============================================
+
+        let selectedSetupSlotId = null;
+        let selectedSetupKitId = null;
+
+        /**
+         * Carga los slots disponibles para setup (mismos slots de interview, calendario compartido)
+         */
+        async function loadSetupSlots(kitId) {
+            const container = document.getElementById('setup-calendar-container');
+            if (!container) return;
+
+            try {
+                // Reutiliza el mismo endpoint — los slots de interview disponibles sirven para setup
+                const res = await fetch('/api/welcome-kit/v2/interview-slots?purpose=interview', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (!data.success || !data.slots || data.slots.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align:center; padding:20px; color:#888; background:#0d0d1a; border-radius:12px;">
+                            <div style="font-size:32px; margin-bottom:8px;">⚙️</div>
+                            <p style="margin:0; font-size:14px;">No hay horarios disponibles en este momento.</p>
+                            <p style="margin:8px 0 0; font-size:12px; color:#666;">Pronto se publicarán nuevos horarios. Revisa en unas horas.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                renderSetupCalendar(data.slots, kitId);
+            } catch (error) {
+                console.error('Error cargando slots de setup:', error);
+                container.innerHTML = `<p style="color:#f87171; font-size:13px;">Error cargando horarios. Recarga la página.</p>`;
+            }
+        }
+
+        /**
+         * Renderiza el calendario de selección de slot de setup
+         */
+        function renderSetupCalendar(slots, kitId) {
+            const container = document.getElementById('setup-calendar-container');
+            if (!container) return;
+
+            const grouped = {};
+            slots.forEach(slot => {
+                const dateKey = new Date(slot.startTime).toLocaleDateString('es-CL', {
+                    weekday: 'long', month: 'long', day: 'numeric'
+                });
+                if (!grouped[dateKey]) grouped[dateKey] = [];
+                grouped[dateKey].push(slot);
+            });
+
+            let html = `<div style="background:#0d0d1a; border-radius:12px; padding:16px; border:1px solid #333;">`;
+            html += `<div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+                        <span style="font-size:20px;">⚙️</span>
+                        <span style="font-size:14px; font-weight:600; color:#fff;">Selecciona un horario para tu Setup</span>
+                     </div>`;
+
+            for (const [dateLabel, daySlots] of Object.entries(grouped)) {
+                const capitalDate = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+                html += `
+                    <div style="margin-bottom:16px;">
+                        <div style="font-size:13px; font-weight:600; color:#10b981; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid #333;">
+                            📅 ${capitalDate}
+                        </div>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                `;
+
+                for (const slot of daySlots) {
+                    const time = new Date(slot.startTime).toLocaleTimeString('es-CL', {
+                        hour: '2-digit', minute: '2-digit', hour12: true
+                    });
+                    html += `
+                        <button onclick="selectSetupSlot('${slot._id}', '${kitId}', this)"
+                            data-slot-id="${slot._id}"
+                            style="background:#1a1a2e; border:1px solid #444; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; transition:all 0.2s;"
+                            onmouseover="this.style.borderColor='#10b981'; this.style.background='rgba(16,185,129,0.15)'"
+                            onmouseout="if(!this.classList.contains('selected')){this.style.borderColor='#444'; this.style.background='#1a1a2e'}"
+                        >
+                            ${time}
+                        </button>
+                    `;
+                }
+
+                html += `</div></div>`;
+            }
+
+            html += `
+                <div id="setup-confirm-section" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid #333;">
+                    <div id="setup-selected-summary" style="background:rgba(16,185,129,0.1); border:1px solid #10b98140; border-radius:8px; padding:12px; margin-bottom:12px;">
+                    </div>
+                    <button id="setup-confirm-btn" onclick="confirmSetupBooking()" style="width:100%; background:linear-gradient(135deg, #10b981, #059669); color:white; border:none; padding:14px; border-radius:8px; font-weight:700; font-size:15px; cursor:pointer;">
+                        ⚙️ Confirmar Sesión de Setup
+                    </button>
+                </div>
+            </div>`;
+
+            container.innerHTML = html;
+        }
+
+        /**
+         * Selecciona un slot de setup
+         */
+        function selectSetupSlot(slotId, kitId, btn) {
+            selectedSetupSlotId = slotId;
+            selectedSetupKitId = kitId;
+
+            const container = document.getElementById('setup-calendar-container');
+            container.querySelectorAll('button[data-slot-id]').forEach(b => {
+                b.classList.remove('selected');
+                b.style.borderColor = '#444';
+                b.style.background = '#1a1a2e';
+            });
+
+            btn.classList.add('selected');
+            btn.style.borderColor = '#10b981';
+            btn.style.background = 'rgba(16,185,129,0.25)';
+
+            const confirmSection = document.getElementById('setup-confirm-section');
+            confirmSection.style.display = 'block';
+
+            const dateGroup = btn.closest('[style*="margin-bottom:16px"]');
+            const dateLabel = dateGroup?.querySelector('[style*="color:#10b981"]')?.textContent?.replace('📅 ', '') || '';
+            const time = btn.textContent.trim();
+
+            document.getElementById('setup-selected-summary').innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:24px;">⚙️</span>
+                    <div>
+                        <div style="font-size:14px; font-weight:600; color:#fff;">${dateLabel}</div>
+                        <div style="font-size:13px; color:#10b981;">${time} — 15 minutos</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Confirma la reserva del setup
+         */
+        async function confirmSetupBooking() {
+            if (!selectedSetupSlotId || !selectedSetupKitId) {
+                alert('Selecciona un horario primero');
+                return;
+            }
+
+            const btn = document.getElementById('setup-confirm-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Agendando...';
+
+            try {
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santiago';
+                
+                const res = await fetch(`/api/welcome-kit/v2/${selectedSetupKitId}/schedule-setup`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        slotId: selectedSetupSlotId,
+                        timezone
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al agendar');
+                }
+
+                const container = document.getElementById('setup-calendar-container');
+                container.innerHTML = `
+                    <div style="text-align:center; padding:24px; background:#0d0d1a; border-radius:12px; border:1px solid #10b98140;">
+                        <div style="font-size:48px; margin-bottom:12px;">🎉</div>
+                        <h3 style="color:#10b981; margin:0 0 8px;">¡Setup Agendado!</h3>
+                        <p style="color:#aaa; margin:0 0 12px; font-size:14px;">
+                            ${data.setup.date} a las ${data.setup.time}
+                        </p>
+                        ${data.setup.meetingLink ? `
+                        <a href="${data.setup.meetingLink}" target="_blank" style="display:inline-block; background:#10b981; color:white; padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:600; font-size:13px; margin-top:8px;">
+                            🎥 Link de la reunión
+                        </a>
+                        ` : ''}
+                        <p style="color:#666; font-size:12px; margin:12px 0 0;">
+                            Te enviamos un email de confirmación. Prepara tu teclado conectado al computador.
+                        </p>
+                    </div>
+                `;
+
+                setTimeout(() => loadDashboard(), 3000);
+            } catch (error) {
+                alert(error.message || 'Error al agendar setup. Intenta de nuevo.');
+                btn.disabled = false;
+                btn.textContent = '⚙️ Confirmar Sesión de Setup';
             }
         }
 
