@@ -3529,7 +3529,7 @@ router.post('/v2/:id/schedule-interview', protect, async (req, res) => {
             interviewTime,
             interviewTimezone: timezone,
             meetingLink: slot.meetingLink,
-            staffName: slot.staffName,
+            staffName: adminData.adminName || slot.staffName,
             ...adminData
         });
 
@@ -3716,8 +3716,8 @@ router.post('/v2/:id/schedule-setup', protect, async (req, res) => {
             interviewTime: setupTime,
             interviewTimezone: timezone,
             meetingLink: slot.meetingLink,
-            staffName: slot.staffName,
-            isSetup: true, // Flag para personalizar el template
+            staffName: adminData.adminName || slot.staffName,
+            isSetup: true,
             ...adminData
         });
 
