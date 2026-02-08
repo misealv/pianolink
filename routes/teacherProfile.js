@@ -387,7 +387,7 @@ router.get('/my-students', protect, async (req, res) => {
  */
 router.get('/catalog', async (req, res) => {
     try {
-        const { specialty, minPrice, maxPrice, language, country, day, sort } = req.query;
+        const { specialty, minPrice, maxPrice, language, country, day, sort, trialOnly, availableOnly } = req.query;
         const AvailabilityTemplate = require('../models/AvailabilityTemplate');
         
         // Buscar profesores con perfil público y membresía activa
@@ -396,6 +396,11 @@ router.get('/catalog', async (req, res) => {
             'teacherData.profile.isPublic': { $ne: false },
             'teacherData.subscriptionStatus': 'active'
         };
+        
+        // Si trialOnly=true, solo profesores que aceptan clase de prueba
+        if (trialOnly === 'true') {
+            query['teacherData.profile.acceptsTrialClass'] = { $ne: false };
+        }
         
         const teachers = await User.find(query)
             .select('name lastName slug branding teacherData.hourlyRate teacherData.packages teacherData.profile teacherData.earnings timezone')
@@ -487,6 +492,10 @@ router.get('/catalog', async (req, res) => {
             catalog = catalog.filter(t =>
                 t.country.toLowerCase().includes(country.toLowerCase())
             );
+        }
+        // Filtro: solo profesores con disponibilidad configurada
+        if (availableOnly === 'true') {
+            catalog = catalog.filter(t => t.availability.activeDays.length > 0);
         }
         // Filtro por día disponible (0-6)
         if (day !== undefined && day !== '') {
