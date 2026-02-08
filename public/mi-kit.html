@@ -221,9 +221,17 @@
                                 <p class="mb-1 text-muted">Clases disponibles</p>
                                 <h2 id="selfClasses" class="mb-0">1</h2>
                             </div>
-                            <button class="btn btn-primary btn-lg" onclick="scheduleClass()">
-                                <i class="bi bi-calendar-plus me-2"></i>Agendar Clase
-                            </button>
+                            <!-- Botón agendar (se oculta si hay clase) -->
+                            <div id="selfScheduleBtn">
+                                <button class="btn btn-primary btn-lg" onclick="scheduleClass()">
+                                    <i class="bi bi-calendar-plus me-2"></i>Agendar Clase
+                                </button>
+                            </div>
+                            <!-- Info clase agendada (se muestra cuando hay clase) -->
+                            <div id="selfScheduledInfo" class="d-none text-end">
+                                <span class="badge bg-success mb-2">Clase Agendada</span>
+                                <p class="mb-0 text-muted small">Revisa los detalles abajo</p>
+                            </div>
                         </div>
                     </div>
 
@@ -729,7 +737,15 @@
                 
                 const bookings = await response.json();
                 
+                // Actualizar sección selfSection según si hay reservas
+                const selfScheduleBtn = document.getElementById('selfScheduleBtn');
+                const selfScheduledInfo = document.getElementById('selfScheduledInfo');
+                
                 if (bookings && bookings.length > 0) {
+                    // Ocultar botón de agendar, mostrar info
+                    if (selfScheduleBtn) selfScheduleBtn.classList.add('d-none');
+                    if (selfScheduledInfo) selfScheduledInfo.classList.remove('d-none');
+                    
                     const section = document.getElementById('upcomingBookings');
                     const list = document.getElementById('bookingsList');
                     
@@ -771,6 +787,13 @@
                     `}).join('');
                     
                     section.classList.remove('d-none');
+                } else {
+                    // No hay reservas: mostrar botón de agendar
+                    if (selfScheduleBtn) selfScheduleBtn.classList.remove('d-none');
+                    if (selfScheduledInfo) selfScheduledInfo.classList.add('d-none');
+                    
+                    const section = document.getElementById('upcomingBookings');
+                    if (section) section.classList.add('d-none');
                 }
                 
             } catch (error) {
