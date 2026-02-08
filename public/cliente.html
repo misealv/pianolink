@@ -4301,6 +4301,10 @@
             const canJoin = nextClassData.canJoinNow;
             const minutes = nextClassData.minutesUntilClass;
             
+            // Determinar si se puede modificar (24 horas antes)
+            const hoursUntilClass = minutes / 60;
+            const canModify = hoursUntilClass >= 24;
+            
             // URL de la sala del profesor - usar formato que funciona para estudiantes
             // Incluir role=student para que el sistema sepa que es alumno
             // Y auth=1 para indicar que está logueado (el token se envía en el socket)
@@ -4346,6 +4350,23 @@
                        ${canJoin ? '' : 'onclick="return alertWaitTime(event)"'}>
                         ${canJoin ? '🚀 Entrar a la Clase' : '⏳ Esperando hora de clase'}
                     </a>
+                    
+                    ${canModify ? `
+                    <div class="next-class-actions" style="display: flex; gap: 12px; margin-top: 12px; justify-content: center;">
+                        <button onclick="rescheduleBooking('${booking._id}', '${teacher._id}')" 
+                                style="background: transparent; border: 1px solid #f59e0b; color: #f59e0b; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                            🔄 Reagendar
+                        </button>
+                        <button onclick="cancelBooking('${booking._id}')" 
+                                style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                            ❌ Cancelar
+                        </button>
+                    </div>
+                    ` : `
+                    <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 8px;">
+                        ⚠️ No modificable (menos de 24h)
+                    </p>
+                    `}
                 </div>
             `;
         }
@@ -4410,6 +4431,152 @@
             alert(`⏳ La sala se abre 15 minutos antes de la clase.\n\nPodrás entrar a las ${canJoinAt.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}`);
             event.preventDefault();
             return false;
+        }
+
+        // ==================== REAGENDAR / CANCELAR CLASE ====================
+        
+        async function cancelBooking(bookingId) {
+            if (!confirm('¿Estás seguro de cancelar esta clase?\n\nSe te devolverá 1 clase a tu saldo disponible.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/bookings/${bookingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ reason: 'Cancelado por el estudiante' })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('✅ Clase cancelada exitosamente.\n\nSe ha devuelto 1 clase a tu saldo.');
+                    loadDashboard();
+                } else {
+                    alert('❌ ' + (result.message || 'Error al cancelar la clase'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Error de conexión. Intenta nuevamente.');
+            }
+        }
+        
+        async function rescheduleBooking(bookingId, teacherId) {
+            // Mostrar modal con opción de elegir nuevo horario
+            const modal = document.createElement('div');
+            modal.id = 'rescheduleModal';
+            modal.innerHTML = `
+                <div class="modal-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+                    <div class="modal-content" style="background: #1a1a2e; border-radius: 16px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 style="color: #fff; margin: 0;">🔄 Reagendar Clase</h3>
+                            <button onclick="closeRescheduleModal()" style="background: none; border: none; color: #9ca3af; font-size: 24px; cursor: pointer;">&times;</button>
+                        </div>
+                        <p style="color: #9ca3af; margin-bottom: 20px;">Selecciona un nuevo horario con tu profesor:</p>
+                        <div id="rescheduleSlots" style="min-height: 200px;">
+                            <div style="text-align: center; padding: 40px;">
+                                <div style="width: 30px; height: 30px; border: 3px solid #6366f1; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                                <p style="color: #9ca3af; margin-top: 12px;">Cargando horarios disponibles...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+            `;
+            document.body.appendChild(modal);
+            
+            // Cargar slots disponibles
+            try {
+                const today = new Date();
+                const twoWeeks = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                
+                const response = await fetch(`/api/availability/teacher/${teacherId}?from=${today.toISOString()}&to=${twoWeeks.toISOString()}&timezone=${timezone}`);
+                const slots = await response.json();
+                
+                const container = document.getElementById('rescheduleSlots');
+                
+                if (!slots || slots.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #9ca3af;">
+                            <p>No hay horarios disponibles en los próximos 14 días.</p>
+                            <p style="font-size: 13px; margin-top: 8px;">Puedes contactar a soporte para más opciones.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Agrupar por día
+                const grouped = {};
+                slots.forEach(slot => {
+                    const d = new Date(slot.startTime);
+                    const key = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(slot);
+                });
+                
+                let html = '';
+                for (const [day, daySlots] of Object.entries(grouped)) {
+                    html += `
+                        <div style="margin-bottom: 16px;">
+                            <div style="color: #6366f1; font-weight: 600; font-size: 14px; margin-bottom: 8px; text-transform: capitalize;">${day}</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                ${daySlots.map(s => {
+                                    const t = new Date(s.startTime);
+                                    const time = t.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                                    return `<button onclick="confirmReschedule('${bookingId}', '${s._id}')" style="background: #2a2a3e; border: 1px solid #4f46e5; color: #fff; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s;" onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='#2a2a3e'">${time}</button>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                container.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error cargando slots:', error);
+                document.getElementById('rescheduleSlots').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ef4444;">
+                        <p>Error cargando horarios. Intenta nuevamente.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function closeRescheduleModal() {
+            const modal = document.getElementById('rescheduleModal');
+            if (modal) modal.remove();
+        }
+        
+        async function confirmReschedule(bookingId, newSlotId) {
+            if (!confirm('¿Confirmar reagendamiento a este nuevo horario?')) return;
+            
+            try {
+                const response = await fetch(`/api/bookings/${bookingId}/reschedule`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ newSlotId })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    closeRescheduleModal();
+                    alert('✅ Clase reagendada exitosamente.');
+                    loadDashboard();
+                } else {
+                    alert('❌ ' + (result.message || 'Error al reagendar'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Error de conexión');
+            }
         }
 
         // Verificar parámetros de URL (retorno de MercadoPago)
