@@ -336,6 +336,7 @@
             const status = getStatusBadge(booking.status);
             const photoUrl = getPhotoUrl(booking);
             const teacherName = booking.teacherId?.name || 'Profesor';
+            const studentName = booking.studentName || '';
             const roomUrl = booking.slotId?.midiSession?.roomUrl;
             const canJoin = timeInfo.canJoin && booking.status === 'confirmed' && roomUrl;
 
@@ -354,6 +355,7 @@
                             <div class="flex items-start justify-between gap-4 mb-2">
                                 <div>
                                     <h3 class="text-lg font-bold text-white truncate">${teacherName}</h3>
+                                    ${studentName ? `<p class="text-accent-light text-sm font-medium">👤 ${studentName}</p>` : ''}
                                     <p class="text-gray-400 text-sm" title="${fullDate}">
                                         ${date} · ${time}
                                     </p>
@@ -423,6 +425,7 @@
             const status = getStatusBadge(booking.status);
             const photoUrl = getPhotoUrl(booking);
             const teacherName = booking.teacherId?.name || 'Profesor';
+            const studentName = booking.studentName || '';
             const canRate = booking.status === 'completed' && !booking.studentRating;
             const hasRating = booking.studentRating;
 
@@ -440,6 +443,7 @@
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-3">
                                 <h4 class="font-semibold text-gray-300 truncate">${teacherName}</h4>
+                                ${studentName ? `<span class="text-accent-light text-xs">• ${studentName}</span>` : ''}
                                 <span class="border px-2 py-0.5 rounded-full text-xs ${status.class}">
                                     ${status.text}
                                 </span>

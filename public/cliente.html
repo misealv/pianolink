@@ -4488,6 +4488,7 @@
 
             const booking = nextClassData.booking;
             const teacher = booking.teacher;
+            const studentName = booking.studentName || '';
             const classDate = new Date(booking.scheduledStart);
             
             // Formatear fecha y hora
@@ -4536,6 +4537,7 @@
                         }
                         <div class="next-class-details">
                             <h3>Clase con ${teacher.name}</h3>
+                            ${studentName ? `<p style="color: #6366f1; font-size: 14px; margin: 2px 0;">👤 Estudiante: ${studentName}</p>` : ''}
                             <div class="next-class-time">
                                 📅 ${formattedDate}<br>
                                 ⏰ <strong>${formattedTime}</strong> (${booking.duration} min)
