@@ -1035,10 +1035,8 @@
         const isTrialMode = urlParams.get('trial') === 'true';
         const token = localStorage.getItem('token');
         
-        // Si viene del onboarding (trial=true) y no tiene sesión, redirigir a login
-        if (isTrialMode && !token) {
-            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
-        }
+        // No redirigir automáticamente - la página funciona sin sesión
+        // La sesión solo es necesaria al momento de agendar (en profesor-perfil.html)
 
         // ==================== DOM ELEMENTS ====================
         const container = document.getElementById('teachersContainer');

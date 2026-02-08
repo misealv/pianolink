@@ -335,8 +335,15 @@
           localStorage.setItem('pianoUser', JSON.stringify(userToSave));
           localStorage.setItem('token', userData.token); // Para el panel del cliente
           
+          // Verificar si hay redirect pendiente (soporta redirect y return como parámetros)
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirectUrl = urlParams.get('redirect') || urlParams.get('return');
+          
           setTimeout(() => {
-            if (userToSave.role === 'admin') {
+            // Si hay redirect, usarlo (solo para rutas seguras que empiezan con /)
+            if (redirectUrl && (redirectUrl.startsWith('/') || redirectUrl.startsWith(window.location.origin))) {
+              window.location.href = redirectUrl;
+            } else if (userToSave.role === 'admin') {
               window.location.href = "admin.html";
             } else if (userToSave.role === 'teacher') {
               window.location.href = "dashboard.html";
