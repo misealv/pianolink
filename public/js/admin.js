@@ -6194,10 +6194,10 @@ async function saveKitV2Price() {
     const priceInput = document.getElementById('pricing-kit-v2');
     const statusDiv = document.getElementById('kit-v2-price-status');
     
-    const price = parseInt(priceInput.value);
+    const price = parseFloat(priceInput.value);
     
-    if (isNaN(price) || price < 1) {
-        showNotification('Por favor ingresa un precio válido (mínimo $1)', 'error');
+    if (isNaN(price) || price < 0.01) {
+        showNotification('Por favor ingresa un precio válido (mínimo $0.01)', 'error');
         return;
     }
     

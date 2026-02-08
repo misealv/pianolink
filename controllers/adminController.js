@@ -618,9 +618,9 @@ exports.updateKitV2Price = async (req, res) => {
     try {
         const { priceUSD } = req.body;
         
-        // Validación
-        if (typeof priceUSD !== 'number' || priceUSD < 1) {
-            return res.status(400).json({ message: 'El precio debe ser un número válido (mínimo $1)' });
+        // Validación (mínimo $0.01 para pruebas con dinero real)
+        if (typeof priceUSD !== 'number' || priceUSD < 0.01) {
+            return res.status(400).json({ message: 'El precio debe ser un número válido (mínimo $0.01)' });
         }
         
         if (priceUSD > 500) {

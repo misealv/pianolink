@@ -40,3 +40,6 @@ coverage/
 *.tmp
 .cache/
 .env
+DEPLOY_INSTRUCCIONES.txt
+configure-secrets.sh
+deploy-fly.sh
