@@ -3114,12 +3114,15 @@ router.get('/v2/my-kit', protect, async (req, res) => {
         res.json({ 
             success: true, 
             kit: {
+                _id: kit._id,
                 id: kit._id,
+                overallStatus: kit.overallStatus,
                 status: kit.overallStatus,
                 ...statusInfo,
                 createdAt: kit.createdAt,
                 setupSession: kit.setupSession,
-                trialClass: kit.trialClass
+                trialClass: kit.trialClass,
+                interview: kit.interview
             }
         });
     } catch (error) {

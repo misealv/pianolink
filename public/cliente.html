@@ -2142,7 +2142,8 @@
                 pendingValidations = pendingData.sessions || [];
                 
                 // Cargar estado del Welcome Kit V2
-                const myKitData = myKitRes.ok ? await myKitRes.json() : null;
+                const myKitRaw = myKitRes.ok ? await myKitRes.json() : null;
+                const myKitData = myKitRaw?.kit || null;
 
                 // Guardar referencia para uso en agendamiento
                 currentUserData = user;
