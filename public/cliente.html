@@ -2111,7 +2111,7 @@
         // Cargar datos del usuario
         async function loadDashboard() {
             try {
-                const [userRes, paymentsRes, subscriptionRes, ordersRes, nextClassRes, packagesRes, mySubsRes, pendingRes, myKitRes] = await Promise.all([
+                const [userRes, paymentsRes, subscriptionRes, ordersRes, nextClassRes, packagesRes, mySubsRes, pendingRes, myKitRes, pendingTrialRes] = await Promise.all([
                     fetch('/api/client/me', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/client/payments', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/client/subscription', { headers: { 'Authorization': `Bearer ${token}` } }),
@@ -2120,7 +2120,8 @@
                     fetch('/api/teacher-packages/available', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/subscriptions/my', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/class-sessions/pending', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('/api/welcome-kit/v2/my-kit', { headers: { 'Authorization': `Bearer ${token}` } })
+                    fetch('/api/welcome-kit/v2/my-kit', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/bookings/pending-trial-rating', { headers: { 'Authorization': `Bearer ${token}` } })
                 ]);
 
                 if (!userRes.ok) {
@@ -2144,11 +2145,14 @@
                 // Cargar estado del Welcome Kit V2
                 const myKitRaw = myKitRes.ok ? await myKitRes.json() : null;
                 const myKitData = myKitRaw?.kit || null;
+                
+                // Cargar clase trial pendiente de calificación
+                pendingTrialData = pendingTrialRes.ok ? await pendingTrialRes.json() : { hasPendingRating: false };
 
                 // Guardar referencia para uso en agendamiento
                 currentUserData = user;
 
-                renderDashboard(user, paymentsData.payments, subscription, ordersData.orders, nextClassData, myKitData);
+                renderDashboard(user, paymentsData.payments, subscription, ordersData.orders, nextClassData, myKitData, pendingTrialData);
             } catch (error) {
                 console.error('Error cargando dashboard:', error);
                 if (error.message === 'No autorizado') {
@@ -2163,7 +2167,7 @@
         // Variable global para el kit del usuario
         let currentUserKit = null;
 
-        function renderDashboard(user, payments, subscription, orders, nextClass, myKit) {
+        function renderDashboard(user, payments, subscription, orders, nextClass, myKit, pendingTrial = {}) {
             // Actualizar nombre en header
             document.getElementById('userName').textContent = user.name;
             
@@ -2178,6 +2182,9 @@
             
             // Renderizar estado del Onboarding Kit
             const onboardingHTML = renderOnboardingStatus(myKit, nextClass);
+            
+            // Renderizar calificación de clase trial pendiente
+            const trialRatingHTML = renderTrialRating(pendingTrial);
 
             const main = document.getElementById('mainContent');
             main.innerHTML = `
@@ -2186,6 +2193,9 @@
                     <h1>¡Hola, ${user.name.split(' ')[0]}! 👋</h1>
                     <p>${isGuardian ? `Gestionas ${students.length} estudiante(s)` : 'Tu panel de clases de piano'}</p>
                 </section>
+                
+                <!-- Calificar Clase Trial -->
+                ${trialRatingHTML}
                 
                 <!-- Onboarding Kit Status (si aplica) -->
                 ${onboardingHTML}
@@ -3019,6 +3029,153 @@
                 alert(error.message || 'Error al agendar setup. Intenta de nuevo.');
                 btn.disabled = false;
                 btn.textContent = '⚙️ Confirmar Sesión de Setup';
+            }
+        }
+
+        // ============================================
+        // CALIFICACIÓN CLASE TRIAL
+        // ============================================
+        
+        let pendingTrialData = { hasPendingRating: false };
+        let trialRating = 0;
+
+        function renderTrialRating(data) {
+            if (!data || !data.hasPendingRating || !data.booking) return '';
+            
+            const booking = data.booking;
+            const teacher = booking.teacherId || {};
+            const packages = data.suggestedPackages || [];
+            const classDate = new Date(booking.scheduledStart);
+            
+            return `
+                <section class="trial-rating-section" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border: 2px solid #6366f1; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <span style="font-size: 48px;">🎉</span>
+                        <h2 style="color: #fff; margin: 12px 0 8px;">¡Felicidades por completar tu clase de prueba!</h2>
+                        <p style="color: #9ca3af; margin: 0;">Cuéntanos cómo estuvo tu experiencia con <strong style="color: #6366f1;">${teacher.name || 'tu profesor'}</strong></p>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                            ${teacher.branding?.profilePhotoUrl 
+                                ? `<img src="${teacher.branding.profilePhotoUrl}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">`
+                                : `<div style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; font-weight: 700;">${(teacher.name || 'P').charAt(0)}</div>`
+                            }
+                            <div>
+                                <div style="color: #fff; font-weight: 600;">Clase con ${teacher.name || 'Profesor'}</div>
+                                <div style="color: #9ca3af; font-size: 13px;">
+                                    📅 ${classDate.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <label style="display: block; color: #9ca3af; font-size: 14px; margin-bottom: 8px;">¿Cómo calificarías la clase?</label>
+                        <div id="trialRatingStars" style="display: flex; gap: 8px; margin-bottom: 16px;">
+                            ${[1,2,3,4,5].map(star => `
+                                <button onclick="setTrialRating(${star})" data-star="${star}" 
+                                    style="background: none; border: none; font-size: 32px; cursor: pointer; filter: grayscale(100%); transition: all 0.2s;">⭐</button>
+                            `).join('')}
+                        </div>
+                        
+                        <textarea id="trialFeedback" placeholder="Comparte tu experiencia (opcional)..." 
+                            style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid #333; border-radius: 8px; padding: 12px; color: #fff; font-size: 14px; resize: vertical; min-height: 60px;"></textarea>
+                        
+                        <button onclick="submitTrialRating('${booking._id}')" id="submitTrialBtn"
+                            style="width: 100%; margin-top: 16px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; border: none; padding: 14px; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s;" disabled>
+                            ⭐ Enviar Calificación
+                        </button>
+                    </div>
+                    
+                    ${packages.length > 0 ? `
+                    <div style="text-align: center; margin-top: 24px;">
+                        <h3 style="color: #fff; font-size: 18px; margin-bottom: 16px;">¿Te gustó la clase? Continúa aprendiendo 🎹</h3>
+                        <p style="color: #9ca3af; font-size: 14px; margin-bottom: 20px;">Paquetes disponibles con <strong style="color: #6366f1;">${teacher.name || 'este profesor'}</strong>:</p>
+                        
+                        <div style="display: grid; gap: 12px; ${packages.length > 1 ? 'grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));' : ''}">
+                            ${packages.slice(0, 3).map(pkg => `
+                                <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid #6366f140; border-radius: 12px; padding: 16px; text-align: center;">
+                                    <div style="font-size: 28px; margin-bottom: 8px;">📦</div>
+                                    <div style="color: #fff; font-weight: 600;">${pkg.classCount} clase${pkg.classCount > 1 ? 's' : ''}</div>
+                                    <div style="color: #6366f1; font-size: 20px; font-weight: 700; margin: 8px 0;">$${(pkg.priceUSD / 100).toFixed(0)} USD</div>
+                                    ${pkg.classCount > 1 ? `<div style="color: #9ca3af; font-size: 12px;">$${((pkg.priceUSD / 100) / pkg.classCount).toFixed(0)}/clase</div>` : ''}
+                                    <a href="/profesores/${teacher.slug || ''}?package=${pkg._id}" 
+                                       style="display: block; margin-top: 12px; background: #6366f1; color: #fff; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                                        Comprar
+                                    </a>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                </section>
+            `;
+        }
+
+        function setTrialRating(rating) {
+            trialRating = rating;
+            const container = document.getElementById('trialRatingStars');
+            const submitBtn = document.getElementById('submitTrialBtn');
+            
+            if (container) {
+                container.querySelectorAll('button').forEach(btn => {
+                    const star = parseInt(btn.dataset.star);
+                    btn.style.filter = star <= rating ? 'none' : 'grayscale(100%)';
+                    btn.style.transform = star <= rating ? 'scale(1.1)' : 'scale(1)';
+                });
+            }
+            
+            if (submitBtn) {
+                submitBtn.disabled = false;
+            }
+        }
+
+        async function submitTrialRating(bookingId) {
+            if (trialRating === 0) {
+                alert('Por favor selecciona una calificación');
+                return;
+            }
+            
+            const feedback = document.getElementById('trialFeedback')?.value || '';
+            const btn = document.getElementById('submitTrialBtn');
+            
+            btn.disabled = true;
+            btn.textContent = 'Enviando...';
+            
+            try {
+                const res = await fetch(`/api/bookings/${bookingId}/rate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ rating: trialRating, feedback })
+                });
+                
+                const result = await res.json();
+                
+                if (res.ok) {
+                    // Remover sección con animación
+                    const section = document.querySelector('.trial-rating-section');
+                    if (section) {
+                        section.style.transition = 'all 0.5s';
+                        section.style.opacity = '0';
+                        section.style.transform = 'translateY(-20px)';
+                        setTimeout(() => {
+                            section.remove();
+                            // Mostrar mensaje de agradecimiento
+                            alert('🎉 ¡Gracias por tu calificación! Tu onboarding está completo.');
+                        }, 500);
+                    }
+                } else {
+                    alert('Error: ' + (result.message || 'No se pudo enviar'));
+                    btn.disabled = false;
+                    btn.textContent = '⭐ Enviar Calificación';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión');
+                btn.disabled = false;
+                btn.textContent = '⭐ Enviar Calificación';
             }
         }
 

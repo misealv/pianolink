@@ -136,6 +136,49 @@ router.get('/my-classes', protect, async (req, res) => {
 });
 
 /**
+ * GET /api/bookings/pending-trial-rating
+ * Obtener clase de prueba pendiente de calificación
+ */
+router.get('/pending-trial-rating', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        // Buscar booking de prueba completado y pendiente de calificación
+        const pendingTrial = await Booking.findOne({
+            $or: [
+                { studentId: userId },
+                { clientId: userId }
+            ],
+            bookingType: 'trial',
+            status: 'completed',
+            trialPendingRating: true
+        })
+        .populate('teacherId', 'name branding.profilePhotoUrl slug')
+        .lean();
+
+        if (!pendingTrial) {
+            return res.json({ hasPendingRating: false, booking: null });
+        }
+
+        // Buscar paquetes del profesor para sugerir
+        const TeacherPackage = require('../models/TeacherPackage');
+        const packages = await TeacherPackage.find({
+            teacherId: pendingTrial.teacherId._id,
+            isActive: true
+        }).sort({ classCount: 1 }).lean();
+
+        res.json({
+            hasPendingRating: true,
+            booking: pendingTrial,
+            suggestedPackages: packages
+        });
+    } catch (error) {
+        console.error('Error obteniendo trial pendiente:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
  * GET /api/bookings/teacher
  * Obtener reservas del profesor
  */
@@ -521,13 +564,18 @@ router.post('/:id/rate', protect, async (req, res) => {
     try {
         const { rating, feedback } = req.body;
         
-        const booking = await Booking.findById(req.params.id);
+        const booking = await Booking.findById(req.params.id)
+            .populate('teacherId', 'name branding.profilePhotoUrl slug');
         
         if (!booking) {
             return res.status(404).json({ message: 'Reserva no encontrada' });
         }
         
-        if (booking.studentId.toString() !== req.user._id.toString()) {
+        // Verificar que es el estudiante o cliente
+        const isStudent = booking.studentId.toString() === req.user._id.toString();
+        const isClient = booking.clientId?.toString() === req.user._id.toString();
+        
+        if (!isStudent && !isClient) {
             return res.status(403).json({ message: 'Solo el estudiante puede calificar' });
         }
         
@@ -537,11 +585,36 @@ router.post('/:id/rate', protect, async (req, res) => {
         
         booking.studentRating = rating;
         booking.studentFeedback = feedback || '';
+        
+        // Si era clase de prueba, marcar como calificada
+        if (booking.bookingType === 'trial' && booking.trialPendingRating) {
+            booking.trialPendingRating = false;
+            booking.trialRatedAt = new Date();
+            
+            // Actualizar WelcomeKit a completed
+            const WelcomeKit = require('../models/WelcomeKit');
+            const kit = await WelcomeKit.findOne({
+                clientId: booking.clientId || booking.studentId,
+                overallStatus: 'trial_completed'
+            });
+            
+            if (kit) {
+                kit.trialClass.studentRating = rating;
+                kit.trialClass.studentFeedback = feedback || '';
+                kit.trialClass.ratedAt = new Date();
+                kit.overallStatus = 'completed';
+                await kit.save();
+                console.log(`[BookingRoutes] WelcomeKit ${kit._id} completado tras calificación`);
+            }
+        }
+        
         await booking.save();
         
         res.json({
             success: true,
-            message: 'Gracias por tu calificación'
+            message: 'Gracias por tu calificación',
+            teacher: booking.teacherId,
+            isTrialClass: booking.bookingType === 'trial'
         });
     } catch (error) {
         console.error('Error calificando:', error);

@@ -185,11 +185,29 @@ const welcomeKitSchema = new mongoose.Schema({
             'setup_scheduled',   // Setup agendado
             'trial_available',   // Setup completado, puede agendar prueba
             'trial_scheduled',   // Prueba agendada
+            'trial_completed',   // Clase de prueba completada, pendiente calificación
             'completed',         // Todo el onboarding completado
             'refunded',          // Reembolsado
             'disputed'           // En disputa
         ],
         default: 'paid'
+    },
+    
+    // ==================== CLASE DE PRUEBA ====================
+    trialClass: {
+        bookingId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Booking'
+        },
+        teacherId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        completedAt: { type: Date },
+        notes: { type: String },
+        studentRating: { type: Number, min: 1, max: 5 },
+        studentFeedback: { type: String },
+        ratedAt: { type: Date }
     },
     
     // ==================== DISPUTAS / PROBLEMAS ====================

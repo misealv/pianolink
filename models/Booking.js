@@ -166,6 +166,14 @@ const bookingSchema = mongoose.Schema({
     // Topics cubiertos en la clase
     topics: [String],
     
+    // ==================== CLASE DE PRUEBA (TRIAL) ====================
+    trialCompletedAt: Date,      // Cuando el profesor marcó como completada
+    trialPendingRating: {        // Pendiente de calificación del estudiante
+        type: Boolean,
+        default: false
+    },
+    trialRatedAt: Date,          // Cuando el estudiante calificó
+    
     // Tarea asignada
     homework: {
         description: String,

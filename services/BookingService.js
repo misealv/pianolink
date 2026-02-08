@@ -332,7 +332,7 @@ class BookingService {
             _id: bookingId,
             teacherId,
             status: 'in_progress'
-        });
+        }).populate('studentId', 'name email');
         
         if (!booking) {
             throw new Error('BOOKING_NOT_FOUND');
@@ -341,12 +341,45 @@ class BookingService {
         booking.markAsCompleted();
         booking.teacherNotes = notes;
         booking.topics = topics;
+        
+        // Para clases de prueba, marcar como pendiente de calificación
+        if (booking.bookingType === 'trial') {
+            booking.trialCompletedAt = new Date();
+            booking.trialPendingRating = true;
+        }
+        
         await booking.save();
         
         // Actualizar slot
         await TimeSlot.findByIdAndUpdate(booking.slotId, {
             status: 'completed'
         });
+
+        // === SI ES CLASE TRIAL, ACTUALIZAR WELCOME KIT ===
+        if (booking.bookingType === 'trial') {
+            try {
+                const WelcomeKit = require('../models/WelcomeKit');
+                // Buscar WelcomeKit por clientId (el estudiante)
+                const kit = await WelcomeKit.findOne({
+                    clientId: booking.clientId || booking.studentId,
+                    overallStatus: 'trial_available'
+                });
+                
+                if (kit) {
+                    kit.overallStatus = 'trial_completed';
+                    kit.trialClass = {
+                        bookingId: booking._id,
+                        teacherId: booking.teacherId,
+                        completedAt: new Date(),
+                        notes: notes
+                    };
+                    await kit.save();
+                    console.log(`[BookingService] WelcomeKit ${kit._id} actualizado a trial_completed`);
+                }
+            } catch (err) {
+                console.error('[BookingService] Error actualizando WelcomeKit:', err.message);
+            }
+        }
 
         // === CREAR CLASS SESSION SI HAY SUSCRIPCIÓN ===
         try {
