@@ -73,9 +73,8 @@ class WelcomeKitEmailService {
   async sendEquipmentReadyConfirmation(options) {
     const { to, clientName, calendarLink, adminName = 'Equipo PianoLink', adminWhatsapp = '' } = options;
 
-    const whatsappLink = adminWhatsapp 
-      ? `<a href="https://wa.me/${adminWhatsapp.replace(/[^0-9]/g, '')}" style="display:inline-block; background:#25D366; color:white; padding:10px 24px; border-radius:8px; text-decoration:none; font-weight:600; font-size:14px;">💬 WhatsApp</a>`
-      : '';
+    // Link al panel del cliente donde está el calendario de setup
+    const setupLink = 'https://www.pianolink.net/cliente';
 
     const html = `
     <!DOCTYPE html>
@@ -85,11 +84,11 @@ class WelcomeKitEmailService {
       <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #d4af37 0%, #f0d060 100%); padding: 40px 30px; text-align: center; }
-        .header h1 { color: #1a1a2e; margin: 0; font-size: 28px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 30px; text-align: center; }
+        .header h1 { color: white; margin: 0; font-size: 28px; }
         .content { padding: 40px 30px; }
         .content p { color: #444; line-height: 1.8; font-size: 16px; margin: 0 0 20px 0; }
-        .btn { display: inline-block; background: linear-gradient(135deg, #d4af37 0%, #b8962f 100%); color: #1a1a2e; text-decoration: none; padding: 16px 32px; border-radius: 10px; font-weight: bold; font-size: 16px; margin-top: 20px; }
+        .btn { display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 10px; font-weight: bold; font-size: 16px; margin-top: 20px; }
         .footer { background: #1a1a2e; padding: 30px; text-align: center; color: #888; font-size: 13px; }
       </style>
     </head>
@@ -106,24 +105,19 @@ class WelcomeKitEmailService {
             <li>Configurar el audio correctamente</li>
             <li>Probar que todo funcione perfecto para tu clase</li>
           </ul>
-          <p>Esta sesión dura aproximadamente 20 minutos y es por videollamada.</p>
+          <p>Esta sesión dura aproximadamente 15 minutos y es por videollamada.</p>
           
-          ${calendarLink ? `
           <p style="text-align: center; margin-top: 30px;">
-            <a href="${calendarLink}" class="btn">📅 Agendar mi Setup Técnico</a>
+            <a href="${setupLink}" class="btn">📅 Agendar mi Setup Técnico</a>
           </p>
-          ` : `
-          <p style="background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center;">
-            Te contactaremos pronto por WhatsApp para coordinar el horario de tu setup.
-          </p>
-          `}
+          <p style="text-align: center; color: #888; font-size: 13px; margin-top: 10px;">Selecciona el horario que más te acomode desde tu panel de estudiante.</p>
           
           <p style="margin-top: 30px;">¡Estamos emocionados de ayudarte a comenzar tu viaje musical! 🎹</p>
           <p style="color: #888; font-size: 14px; margin-top: 10px;">— ${adminName}, PianoLink</p>
-          ${whatsappLink}
         </div>
         <div class="footer">
-          <p>PianoLink - Clases de piano online con tecnología MIDI</p>
+          <p style="color: #d4af37; font-weight: bold; margin: 0 0 10px 0;">${adminName} — PianoLink</p>
+          <p>Clases de piano online con tecnología MIDI</p>
           <p>¿Dudas? Escríbenos a hola@pianolink.net</p>
         </div>
       </div>
@@ -135,7 +129,7 @@ class WelcomeKitEmailService {
       const result = await this.resend.emails.send({
         from: this.fromEmail,
         to: [to],
-        subject: `✅ ¡Equipo listo! Agendemos tu setup - PianoLink`,
+        subject: `✅ ¡Equipo listo! Agenda tu Setup Técnico — PianoLink`,
         html
       });
 
@@ -327,26 +321,19 @@ class WelcomeKitEmailService {
           <ol style="color: #555; line-height: 2; padding-left: 20px; margin: 0;">
             <li><strong>Compra lo necesario</strong> usando los links de arriba (o donde prefieras)</li>
             <li><strong>Cuando tengas todo</strong>, entra a tu cuenta en PianoLink y presiona el botón "Ya tengo mi equipo listo"</li>
-            <li><strong>Agendaremos tu Setup Técnico</strong> para configurar todo juntos por videollamada</li>
+            <li><strong>Agenda tu Setup Técnico</strong> desde tu panel — selecciona el horario que más te acomode para configurar todo juntos por videollamada</li>
             <li><strong>¡Tu primera clase!</strong> con un profesor certificado</li>
           </ol>
         </div>
 
         <!-- CTA -->
         <div style="padding: 0 30px 40px 30px; text-align: center;">
-          ${calendarLink ? `
-          <p style="color: #888; font-size: 14px; margin-bottom: 15px;">¿Ya tienes todo? Agenda tu setup ahora:</p>
-          <a href="${calendarLink}" style="display: inline-block; background: linear-gradient(135deg, #d4af37 0%, #b8962f 100%); color: #1a1a2e; text-decoration: none; padding: 16px 40px; border-radius: 10px; font-weight: bold; font-size: 16px;">
-            📅 Agendar Setup Técnico
-          </a>
-          ` : `
           <div style="background: #e8f4fd; border-radius: 12px; padding: 20px;">
             <p style="color: #0c5460; margin: 0; font-size: 14px;">
-              💡 Cuando tengas tu equipo, ingresa a <a href="https://www.pianolink.net/cliente" style="color: #d4af37;">tu cuenta en PianoLink</a> 
-              y presiona "Ya tengo mi equipo listo" para coordinar tu setup.
+              💡 Cuando tengas tu equipo, ingresa a <a href="https://www.pianolink.net/cliente" style="color: #d4af37; font-weight: bold;">tu panel de estudiante</a> 
+              para confirmar que está listo y agendar tu setup técnico.
             </p>
           </div>
-          `}
         </div>
 
         <!-- Footer -->
