@@ -12,12 +12,17 @@ function generateInterviewConfirmationEmail(data) {
         interviewTimezone,  // Timezone display (ej: "Chile (GMT-3)")
         meetingLink,
         staffName,
-        whatsappNumber
+        whatsappNumber,
+        adminName,           // Nombre dinámico del administrador
+        adminEmail           // Email dinámico del administrador
     } = data;
+
+    // Nombre del staff que conduce la entrevista (prioriza staffName del slot, luego adminName)
+    const displayStaffName = staffName || adminName || 'Equipo PianoLink';
 
     const whatsappUrl = whatsappNumber
         ? `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`
-        : 'https://wa.me/56912345678';
+        : 'https://wa.me/56959089770';
 
     return `
 <!DOCTYPE html>
@@ -72,12 +77,10 @@ function generateInterviewConfirmationEmail(data) {
                     <div style="color:#fff; font-size:16px; font-weight:600;">15 minutos</div>
                 </div>
 
-                ${staffName ? `
                 <div style="display:block; padding:12px; background:rgba(212,175,55,0.1); border-radius:8px;">
                     <div style="color:#888; font-size:12px; text-transform:uppercase; margin-bottom:4px;">👤 Con</div>
-                    <div style="color:#fff; font-size:16px; font-weight:600;">${staffName}</div>
+                    <div style="color:#fff; font-size:16px; font-weight:600;">${displayStaffName}</div>
                 </div>
-                ` : ''}
             </div>
 
             ${meetingLink ? `
@@ -116,8 +119,11 @@ function generateInterviewConfirmationEmail(data) {
 
         <!-- Footer -->
         <div style="background:#0d0d1a; padding:20px 32px; text-align:center; border-top:1px solid #333;">
+            <p style="color:#888; font-size:13px; margin:0 0 4px;">
+                ${displayStaffName} — PianoLink 🎹
+            </p>
             <p style="color:#666; font-size:12px; margin:0;">
-                PianoLink — Clases de piano en tiempo real 🎹
+                Clases de piano en tiempo real
             </p>
         </div>
     </div>

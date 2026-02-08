@@ -29,7 +29,9 @@ function generateWelcomeKitEmail(data) {
         totalPaid,
         currency = 'USD',
         orderId,
-        whatsappNumber = '+56912345678'
+        whatsappNumber = '+56959089770',
+        adminName = 'Equipo PianoLink',
+        adminEmail = 'hola@pianolink.net'
     } = data;
 
     const isGuardian = students.length > 0;
@@ -179,9 +181,9 @@ function generateWelcomeKitEmail(data) {
                                                     <div style="background: #22c55e; color: white; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-weight: bold;">1</div>
                                                 </td>
                                                 <td>
-                                                    <strong style="color: #166534;">Te contactaremos por WhatsApp</strong>
+                                                    <strong style="color: #166534;">Agenda tu entrevista de bienvenida</strong>
                                                     <p style="color: #4b5563; margin: 5px 0 0 0; font-size: 14px;">
-                                                        En las próximas 24 horas te escribiremos para agendar tu sesión.
+                                                        Ingresa a tu panel y elige un horario para tu entrevista con ${adminName}.
                                                     </p>
                                                 </td>
                                             </tr>
@@ -247,8 +249,11 @@ function generateWelcomeKitEmail(data) {
                             <table width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td style="text-align: center;">
-                                        <p style="color: #9ca3af; font-size: 14px; margin: 0 0 10px 0;">
-                                            🎹 PianoLink - Clases de piano online personalizadas
+                                        <p style="color: #9ca3af; font-size: 14px; margin: 0 0 6px 0;">
+                                            🎹 ${adminName} — PianoLink
+                                        </p>
+                                        <p style="color: #9ca3af; font-size: 13px; margin: 0 0 6px 0;">
+                                            Clases de piano online personalizadas
                                         </p>
                                         <p style="color: #9ca3af; font-size: 12px; margin: 0;">
                                             Este email fue enviado a ${clientEmail}

@@ -47,6 +47,7 @@ function updateContentTitle(moduleName) {
         'clients': { icon: '👨‍👧‍👦', text: 'Clientes / Apoderados' },
         'payments': { icon: '💰', text: 'Pagos' },
         'welcome-kits': { icon: '📦', text: 'Welcome Kits' },
+        'admin-profile': { icon: '👤', text: 'Mi Perfil' },
         'pricing': { icon: '💰', text: 'Configuración de Precios' }
     };
     
@@ -69,6 +70,7 @@ function loadModuleData(moduleName) {
         case 'payments': loadPaymentsDashboard(); break;
         case 'payouts': loadPayouts(); break;
         case 'welcome-kits': loadWelcomeKits(); break;
+        case 'admin-profile': loadAdminProfile(); break;
         case 'pricing': loadPricingConfig(); loadKitV2Price(); break;
     }
 }
@@ -7131,3 +7133,128 @@ async function completeInterview(slotId) {
         showNotification('Error: ' + error.message, 'error');
     }
 }
+
+// ==================== PERFIL ADMINISTRADOR ====================
+
+/**
+ * Carga el perfil del administrador desde la API y rellena los campos
+ */
+async function loadAdminProfile() {
+    try {
+        const res = await fetch('/api/welcome-kit/v2/admin-profile', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        
+        const p = data.profile;
+        
+        // Rellenar campos
+        document.getElementById('admin-profile-name').value = p.name || '';
+        document.getElementById('admin-profile-whatsapp').value = p.whatsapp || '';
+        document.getElementById('admin-profile-email').value = p.email || '';
+        document.getElementById('admin-profile-role').value = p.role || '';
+        document.getElementById('admin-profile-meeting').value = p.meetingLink || '';
+        document.getElementById('admin-profile-timezone').value = p.timezone || 'America/Santiago';
+        document.getElementById('admin-profile-hours').value = p.businessHours || '';
+        document.getElementById('admin-profile-instagram').value = p.socialMedia?.instagram || '';
+        document.getElementById('admin-profile-youtube').value = p.socialMedia?.youtube || '';
+        document.getElementById('admin-profile-tiktok').value = p.socialMedia?.tiktok || '';
+        document.getElementById('admin-profile-signature').value = p.signature || '';
+        
+        // Actualizar preview
+        updateAdminProfilePreview();
+        
+        // Listeners para preview en tiempo real
+        ['admin-profile-name', 'admin-profile-whatsapp'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateAdminProfilePreview);
+        });
+    } catch (error) {
+        console.error('Error cargando perfil admin:', error);
+        showNotification('Error cargando perfil: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Actualiza la vista previa de cómo se ve el footer en los emails
+ */
+function updateAdminProfilePreview() {
+    const name = document.getElementById('admin-profile-name').value || 'Equipo PianoLink';
+    const whatsapp = document.getElementById('admin-profile-whatsapp').value || '+56959089770';
+    
+    const previewName = document.getElementById('preview-admin-name');
+    const previewWA = document.getElementById('preview-admin-whatsapp');
+    
+    if (previewName) previewName.textContent = `${name} — PianoLink`;
+    if (previewWA) previewWA.textContent = `💬 WhatsApp: ${whatsapp}`;
+}
+
+/**
+ * Guarda el perfil del administrador
+ */
+async function saveAdminProfile() {
+    const statusEl = document.getElementById('admin-profile-status');
+    
+    try {
+        const body = {
+            name: document.getElementById('admin-profile-name').value.trim(),
+            whatsapp: document.getElementById('admin-profile-whatsapp').value.trim(),
+            email: document.getElementById('admin-profile-email').value.trim(),
+            role: document.getElementById('admin-profile-role').value.trim(),
+            meetingLink: document.getElementById('admin-profile-meeting').value.trim(),
+            timezone: document.getElementById('admin-profile-timezone').value,
+            businessHours: document.getElementById('admin-profile-hours').value.trim(),
+            signature: document.getElementById('admin-profile-signature').value.trim(),
+            socialMedia: {
+                instagram: document.getElementById('admin-profile-instagram').value.trim(),
+                youtube: document.getElementById('admin-profile-youtube').value.trim(),
+                tiktok: document.getElementById('admin-profile-tiktok').value.trim()
+            }
+        };
+        
+        // Validaciones básicas
+        if (!body.name) {
+            showNotification('El nombre es obligatorio', 'error');
+            return;
+        }
+        if (!body.whatsapp) {
+            showNotification('El WhatsApp es obligatorio', 'error');
+            return;
+        }
+        
+        const res = await fetch('/api/welcome-kit/v2/admin-profile', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+        
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        
+        // Mostrar confirmación
+        if (statusEl) {
+            statusEl.style.display = 'block';
+            statusEl.style.background = 'rgba(34,197,94,0.15)';
+            statusEl.style.color = '#22c55e';
+            statusEl.style.border = '1px solid #22c55e40';
+            statusEl.innerHTML = '✅ Perfil guardado correctamente. Los próximos emails usarán estos datos.';
+            setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
+        }
+        
+        showNotification('✅ Perfil guardado', 'success');
+    } catch (error) {
+        console.error('Error guardando perfil:', error);
+        if (statusEl) {
+            statusEl.style.display = 'block';
+            statusEl.style.background = 'rgba(239,68,68,0.15)';
+            statusEl.style.color = '#ef4444';
+            statusEl.style.border = '1px solid #ef444440';
+            statusEl.innerHTML = '❌ Error: ' + error.message;
+        }
+        showNotification('Error guardando perfil: ' + error.message, 'error');
+    }
+}
+

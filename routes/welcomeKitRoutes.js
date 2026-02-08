@@ -28,6 +28,27 @@ const { generateInterviewConfirmationEmail } = require('../templates/interviewCo
 const { generateWelcomeKitEmail } = require('../templates/welcomeKitEmail');
 const moment = require('moment-timezone');
 
+// Helper: Obtener datos del admin para inyectar en emails
+async function _getAdminEmailData() {
+    try {
+        const profile = await GlobalConfig.getAdminProfile();
+        return {
+            adminName: profile.name || 'Equipo PianoLink',
+            adminEmail: profile.email || 'hola@pianolink.net',
+            whatsappNumber: profile.whatsapp || '+56959089770',
+            adminWhatsapp: profile.whatsapp || '+56959089770'
+        };
+    } catch (err) {
+        console.error('[AdminProfile] Error cargando perfil, usando defaults:', err.message);
+        return {
+            adminName: 'Equipo PianoLink',
+            adminEmail: 'hola@pianolink.net',
+            whatsappNumber: '+56959089770',
+            adminWhatsapp: '+56959089770'
+        };
+    }
+}
+
 // ==================== PRECIO KIT V2 (PÚBLICO) ====================
 
 /**
@@ -943,6 +964,7 @@ router.post('/verify', async (req, res) => {
             
             // Enviar email de bienvenida CON MAGIC LINK
             try {
+                const adminData = await _getAdminEmailData();
                 const emailHtml = generateWelcomeKitEmail({
                     clientName: user.name,
                     clientEmail: user.email,
@@ -951,7 +973,8 @@ router.post('/verify', async (req, res) => {
                     kitType: welcomeKit.kitType,
                     totalPaid: welcomeKit.payment?.amount,
                     currency: welcomeKit.payment?.currency || 'USD',
-                    orderId: orderId
+                    orderId: orderId,
+                    ...adminData
                 });
                 
                 await EmailService.sendSafe({
@@ -996,6 +1019,7 @@ router.post('/verify', async (req, res) => {
             
             // Enviar email de bienvenida (usuario existente)
             try {
+                const adminData = await _getAdminEmailData();
                 const emailHtml = generateWelcomeKitEmail({
                     clientName: user.name,
                     clientEmail: user.email,
@@ -1003,7 +1027,8 @@ router.post('/verify', async (req, res) => {
                     kitType: welcomeKit.kitType,
                     totalPaid: welcomeKit.payment?.amount,
                     currency: welcomeKit.payment?.currency || 'USD',
-                    orderId: orderId
+                    orderId: orderId,
+                    ...adminData
                 });
                 
                 await EmailService.sendSafe({
@@ -1355,6 +1380,7 @@ router.post('/verify-mercadopago', async (req, res) => {
             try {
                 const frontendUrl = process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev';
                 const magicLinkUrl = `${frontendUrl}/acceso/${magicLinkToken}`;
+                const adminData = await _getAdminEmailData();
                 
                 const emailHtml = generateWelcomeKitEmail({
                     clientName: user.name,
@@ -1364,7 +1390,8 @@ router.post('/verify-mercadopago', async (req, res) => {
                     kitType: welcomeKit.kitType,
                     totalPaid: welcomeKit.payment?.amount,
                     currency: welcomeKit.payment?.currency || 'CLP',
-                    orderId: mpPayment?.id || 'MP-' + Date.now()
+                    orderId: mpPayment?.id || 'MP-' + Date.now(),
+                    ...adminData
                 });
                 
                 await EmailService.sendSafe({
@@ -1407,6 +1434,7 @@ router.post('/verify-mercadopago', async (req, res) => {
             
             // Enviar email de confirmación de compra (usuario existente)
             try {
+                const adminData = await _getAdminEmailData();
                 const emailHtml = generateWelcomeKitEmail({
                     clientName: user.name,
                     clientEmail: user.email,
@@ -1415,7 +1443,8 @@ router.post('/verify-mercadopago', async (req, res) => {
                     kitType: welcomeKit.kitType,
                     totalPaid: welcomeKit.payment?.amount,
                     currency: welcomeKit.payment?.currency || 'CLP',
-                    orderId: mpPayment?.id || 'MP-' + Date.now()
+                    orderId: mpPayment?.id || 'MP-' + Date.now(),
+                    ...adminData
                 });
                 
                 await EmailService.sendSafe({
@@ -1796,6 +1825,7 @@ async function notifyAdminNewKit(welcomeKit, user) {
 async function notifyClientShipment(welcomeKit) {
     try {
         const client = welcomeKit.clientId;
+        const adminData = await _getAdminEmailData();
         
         await EmailService.sendSafe({
             to: client.email,
@@ -1820,9 +1850,9 @@ async function notifyClientShipment(welcomeKit) {
                     <li>¡Disfruta tu clase de prueba!</li>
                 </ol>
                 
-                <p>¿Preguntas? Responde este email o escríbenos por WhatsApp.</p>
+                <p>¿Preguntas? Escríbenos por <a href="https://wa.me/${adminData.adminWhatsapp.replace(/[^0-9]/g, '')}">WhatsApp</a>.</p>
                 
-                <p>🎹 El equipo de PianoLink</p>
+                <p>🎹 ${adminData.adminName} — PianoLink</p>
             `
         });
         
@@ -2922,6 +2952,7 @@ router.post('/v2/:id/send-recommendations', protect, adminOnly, async (req, res)
         }
 
         // Enviar email con recomendaciones
+        const adminData = await _getAdminEmailData();
         const emailResult = await WelcomeKitEmailService.sendEquipmentRecommendations({
             to: kit.clientEmail,
             clientName: kit.clientName,
@@ -2929,7 +2960,9 @@ router.post('/v2/:id/send-recommendations', protect, adminOnly, async (req, res)
             connectionType: connectionType || 'USB-B',
             recommendations,
             notes,
-            calendarLink
+            calendarLink,
+            adminName: adminData.adminName,
+            adminWhatsapp: adminData.adminWhatsapp
         });
 
         if (!emailResult.success) {
@@ -2989,10 +3022,13 @@ router.post('/v2/:id/client-ready', protect, async (req, res) => {
         await kit.save();
 
         // Enviar confirmación al cliente
+        const adminData = await _getAdminEmailData();
         await WelcomeKitEmailService.sendEquipmentReadyConfirmation({
             to: kit.clientEmail,
             clientName: kit.clientName,
-            calendarLink: req.body.calendarLink || ''
+            calendarLink: req.body.calendarLink || '',
+            adminName: adminData.adminName,
+            adminWhatsapp: adminData.adminWhatsapp
         });
 
         console.log(`[WelcomeKit V2] ✅ Cliente ${kit.clientEmail} confirmó equipo listo`);
@@ -3478,6 +3514,7 @@ router.post('/v2/:id/schedule-interview', protect, async (req, res) => {
         const interviewTime = _formatTime(slot.startTime, timezone);
 
         // Enviar email de confirmación
+        const adminData = await _getAdminEmailData();
         const emailHtml = generateInterviewConfirmationEmail({
             clientName: kit.clientName || req.user.name,
             clientEmail: kit.clientEmail || req.user.email,
@@ -3486,7 +3523,7 @@ router.post('/v2/:id/schedule-interview', protect, async (req, res) => {
             interviewTimezone: timezone,
             meetingLink: slot.meetingLink,
             staffName: slot.staffName,
-            whatsappNumber: process.env.WHATSAPP_NUMBER || ''
+            ...adminData
         });
 
         await EmailService.sendSafe({
@@ -3617,6 +3654,63 @@ function _formatTime(date, timezone) {
         return new Date(date).toISOString().split('T')[1].substring(0, 5);
     }
 }
+
+// ==================== PERFIL ADMINISTRADOR ====================
+
+/**
+ * GET /api/welcome-kit/v2/admin-profile
+ * Obtener perfil del administrador
+ */
+router.get('/v2/admin-profile', protect, adminOnly, async (req, res) => {
+    try {
+        const profile = await GlobalConfig.getAdminProfile();
+        res.json({ success: true, profile });
+    } catch (error) {
+        console.error('[AdminProfile] Error obteniendo perfil:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * PUT /api/welcome-kit/v2/admin-profile
+ * Actualizar perfil del administrador
+ */
+router.put('/v2/admin-profile', protect, adminOnly, async (req, res) => {
+    try {
+        const { name, whatsapp, email, role, timezone, meetingLink, socialMedia, businessHours, signature } = req.body;
+
+        let config = await GlobalConfig.findOne({ isDefault: true });
+        if (!config) {
+            config = new GlobalConfig({ isDefault: true });
+        }
+
+        // Actualizar solo los campos proporcionados
+        if (!config.adminProfile) config.adminProfile = {};
+        if (name !== undefined) config.adminProfile.name = name;
+        if (whatsapp !== undefined) config.adminProfile.whatsapp = whatsapp;
+        if (email !== undefined) config.adminProfile.email = email;
+        if (role !== undefined) config.adminProfile.role = role;
+        if (timezone !== undefined) config.adminProfile.timezone = timezone;
+        if (meetingLink !== undefined) config.adminProfile.meetingLink = meetingLink;
+        if (businessHours !== undefined) config.adminProfile.businessHours = businessHours;
+        if (signature !== undefined) config.adminProfile.signature = signature;
+        if (socialMedia) {
+            config.adminProfile.socialMedia = config.adminProfile.socialMedia || {};
+            if (socialMedia.instagram !== undefined) config.adminProfile.socialMedia.instagram = socialMedia.instagram;
+            if (socialMedia.youtube !== undefined) config.adminProfile.socialMedia.youtube = socialMedia.youtube;
+            if (socialMedia.tiktok !== undefined) config.adminProfile.socialMedia.tiktok = socialMedia.tiktok;
+        }
+
+        config.markModified('adminProfile');
+        await config.save();
+
+        console.log(`[AdminProfile] ✅ Perfil actualizado por ${req.user.name}`);
+        res.json({ success: true, profile: config.adminProfile });
+    } catch (error) {
+        console.error('[AdminProfile] Error actualizando perfil:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 
 module.exports = router;

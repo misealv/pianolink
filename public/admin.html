@@ -90,6 +90,9 @@
             <!-- Sistema -->
             <div class="nav-section">
                 <div class="nav-section-title">Sistema</div>
+                <div class="nav-item" data-module="admin-profile" onclick="switchModule('admin-profile')">
+                    <span class="icon">👤</span> Mi Perfil
+                </div>
                 <div class="nav-item" data-module="pricing" onclick="switchModule('pricing')">
                     <span class="icon">💰</span> Configuración de Precios
                 </div>
@@ -1135,6 +1138,148 @@
                     </div>
                     <div class="modal-body" id="payout-modal-body">
                         <!-- Contenido dinámico -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== PERFIL ADMINISTRADOR ==================== -->
+            <div id="module-admin-profile" class="module-view">
+                <div style="max-width:800px;">
+                    <h2 style="color:var(--text-primary); margin-bottom:10px;">👤 Mi Perfil de Administrador</h2>
+                    <p style="color:var(--text-secondary); margin-bottom:30px;">Estos datos se usan automáticamente en los emails del onboarding.</p>
+
+                    <!-- Datos Principales -->
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:30px; margin-bottom:20px;">
+                        <h3 style="color:var(--accent-gold); margin-bottom:20px;">🎹 Datos de Contacto</h3>
+                        
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px; color:var(--text-primary);">📛 Nombre</label>
+                            <input type="text" id="admin-profile-name" placeholder="Ej: Miguel Sepúlveda"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                            <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                Aparece en la firma de los emails y como contacto del alumno.
+                            </small>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px; color:var(--text-primary);">📱 WhatsApp</label>
+                            <input type="tel" id="admin-profile-whatsapp" placeholder="+56959089770"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                            <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                Número con código de país. Se usa en botones de WhatsApp en emails.
+                            </small>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px; color:var(--text-primary);">📧 Email de contacto</label>
+                            <input type="email" id="admin-profile-email" placeholder="hola@pianolink.net"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                            <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                Email público que ven los alumnos en los correos.
+                            </small>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px; color:var(--text-primary);">🎓 Rol / Título</label>
+                            <input type="text" id="admin-profile-role" placeholder="Director Musical"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                        </div>
+                    </div>
+
+                    <!-- Configuración y Videollamadas -->
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:30px; margin-bottom:20px;">
+                        <h3 style="color:var(--accent-blue); margin-bottom:20px;">🎥 Videollamadas y Horarios</h3>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px; color:var(--text-primary);">🔗 Link de videollamada por defecto</label>
+                            <input type="url" id="admin-profile-meeting" placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                            <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                Google Meet o Zoom. Se incluye en emails de entrevista/setup.
+                            </small>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px; color:var(--text-primary);">🌎 Zona horaria</label>
+                            <select id="admin-profile-timezone"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                                <option value="America/Santiago">Chile (Santiago)</option>
+                                <option value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</option>
+                                <option value="America/Bogota">Colombia (Bogotá)</option>
+                                <option value="America/Mexico_City">México (Ciudad de México)</option>
+                                <option value="America/Lima">Perú (Lima)</option>
+                                <option value="Europe/Madrid">España (Madrid)</option>
+                                <option value="America/New_York">USA (New York)</option>
+                                <option value="America/Los_Angeles">USA (Los Angeles)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px; color:var(--text-primary);">🕐 Horario de atención</label>
+                            <input type="text" id="admin-profile-hours" placeholder="Lun-Vie 9:00-18:00 (Chile)"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                        </div>
+                    </div>
+
+                    <!-- Redes Sociales -->
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:30px; margin-bottom:20px;">
+                        <h3 style="color:var(--accent-purple); margin-bottom:20px;">📱 Redes Sociales</h3>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px; color:var(--text-primary);">📸 Instagram</label>
+                            <input type="text" id="admin-profile-instagram" placeholder="@pianolink"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px; color:var(--text-primary);">▶️ YouTube</label>
+                            <input type="text" id="admin-profile-youtube" placeholder="https://youtube.com/@pianolink"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px; color:var(--text-primary);">🎵 TikTok</label>
+                            <input type="text" id="admin-profile-tiktok" placeholder="@pianolink"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                        </div>
+                    </div>
+
+                    <!-- Firma personalizada -->
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:30px; margin-bottom:20px;">
+                        <h3 style="color:var(--accent-orange); margin-bottom:20px;">✍️ Firma de Emails</h3>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px; color:var(--text-primary);">Firma personalizada (opcional)</label>
+                            <textarea id="admin-profile-signature" rows="3" placeholder="Ej: Pianista y fundador de PianoLink. Apasionado por la educación musical online."
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:14px; resize:vertical;"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Botón guardar -->
+                    <button class="btn btn-primary" onclick="saveAdminProfile()" style="width:100%; padding:15px; font-size:16px;">
+                        💾 Guardar Perfil
+                    </button>
+                    <div id="admin-profile-status" style="display:none; padding:15px; border-radius:8px; margin-top:15px;"></div>
+
+                    <!-- Preview -->
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:30px; margin-top:20px;">
+                        <h3 style="color:var(--text-secondary); margin-bottom:15px;">👁️ Vista previa en emails</h3>
+                        <div id="admin-profile-preview" style="background:#0d0d1a; border-radius:12px; padding:20px; text-align:center;">
+                            <p style="color:#d4af37; font-weight:bold; margin:0 0 4px;" id="preview-admin-name">Equipo PianoLink</p>
+                            <p style="color:#888; font-size:13px; margin:0 0 8px;">Clases de piano en tiempo real</p>
+                            <p style="color:#25D366; font-size:13px; margin:0;" id="preview-admin-whatsapp">💬 WhatsApp: +56959089770</p>
+                        </div>
                     </div>
                 </div>
             </div>

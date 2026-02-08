@@ -5,6 +5,23 @@ const globalConfigSchema = new mongoose.Schema({
     // Usamos un ID fijo o un campo 'active' para asegurar que solo haya una configuración
     isDefault: { type: Boolean, default: true, unique: true },
     
+    // ==================== PERFIL DEL ADMINISTRADOR ====================
+    adminProfile: {
+        name: { type: String, default: 'PianoLink' },
+        whatsapp: { type: String, default: '+56959089770' },
+        email: { type: String, default: 'hola@pianolink.net' },
+        role: { type: String, default: 'Director Musical' },
+        timezone: { type: String, default: 'America/Santiago' },
+        meetingLink: { type: String, default: '' },              // Link por defecto para videollamadas
+        socialMedia: {
+            instagram: { type: String, default: '' },
+            youtube: { type: String, default: '' },
+            tiktok: { type: String, default: '' }
+        },
+        businessHours: { type: String, default: 'Lun-Vie 9:00-18:00 (Chile)' },
+        signature: { type: String, default: '' }                 // Firma personalizada para emails
+    },
+    
     // ==================== KIT DE BIENVENIDA V2 ====================
     welcomeKitV2: {
         priceUSD: { type: Number, default: 44 },  // Precio en USD
@@ -124,6 +141,23 @@ globalConfigSchema.methods.getPriceForRegion = function(priceType, regionCode) {
     }
     
     return price || null;
+};
+
+// Método estático: Obtener perfil del administrador para emails
+globalConfigSchema.statics.getAdminProfile = async function() {
+    const config = await this.findOne({ isDefault: true }).select('adminProfile').lean();
+    const defaults = {
+        name: 'PianoLink',
+        whatsapp: '+56959089770',
+        email: 'hola@pianolink.net',
+        role: 'Director Musical',
+        timezone: 'America/Santiago',
+        meetingLink: '',
+        socialMedia: { instagram: '', youtube: '', tiktok: '' },
+        businessHours: 'Lun-Vie 9:00-18:00 (Chile)',
+        signature: ''
+    };
+    return { ...defaults, ...(config?.adminProfile || {}) };
 };
 
 module.exports = mongoose.model('GlobalConfig', globalConfigSchema);

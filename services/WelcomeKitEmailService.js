@@ -31,7 +31,9 @@ class WelcomeKitEmailService {
       connectionType = 'USB',
       recommendations = [],
       notes = '',
-      calendarLink = ''
+      calendarLink = '',
+      adminName = 'Equipo PianoLink',
+      adminWhatsapp = ''
     } = options;
 
     // Productos recomendados por defecto según tipo de conexión
@@ -44,7 +46,9 @@ class WelcomeKitEmailService {
       connectionType,
       recommendations: allRecommendations,
       notes,
-      calendarLink
+      calendarLink,
+      adminName,
+      adminWhatsapp
     });
 
     try {
@@ -67,7 +71,11 @@ class WelcomeKitEmailService {
    * Email de confirmación cuando el cliente indica que tiene el equipo listo
    */
   async sendEquipmentReadyConfirmation(options) {
-    const { to, clientName, calendarLink } = options;
+    const { to, clientName, calendarLink, adminName = 'Equipo PianoLink', adminWhatsapp = '' } = options;
+
+    const whatsappLink = adminWhatsapp 
+      ? `<a href="https://wa.me/${adminWhatsapp.replace(/[^0-9]/g, '')}" style="display:inline-block; background:#25D366; color:white; padding:10px 24px; border-radius:8px; text-decoration:none; font-weight:600; font-size:14px;">💬 WhatsApp</a>`
+      : '';
 
     const html = `
     <!DOCTYPE html>
@@ -111,6 +119,8 @@ class WelcomeKitEmailService {
           `}
           
           <p style="margin-top: 30px;">¡Estamos emocionados de ayudarte a comenzar tu viaje musical! 🎹</p>
+          <p style="color: #888; font-size: 14px; margin-top: 10px;">— ${adminName}, PianoLink</p>
+          ${whatsappLink}
         </div>
         <div class="footer">
           <p>PianoLink - Clases de piano online con tecnología MIDI</p>
@@ -228,7 +238,7 @@ class WelcomeKitEmailService {
    * Construye el HTML del email de recomendaciones
    */
   buildRecommendationEmailHTML(options) {
-    const { clientName, keyboardBrand, connectionType, recommendations, notes, calendarLink } = options;
+    const { clientName, keyboardBrand, connectionType, recommendations, notes, calendarLink, adminName = 'Equipo PianoLink', adminWhatsapp = '' } = options;
 
     const recommendationCards = recommendations.map(rec => {
       const linksHtml = rec.links.map(link => 
@@ -341,11 +351,17 @@ class WelcomeKitEmailService {
 
         <!-- Footer -->
         <div style="background: #1a1a2e; padding: 30px; text-align: center;">
-          <p style="color: #d4af37; font-weight: bold; margin: 0 0 10px 0;">PianoLink</p>
+          <p style="color: #d4af37; font-weight: bold; margin: 0 0 10px 0;">${adminName} — PianoLink</p>
           <p style="color: #888; font-size: 13px; margin: 0;">Clases de piano online con tecnología MIDI</p>
+          ${adminWhatsapp ? `
+          <p style="margin: 15px 0 0 0;">
+            <a href="https://wa.me/${adminWhatsapp.replace(/[^0-9]/g, '')}" style="color: #25D366; text-decoration: none; font-size: 13px;">💬 WhatsApp: ${adminWhatsapp}</a>
+          </p>
+          ` : `
           <p style="color: #666; font-size: 12px; margin: 15px 0 0 0;">
             ¿Dudas? Responde a este email o escríbenos por WhatsApp
           </p>
+          `}
         </div>
       </div>
     </body>
