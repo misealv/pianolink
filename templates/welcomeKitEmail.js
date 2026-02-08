@@ -99,7 +99,7 @@ function generateWelcomeKitEmail(data) {
                                 <table width="100%" cellpadding="0" cellspacing="0">
                                     <tr>
                                         <td style="color: #6b7280; padding: 5px 0;">Orden:</td>
-                                        <td style="color: #1f2937; font-weight: 600; text-align: right;">#${orderId ? orderId.substring(0, 8).toUpperCase() : 'N/A'}</td>
+                                        <td style="color: #1f2937; font-weight: 600; text-align: right;">#${orderId ? String(orderId).substring(0, 8).toUpperCase() : 'N/A'}</td>
                                     </tr>
                                     <tr>
                                         <td style="color: #6b7280; padding: 5px 0;">Servicio:</td>

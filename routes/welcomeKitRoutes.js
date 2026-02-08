@@ -1763,7 +1763,7 @@ async function notifyAdminNewKit(welcomeKit, user) {
         // Email al admin
         const adminEmail = process.env.ADMIN_EMAIL || 'admin@pianolink.com';
         
-        await EmailService.sendEmail({
+        await EmailService.sendSafe({
             to: adminEmail,
             subject: `🎁 Nuevo Welcome Kit vendido - ${welcomeKit.shipping.address.country}`,
             html: `
@@ -1794,7 +1794,7 @@ async function notifyClientShipment(welcomeKit) {
     try {
         const client = welcomeKit.clientId;
         
-        await EmailService.sendEmail({
+        await EmailService.sendSafe({
             to: client.email,
             subject: '📦 ¡Tu Welcome Kit está en camino! - PianoLink',
             html: `
