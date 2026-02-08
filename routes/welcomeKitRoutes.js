@@ -3053,7 +3053,9 @@ router.put('/v2/:id/status', protect, adminOnly, async (req, res) => {
         const { status, notes } = req.body;
         
         const validStatuses = [
+            'paid',
             'entrevista_pendiente',
+            'entrevista_agendada',
             'esperando_equipo', 
             'setup_pending',
             'setup_scheduled',
