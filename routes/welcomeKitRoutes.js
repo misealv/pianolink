@@ -26,6 +26,7 @@ const CJDropshipping = require('../services/CJDropshippingService');
 const OnboardingSlot = require('../models/OnboardingSlot');
 const { generateInterviewConfirmationEmail } = require('../templates/interviewConfirmationEmail');
 const { generateWelcomeKitEmail } = require('../templates/welcomeKitEmail');
+const moment = require('moment-timezone');
 
 // ==================== PRECIO KIT V2 (PÚBLICO) ====================
 
@@ -3251,7 +3252,7 @@ router.post('/v2/interview-availability', protect, adminOnly, async (req, res) =
 
         const staffId = req.user._id;
         const staffName = req.user.name || 'Admin';
-        const now = new Date();
+        const nowLocal = moment.tz(timezone);
         let created = 0;
         let skipped = 0;
 
@@ -3261,22 +3262,20 @@ router.post('/v2/interview-availability', protect, adminOnly, async (req, res) =
                 const { dayOfWeek, startTime, endTime } = block;
                 if (dayOfWeek === undefined || !startTime || !endTime) continue;
 
-                // Encontrar la próxima fecha que coincida con dayOfWeek
-                const baseDate = new Date(now);
-                baseDate.setDate(baseDate.getDate() + (week * 7));
+                // Calcular la fecha en el timezone del admin
+                const baseDay = moment.tz(timezone).add(week, 'weeks');
                 
                 // Mover al día de la semana correcto
-                const currentDay = baseDate.getDay();
+                const currentDay = baseDay.day();
                 let daysUntil = dayOfWeek - currentDay;
-                if (week === 0 && daysUntil < 0) continue; // No generar días pasados esta semana
+                if (week === 0 && daysUntil < 0) continue;
                 if (week === 0 && daysUntil === 0) {
-                    // Es hoy, verificar si la hora ya pasó
                     const [startH] = startTime.split(':').map(Number);
-                    if (now.getHours() >= startH) continue;
+                    if (nowLocal.hours() >= startH) continue;
                 }
                 
-                const slotDate = new Date(baseDate);
-                slotDate.setDate(baseDate.getDate() + daysUntil);
+                const slotDay = baseDay.clone().add(daysUntil, 'days');
+                const dateStr = slotDay.format('YYYY-MM-DD');
 
                 // Generar sub-slots dentro del bloque
                 const [startH, startM] = startTime.split(':').map(Number);
@@ -3285,14 +3284,14 @@ router.post('/v2/interview-availability', protect, adminOnly, async (req, res) =
                 const blockEndMin = endH * 60 + endM;
 
                 for (let min = blockStartMin; min + duration <= blockEndMin; min += duration) {
-                    const slotStart = new Date(slotDate);
-                    slotStart.setHours(Math.floor(min / 60), min % 60, 0, 0);
-
-                    const slotEnd = new Date(slotStart);
-                    slotEnd.setMinutes(slotEnd.getMinutes() + duration);
+                    const h = Math.floor(min / 60);
+                    const m = min % 60;
+                    // Crear la hora en el timezone del admin → se convierte a UTC automáticamente
+                    const slotStart = moment.tz(`${dateStr} ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`, 'YYYY-MM-DD HH:mm', timezone).toDate();
+                    const slotEnd = new Date(slotStart.getTime() + duration * 60000);
 
                     // Solo crear si es futuro
-                    if (slotStart <= now) continue;
+                    if (slotStart <= new Date()) continue;
 
                     try {
                         await OnboardingSlot.create({
