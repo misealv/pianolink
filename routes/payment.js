@@ -302,10 +302,14 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
 // ============================================
 router.post('/create-kit-payment-stripe', async (req, res) => {
     try {
-        const { email, name, country, kitType, cableType } = req.body;
+        const { email, name, country, kitType, cableType, studentCount = 1, studentNames = [] } = req.body;
+        
+        // Precio por estudiante adicional
+        const EXTRA_STUDENT_PRICE = 15;
 
         console.log('[Stripe Kit] ========================================');
         console.log('[Stripe Kit] Datos recibidos:', JSON.stringify(req.body));
+        console.log('[Stripe Kit] Estudiantes:', studentCount, studentNames);
         console.log('[Stripe Kit] ========================================');
 
         if (!email || !name) {
@@ -325,7 +329,13 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
         const includesCable = kitType === 'full';
         const countryCode = (country || 'US').toUpperCase();
         
-        let totalPrice, setupPrice, cablePrice;
+        let totalPrice, setupPrice, cablePrice, extraStudentsPrice = 0;
+        
+        // Calcular precio por estudiantes adicionales
+        const numStudents = parseInt(studentCount) || 1;
+        if (numStudents > 1) {
+            extraStudentsPrice = (numStudents - 1) * EXTRA_STUDENT_PRICE;
+        }
         
         if (isV2) {
             // Kit V2: leer precio desde config o usar default $44 USD
@@ -339,6 +349,9 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
             totalPrice = setupPrice + cablePrice;
         }
         
+        // Sumar estudiantes adicionales
+        totalPrice += extraStudentsPrice;
+        
         const currency = 'usd';
         const priceInCents = Math.round(totalPrice * 100);
         
@@ -346,20 +359,25 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
         console.log('[Stripe Kit] isV2:', isV2);
         console.log('[Stripe Kit] Precio servicio: $' + setupPrice);
         console.log('[Stripe Kit] Precio cable: $' + cablePrice);
+        console.log('[Stripe Kit] Estudiantes adicionales: $' + extraStudentsPrice);
         console.log('[Stripe Kit] TOTAL: $' + totalPrice);
         
         let productName, productDescription;
         
         if (isV2) {
             productName = 'Kit de Bienvenida PianoLink';
-            productDescription = '✓ Asesoría técnica personalizada (~20 min) | ✓ Sesión de Setup Técnico (~20 min) | ✓ Clase de Prueba con Profesor (30 min)';
+            productDescription = numStudents > 1 
+                ? `✓ ${numStudents} estudiantes | ✓ Asesoría técnica | ✓ Setup Técnico | ✓ Clase de Prueba para cada uno`
+                : '✓ Asesoría técnica personalizada (~20 min) | ✓ Sesión de Setup Técnico (~20 min) | ✓ Clase de Prueba con Profesor (30 min)';
         } else {
-            productName = includesCable 
-                ? 'Kit Completo PianoLink - Día 88'
-                : 'Setup + Clase de Prueba PianoLink';
-            productDescription = includesCable
-                ? 'Cable MIDI Premium + Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma'
-                : 'Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma';
+            productName = numStudents > 1
+                ? `Kit Completo PianoLink - ${numStudents} estudiantes`
+                : (includesCable ? 'Kit Completo PianoLink - Día 88' : 'Setup + Clase de Prueba PianoLink');
+            productDescription = numStudents > 1
+                ? `Cable MIDI + Setup Técnico + ${numStudents} clases de prueba`
+                : (includesCable
+                    ? 'Cable MIDI Premium + Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma'
+                    : 'Setup Técnico Guiado + Clase de Prueba + Acceso Plataforma');
         }
 
         const { getStripeClient } = require('../config/stripe');
@@ -390,6 +408,9 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
                 cableType: cableType || 'NONE',
                 setupPrice: setupPrice.toString(),
                 cablePrice: cablePrice.toString(),
+                extraStudentsPrice: extraStudentsPrice.toString(),
+                studentCount: numStudents.toString(),
+                studentNames: JSON.stringify(studentNames || []),
                 totalPrice: totalPrice.toString(),
                 currency: 'USD'
             },

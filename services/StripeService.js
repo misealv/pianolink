@@ -858,11 +858,21 @@ class StripeService {
      * Crea usuario si no existe o actualiza kitPurchased
      */
     static async handleKitPurchase(session, metadata) {
-        const { customerName, customerEmail } = metadata;
+        const { customerName, customerEmail, studentCount, studentNames } = metadata;
         const email = session.customer_email || customerEmail;
         const name = customerName || session.customer_details?.name || 'Usuario';
+        const numStudents = parseInt(studentCount) || 1;
+        let parsedStudentNames = [];
+        
+        // Parsear nombres de estudiantes
+        try {
+            parsedStudentNames = studentNames ? JSON.parse(studentNames) : [];
+        } catch (e) {
+            parsedStudentNames = [];
+        }
 
         console.log(`[StripeService] 🎁 Procesando compra Kit de Bienvenida: ${email}`);
+        console.log(`[StripeService] 👨‍👩‍👧‍👦 Estudiantes: ${numStudents}`, parsedStudentNames);
 
         try {
             // Verificar si el usuario ya existe
@@ -875,24 +885,67 @@ class StripeService {
                 const lastName = lastNameParts.join(' ') || '';
                 const tempPassword = Math.random().toString(36).slice(-8);
 
-                user = await User.create({
+                // Si hay múltiples estudiantes, crear como guardian/apoderado
+                const isGuardian = numStudents > 1 || (parsedStudentNames.length > 0 && parsedStudentNames[0] !== name);
+                
+                const userData = {
                     name: firstName,
                     lastName: lastName,
                     email: email,
-                    password: tempPassword, // Se hasheará por el pre-save hook
-                    role: 'student',
+                    password: tempPassword,
+                    role: isGuardian ? 'client' : 'student',
                     kitPurchased: true,
                     kitPurchaseDate: new Date(),
                     stripeSessionId: session.id
-                });
+                };
+                
+                // Si es guardian, agregar estudiantes como managedStudents
+                if (isGuardian && parsedStudentNames.length > 0) {
+                    userData.clientData = {
+                        accountType: 'guardian',
+                        managedStudents: parsedStudentNames.map(studentName => ({
+                            name: studentName,
+                            classesRemaining: 1, // 1 clase de prueba por estudiante
+                            classesUsed: 0
+                        }))
+                    };
+                }
+
+                user = await User.create(userData);
 
                 isNewUser = true;
-                console.log(`[StripeService] ✅ Usuario creado: ${user.email}`);
+                console.log(`[StripeService] ✅ Usuario creado: ${user.email} (${isGuardian ? 'guardian' : 'student'})`);
             } else {
                 // Usuario ya existe, actualizar flag de kit
                 user.kitPurchased = true;
                 user.kitPurchaseDate = new Date();
                 user.stripeSessionId = session.id;
+                
+                // Si es guardian y hay nuevos estudiantes, agregarlos
+                if (numStudents > 1 && parsedStudentNames.length > 0) {
+                    if (!user.clientData) {
+                        user.clientData = { accountType: 'guardian', managedStudents: [] };
+                    }
+                    if (!user.clientData.managedStudents) {
+                        user.clientData.managedStudents = [];
+                    }
+                    
+                    // Agregar nuevos estudiantes si no existen
+                    for (const studentName of parsedStudentNames) {
+                        const exists = user.clientData.managedStudents.some(
+                            s => s.name.toLowerCase() === studentName.toLowerCase()
+                        );
+                        if (!exists) {
+                            user.clientData.managedStudents.push({
+                                name: studentName,
+                                classesRemaining: 1,
+                                classesUsed: 0
+                            });
+                        }
+                    }
+                    user.markModified('clientData');
+                }
+                
                 await user.save();
                 console.log(`[StripeService] ✅ Usuario actualizado: ${user.email}`);
             }
@@ -912,7 +965,9 @@ class StripeService {
                 metadata: {
                     type: 'kit_purchase',
                     userId: user._id.toString(),
-                    isNewUser
+                    isNewUser,
+                    studentCount: numStudents,
+                    studentNames: parsedStudentNames
                 },
                 processedAt: new Date()
             });

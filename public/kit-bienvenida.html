@@ -590,6 +590,133 @@
             pointer-events: none;
         }
 
+        /* Students Selector */
+        .students-selector {
+            margin-bottom: 25px;
+        }
+
+        .students-selector h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .students-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .students-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .students-icon {
+            font-size: 28px;
+        }
+
+        .students-text h4 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .students-text p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .students-counter {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .counter-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .counter-btn:hover:not(:disabled) {
+            background: var(--primary);
+            color: white;
+        }
+
+        .counter-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .counter-value {
+            font-size: 24px;
+            font-weight: 700;
+            min-width: 40px;
+            text-align: center;
+            color: var(--primary-light);
+        }
+
+        .students-price {
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--success);
+        }
+
+        .students-list {
+            margin-top: 15px;
+        }
+
+        .student-name-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .student-name-input input {
+            flex: 1;
+            padding: 10px 14px;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .student-name-input input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .student-number {
+            font-size: 12px;
+            color: var(--text-muted);
+            min-width: 80px;
+        }
+
         /* Pay Button */
         .btn-pay {
             width: 100%;
@@ -1078,6 +1205,34 @@
                         </div>
                     </div>
 
+                    <!-- Students Selector -->
+                    <div class="students-selector">
+                        <h3>👨‍👩‍👧‍👦 ¿Cuántos estudiantes?</h3>
+                        <div class="students-control">
+                            <div class="students-info">
+                                <span class="students-icon">🎹</span>
+                                <div class="students-text">
+                                    <h4>Estudiantes</h4>
+                                    <p>+$15 USD por cada alumno adicional</p>
+                                </div>
+                            </div>
+                            <div class="students-counter">
+                                <button type="button" class="counter-btn" id="btnDecreaseStudents" onclick="changeStudentCount(-1)" disabled>−</button>
+                                <span class="counter-value" id="studentCount">1</span>
+                                <button type="button" class="counter-btn" id="btnIncreaseStudents" onclick="changeStudentCount(1)">+</button>
+                            </div>
+                        </div>
+                        <div class="students-price" id="studentsPrice" style="display: none;">
+                            ✨ Incluye clase de prueba para cada estudiante
+                        </div>
+                        <div class="students-list" id="studentsList">
+                            <div class="student-name-input">
+                                <span class="student-number">Estudiante 1:</span>
+                                <input type="text" id="student_0" name="students[]" placeholder="Nombre del estudiante" required>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Error Message -->
                     <div class="error-message" id="errorMessage"></div>
 
@@ -1157,6 +1312,8 @@
         let selectedProducts = [];
         let pricing = null;
         let optionalProducts = [];
+        let studentCount = 1;
+        const EXTRA_STUDENT_PRICE = 15; // USD por estudiante adicional
 
         // DOM Elements
         const form = document.getElementById('kitForm');
@@ -1258,13 +1415,72 @@
             renderOptionalProducts(); // Re-render with new prices
         }
 
+        // Change student count
+        function changeStudentCount(delta) {
+            const newCount = studentCount + delta;
+            if (newCount < 1 || newCount > 10) return;
+            
+            studentCount = newCount;
+            document.getElementById('studentCount').textContent = studentCount;
+            document.getElementById('btnDecreaseStudents').disabled = studentCount <= 1;
+            document.getElementById('btnIncreaseStudents').disabled = studentCount >= 10;
+            
+            // Mostrar/ocultar mensaje de precio
+            const priceMsg = document.getElementById('studentsPrice');
+            if (studentCount > 1) {
+                priceMsg.style.display = 'block';
+                priceMsg.innerHTML = `✨ ${studentCount} estudiantes = +$${(studentCount - 1) * EXTRA_STUDENT_PRICE} USD adicionales`;
+            } else {
+                priceMsg.style.display = 'none';
+            }
+            
+            // Actualizar lista de inputs de nombres
+            updateStudentInputs();
+            
+            // Actualizar precio total
+            updatePriceDisplay();
+        }
+
+        // Update student name inputs
+        function updateStudentInputs() {
+            const container = document.getElementById('studentsList');
+            let html = '';
+            
+            for (let i = 0; i < studentCount; i++) {
+                const existingValue = document.getElementById(`student_${i}`)?.value || '';
+                html += `
+                    <div class="student-name-input">
+                        <span class="student-number">Estudiante ${i + 1}:</span>
+                        <input type="text" id="student_${i}" name="students[]" 
+                               placeholder="Nombre del estudiante" 
+                               value="${existingValue}" required>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // Get student names
+        function getStudentNames() {
+            const names = [];
+            for (let i = 0; i < studentCount; i++) {
+                const input = document.getElementById(`student_${i}`);
+                if (input && input.value.trim()) {
+                    names.push(input.value.trim());
+                }
+            }
+            return names;
+        }
+
         // Update price display
         function updatePriceDisplay() {
             if (!pricing) return;
 
             let baseKit = pricing.baseKit || 25;
             let cablePrice = pricing.cable?.price || 10;
-            let total = baseKit + cablePrice;
+            let extraStudentsPrice = (studentCount - 1) * EXTRA_STUDENT_PRICE;
+            let total = baseKit + cablePrice + extraStudentsPrice;
 
             // Add optional products
             selectedProducts.forEach(productId => {
@@ -1291,6 +1507,16 @@
                     <span>$${cablePrice}</span>
                 </div>
             `;
+
+            // Agregar estudiantes adicionales al breakdown
+            if (studentCount > 1) {
+                breakdownHTML += `
+                    <div class="breakdown-item">
+                        <span>${studentCount - 1} estudiante${studentCount > 2 ? 's' : ''} adicional${studentCount > 2 ? 'es' : ''}</span>
+                        <span>+$${extraStudentsPrice}</span>
+                    </div>
+                `;
+            }
 
             selectedProducts.forEach(productId => {
                 const product = optionalProducts.find(p => p._id === productId);
@@ -1323,9 +1549,16 @@
             const email = document.getElementById('email').value.trim();
             const country = document.getElementById('country').value;
             const phone = document.getElementById('phone').value.trim();
+            const studentNames = getStudentNames();
 
             if (!name || !email) {
                 showError('Por favor completa todos los campos requeridos');
+                return;
+            }
+
+            // Validar nombres de estudiantes
+            if (studentNames.length !== studentCount) {
+                showError('Por favor ingresa el nombre de todos los estudiantes');
                 return;
             }
 
@@ -1352,7 +1585,9 @@
                         country,
                         phone,
                         cableType: selectedCable,
-                        optionalProducts: selectedProducts
+                        optionalProducts: selectedProducts,
+                        studentCount,
+                        studentNames
                     })
                 });
 
@@ -1367,7 +1602,14 @@
                 const stripeRes = await fetch('/api/payment/create-kit-payment-stripe', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, country })
+                    body: JSON.stringify({ 
+                        name, 
+                        email, 
+                        country,
+                        studentCount,
+                        studentNames,
+                        cableType: selectedCable
+                    })
                 });
                 
                 const stripeData = await stripeRes.json();
