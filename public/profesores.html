@@ -3,19 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profesores | PianoLink</title>
+    <title>Encuentra tu Profesor de Piano | PianoLink</title>
+    <meta name="description" content="Conecta con profesores de piano certificados. Clases online personalizadas con tecnología MIDI en tiempo real.">
+    <meta name="theme-color" content="#6366f1">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Encuentra tu Profesor de Piano Ideal | PianoLink">
+    <meta property="og:description" content="Profesores certificados, tecnología MIDI en tiempo real. Tu primera clase de prueba desde $15 USD.">
+    <meta property="og:type" content="website">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-dark: #0a0a0a;
             --bg-card: #141414;
+            --bg-card-hover: #1a1a1a;
+            --bg-elevated: #1e1e1e;
             --border: #2a2a2a;
+            --border-hover: #3a3a3a;
             --accent: #6366f1;
             --accent-light: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.25);
+            --accent-subtle: rgba(99, 102, 241, 0.1);
             --text-main: #e0e0e0;
             --text-muted: #888;
+            --text-dim: #666;
             --success: #4ade80;
+            --success-dim: rgba(74, 222, 128, 0.15);
             --warning: #fbbf24;
+            --warning-dim: rgba(251, 191, 36, 0.15);
+            --blue: #60a5fa;
+            --blue-dim: rgba(96, 165, 250, 0.15);
+            --error: #f87171;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-full: 9999px;
+            --shadow-card: 0 4px 20px rgba(0,0,0,0.3);
+            --shadow-hover: 0 20px 40px rgba(99,102,241,0.2);
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.25s ease;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,15 +51,22 @@
         body {
             background: var(--bg-dark);
             color: var(--text-main);
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.5;
         }
 
-        /* Header */
+        /* ==================== HEADER ==================== */
         .header {
-            background: linear-gradient(180deg, rgba(99,102,241,0.1) 0%, transparent 100%);
+            background: linear-gradient(180deg, rgba(99,102,241,0.08) 0%, transparent 100%);
             border-bottom: 1px solid var(--border);
-            padding: 20px 40px;
+            padding: 16px 32px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
         }
         .header-content {
             max-width: 1400px;
@@ -41,122 +76,318 @@
             align-items: center;
         }
         .logo {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 800;
             background: linear-gradient(135deg, var(--accent), var(--accent-light));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .header-actions a {
             color: var(--text-muted);
             text-decoration: none;
-            margin-left: 20px;
             font-size: 14px;
-            transition: color 0.3s;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
         }
-        .header-actions a:hover { color: var(--accent-light); }
+        .header-actions a:hover { 
+            color: var(--text-main);
+            background: rgba(255,255,255,0.05);
+        }
+        .header-actions .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        .header-actions .btn-primary:hover {
+            background: var(--accent-light);
+        }
 
-        /* Main */
+        /* ==================== HERO SECTION ==================== */
+        .hero {
+            text-align: center;
+            padding: 60px 20px 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .hero h1 {
+            font-size: clamp(28px, 5vw, 42px);
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #fff 0%, var(--text-muted) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            color: var(--text-muted);
+            font-size: 18px;
+            margin-bottom: 24px;
+        }
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 32px;
+        }
+        .hero-stat {
+            text-align: center;
+        }
+        .hero-stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--accent-light);
+        }
+        .hero-stat-label {
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ==================== MAIN LAYOUT ==================== */
         .main {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 40px;
+            padding: 0 40px 60px;
         }
 
-        /* Page Title */
-        .page-title {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        .page-title h1 {
-            font-size: 32px;
-            font-weight: 800;
-            margin-bottom: 10px;
-        }
-        .page-title p {
-            color: var(--text-muted);
-            font-size: 16px;
-        }
-
-        /* Filters */
-        .filters {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        .filter-input {
-            padding: 12px 20px;
+        /* ==================== FILTERS BAR ==================== */
+        .filters-container {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 25px;
-            color: var(--text-main);
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.3s;
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            margin-bottom: 32px;
         }
-        .filter-input:focus { border-color: var(--accent); }
-        .filter-input::placeholder { color: var(--text-muted); }
+        .filters-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .filter-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .filter-input {
+            padding: 10px 16px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
+            transition: all var(--transition-fast);
+            min-width: 140px;
+        }
+        .filter-input:focus { 
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-subtle);
+        }
+        .filter-input::placeholder { color: var(--text-dim); }
+        .filter-input option { background: var(--bg-dark); }
+        
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding-left: 40px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23666'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 14px center;
+            background-size: 18px;
+        }
+        
+        /* Chips de día */
+        .day-chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .day-chip {
+            padding: 8px 12px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        .day-chip:hover {
+            border-color: var(--accent);
+            color: var(--text-main);
+        }
+        .day-chip.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
 
-        /* Teachers Grid */
+        /* Filter summary */
+        .filter-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+        .results-count {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .results-count strong {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+        .sort-select {
+            padding: 8px 12px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .clear-filters {
+            background: none;
+            border: none;
+            color: var(--accent-light);
+            font-size: 12px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+        }
+        .clear-filters:hover {
+            background: var(--accent-subtle);
+        }
+
+        /* ==================== TEACHERS GRID ==================== */
         .teachers-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
         }
 
-        /* Teacher Card */
+        /* ==================== TEACHER CARD ==================== */
         .teacher-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: var(--radius-lg);
             overflow: hidden;
-            transition: all 0.3s;
+            transition: all var(--transition-normal);
             cursor: pointer;
+            position: relative;
         }
         .teacher-card:hover {
             border-color: var(--accent);
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(99,102,241,0.15);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+        }
+        .teacher-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light));
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+        .teacher-card:hover::before {
+            opacity: 1;
         }
 
         .teacher-header {
-            padding: 25px;
+            padding: 24px 24px 16px;
             display: flex;
-            gap: 20px;
+            gap: 16px;
             align-items: flex-start;
         }
+        .teacher-photo-wrapper {
+            position: relative;
+            flex-shrink: 0;
+        }
         .teacher-photo {
-            width: 80px;
-            height: 80px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
             object-fit: cover;
             border: 3px solid var(--accent);
-            flex-shrink: 0;
         }
         .teacher-photo-placeholder {
-            width: 80px;
-            height: 80px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--accent), var(--accent-light));
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 700;
             color: white;
-            flex-shrink: 0;
+        }
+        .online-indicator {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
+            background: var(--success);
+            border: 2px solid var(--bg-card);
+            border-radius: 50%;
+        }
+        .teacher-info {
+            flex: 1;
+            min-width: 0;
         }
         .teacher-info h3 {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 700;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        .teacher-country {
-            font-size: 13px;
+        .teacher-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
             color: var(--text-muted);
             margin-bottom: 8px;
+        }
+        .teacher-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .teacher-rating {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--warning);
         }
         .teacher-bio {
             font-size: 13px;
@@ -168,23 +399,71 @@
             overflow: hidden;
         }
 
-        .teacher-specialties {
-            padding: 0 25px 15px;
+        /* Especialidades y disponibilidad */
+        .teacher-tags {
+            padding: 0 24px 16px;
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
         }
         .specialty-tag {
-            background: rgba(99,102,241,0.15);
+            background: var(--accent-subtle);
             color: var(--accent-light);
-            padding: 4px 12px;
-            border-radius: 20px;
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .language-tag {
+            background: var(--blue-dim);
+            color: var(--blue);
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
             font-size: 11px;
             font-weight: 500;
         }
 
+        /* Availability indicator */
+        .availability-row {
+            padding: 12px 24px;
+            background: rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-top: 1px solid var(--border);
+        }
+        .availability-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .availability-days {
+            display: flex;
+            gap: 4px;
+        }
+        .day-dot {
+            width: 26px;
+            height: 22px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 600;
+            background: var(--bg-dark);
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+        }
+        .day-dot.active {
+            background: var(--success-dim);
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        /* Footer del card */
         .teacher-footer {
-            padding: 20px 25px;
+            padding: 16px 24px;
             background: rgba(255,255,255,0.02);
             border-top: 1px solid var(--border);
             display: flex;
@@ -196,12 +475,12 @@
         }
         .price-label {
             font-size: 10px;
-            color: var(--text-muted);
+            color: var(--text-dim);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         .price-value {
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 700;
             color: var(--success);
         }
@@ -214,31 +493,37 @@
         .trial-badge {
             background: linear-gradient(135deg, var(--warning), #f59e0b);
             color: #000;
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 6px 14px;
+            border-radius: var(--radius-full);
             font-size: 11px;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .btn-view-profile {
             display: block;
             width: 100%;
-            padding: 15px;
+            padding: 14px;
             background: linear-gradient(135deg, var(--accent), var(--accent-light));
             color: white;
             border: none;
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
-            transition: opacity 0.3s;
+            transition: opacity var(--transition-fast);
         }
-        .btn-view-profile:hover { opacity: 0.9; }
+        .btn-view-profile:hover { 
+            opacity: 0.9; 
+        }
 
-        /* Empty State */
+        /* ==================== ESTADOS ==================== */
         .empty-state {
             text-align: center;
             padding: 80px 20px;
             color: var(--text-muted);
+            grid-column: 1 / -1;
         }
         .empty-state-icon {
             font-size: 64px;
@@ -250,30 +535,104 @@
             margin-bottom: 10px;
             color: var(--text-main);
         }
-
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 80px 20px;
-            color: var(--text-muted);
+        .empty-state p {
+            margin-bottom: 24px;
         }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--border);
-            border-top-color: var(--accent);
+        .empty-state-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        /* Loading skeleton */
+        .skeleton-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+        .skeleton-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        .skeleton-header {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .skeleton-avatar {
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            background: var(--border);
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .skeleton-info {
+            flex: 1;
+        }
+        .skeleton-line {
+            height: 14px;
+            background: var(--border);
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .skeleton-line.short { width: 60%; }
+        .skeleton-line.medium { width: 80%; }
+        .skeleton-tags {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .skeleton-tag {
+            width: 60px;
+            height: 24px;
+            background: var(--border);
+            border-radius: var(--radius-full);
+        }
+        .skeleton-footer {
+            height: 48px;
+            background: var(--border);
+            border-radius: var(--radius-sm);
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
 
-        /* Responsive */
+        /* ==================== RESPONSIVE ==================== */
         @media (max-width: 768px) {
-            .main { padding: 20px; }
-            .filters { flex-direction: column; }
+            .main { padding: 0 16px 40px; }
+            .hero { padding: 40px 16px 24px; }
+            .hero h1 { font-size: 24px; }
+            .hero-stats { gap: 24px; }
+            .filters-container { padding: 16px; }
+            .filters-row { flex-direction: column; }
+            .filter-group { width: 100%; }
             .filter-input { width: 100%; }
+            .day-chips { justify-content: center; }
+            .filter-summary { flex-direction: column; gap: 12px; text-align: center; }
             .teachers-grid { grid-template-columns: 1fr; }
+            .skeleton-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ==================== SCROLL REVEAL ==================== */
+        .teacher-card {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.4s ease forwards;
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -284,45 +643,179 @@
             <div class="header-actions">
                 <a href="/mi-kit.html">Mi Kit</a>
                 <a href="/login.html">Iniciar Sesión</a>
+                <a href="/kit-bienvenida-v2.html" class="btn-primary">Clase de Prueba</a>
             </div>
         </div>
     </header>
 
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Encuentra Tu Profesor de Piano Ideal</h1>
+        <p>Profesores certificados con tecnología MIDI en tiempo real. Tu primera clase de prueba desde <strong>$15 USD</strong>.</p>
+        <div class="hero-stats" id="heroStats">
+            <div class="hero-stat">
+                <div class="hero-stat-value" id="statTeachers">--</div>
+                <div class="hero-stat-label">Profesores</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value" id="statSpecialties">6+</div>
+                <div class="hero-stat-label">Especialidades</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value" id="statCountries">5+</div>
+                <div class="hero-stat-label">Países</div>
+            </div>
+        </div>
+    </section>
+
     <main class="main">
-        <div class="page-title">
-            <h1>Encuentra tu Profesor Ideal</h1>
-            <p>Profesores certificados de piano listos para enseñarte desde cualquier lugar</p>
+        <!-- Filters -->
+        <div class="filters-container">
+            <div class="filters-row">
+                <div class="filter-group" style="flex: 1;">
+                    <label class="filter-label">Buscar</label>
+                    <input type="text" id="filterSearch" class="filter-input search-input" placeholder="Nombre, especialidad...">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Especialidad</label>
+                    <select id="filterSpecialty" class="filter-input">
+                        <option value="">Todas</option>
+                        <option value="clásico">🎼 Clásico</option>
+                        <option value="jazz">🎷 Jazz</option>
+                        <option value="pop">🎤 Pop / Moderno</option>
+                        <option value="niños">👶 Niños</option>
+                        <option value="principiantes">🌱 Principiantes</option>
+                        <option value="avanzado">🎯 Avanzado</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Precio</label>
+                    <select id="filterPrice" class="filter-input">
+                        <option value="">Cualquiera</option>
+                        <option value="0-25">Hasta $25</option>
+                        <option value="25-40">$25 - $40</option>
+                        <option value="40-999">Más de $40</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Idioma</label>
+                    <select id="filterLanguage" class="filter-input">
+                        <option value="">Todos</option>
+                        <option value="español">🇪🇸 Español</option>
+                        <option value="english">🇺🇸 English</option>
+                        <option value="português">🇧🇷 Português</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="filters-row" style="margin-top: 16px;">
+                <div class="filter-group">
+                    <label class="filter-label">Disponibilidad</label>
+                    <div class="day-chips" id="dayChips">
+                        <button class="day-chip" data-day="1">Lun</button>
+                        <button class="day-chip" data-day="2">Mar</button>
+                        <button class="day-chip" data-day="3">Mié</button>
+                        <button class="day-chip" data-day="4">Jue</button>
+                        <button class="day-chip" data-day="5">Vie</button>
+                        <button class="day-chip" data-day="6">Sáb</button>
+                        <button class="day-chip" data-day="0">Dom</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-summary">
+                <div class="results-count">
+                    Mostrando <strong id="resultsCount">0</strong> profesores
+                    <button class="clear-filters" id="clearFilters" style="display: none;">✕ Limpiar filtros</button>
+                </div>
+                <select id="sortSelect" class="sort-select">
+                    <option value="">Ordenar por...</option>
+                    <option value="price_asc">Precio: menor a mayor</option>
+                    <option value="price_desc">Precio: mayor a menor</option>
+                    <option value="classes">Experiencia</option>
+                    <option value="availability">Disponibilidad</option>
+                </select>
+            </div>
         </div>
 
-        <div class="filters">
-            <input type="text" id="filterSearch" class="filter-input" placeholder="🔍 Buscar por nombre...">
-            <select id="filterSpecialty" class="filter-input">
-                <option value="">Todas las especialidades</option>
-                <option value="clásico">Clásico</option>
-                <option value="jazz">Jazz</option>
-                <option value="pop">Pop / Moderno</option>
-                <option value="niños">Especialista en niños</option>
-                <option value="principiantes">Principiantes</option>
-                <option value="avanzado">Nivel avanzado</option>
-            </select>
-            <select id="filterPrice" class="filter-input">
-                <option value="">Cualquier precio</option>
-                <option value="0-25">Hasta $25/clase</option>
-                <option value="25-40">$25 - $40/clase</option>
-                <option value="40-999">Más de $40/clase</option>
-            </select>
-        </div>
-
-        <div id="teachersContainer" class="loading">
-            <div class="spinner"></div>
-            <p>Cargando profesores...</p>
+        <!-- Teachers Grid -->
+        <div id="teachersContainer">
+            <!-- Skeleton loading -->
+            <div class="skeleton-grid">
+                ${[1,2,3,4,5,6].map(() => `
+                    <div class="skeleton-card">
+                        <div class="skeleton-header">
+                            <div class="skeleton-avatar"></div>
+                            <div class="skeleton-info">
+                                <div class="skeleton-line short"></div>
+                                <div class="skeleton-line medium"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-tags">
+                            <div class="skeleton-tag"></div>
+                            <div class="skeleton-tag"></div>
+                        </div>
+                        <div class="skeleton-footer"></div>
+                    </div>
+                `).join('')}
+            </div>
         </div>
     </main>
 
     <script>
+        // ==================== STATE ====================
         let allTeachers = [];
+        let filteredTeachers = [];
+        let activeFilters = {
+            search: '',
+            specialty: '',
+            price: '',
+            language: '',
+            day: null,
+            sort: ''
+        };
 
-        // Cargar profesores
+        // ==================== DOM ELEMENTS ====================
+        const container = document.getElementById('teachersContainer');
+        const resultsCount = document.getElementById('resultsCount');
+        const clearFiltersBtn = document.getElementById('clearFilters');
+        const dayChips = document.querySelectorAll('.day-chip');
+
+        // ==================== INICIALIZACIÓN ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTeachers();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Filtros de texto/select
+            document.getElementById('filterSearch').addEventListener('input', debounce(applyFilters, 300));
+            document.getElementById('filterSpecialty').addEventListener('change', applyFilters);
+            document.getElementById('filterPrice').addEventListener('change', applyFilters);
+            document.getElementById('filterLanguage').addEventListener('change', applyFilters);
+            document.getElementById('sortSelect').addEventListener('change', applyFilters);
+            
+            // Day chips
+            dayChips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const day = chip.dataset.day;
+                    if (chip.classList.contains('active')) {
+                        chip.classList.remove('active');
+                        activeFilters.day = null;
+                    } else {
+                        dayChips.forEach(c => c.classList.remove('active'));
+                        chip.classList.add('active');
+                        activeFilters.day = parseInt(day);
+                    }
+                    applyFilters();
+                });
+            });
+            
+            // Limpiar filtros
+            clearFiltersBtn.addEventListener('click', clearAllFilters);
+        }
+
+        // ==================== API ====================
         async function loadTeachers() {
             try {
                 const response = await fetch('/api/teacher-profile/catalog');
@@ -330,117 +823,237 @@
                 
                 if (data.success) {
                     allTeachers = data.teachers;
-                    renderTeachers(allTeachers);
+                    filteredTeachers = [...allTeachers];
+                    
+                    // Actualizar stats
+                    document.getElementById('statTeachers').textContent = allTeachers.length;
+                    
+                    // Contar países únicos
+                    const countries = new Set(allTeachers.map(t => t.country).filter(Boolean));
+                    if (countries.size > 0) {
+                        document.getElementById('statCountries').textContent = countries.size + '+';
+                    }
+                    
+                    renderTeachers(filteredTeachers);
                 } else {
-                    showError();
+                    showError('No se pudieron cargar los profesores');
                 }
             } catch (error) {
                 console.error('Error cargando profesores:', error);
-                showError();
+                showError('Error de conexión. Intenta recargar la página.');
             }
         }
 
-        // Renderizar profesores
+        // ==================== FILTROS ====================
+        function applyFilters() {
+            // Recoger valores de filtros
+            activeFilters.search = document.getElementById('filterSearch').value.toLowerCase().trim();
+            activeFilters.specialty = document.getElementById('filterSpecialty').value.toLowerCase();
+            activeFilters.price = document.getElementById('filterPrice').value;
+            activeFilters.language = document.getElementById('filterLanguage').value.toLowerCase();
+            activeFilters.sort = document.getElementById('sortSelect').value;
+            
+            // Aplicar filtros
+            filteredTeachers = allTeachers.filter(teacher => {
+                // Búsqueda de texto
+                if (activeFilters.search) {
+                    const searchableText = [
+                        teacher.name,
+                        teacher.bio,
+                        teacher.country,
+                        ...teacher.specialties,
+                        ...teacher.languages
+                    ].join(' ').toLowerCase();
+                    
+                    if (!searchableText.includes(activeFilters.search)) {
+                        return false;
+                    }
+                }
+                
+                // Especialidad
+                if (activeFilters.specialty) {
+                    if (!teacher.specialties.some(s => s.toLowerCase().includes(activeFilters.specialty))) {
+                        return false;
+                    }
+                }
+                
+                // Precio
+                if (activeFilters.price) {
+                    const [min, max] = activeFilters.price.split('-').map(Number);
+                    if (teacher.pricePerClass < min || teacher.pricePerClass > max) {
+                        return false;
+                    }
+                }
+                
+                // Idioma
+                if (activeFilters.language) {
+                    if (!teacher.languages.some(l => l.toLowerCase().includes(activeFilters.language))) {
+                        return false;
+                    }
+                }
+                
+                // Día de disponibilidad
+                if (activeFilters.day !== null) {
+                    if (!teacher.availability?.activeDays?.includes(activeFilters.day)) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            // Aplicar ordenamiento
+            if (activeFilters.sort) {
+                switch (activeFilters.sort) {
+                    case 'price_asc':
+                        filteredTeachers.sort((a, b) => a.pricePerClass - b.pricePerClass);
+                        break;
+                    case 'price_desc':
+                        filteredTeachers.sort((a, b) => b.pricePerClass - a.pricePerClass);
+                        break;
+                    case 'classes':
+                        filteredTeachers.sort((a, b) => (b.totalClasses || 0) - (a.totalClasses || 0));
+                        break;
+                    case 'availability':
+                        filteredTeachers.sort((a, b) => 
+                            (b.availability?.activeDays?.length || 0) - (a.availability?.activeDays?.length || 0)
+                        );
+                        break;
+                }
+            }
+            
+            // Mostrar/ocultar botón de limpiar
+            const hasActiveFilters = activeFilters.search || activeFilters.specialty || 
+                activeFilters.price || activeFilters.language || activeFilters.day !== null;
+            clearFiltersBtn.style.display = hasActiveFilters ? 'inline-block' : 'none';
+            
+            renderTeachers(filteredTeachers);
+        }
+
+        function clearAllFilters() {
+            document.getElementById('filterSearch').value = '';
+            document.getElementById('filterSpecialty').value = '';
+            document.getElementById('filterPrice').value = '';
+            document.getElementById('filterLanguage').value = '';
+            document.getElementById('sortSelect').value = '';
+            dayChips.forEach(c => c.classList.remove('active'));
+            
+            activeFilters = { search: '', specialty: '', price: '', language: '', day: null, sort: '' };
+            filteredTeachers = [...allTeachers];
+            clearFiltersBtn.style.display = 'none';
+            
+            renderTeachers(filteredTeachers);
+        }
+
+        // ==================== RENDER ====================
         function renderTeachers(teachers) {
-            const container = document.getElementById('teachersContainer');
+            resultsCount.textContent = teachers.length;
             
             if (teachers.length === 0) {
                 container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🎹</div>
-                        <h3>No se encontraron profesores</h3>
-                        <p>Intenta con otros filtros o vuelve más tarde</p>
+                    <div class="teachers-grid">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔍</div>
+                            <h3>No encontramos profesores</h3>
+                            <p>Intenta con otros filtros o explora todas las opciones</p>
+                            <button class="empty-state-btn" onclick="clearAllFilters()">Ver todos los profesores</button>
+                        </div>
                     </div>
                 `;
                 return;
             }
 
-            container.className = 'teachers-grid';
-            container.innerHTML = teachers.map(teacher => `
-                <div class="teacher-card" onclick="viewProfile('${teacher.slug}')">
-                    <div class="teacher-header">
-                        ${teacher.photo 
-                            ? `<img src="${teacher.photo}" class="teacher-photo" alt="${teacher.name}">`
-                            : `<div class="teacher-photo-placeholder">${teacher.name.charAt(0)}</div>`
-                        }
-                        <div class="teacher-info">
-                            <h3>${teacher.name}</h3>
-                            <div class="teacher-country">${teacher.country || '🌎 Internacional'}</div>
-                            <p class="teacher-bio">${teacher.bio || 'Profesor de piano con experiencia en enseñanza online.'}</p>
-                        </div>
-                    </div>
-                    
-                    ${teacher.specialties.length > 0 ? `
-                        <div class="teacher-specialties">
-                            ${teacher.specialties.slice(0, 3).map(s => `<span class="specialty-tag">${s}</span>`).join('')}
-                        </div>
-                    ` : ''}
-                    
-                    <div class="teacher-footer">
-                        <div class="price-info">
-                            <div class="price-label">Desde</div>
-                            <div class="price-value">$${teacher.pricePerClass.toFixed(0)} <span>USD/clase</span></div>
-                        </div>
-                        ${teacher.acceptsTrialClass ? '<div class="trial-badge">🎁 Clase de prueba</div>' : ''}
-                    </div>
-                    
-                    <button class="btn-view-profile">Ver perfil completo →</button>
-                </div>
-            `).join('');
-        }
-
-        // Ver perfil
-        function viewProfile(slug) {
-            window.location.href = `/profesor/${slug}`;
-        }
-
-        // Mostrar error
-        function showError() {
-            document.getElementById('teachersContainer').innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">😔</div>
-                    <h3>Error al cargar</h3>
-                    <p>Hubo un problema cargando los profesores. Intenta recargar la página.</p>
+            const dayLabels = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+            
+            container.innerHTML = `
+                <div class="teachers-grid">
+                    ${teachers.map((teacher, index) => {
+                        const activeDays = teacher.availability?.activeDays || [];
+                        const hasAvailability = activeDays.length > 0;
+                        
+                        return `
+                            <div class="teacher-card" onclick="viewProfile('${teacher.slug}')" style="animation-delay: ${index * 0.05}s">
+                                <div class="teacher-header">
+                                    <div class="teacher-photo-wrapper">
+                                        ${teacher.photo 
+                                            ? `<img src="${teacher.photo}" class="teacher-photo" alt="${teacher.name}" loading="lazy">`
+                                            : `<div class="teacher-photo-placeholder">${getInitials(teacher.name)}</div>`
+                                        }
+                                        ${hasAvailability ? '<div class="online-indicator" title="Disponible esta semana"></div>' : ''}
+                                    </div>
+                                    <div class="teacher-info">
+                                        <h3>${teacher.name}</h3>
+                                        <div class="teacher-meta">
+                                            ${teacher.country ? `<span class="teacher-meta-item">📍 ${teacher.country}</span>` : ''}
+                                            ${teacher.totalClasses > 0 ? `<span class="teacher-meta-item">✓ ${teacher.totalClasses} clases</span>` : ''}
+                                        </div>
+                                        <p class="teacher-bio">${teacher.bio || 'Profesor de piano con experiencia en enseñanza online personalizada.'}</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="teacher-tags">
+                                    ${teacher.specialties.slice(0, 2).map(s => `<span class="specialty-tag">${s}</span>`).join('')}
+                                    ${teacher.languages.slice(0, 1).map(l => `<span class="language-tag">${l}</span>`).join('')}
+                                </div>
+                                
+                                <div class="availability-row">
+                                    <span class="availability-label">Disponible</span>
+                                    <div class="availability-days">
+                                        ${[1, 2, 3, 4, 5, 6, 0].map(day => `
+                                            <span class="day-dot ${activeDays.includes(day) ? 'active' : ''}">${dayLabels[day]}</span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                
+                                <div class="teacher-footer">
+                                    <div class="price-info">
+                                        <div class="price-label">Desde</div>
+                                        <div class="price-value">$${Math.round(teacher.pricePerClass)} <span>USD</span></div>
+                                    </div>
+                                    ${teacher.acceptsTrialClass ? '<span class="trial-badge">🎁 Clase prueba</span>' : ''}
+                                </div>
+                                
+                                <button class="btn-view-profile">Ver perfil y agendar →</button>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             `;
         }
 
-        // Filtrar profesores
-        function filterTeachers() {
-            const search = document.getElementById('filterSearch').value.toLowerCase();
-            const specialty = document.getElementById('filterSpecialty').value.toLowerCase();
-            const priceRange = document.getElementById('filterPrice').value;
-            
-            let filtered = allTeachers;
-            
-            if (search) {
-                filtered = filtered.filter(t => 
-                    t.name.toLowerCase().includes(search) ||
-                    (t.bio && t.bio.toLowerCase().includes(search))
-                );
-            }
-            
-            if (specialty) {
-                filtered = filtered.filter(t => 
-                    t.specialties.some(s => s.toLowerCase().includes(specialty))
-                );
-            }
-            
-            if (priceRange) {
-                const [min, max] = priceRange.split('-').map(Number);
-                filtered = filtered.filter(t => t.pricePerClass >= min && t.pricePerClass <= max);
-            }
-            
-            renderTeachers(filtered);
+        // ==================== UTILS ====================
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
         }
 
-        // Event listeners para filtros
-        document.getElementById('filterSearch').addEventListener('input', filterTeachers);
-        document.getElementById('filterSpecialty').addEventListener('change', filterTeachers);
-        document.getElementById('filterPrice').addEventListener('change', filterTeachers);
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
 
-        // Cargar al inicio
-        loadTeachers();
+        function viewProfile(slug) {
+            window.location.href = `/profesor/${slug}`;
+        }
+
+        function showError(message) {
+            container.innerHTML = `
+                <div class="teachers-grid">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">😔</div>
+                        <h3>Algo salió mal</h3>
+                        <p>${message}</p>
+                        <button class="empty-state-btn" onclick="location.reload()">Reintentar</button>
+                    </div>
+                </div>
+            `;
+        }
     </script>
 </body>
 </html>

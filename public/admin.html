@@ -1290,6 +1290,46 @@
                     <h2 style="color:var(--text-primary); margin-bottom:10px;">💰 Configuración de Precios</h2>
                     <p style="color:var(--text-secondary); margin-bottom:30px;">Configura los precios de suscripciones y servicios.</p>
 
+                    <!-- PAGO POR CLASE DE PRUEBA (NUEVO - MARKETPLACE) -->
+                    <div style="background:linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(168,85,247,0.1) 100%); border:2px solid var(--accent-purple); border-radius:12px; padding:30px; margin-bottom:20px;">
+                        <h3 style="color:var(--accent-purple); margin-bottom:8px;">🎯 Pago por Clase de Prueba (Marketplace)</h3>
+                        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:20px;">
+                            Este es el monto que se paga <strong>íntegramente</strong> al profesor por cada clase de prueba completada.
+                            Los estudiantes pagan al agendar y este valor se acredita al profesor cuando marca la clase como realizada.
+                        </p>
+                        
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                            <div class="form-group">
+                                <label>💵 Pago al Profesor (USD)</label>
+                                <input type="number" id="pricing-trial-class" step="0.01" min="0" max="100" placeholder="10.00" 
+                                    style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                    background:var(--bg-dark); color:var(--text-primary); font-size:18px; font-weight:bold;">
+                                <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                    Monto que recibe el profesor por cada clase de prueba (sin comisión)
+                                </small>
+                            </div>
+                            <div class="form-group">
+                                <label>Estado</label>
+                                <div style="display:flex; align-items:center; gap:12px; padding:12px; background:var(--bg-dark); border-radius:8px; height:48px;">
+                                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0;">
+                                        <input type="checkbox" id="pricing-trial-enabled" checked style="width:20px; height:20px;">
+                                        <span style="color:var(--text-primary);">Pagos habilitados</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-top:15px;">
+                            <p style="color:var(--accent-orange); font-weight:600; margin-bottom:8px;">💡 ¿Cómo funciona?</p>
+                            <ul style="color:var(--text-secondary); line-height:1.8; margin-left:20px; font-size:13px;">
+                                <li><strong>Estudiante agenda:</strong> Paga el precio de la clase de prueba (ej: $15)</li>
+                                <li><strong>Profesor realiza clase:</strong> Marca como completada en su dashboard</li>
+                                <li><strong>Se acredita automáticamente:</strong> El profesor recibe $<span id="trial-preview-amount">10</span> USD</li>
+                                <li><strong>Diferencia:</strong> PianoLink retiene la diferencia como comisión de marketplace</li>
+                            </ul>
+                        </div>
+                    </div>
+
                     <!-- Kit de Bienvenida V2 -->
                     <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:30px; margin-bottom:20px;">
                         <h3 style="color:var(--accent-green); margin-bottom:20px;">🎹 Kit de Bienvenida (Servicio)</h3>

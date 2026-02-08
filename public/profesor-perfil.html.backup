@@ -203,28 +203,17 @@
         }
 
         .trial-banner {
-            background: linear-gradient(135deg, rgba(74,222,128,0.15), rgba(34,197,94,0.15));
-            border: 1px solid rgba(74,222,128,0.3);
+            background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.15));
+            border: 1px solid rgba(251,191,36,0.3);
             border-radius: 10px;
             padding: 15px;
             margin-top: 15px;
             text-align: center;
         }
         .trial-banner-text {
-            font-size: 14px;
-            color: var(--success);
+            font-size: 13px;
+            color: var(--warning);
             font-weight: 600;
-        }
-        
-        .btn-trial {
-            margin-top: 15px;
-        }
-        .btn-trial:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-            background: var(--border);
         }
 
         /* Sections */
@@ -353,7 +342,6 @@
                 
                 if (data.success) {
                     renderProfile(data.teacher);
-                    initBooking(data.teacher);
                 } else {
                     showError(data.error);
                 }
@@ -430,14 +418,8 @@
                         
                         ${teacher.acceptsTrialClass ? `
                             <div class="trial-banner">
-                                <div class="trial-banner-text">🎁 Primera clase de prueba GRATIS</div>
+                                <div class="trial-banner-text">🎁 Clase de prueba incluida en el kit</div>
                             </div>
-                            
-                            <div id="bookingCalendar"></div>
-                            
-                            <button class="btn-book btn-trial" id="btnBookTrial" disabled>
-                                Selecciona un horario arriba
-                            </button>
                         ` : ''}
                     </div>
                 </div>
@@ -478,80 +460,6 @@
                     <a href="/profesores.html" class="btn-book" style="width: auto; display: inline-block; margin-top: 20px;">Ver todos los profesores</a>
                 </div>
             `;
-        }
-        
-        // Variables globales para booking
-        let currentTeacher = null;
-        let bookingCalendar = null;
-        let bookingModal = null;
-        
-        // Inicializar booking después de renderizar el perfil
-        function initBooking(teacher) {
-            currentTeacher = teacher;
-            
-            // Solo si acepta clases de prueba
-            if (!teacher.acceptsTrialClass) return;
-            
-            // Cargar scripts de booking
-            Promise.all([
-                loadScript('/js/modules/BookingCalendar.js'),
-                loadScript('/js/modules/BookingModal.js')
-            ]).then(() => {
-                // Inicializar calendario
-                bookingCalendar = new BookingCalendar({
-                    teacherId: teacher._id || teacher.id,
-                    teacherName: teacher.name,
-                    teacherPhoto: teacher.photo,
-                    containerId: 'bookingCalendar',
-                    onSlotSelect: onSlotSelected
-                });
-                
-                // Inicializar modal
-                bookingModal = new BookingModal({
-                    onSuccess: onBookingSuccess,
-                    onError: onBookingError
-                });
-            }).catch(err => {
-                console.error('Error cargando módulos de booking:', err);
-            });
-        }
-        
-        function loadScript(src) {
-            return new Promise((resolve, reject) => {
-                // Evitar cargar dos veces
-                if (document.querySelector(`script[src="${src}"]`)) {
-                    resolve();
-                    return;
-                }
-                const script = document.createElement('script');
-                script.src = src;
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
-        }
-        
-        function onSlotSelected(slot) {
-            const btn = document.getElementById('btnBookTrial');
-            if (btn) {
-                btn.disabled = false;
-                btn.textContent = '🎹 Reservar Clase de Prueba GRATIS';
-                btn.onclick = () => {
-                    bookingModal.open(currentTeacher, slot);
-                };
-            }
-        }
-        
-        function onBookingSuccess(data) {
-            console.log('Reserva exitosa:', data);
-            // Recargar disponibilidad
-            if (bookingCalendar) {
-                bookingCalendar.loadSlots();
-            }
-        }
-        
-        function onBookingError(error) {
-            console.error('Error en reserva:', error);
         }
 
         // Cargar al inicio

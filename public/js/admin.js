@@ -6323,6 +6323,24 @@ async function loadPricingConfig() {
             const data = await res.json();
             document.getElementById('pricing-founder').value = data.teacherSubscription.founder;
             document.getElementById('pricing-regular').value = data.teacherSubscription.regular;
+            
+            // Cargar configuración de clase de prueba (marketplace)
+            if (data.trialClassPayment) {
+                const trialInput = document.getElementById('pricing-trial-class');
+                const trialEnabled = document.getElementById('pricing-trial-enabled');
+                const trialPreview = document.getElementById('trial-preview-amount');
+                
+                if (trialInput) trialInput.value = data.trialClassPayment.amountUSD || 10;
+                if (trialEnabled) trialEnabled.checked = data.trialClassPayment.enabled !== false;
+                if (trialPreview) trialPreview.textContent = data.trialClassPayment.amountUSD || 10;
+                
+                // Listener para actualizar preview en tiempo real
+                if (trialInput && trialPreview) {
+                    trialInput.addEventListener('input', (e) => {
+                        trialPreview.textContent = e.target.value || '0';
+                    });
+                }
+            }
         } else {
             showNotification('Error cargando configuración de precios', 'error');
         }
@@ -6402,10 +6420,14 @@ async function saveKitV2Price() {
 async function savePricingConfig() {
     const founderInput = document.getElementById('pricing-founder');
     const regularInput = document.getElementById('pricing-regular');
+    const trialInput = document.getElementById('pricing-trial-class');
+    const trialEnabled = document.getElementById('pricing-trial-enabled');
     const statusDiv = document.getElementById('pricing-status');
     
     const founder = parseFloat(founderInput.value);
     const regular = parseFloat(regularInput.value);
+    const trialAmount = trialInput ? parseFloat(trialInput.value) : 10;
+    const trialIsEnabled = trialEnabled ? trialEnabled.checked : true;
     
     // Validación
     if (isNaN(founder) || isNaN(regular)) {
@@ -6423,6 +6445,12 @@ async function savePricingConfig() {
         return;
     }
     
+    // Validación Trial Class
+    if (isNaN(trialAmount) || trialAmount < 0 || trialAmount > 100) {
+        showNotification('El pago de clase de prueba debe ser entre $0 y $100', 'error');
+        return;
+    }
+    
     try {
         const res = await fetch('/admin/config/pricing', {
             method: 'PUT',
@@ -6430,7 +6458,14 @@ async function savePricingConfig() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${userSession.token}`
             },
-            body: JSON.stringify({ founder, regular })
+            body: JSON.stringify({ 
+                founder, 
+                regular,
+                trialClassPayment: {
+                    amountUSD: trialAmount,
+                    enabled: trialIsEnabled
+                }
+            })
         });
         
         const data = await res.json();

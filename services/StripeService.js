@@ -938,7 +938,14 @@ class StripeService {
     static async handlePaymentSucceeded(paymentIntent) {
         console.log(`[StripeService] ✅ PaymentIntent exitoso: ${paymentIntent.id}`);
         
-        // Actualizar pago si existe
+        const metadata = paymentIntent.metadata || {};
+        
+        // CASO: Clase de prueba (trial_class)
+        if (metadata.type === 'trial_class') {
+            return await this.handleTrialClassPayment(paymentIntent);
+        }
+        
+        // Actualizar pago genérico si existe
         await Payment.findOneAndUpdate(
             { externalPaymentId: paymentIntent.id },
             { 
@@ -949,12 +956,84 @@ class StripeService {
 
         return { success: true };
     }
+    
+    /**
+     * Manejar pago de clase de prueba
+     * Confirma el booking y genera sesión MIDI
+     */
+    static async handleTrialClassPayment(paymentIntent) {
+        const Booking = require('../models/Booking');
+        const TimeSlot = require('../models/TimeSlot');
+        
+        const metadata = paymentIntent.metadata;
+        const { studentId, teacherId, slotId } = metadata;
+        
+        console.log(`[StripeService] 🎹 Trial class pagada - Slot: ${slotId}, Estudiante: ${studentId}`);
+        
+        try {
+            // Buscar el booking asociado
+            const booking = await Booking.findOne({
+                'payment.stripePaymentIntentId': paymentIntent.id
+            });
+            
+            if (!booking) {
+                console.error(`[StripeService] ⚠️ Booking no encontrado para PI: ${paymentIntent.id}`);
+                return { success: false, error: 'Booking not found' };
+            }
+            
+            // Ya está confirmado, evitar doble procesamiento
+            if (booking.status === 'confirmed') {
+                console.log(`[StripeService] Booking ${booking._id} ya confirmado, saltando`);
+                return { success: true, alreadyProcessed: true };
+            }
+            
+            // Actualizar booking
+            booking.status = 'confirmed';
+            booking.payment.status = 'captured';
+            booking.payment.paidAt = new Date();
+            await booking.save();
+            
+            // Actualizar slot y generar sesión MIDI
+            const slot = await TimeSlot.findById(slotId);
+            if (slot) {
+                slot.status = 'booked';
+                slot.bookedBy = studentId;
+                slot.bookingId = booking._id;
+                slot.pendingPaymentId = null;
+                slot.pendingUntil = null;
+                
+                // Generar sesión MIDI si el método existe
+                if (typeof slot.generateMidiSession === 'function') {
+                    slot.generateMidiSession();
+                }
+                await slot.save();
+            }
+            
+            console.log(`[StripeService] ✅ Trial class confirmada: ${booking._id}`);
+            
+            // TODO: Enviar emails de confirmación
+            // EmailService.sendTrialConfirmation(booking, teacherId, studentId);
+            
+            return { success: true, bookingId: booking._id };
+            
+        } catch (error) {
+            console.error('[StripeService] Error confirmando trial class:', error);
+            return { success: false, error: error.message };
+        }
+    }
 
     /**
      * Manejar pago fallido
      */
     static async handlePaymentFailed(paymentIntent) {
         console.log(`[StripeService] ❌ PaymentIntent fallido: ${paymentIntent.id}`);
+        
+        const metadata = paymentIntent.metadata || {};
+        
+        // CASO: Clase de prueba fallida - liberar slot
+        if (metadata.type === 'trial_class') {
+            await this.handleTrialClassPaymentFailed(paymentIntent);
+        }
         
         await Payment.findOneAndUpdate(
             { externalPaymentId: paymentIntent.id },
@@ -965,6 +1044,46 @@ class StripeService {
         );
 
         return { success: true };
+    }
+    
+    /**
+     * Manejar pago fallido de clase de prueba
+     * Libera el slot para que otro lo pueda reservar
+     */
+    static async handleTrialClassPaymentFailed(paymentIntent) {
+        const Booking = require('../models/Booking');
+        const TimeSlot = require('../models/TimeSlot');
+        
+        const { slotId } = paymentIntent.metadata;
+        
+        console.log(`[StripeService] 🔓 Liberando slot ${slotId} por pago fallido`);
+        
+        try {
+            // Cancelar booking
+            await Booking.findOneAndUpdate(
+                { 'payment.stripePaymentIntentId': paymentIntent.id },
+                { 
+                    status: 'cancelled',
+                    'payment.status': 'failed',
+                    'cancellation.cancelledAt': new Date(),
+                    'cancellation.reason': 'Pago fallido'
+                }
+            );
+            
+            // Liberar slot
+            await TimeSlot.findByIdAndUpdate(slotId, {
+                status: 'available',
+                bookedBy: null,
+                bookingId: null,
+                pendingPaymentId: null,
+                pendingUntil: null
+            });
+            
+            console.log(`[StripeService] ✅ Slot liberado: ${slotId}`);
+            
+        } catch (error) {
+            console.error('[StripeService] Error liberando slot:', error);
+        }
     }
 
     /**

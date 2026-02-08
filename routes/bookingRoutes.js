@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const BookingService = require('../services/BookingService');
+const EmailService = require('../services/EmailService');
 const Booking = require('../models/Booking');
 const TimeSlot = require('../models/TimeSlot');
 
@@ -564,6 +565,192 @@ router.get('/:id/room-access', protect, async (req, res) => {
         console.error('Error verificando acceso:', error);
         res.status(500).json({ success: false, message: error.message });
     }
+});
+
+// ==================== CLASE DE PRUEBA (MARKETPLACE) ====================
+
+const GlobalConfig = require('../models/GlobalConfig');
+const User = require('../models/User');
+
+/**
+ * POST /api/bookings/trial-class
+ * Reservar clase de prueba GRATUITA
+ * 
+ * Flujo:
+ * 1. Verificar que el profesor acepta clases de prueba
+ * 2. Verificar que el slot esté disponible
+ * 3. Verificar que el estudiante no tenga trial previo con este profesor
+ * 4. Reservar slot directamente (status: confirmed)
+ * 5. Generar sesión MIDI
+ */
+router.post('/trial-class', protect, async (req, res) => {
+    try {
+        const { teacherId, slotId, timezone } = req.body;
+        const studentId = req.user._id;
+        
+        // Validaciones básicas
+        if (!teacherId || !slotId) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'teacherId y slotId son requeridos' 
+            });
+        }
+        
+        // Verificar que el profesor existe y acepta clases de prueba
+        const teacher = await User.findById(teacherId).select('name email timezone teacherData branding');
+        if (!teacher) {
+            return res.status(404).json({ success: false, message: 'Profesor no encontrado' });
+        }
+        if (teacher.teacherData?.profile?.acceptsTrialClass === false) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Este profesor no ofrece clases de prueba actualmente' 
+            });
+        }
+        
+        // Verificar que el slot esté disponible
+        const slot = await TimeSlot.findById(slotId);
+        if (!slot) {
+            return res.status(404).json({ success: false, message: 'Horario no encontrado' });
+        }
+        if (slot.status !== 'available') {
+            return res.status(409).json({ 
+                success: false, 
+                message: 'Este horario ya no está disponible' 
+            });
+        }
+        if (slot.teacherId.toString() !== teacherId) {
+            return res.status(400).json({ success: false, message: 'El slot no pertenece al profesor' });
+        }
+        
+        // Verificar que el estudiante no haya tomado clase de prueba con este profesor
+        const existingTrial = await Booking.findOne({
+            studentId,
+            teacherId,
+            bookingType: 'trial',
+            status: { $nin: ['cancelled'] }
+        });
+        if (existingTrial) {
+            return res.status(409).json({ 
+                success: false, 
+                message: 'Ya has tomado una clase de prueba con este profesor' 
+            });
+        }
+        
+        // Reservar slot directamente (clase gratuita)
+        slot.status = 'booked';
+        slot.bookedBy = studentId;
+        
+        // Generar sesión MIDI si el método existe
+        if (typeof slot.generateMidiSession === 'function') {
+            slot.generateMidiSession();
+        }
+        await slot.save();
+        
+        // Crear booking confirmado
+        const booking = await Booking.create({
+            slotId: slot._id,
+            teacherId,
+            studentId,
+            scheduledStart: slot.startTime,
+            scheduledEnd: slot.endTime,
+            duration: slot.duration,
+            teacherTimezone: slot.timezone || 'America/Santiago',
+            studentTimezone: timezone || req.user.timezone || 'America/Santiago',
+            bookingType: 'trial',
+            status: 'confirmed',
+            midiSessionId: slot.midiSession?.sessionId
+        });
+        
+        // Actualizar slot con referencia al booking
+        slot.bookingId = booking._id;
+        await slot.save();
+        
+        console.log(`[TrialClass] ✅ Clase de prueba reservada: ${booking._id}`);
+        
+        // Enviar emails de confirmación (async, no bloquea respuesta)
+        const slotDate = new Date(slot.startTime);
+        const dateFormatted = slotDate.toLocaleDateString('es-ES', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long'
+        });
+        const timeFormatted = slotDate.toLocaleTimeString('es-ES', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        // Email al estudiante
+        EmailService.sendTrialConfirmationToStudent({
+            studentName: req.user.name,
+            studentEmail: req.user.email,
+            teacherName: teacher.name,
+            teacherPhoto: teacher.branding?.profilePhotoUrl,
+            classDate: dateFormatted,
+            classTime: timeFormatted,
+            duration: slot.duration || 30,
+            timezone: timezone || 'tu hora local',
+            roomUrl: slot.midiSession?.roomUrl,
+            bookingId: booking._id
+        }).catch(err => console.error('[TrialClass] Error enviando email al estudiante:', err.message));
+        
+        // Email al profesor
+        EmailService.sendTrialConfirmationToTeacher({
+            teacherName: teacher.name,
+            teacherEmail: teacher.email,
+            studentName: req.user.name,
+            studentEmail: req.user.email,
+            classDate: dateFormatted,
+            classTime: timeFormatted,
+            duration: slot.duration || 30,
+            timezone: teacher.timezone || 'America/Santiago',
+            roomUrl: slot.midiSession?.roomUrl,
+            bookingId: booking._id
+        }).catch(err => console.error('[TrialClass] Error enviando email al profesor:', err.message));
+        
+        res.status(201).json({
+            success: true,
+            message: '¡Clase de prueba reservada!',
+            bookingId: booking._id,
+            booking: {
+                _id: booking._id,
+                scheduledStart: booking.scheduledStart,
+                scheduledEnd: booking.scheduledEnd,
+                duration: booking.duration,
+                status: booking.status
+            },
+            teacher: {
+                name: teacher.name,
+                photo: teacher.branding?.profilePhotoUrl
+            },
+            slot: {
+                start: slot.startTime,
+                end: slot.endTime
+            },
+            midiSession: slot.midiSession ? {
+                roomUrl: slot.midiSession.roomUrl,
+                sessionId: slot.midiSession.sessionId
+            } : null
+        });
+        
+    } catch (error) {
+        console.error('[TrialClass] Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * GET /api/bookings/trial-class/info
+ * Información sobre la clase de prueba (es gratuita)
+ */
+router.get('/trial-class/info', async (req, res) => {
+    res.json({
+        success: true,
+        isFree: true,
+        description: 'La primera clase de prueba es gratuita',
+        duration: 30, // minutos
+        currency: 'USD'
+    });
 });
 
 module.exports = router;

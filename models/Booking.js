@@ -64,6 +64,28 @@ const bookingSchema = mongoose.Schema({
         required: true
     },
     
+    // ==================== TIPO DE RESERVA ====================
+    bookingType: {
+        type: String,
+        enum: ['regular', 'trial', 'package'],
+        default: 'regular'
+    },
+    
+    // ==================== PAGO (para trial y compras directas) ====================
+    payment: {
+        amountCents: { type: Number, default: 0 },
+        currency: { type: String, default: 'USD' },
+        stripePaymentIntentId: { type: String },
+        stripeSessionId: { type: String },
+        status: { 
+            type: String, 
+            enum: ['pending', 'authorized', 'captured', 'refunded', 'failed'],
+            default: 'pending'
+        },
+        teacherPayoutCents: { type: Number, default: 0 }, // Lo que recibe el profesor
+        paidAt: { type: Date }
+    },
+    
     // ==================== ESTADO LIFECYCLE ====================
     status: {
         type: String,
@@ -170,6 +192,13 @@ const bookingSchema = mongoose.Schema({
     rescheduledTo: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Booking'
+    },
+    
+    // ==================== RECORDATORIOS ====================
+    reminders: {
+        sent24h: { type: Boolean, default: false },
+        sent1h: { type: Boolean, default: false },
+        sentFollowup: { type: Boolean, default: false }
     },
     
     // ==================== METADATA ====================

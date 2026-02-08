@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Clases | PianoLink</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            900: '#0a0a0a',
+                            800: '#0f0f0f',
+                            700: '#141414',
+                            600: '#1a1a1a',
+                            500: '#2a2a2a',
+                        },
+                        accent: {
+                            DEFAULT: '#6366f1',
+                            light: '#818cf8',
+                            dark: '#4f46e5',
+                        },
+                        piano: {
+                            orange: '#ff764d',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Animaciones y estilos especiales */
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -12px rgba(99, 102, 241, 0.25);
+        }
+        .btn-glow {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+        }
+        .btn-glow:hover {
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+        }
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .skeleton {
+            background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        /* Modal */
+        .modal-backdrop {
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="bg-dark-800 text-gray-200 min-h-screen font-sans">
+    <!-- Header -->
+    <header class="bg-dark-700 border-b border-dark-500 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="/" class="text-2xl font-extrabold bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent">
+                PianoLink
+            </a>
+            <nav class="flex items-center gap-6">
+                <a href="/profesores" class="text-gray-400 hover:text-accent-light transition-colors text-sm">
+                    Buscar Profesores
+                </a>
+                <a href="/cliente.html" class="text-gray-400 hover:text-accent-light transition-colors text-sm">
+                    Mi Panel
+                </a>
+                <button onclick="logout()" class="text-gray-400 hover:text-red-400 transition-colors text-sm">
+                    Salir
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-6 py-10">
+        <!-- Page Header -->
+        <div class="mb-10">
+            <h1 class="text-3xl font-extrabold text-white mb-2">Mis Clases</h1>
+            <p class="text-gray-400">Gestiona tus clases reservadas y revisa tu historial.</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="space-y-4">
+            <div class="skeleton h-32 rounded-2xl"></div>
+            <div class="skeleton h-32 rounded-2xl"></div>
+            <div class="skeleton h-32 rounded-2xl"></div>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden">
+            <div class="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 text-center">
+                <div class="text-5xl mb-4">⚠️</div>
+                <h3 class="text-xl font-bold text-red-400 mb-2">Error al cargar tus clases</h3>
+                <p id="errorMessage" class="text-gray-400 mb-4"></p>
+                <button onclick="loadClasses()" class="bg-accent hover:bg-accent-dark text-white px-6 py-2 rounded-lg transition-colors">
+                    Reintentar
+                </button>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden">
+            <div class="bg-dark-600 border border-dark-500 rounded-2xl p-12 text-center">
+                <div class="text-6xl mb-6">🎹</div>
+                <h3 class="text-2xl font-bold text-white mb-3">Aún no tienes clases reservadas</h3>
+                <p class="text-gray-400 mb-6 max-w-md mx-auto">
+                    Explora nuestro catálogo de profesores y reserva tu primera clase de prueba.
+                </p>
+                <a href="/profesores" class="inline-flex items-center gap-2 bg-accent hover:bg-accent-dark text-white px-8 py-3 rounded-xl font-semibold transition-all btn-glow">
+                    <span>Buscar Profesores</span>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- Classes Content -->
+        <div id="classesContent" class="hidden space-y-10">
+            <!-- Upcoming Classes Section -->
+            <section id="upcomingSection">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-3 h-3 bg-green-500 rounded-full pulse-dot"></div>
+                    <h2 class="text-xl font-bold text-white">Próximas Clases</h2>
+                    <span id="upcomingCount" class="bg-accent/20 text-accent-light px-3 py-1 rounded-full text-sm font-medium"></span>
+                </div>
+                <div id="upcomingList" class="space-y-4">
+                    <!-- Se llenará con JavaScript -->
+                </div>
+                <div id="noUpcoming" class="hidden bg-dark-600/50 border border-dashed border-dark-500 rounded-2xl p-8 text-center">
+                    <p class="text-gray-400">No tienes clases programadas.</p>
+                    <a href="/profesores" class="text-accent-light hover:underline text-sm mt-2 inline-block">
+                        Reservar una clase →
+                    </a>
+                </div>
+            </section>
+
+            <!-- Past Classes Section -->
+            <section id="pastSection">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-3 h-3 bg-gray-500 rounded-full"></div>
+                    <h2 class="text-xl font-bold text-white">Historial</h2>
+                    <span id="pastCount" class="bg-dark-500 text-gray-400 px-3 py-1 rounded-full text-sm font-medium"></span>
+                </div>
+                <div id="pastList" class="space-y-3">
+                    <!-- Se llenará con JavaScript -->
+                </div>
+                <div id="noPast" class="hidden bg-dark-600/30 border border-dark-500 rounded-xl p-6 text-center">
+                    <p class="text-gray-500 text-sm">Aquí aparecerá tu historial de clases.</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Rating Modal -->
+    <div id="ratingModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 modal-backdrop" onclick="closeRatingModal()"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-dark-700 border border-dark-500 rounded-2xl p-8 max-w-md w-full relative">
+                <button onclick="closeRatingModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                
+                <div class="text-center mb-6">
+                    <img id="ratingTeacherPhoto" src="" alt="" class="w-20 h-20 rounded-full mx-auto mb-4 border-2 border-accent object-cover">
+                    <h3 class="text-xl font-bold text-white">¿Cómo fue tu clase?</h3>
+                    <p id="ratingTeacherName" class="text-gray-400 text-sm mt-1"></p>
+                </div>
+
+                <!-- Stars -->
+                <div id="starsContainer" class="flex justify-center gap-2 mb-6">
+                    <button onclick="setRating(1)" class="star-btn text-4xl text-dark-500 hover:text-yellow-400 transition-colors" data-star="1">★</button>
+                    <button onclick="setRating(2)" class="star-btn text-4xl text-dark-500 hover:text-yellow-400 transition-colors" data-star="2">★</button>
+                    <button onclick="setRating(3)" class="star-btn text-4xl text-dark-500 hover:text-yellow-400 transition-colors" data-star="3">★</button>
+                    <button onclick="setRating(4)" class="star-btn text-4xl text-dark-500 hover:text-yellow-400 transition-colors" data-star="4">★</button>
+                    <button onclick="setRating(5)" class="star-btn text-4xl text-dark-500 hover:text-yellow-400 transition-colors" data-star="5">★</button>
+                </div>
+
+                <!-- Feedback -->
+                <textarea 
+                    id="ratingFeedback" 
+                    placeholder="Cuéntanos sobre tu experiencia (opcional)"
+                    class="w-full bg-dark-600 border border-dark-500 rounded-xl p-4 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-accent resize-none h-24 mb-6"
+                ></textarea>
+
+                <!-- Submit Button -->
+                <button 
+                    id="submitRatingBtn"
+                    onclick="submitRating()"
+                    disabled
+                    class="w-full bg-accent hover:bg-accent-dark disabled:bg-dark-500 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all"
+                >
+                    Enviar Calificación
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // ESTADO GLOBAL
+        // ============================================
+        let currentBookingId = null;
+        let currentRating = 0;
+
+        // ============================================
+        // UTILIDADES
+        // ============================================
+        
+        /**
+         * Obtiene el token JWT del localStorage
+         */
+        function getToken() {
+            return localStorage.getItem('token');
+        }
+
+        /**
+         * Convierte fecha UTC a hora local del estudiante
+         * @param {string} utcDate - Fecha en formato ISO
+         * @returns {Object} - Objeto con fecha y hora formateadas
+         */
+        function formatDate(utcDate) {
+            const date = new Date(utcDate);
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            // Opciones de formato
+            const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+            const dateOptions = { weekday: 'long', day: 'numeric', month: 'long' };
+            
+            // Hora formateada
+            const time = date.toLocaleTimeString('es-ES', timeOptions);
+            
+            // Fecha formateada
+            let dateStr;
+            if (date.toDateString() === now.toDateString()) {
+                dateStr = 'Hoy';
+            } else if (date.toDateString() === tomorrow.toDateString()) {
+                dateStr = 'Mañana';
+            } else {
+                dateStr = date.toLocaleDateString('es-ES', dateOptions);
+                // Capitalizar primera letra
+                dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+            }
+            
+            // Fecha completa para título/tooltip
+            const fullDate = date.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            return { date: dateStr, time, fullDate };
+        }
+
+        /**
+         * Calcula el tiempo restante hasta la clase
+         */
+        function getTimeUntilClass(startTime) {
+            const start = new Date(startTime);
+            const now = new Date();
+            const diffMs = start - now;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 0) return { canJoin: false, text: 'Clase pasada' };
+            if (diffMins <= 15) return { canJoin: true, text: '¡Ahora!' };
+            if (diffMins < 60) return { canJoin: false, text: `En ${diffMins} min` };
+            if (diffHours < 24) return { canJoin: false, text: `En ${diffHours}h` };
+            return { canJoin: false, text: `En ${diffDays} días` };
+        }
+
+        /**
+         * Obtiene el badge de estado
+         */
+        function getStatusBadge(status) {
+            const badges = {
+                pending: { text: 'Pendiente', class: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+                confirmed: { text: 'Confirmada', class: 'bg-green-500/20 text-green-400 border-green-500/30' },
+                completed: { text: 'Completada', class: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+                cancelled: { text: 'Cancelada', class: 'bg-red-500/20 text-red-400 border-red-500/30' },
+                no_show: { text: 'No asistió', class: 'bg-gray-500/20 text-gray-400 border-gray-500/30' }
+            };
+            return badges[status] || { text: status, class: 'bg-gray-500/20 text-gray-400' };
+        }
+
+        /**
+         * Obtiene la URL de la foto o placeholder
+         */
+        function getPhotoUrl(booking) {
+            const photo = booking.teacherId?.branding?.profilePhotoUrl;
+            if (photo) return photo;
+            // Placeholder con inicial
+            const name = booking.teacherId?.name || 'P';
+            return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff&size=128`;
+        }
+
+        // ============================================
+        // RENDER FUNCTIONS
+        // ============================================
+
+        /**
+         * Renderiza una card de clase próxima
+         */
+        function renderUpcomingCard(booking) {
+            const { date, time, fullDate } = formatDate(booking.slotId?.startTime || booking.scheduledStart);
+            const timeInfo = getTimeUntilClass(booking.slotId?.startTime || booking.scheduledStart);
+            const status = getStatusBadge(booking.status);
+            const photoUrl = getPhotoUrl(booking);
+            const teacherName = booking.teacherId?.name || 'Profesor';
+            const roomUrl = booking.slotId?.midiSession?.roomUrl;
+            const canJoin = timeInfo.canJoin && booking.status === 'confirmed' && roomUrl;
+
+            return `
+                <div class="bg-dark-600 border border-dark-500 rounded-2xl p-6 card-hover">
+                    <div class="flex items-start gap-5">
+                        <!-- Foto del profesor -->
+                        <img 
+                            src="${photoUrl}" 
+                            alt="${teacherName}"
+                            class="w-16 h-16 rounded-xl object-cover border-2 border-dark-500 flex-shrink-0"
+                        >
+                        
+                        <!-- Info -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between gap-4 mb-2">
+                                <div>
+                                    <h3 class="text-lg font-bold text-white truncate">${teacherName}</h3>
+                                    <p class="text-gray-400 text-sm" title="${fullDate}">
+                                        ${date} · ${time}
+                                    </p>
+                                </div>
+                                <span class="border px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 ${status.class}">
+                                    ${status.text}
+                                </span>
+                            </div>
+                            
+                            <div class="flex items-center gap-4 mt-4">
+                                <!-- Countdown -->
+                                <div class="flex items-center gap-2 text-sm ${timeInfo.canJoin ? 'text-green-400' : 'text-gray-400'}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>${timeInfo.text}</span>
+                                </div>
+                                
+                                <!-- Spacer -->
+                                <div class="flex-1"></div>
+                                
+                                <!-- Actions -->
+                                ${canJoin ? `
+                                    <a 
+                                        href="${roomUrl}" 
+                                        target="_blank"
+                                        class="inline-flex items-center gap-2 bg-accent hover:bg-accent-dark text-white px-5 py-2.5 rounded-xl font-semibold transition-all btn-glow"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                        </svg>
+                                        Entrar a Clase
+                                    </a>
+                                ` : booking.status === 'confirmed' ? `
+                                    <button 
+                                        disabled
+                                        class="inline-flex items-center gap-2 bg-dark-500 text-gray-400 px-5 py-2.5 rounded-xl font-medium cursor-not-allowed"
+                                        title="El botón se activará 15 minutos antes de la clase"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                        </svg>
+                                        Entrar a Clase
+                                    </button>
+                                ` : ''}
+                                
+                                ${booking.teacherId?.slug ? `
+                                    <a 
+                                        href="/profesor/${booking.teacherId.slug}" 
+                                        class="text-gray-400 hover:text-accent-light transition-colors text-sm"
+                                    >
+                                        Ver perfil
+                                    </a>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Renderiza una card de clase pasada
+         */
+        function renderPastCard(booking) {
+            const { date, time, fullDate } = formatDate(booking.slotId?.startTime || booking.scheduledStart);
+            const status = getStatusBadge(booking.status);
+            const photoUrl = getPhotoUrl(booking);
+            const teacherName = booking.teacherId?.name || 'Profesor';
+            const canRate = booking.status === 'completed' && !booking.studentRating;
+            const hasRating = booking.studentRating;
+
+            return `
+                <div class="bg-dark-700/50 border border-dark-500/50 rounded-xl p-4 hover:border-dark-500 transition-colors">
+                    <div class="flex items-center gap-4">
+                        <!-- Foto -->
+                        <img 
+                            src="${photoUrl}" 
+                            alt="${teacherName}"
+                            class="w-12 h-12 rounded-lg object-cover border border-dark-500 flex-shrink-0 opacity-80"
+                        >
+                        
+                        <!-- Info -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-3">
+                                <h4 class="font-semibold text-gray-300 truncate">${teacherName}</h4>
+                                <span class="border px-2 py-0.5 rounded-full text-xs ${status.class}">
+                                    ${status.text}
+                                </span>
+                            </div>
+                            <p class="text-gray-500 text-sm" title="${fullDate}">${date} · ${time}</p>
+                        </div>
+                        
+                        <!-- Rating / Action -->
+                        <div class="flex-shrink-0">
+                            ${hasRating ? `
+                                <div class="flex items-center gap-1 text-yellow-400">
+                                    ${'★'.repeat(booking.studentRating)}${'☆'.repeat(5 - booking.studentRating)}
+                                </div>
+                            ` : canRate ? `
+                                <button 
+                                    onclick="openRatingModal('${booking._id}', '${teacherName}', '${photoUrl}')"
+                                    class="inline-flex items-center gap-1.5 bg-accent/20 hover:bg-accent/30 text-accent-light px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    <span>⭐</span>
+                                    Calificar
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ============================================
+        // API & DATA LOADING
+        // ============================================
+
+        /**
+         * Carga las clases del estudiante
+         */
+        async function loadClasses() {
+            const token = getToken();
+            
+            if (!token) {
+                window.location.href = '/login.html?redirect=/mis-clases.html';
+                return;
+            }
+
+            // Mostrar loading, ocultar otros estados
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('errorState').classList.add('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('classesContent').classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/bookings/my-classes', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/login.html?redirect=/mis-clases.html';
+                        return;
+                    }
+                    throw new Error('No se pudieron cargar tus clases');
+                }
+
+                const data = await response.json();
+                const { upcoming = [], past = [] } = data;
+
+                // Ocultar loading
+                document.getElementById('loadingState').classList.add('hidden');
+
+                // Verificar si hay clases
+                if (upcoming.length === 0 && past.length === 0) {
+                    document.getElementById('emptyState').classList.remove('hidden');
+                    return;
+                }
+
+                // Mostrar contenido
+                document.getElementById('classesContent').classList.remove('hidden');
+
+                // Renderizar próximas
+                const upcomingList = document.getElementById('upcomingList');
+                const noUpcoming = document.getElementById('noUpcoming');
+                document.getElementById('upcomingCount').textContent = upcoming.length;
+                
+                if (upcoming.length > 0) {
+                    upcomingList.innerHTML = upcoming.map(renderUpcomingCard).join('');
+                    noUpcoming.classList.add('hidden');
+                } else {
+                    upcomingList.innerHTML = '';
+                    noUpcoming.classList.remove('hidden');
+                }
+
+                // Renderizar historial
+                const pastList = document.getElementById('pastList');
+                const noPast = document.getElementById('noPast');
+                document.getElementById('pastCount').textContent = past.length;
+                
+                if (past.length > 0) {
+                    pastList.innerHTML = past.map(renderPastCard).join('');
+                    noPast.classList.add('hidden');
+                } else {
+                    pastList.innerHTML = '';
+                    noPast.classList.remove('hidden');
+                }
+
+            } catch (error) {
+                console.error('Error loading classes:', error);
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('errorState').classList.remove('hidden');
+                document.getElementById('errorMessage').textContent = error.message;
+            }
+        }
+
+        // ============================================
+        // RATING MODAL
+        // ============================================
+
+        function openRatingModal(bookingId, teacherName, photoUrl) {
+            currentBookingId = bookingId;
+            currentRating = 0;
+            
+            // Configurar modal
+            document.getElementById('ratingTeacherPhoto').src = photoUrl;
+            document.getElementById('ratingTeacherName').textContent = `con ${teacherName}`;
+            document.getElementById('ratingFeedback').value = '';
+            document.getElementById('submitRatingBtn').disabled = true;
+            
+            // Resetear estrellas
+            document.querySelectorAll('.star-btn').forEach(btn => {
+                btn.classList.remove('text-yellow-400');
+                btn.classList.add('text-dark-500');
+            });
+            
+            // Mostrar modal
+            document.getElementById('ratingModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeRatingModal() {
+            document.getElementById('ratingModal').classList.add('hidden');
+            document.body.style.overflow = '';
+            currentBookingId = null;
+            currentRating = 0;
+        }
+
+        function setRating(rating) {
+            currentRating = rating;
+            document.getElementById('submitRatingBtn').disabled = false;
+            
+            // Actualizar estrellas
+            document.querySelectorAll('.star-btn').forEach(btn => {
+                const star = parseInt(btn.dataset.star);
+                if (star <= rating) {
+                    btn.classList.add('text-yellow-400');
+                    btn.classList.remove('text-dark-500');
+                } else {
+                    btn.classList.remove('text-yellow-400');
+                    btn.classList.add('text-dark-500');
+                }
+            });
+        }
+
+        async function submitRating() {
+            if (!currentBookingId || currentRating === 0) return;
+            
+            const token = getToken();
+            const btn = document.getElementById('submitRatingBtn');
+            const feedback = document.getElementById('ratingFeedback').value.trim();
+            
+            btn.disabled = true;
+            btn.textContent = 'Enviando...';
+
+            try {
+                const response = await fetch(`/api/bookings/${currentBookingId}/rate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        rating: currentRating,
+                        feedback: feedback || undefined
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('No se pudo enviar la calificación');
+                }
+
+                // Éxito - cerrar modal y recargar
+                closeRatingModal();
+                await loadClasses();
+
+            } catch (error) {
+                console.error('Error submitting rating:', error);
+                alert('Error: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Enviar Calificación';
+            }
+        }
+
+        // ============================================
+        // AUTH
+        // ============================================
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        // ============================================
+        // INICIALIZACIÓN
+        // ============================================
+
+        // Cargar clases al iniciar
+        document.addEventListener('DOMContentLoaded', loadClasses);
+
+        // Actualizar cada minuto para refrescar countdowns
+        setInterval(() => {
+            const content = document.getElementById('classesContent');
+            if (!content.classList.contains('hidden')) {
+                loadClasses();
+            }
+        }, 60000);
+
+        // Cerrar modal con Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeRatingModal();
+            }
+        });
+    </script>
+</body>
+</html>

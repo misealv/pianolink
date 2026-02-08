@@ -96,6 +96,16 @@ const globalConfigSchema = new mongoose.Schema({
             currency: { type: String, default: 'USD' }
         },
         
+        // =================================================
+        // PAGO POR CLASE DE PRUEBA (Trial Class)
+        // Este monto se paga íntegro al profesor por cada clase de prueba realizada
+        // =================================================
+        trialClassPayment: {
+            amountUSD: { type: Number, default: 10 },     // Pago al profesor en USD
+            currency: { type: String, default: 'USD' },
+            enabled: { type: Boolean, default: true }      // Si está habilitado el pago
+        },
+        
         // Comisiones
         platformCommission: { type: Number, default: 20 },  // % que retiene PianoLink
         teacherCommission: { type: Number, default: 80 }    // % que gana el profesor

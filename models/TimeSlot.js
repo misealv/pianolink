@@ -40,6 +40,16 @@ const timeSlotSchema = mongoose.Schema({
         default: 'available'
     },
     
+    // ==================== PAGO PENDIENTE (marketplace) ====================
+    pendingPaymentId: {
+        type: String,
+        default: null  // Stripe PaymentIntent ID cuando está en pending
+    },
+    pendingUntil: {
+        type: Date,
+        default: null  // Tiempo límite para completar el pago
+    },
+    
     // ==================== TIPO DE CLASE ====================
     classType: {
         type: String,

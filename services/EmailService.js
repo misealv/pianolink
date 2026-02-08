@@ -198,6 +198,69 @@ class EmailService {
             maxRetries: this.config.maxRetries
         };
     }
+    
+    /**
+     * Envía email de confirmación de clase de prueba al ESTUDIANTE
+     * @param {Object} data - Datos de la reserva
+     * @returns {Promise<boolean>}
+     */
+    async sendTrialConfirmationToStudent(data) {
+        try {
+            const generateEmail = require('../templates/emails/trialConfirmedStudent');
+            const html = generateEmail(data);
+            
+            return await this.sendSafe({
+                to: data.studentEmail,
+                subject: `🎹 ¡Clase de Prueba Confirmada con ${data.teacherName}!`,
+                html
+            });
+        } catch (error) {
+            console.error('[EMAIL] Error enviando confirmación al estudiante:', error.message);
+            return false;
+        }
+    }
+    
+    /**
+     * Envía email de notificación de clase de prueba al PROFESOR
+     * @param {Object} data - Datos de la reserva
+     * @returns {Promise<boolean>}
+     */
+    async sendTrialConfirmationToTeacher(data) {
+        try {
+            const generateEmail = require('../templates/emails/trialConfirmedTeacher');
+            const html = generateEmail(data);
+            
+            return await this.sendSafe({
+                to: data.teacherEmail,
+                subject: `🎉 Nueva Clase de Prueba: ${data.studentName}`,
+                html
+            });
+        } catch (error) {
+            console.error('[EMAIL] Error enviando notificación al profesor:', error.message);
+            return false;
+        }
+    }
+    
+    /**
+     * Envía email de seguimiento post-clase de prueba
+     * @param {Object} data - Datos del estudiante y profesor
+     * @returns {Promise<boolean>}
+     */
+    async sendTrialFollowup(data) {
+        try {
+            const generateEmail = require('../templates/emails/trialFollowup');
+            const html = generateEmail(data);
+            
+            return await this.sendSafe({
+                to: data.studentEmail,
+                subject: `🌟 ¿Listo para tu siguiente clase con ${data.teacherName}?`,
+                html
+            });
+        } catch (error) {
+            console.error('[EMAIL] Error enviando followup:', error.message);
+            return false;
+        }
+    }
 }
 
 // Singleton: una única instancia compartida

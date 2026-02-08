@@ -383,10 +383,12 @@ router.get('/my-students', protect, async (req, res) => {
 /**
  * GET /api/teacher-profile/catalog
  * Catálogo público de profesores para estudiantes
+ * Incluye resumen de disponibilidad semanal y próximo slot libre
  */
 router.get('/catalog', async (req, res) => {
     try {
-        const { specialty, minPrice, maxPrice, language } = req.query;
+        const { specialty, minPrice, maxPrice, language, country, day, sort } = req.query;
+        const AvailabilityTemplate = require('../models/AvailabilityTemplate');
         
         // Buscar profesores con perfil público y membresía activa
         const query = {
@@ -396,17 +398,50 @@ router.get('/catalog', async (req, res) => {
         };
         
         const teachers = await User.find(query)
-            .select('name slug branding teacherData.hourlyRate teacherData.packages teacherData.profile')
+            .select('name lastName slug branding teacherData.hourlyRate teacherData.packages teacherData.profile teacherData.earnings timezone')
             .lean();
+
+        // Obtener disponibilidad de todos los profesores de una sola consulta
+        const teacherIds = teachers.map(t => t._id);
+        const templates = await AvailabilityTemplate.find({
+            teacherId: { $in: teacherIds },
+            isActive: true
+        }).lean();
+
+        // Mapa de disponibilidad por profesor
+        const availabilityMap = {};
+        templates.forEach(tmpl => {
+            const tid = tmpl.teacherId.toString();
+            const dayNames = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+            const activeDays = [...new Set(
+                (tmpl.weeklySlots || [])
+                    .filter(s => s.isActive)
+                    .map(s => s.dayOfWeek)
+            )].sort();
+            
+            availabilityMap[tid] = {
+                activeDays,
+                activeDayNames: activeDays.map(d => dayNames[d]),
+                weeklySlots: (tmpl.weeklySlots || []).filter(s => s.isActive).map(s => ({
+                    dayOfWeek: s.dayOfWeek,
+                    startTime: s.startTime,
+                    endTime: s.endTime
+                })),
+                timezone: tmpl.timezone
+            };
+        });
         
         // Formatear para el catálogo
         let catalog = teachers.map(t => {
             const hourlyRate = t.teacherData?.hourlyRate || 25;
             const studentPrice = Math.round(hourlyRate / (1 - PLATFORM_COMMISSION) * 100) / 100;
+            const tid = t._id.toString();
+            const availability = availabilityMap[tid] || { activeDays: [], activeDayNames: [], weeklySlots: [], timezone: 'America/Santiago' };
+            const totalClasses = t.teacherData?.earnings?.totalClasses || 0;
             
             return {
                 id: t._id,
-                name: t.name,
+                name: t.lastName ? `${t.name} ${t.lastName}` : t.name,
                 slug: t.slug,
                 photo: t.branding?.profilePhotoUrl || '',
                 country: t.branding?.country || '',
@@ -414,9 +449,12 @@ router.get('/catalog', async (req, res) => {
                 specialties: t.teacherData?.profile?.specialties || [],
                 languages: t.teacherData?.profile?.languages || ['español'],
                 experience: t.teacherData?.profile?.experience || '',
+                education: t.teacherData?.profile?.education || '',
                 videoUrl: t.teacherData?.profile?.videoUrl || '',
                 acceptsTrialClass: t.teacherData?.profile?.acceptsTrialClass !== false,
                 pricePerClass: studentPrice,
+                totalClasses,
+                availability,
                 packages: (t.teacherData?.packages || [])
                     .filter(p => p.isActive)
                     .map(p => ({
@@ -445,6 +483,29 @@ router.get('/catalog', async (req, res) => {
                 t.languages.some(l => l.toLowerCase().includes(language.toLowerCase()))
             );
         }
+        if (country) {
+            catalog = catalog.filter(t =>
+                t.country.toLowerCase().includes(country.toLowerCase())
+            );
+        }
+        // Filtro por día disponible (0-6)
+        if (day !== undefined && day !== '') {
+            const dayNum = parseInt(day);
+            catalog = catalog.filter(t =>
+                t.availability.activeDays.includes(dayNum)
+            );
+        }
+
+        // Ordenamiento
+        if (sort === 'price_asc') {
+            catalog.sort((a, b) => a.pricePerClass - b.pricePerClass);
+        } else if (sort === 'price_desc') {
+            catalog.sort((a, b) => b.pricePerClass - a.pricePerClass);
+        } else if (sort === 'classes') {
+            catalog.sort((a, b) => b.totalClasses - a.totalClasses);
+        } else if (sort === 'availability') {
+            catalog.sort((a, b) => b.availability.activeDays.length - a.availability.activeDays.length);
+        }
         
         res.json({
             success: true,
@@ -459,16 +520,17 @@ router.get('/catalog', async (req, res) => {
 
 /**
  * GET /api/teacher-profile/public/:slug
- * Perfil público de un profesor específico
+ * Perfil público de un profesor específico (con disponibilidad semanal)
  */
 router.get('/public/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
+        const AvailabilityTemplate = require('../models/AvailabilityTemplate');
         
         const teacher = await User.findOne({ 
             slug,
             role: 'teacher'
-        }).select('name slug branding teacherData.hourlyRate teacherData.packages teacherData.profile teacherData.subscriptionStatus');
+        }).select('name lastName slug branding teacherData.hourlyRate teacherData.packages teacherData.profile teacherData.subscriptionStatus teacherData.earnings timezone');
         
         if (!teacher) {
             return res.status(404).json({ error: 'Profesor no encontrado' });
@@ -481,11 +543,38 @@ router.get('/public/:slug', async (req, res) => {
         
         const hourlyRate = teacher.teacherData?.hourlyRate || 25;
         const studentPrice = Math.round(hourlyRate / (1 - PLATFORM_COMMISSION) * 100) / 100;
+
+        // Obtener disponibilidad semanal
+        const template = await AvailabilityTemplate.findOne({
+            teacherId: teacher._id,
+            isActive: true
+        }).lean();
+
+        const dayNames = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+        let availability = { activeDays: [], activeDayNames: [], weeklySlots: [], timezone: teacher.timezone || 'America/Santiago' };
+        
+        if (template) {
+            const activeDays = [...new Set(
+                (template.weeklySlots || []).filter(s => s.isActive).map(s => s.dayOfWeek)
+            )].sort();
+            
+            availability = {
+                activeDays,
+                activeDayNames: activeDays.map(d => dayNames[d]),
+                weeklySlots: (template.weeklySlots || []).filter(s => s.isActive).map(s => ({
+                    dayOfWeek: s.dayOfWeek,
+                    startTime: s.startTime,
+                    endTime: s.endTime
+                })),
+                timezone: template.timezone
+            };
+        }
         
         res.json({
             success: true,
             teacher: {
-                name: teacher.name,
+                id: teacher._id,
+                name: teacher.lastName ? `${teacher.name} ${teacher.lastName}` : teacher.name,
                 slug: teacher.slug,
                 photo: teacher.branding?.profilePhotoUrl || '',
                 country: teacher.branding?.country || '',
@@ -499,6 +588,8 @@ router.get('/public/:slug', async (req, res) => {
                 acceptsTrialClass: teacher.teacherData?.profile?.acceptsTrialClass !== false,
                 isActive: teacher.teacherData?.subscriptionStatus === 'active',
                 pricePerClass: studentPrice,
+                totalClasses: teacher.teacherData?.earnings?.totalClasses || 0,
+                availability,
                 packages: (teacher.teacherData?.packages || [])
                     .filter(p => p.isActive)
                     .map(p => ({

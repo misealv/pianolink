@@ -39,6 +39,9 @@ const userSchema = mongoose.Schema({
     // Tarifa por clase en USD (mínimo $15)
     hourlyRate: { type: Number, default: 25, min: 15 },
     
+    // Precio clase de prueba en centavos USD (default $15)
+    trialPrice: { type: Number, default: 1500, min: 500 },
+    
     // Paquetes de clases con descuento
     packages: [{
       classes: { type: Number, required: true },      // Número de clases

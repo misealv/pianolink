@@ -555,16 +555,17 @@ exports.getPricingConfig = async (req, res) => {
             // Crear configuración por defecto si no existe
             config = new GlobalConfig({
                 isDefault: true,
-                teacherSubscription: {
-                    regular: 20,
-                    founder: 10
+                memberships: {
+                    teacherSubscription: { regular: 20, founder: 10 },
+                    trialClassPayment: { amountUSD: 10, currency: 'USD', enabled: true }
                 }
             });
             await config.save();
         }
         
         res.json({
-            teacherSubscription: config.teacherSubscription || { regular: 20, founder: 10 }
+            teacherSubscription: config.memberships?.teacherSubscription || { regular: 20, founder: 10 },
+            trialClassPayment: config.memberships?.trialClassPayment || { amountUSD: 10, currency: 'USD', enabled: true }
         });
     } catch (error) {
         console.error('Error obteniendo configuración de precios:', error);
@@ -575,9 +576,9 @@ exports.getPricingConfig = async (req, res) => {
 // Actualizar configuración de precios
 exports.updatePricingConfig = async (req, res) => {
     try {
-        const { founder, regular } = req.body;
+        const { founder, regular, trialClassPayment } = req.body;
         
-        // Validación
+        // Validación de precios de suscripción
         if (typeof founder !== 'number' || typeof regular !== 'number') {
             return res.status(400).json({ message: 'Los precios deben ser números válidos' });
         }
@@ -590,22 +591,54 @@ exports.updatePricingConfig = async (req, res) => {
             return res.status(400).json({ message: 'Los precios no pueden exceder $1000 USD' });
         }
         
+        // Validación de pago por clase de prueba
+        if (trialClassPayment !== undefined) {
+            if (typeof trialClassPayment.amountUSD !== 'number' || trialClassPayment.amountUSD < 0) {
+                return res.status(400).json({ message: 'El pago por clase de prueba debe ser un número válido' });
+            }
+            if (trialClassPayment.amountUSD > 100) {
+                return res.status(400).json({ message: 'El pago por clase de prueba no puede exceder $100 USD' });
+            }
+        }
+        
         let config = await GlobalConfig.findOne({ isDefault: true });
         
         if (!config) {
             config = new GlobalConfig({
                 isDefault: true,
-                teacherSubscription: { regular, founder }
+                memberships: {
+                    teacherSubscription: { regular, founder },
+                    trialClassPayment: trialClassPayment || { amountUSD: 10, currency: 'USD', enabled: true }
+                }
             });
         } else {
-            config.teacherSubscription = { regular, founder };
+            // Inicializar memberships si no existe
+            if (!config.memberships) {
+                config.memberships = {};
+            }
+            config.memberships.teacherSubscription = { regular, founder };
+            
+            // Actualizar trial class payment si se envió
+            if (trialClassPayment !== undefined) {
+                config.memberships.trialClassPayment = {
+                    amountUSD: trialClassPayment.amountUSD,
+                    currency: 'USD',
+                    enabled: trialClassPayment.enabled !== false
+                };
+            }
         }
         
         await config.save();
         
+        console.log('[Admin] Configuración de precios actualizada:', {
+            teacherSubscription: config.memberships.teacherSubscription,
+            trialClassPayment: config.memberships.trialClassPayment
+        });
+        
         res.json({
             message: 'Configuración de precios actualizada exitosamente',
-            teacherSubscription: config.teacherSubscription
+            teacherSubscription: config.memberships.teacherSubscription,
+            trialClassPayment: config.memberships.trialClassPayment
         });
     } catch (error) {
         console.error('Error actualizando configuración de precios:', error);
