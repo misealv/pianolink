@@ -265,9 +265,11 @@ router.get('/my-next', protect, async (req, res) => {
                 scheduledEnd: nextBooking.scheduledEnd,
                 duration: nextBooking.duration,
                 status: nextBooking.status,
+                bookingType: nextBooking.bookingType,
                 teacher: nextBooking.teacherId,
                 student: nextBooking.studentId
             },
+            bookingType: nextBooking.bookingType,
             canJoinNow,
             canJoinAt,
             minutesUntilClass

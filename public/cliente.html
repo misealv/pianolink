@@ -2173,6 +2173,31 @@
             
             // Guardar kit para uso global
             currentUserKit = myKit;
+            
+            // ========== ESTADO RESILIENTE ==========
+            // Calcular estado real basándose en datos, no solo en overallStatus
+            // Esto protege contra inconsistencias si alguien modifica el estado manualmente
+            if (myKit) {
+                const hasUpcomingTrialClass = nextClass?.hasNext && nextClass?.bookingType === 'trial';
+                const hasPendingTrialRating = pendingTrial?.hasPendingRating;
+                const storedStatus = myKit.overallStatus;
+                
+                // Corregir inconsistencias:
+                // Si hay clase trial próxima pero el estado dice "completed" → debería ser "trial_scheduled"
+                if (hasUpcomingTrialClass && storedStatus === 'completed') {
+                    console.warn('[Estado Resiliente] Hay clase trial agendada pero overallStatus=completed. Mostrando como trial_scheduled.');
+                    myKit._realStatus = 'trial_scheduled';
+                }
+                // Si hay rating pendiente pero el estado dice "completed" → debería ser "trial_completed"
+                else if (hasPendingTrialRating && storedStatus === 'completed') {
+                    console.warn('[Estado Resiliente] Hay rating pendiente pero overallStatus=completed. Mostrando como trial_completed.');
+                    myKit._realStatus = 'trial_completed';
+                }
+            }
+            
+            // Calcular estado efectivo para usar en condiciones
+            const effectiveStatus = myKit?._realStatus || myKit?.overallStatus;
+            const isOnboardingComplete = !myKit || effectiveStatus === 'completed';
 
             const students = user.clientData?.managedStudents || [];
             const isGuardian = students.length > 0;
@@ -2231,7 +2256,7 @@
                         📅 Agendar clase
                     </a>
                     ` : ''}
-                    ${(!myKit || myKit.overallStatus === 'completed') ? `
+                    ${isOnboardingComplete ? `
                     <a href="#packagesSection" class="btn btn-secondary" onclick="scrollToPackages()">
                         🎓 Ver paquetes de profesores
                     </a>
@@ -2242,10 +2267,10 @@
                 </section>
 
                 <!-- Mis Suscripciones Activas (solo si no está en onboarding) -->
-                ${(!myKit || myKit.overallStatus === 'completed') ? renderMySubscriptions() : ''}
+                ${isOnboardingComplete ? renderMySubscriptions() : ''}
 
                 <!-- Paquetes de Profesores Disponibles (solo si no está en onboarding) -->
-                ${(!myKit || myKit.overallStatus === 'completed') ? renderAvailablePackages() : ''}
+                ${isOnboardingComplete ? renderAvailablePackages() : ''}
 
                 <!-- Students (if guardian) -->
                 ${isGuardian ? `
@@ -2401,8 +2426,11 @@
         // ============================================
         
         function renderOnboardingStatus(kit, nextClass) {
-            // Si no hay kit o está completado, no mostrar nada
-            if (!kit || kit.overallStatus === 'completed') return '';
+            // Usar estado real calculado si existe, sino usar el almacenado
+            const effectiveStatus = kit?._realStatus || kit?.overallStatus;
+            
+            // Si no hay kit o está realmente completado, no mostrar nada
+            if (!kit || effectiveStatus === 'completed') return '';
             
             // Detectar si ya tiene clase próxima agendada
             const hasUpcomingClass = nextClass && nextClass.hasNext;
@@ -2471,6 +2499,20 @@
                     step: 4,
                     showTrialAction: !hasUpcomingClass
                 },
+                'trial_scheduled': {
+                    icon: '📅',
+                    title: '¡Clase de Prueba Agendada!',
+                    message: 'Ya tienes tu clase de prueba agendada. Revisa los detalles abajo.',
+                    color: '#6366f1',
+                    step: 4
+                },
+                'trial_completed': {
+                    icon: '⭐',
+                    title: '¡Califica tu Clase de Prueba!',
+                    message: 'Tu clase de prueba fue completada. Por favor califica tu experiencia arriba.',
+                    color: '#22c55e',
+                    step: 4
+                },
                 'shipped': {
                     icon: '🎹',
                     title: 'Clase de prueba',
@@ -2480,7 +2522,7 @@
                 }
             };
             
-            const config = statusConfig[kit.overallStatus] || statusConfig['pending'];
+            const config = statusConfig[effectiveStatus] || statusConfig['pending'];
             const currentStep = config.step || 1;
 
             // Datos de la entrevista agendada
