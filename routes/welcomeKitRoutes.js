@@ -23,6 +23,8 @@ const CJConfig = require('../models/CJConfig');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const EmailService = require('../services/EmailService');
 const CJDropshipping = require('../services/CJDropshippingService');
+const OnboardingSlot = require('../models/OnboardingSlot');
+const { generateInterviewConfirmationEmail } = require('../templates/interviewConfirmationEmail');
 const { generateWelcomeKitEmail } = require('../templates/welcomeKitEmail');
 
 // ==================== PRECIO KIT V2 (PÚBLICO) ====================
@@ -3227,6 +3229,393 @@ router.get('/v2/recommendation-templates', protect, adminOnly, async (req, res) 
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+
+// ==================================================================================
+// SISTEMA DE ENTREVISTAS DE BIENVENIDA — Agendamiento autoservicio
+// ==================================================================================
+
+/**
+ * POST /api/welcome-kit/v2/interview-availability
+ * Admin configura su disponibilidad semanal y genera slots de entrevista.
+ * Body: { weeklySlots: [{ dayOfWeek: 0-6, startTime: "HH:mm", endTime: "HH:mm" }],
+ *         weeksAhead: 4, duration: 15, meetingLink: "https://...", timezone: "America/Santiago" }
+ */
+router.post('/v2/interview-availability', protect, adminOnly, async (req, res) => {
+    try {
+        const { weeklySlots, weeksAhead = 4, duration = 15, meetingLink = '', timezone = 'America/Santiago' } = req.body;
+
+        if (!weeklySlots || !Array.isArray(weeklySlots) || weeklySlots.length === 0) {
+            return res.status(400).json({ success: false, error: 'Debes definir al menos un bloque horario' });
+        }
+
+        const staffId = req.user._id;
+        const staffName = req.user.name || 'Admin';
+        const now = new Date();
+        let created = 0;
+        let skipped = 0;
+
+        // Generar slots para las próximas N semanas
+        for (let week = 0; week < weeksAhead; week++) {
+            for (const block of weeklySlots) {
+                const { dayOfWeek, startTime, endTime } = block;
+                if (dayOfWeek === undefined || !startTime || !endTime) continue;
+
+                // Encontrar la próxima fecha que coincida con dayOfWeek
+                const baseDate = new Date(now);
+                baseDate.setDate(baseDate.getDate() + (week * 7));
+                
+                // Mover al día de la semana correcto
+                const currentDay = baseDate.getDay();
+                let daysUntil = dayOfWeek - currentDay;
+                if (week === 0 && daysUntil < 0) continue; // No generar días pasados esta semana
+                if (week === 0 && daysUntil === 0) {
+                    // Es hoy, verificar si la hora ya pasó
+                    const [startH] = startTime.split(':').map(Number);
+                    if (now.getHours() >= startH) continue;
+                }
+                
+                const slotDate = new Date(baseDate);
+                slotDate.setDate(baseDate.getDate() + daysUntil);
+
+                // Generar sub-slots dentro del bloque
+                const [startH, startM] = startTime.split(':').map(Number);
+                const [endH, endM] = endTime.split(':').map(Number);
+                const blockStartMin = startH * 60 + startM;
+                const blockEndMin = endH * 60 + endM;
+
+                for (let min = blockStartMin; min + duration <= blockEndMin; min += duration) {
+                    const slotStart = new Date(slotDate);
+                    slotStart.setHours(Math.floor(min / 60), min % 60, 0, 0);
+
+                    const slotEnd = new Date(slotStart);
+                    slotEnd.setMinutes(slotEnd.getMinutes() + duration);
+
+                    // Solo crear si es futuro
+                    if (slotStart <= now) continue;
+
+                    try {
+                        await OnboardingSlot.create({
+                            staffId,
+                            staffName,
+                            purpose: 'interview',
+                            startTime: slotStart,
+                            endTime: slotEnd,
+                            duration,
+                            status: 'available',
+                            meetingLink,
+                            timezone
+                        });
+                        created++;
+                    } catch (err) {
+                        // Duplicado (índice único) → skip silencioso
+                        if (err.code === 11000) {
+                            skipped++;
+                        } else {
+                            console.error('[Interview] Error creando slot:', err.message);
+                        }
+                    }
+                }
+            }
+        }
+
+        console.log(`[Interview] ✅ Generados ${created} slots, ${skipped} duplicados omitidos`);
+
+        res.json({
+            success: true,
+            created,
+            skipped,
+            message: `Se crearon ${created} slots de entrevista para las próximas ${weeksAhead} semanas`
+        });
+    } catch (error) {
+        console.error('[Interview] Error generando disponibilidad:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+/**
+ * GET /api/welcome-kit/v2/interview-slots
+ * Slots de entrevista disponibles (para el cliente).
+ * Query: ?purpose=interview (default)
+ */
+router.get('/v2/interview-slots', protect, async (req, res) => {
+    try {
+        const purpose = req.query.purpose || 'interview';
+        const now = new Date();
+
+        const slots = await OnboardingSlot.find({
+            purpose,
+            status: 'available',
+            startTime: { $gt: now }
+        })
+        .sort({ startTime: 1 })
+        .limit(100)
+        .select('startTime endTime duration staffName meetingLink timezone');
+
+        res.json({ success: true, slots });
+    } catch (error) {
+        console.error('[Interview] Error obteniendo slots:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+/**
+ * GET /api/welcome-kit/v2/interview-calendar
+ * Calendario completo de entrevistas para el admin (disponibles + agendadas).
+ * Query: ?from=ISO&to=ISO
+ */
+router.get('/v2/interview-calendar', protect, adminOnly, async (req, res) => {
+    try {
+        const now = new Date();
+        const from = req.query.from ? new Date(req.query.from) : new Date(now.setDate(now.getDate() - 7));
+        const to = req.query.to ? new Date(req.query.to) : new Date(new Date().setDate(new Date().getDate() + 30));
+
+        const slots = await OnboardingSlot.find({
+            purpose: 'interview',
+            startTime: { $gte: from, $lte: to }
+        })
+        .sort({ startTime: 1 })
+        .populate('booking.clientId', 'name email')
+        .populate('booking.kitId', 'overallStatus clientName');
+
+        // Stats
+        const available = slots.filter(s => s.status === 'available').length;
+        const booked = slots.filter(s => s.status === 'booked').length;
+        const completed = slots.filter(s => s.status === 'completed').length;
+        const upcoming = slots.filter(s => s.status === 'booked' && s.startTime > new Date()).length;
+
+        res.json({
+            success: true,
+            slots,
+            stats: { available, booked, completed, upcoming }
+        });
+    } catch (error) {
+        console.error('[Interview] Error obteniendo calendario:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+/**
+ * POST /api/welcome-kit/v2/:id/schedule-interview
+ * Cliente agenda su entrevista de bienvenida seleccionando un slot.
+ * Body: { slotId: "...", timezone: "America/Santiago" }
+ */
+router.post('/v2/:id/schedule-interview', protect, async (req, res) => {
+    try {
+        const kitId = req.params.id;
+        const { slotId, timezone = 'America/Santiago' } = req.body;
+
+        if (!slotId) {
+            return res.status(400).json({ success: false, error: 'Debes seleccionar un horario' });
+        }
+
+        // Verificar que el kit existe y pertenece al usuario
+        const kit = await WelcomeKit.findById(kitId);
+        if (!kit) {
+            return res.status(404).json({ success: false, error: 'Kit no encontrado' });
+        }
+
+        // Verificar que el kit es del usuario logueado
+        const isOwner = kit.clientId && kit.clientId.toString() === req.user._id.toString();
+        const isEmailMatch = kit.clientEmail === req.user.email;
+        if (!isOwner && !isEmailMatch) {
+            return res.status(403).json({ success: false, error: 'No tienes permiso para este kit' });
+        }
+
+        // Verificar que el estado permite agendar entrevista
+        if (!['entrevista_pendiente', 'paid'].includes(kit.overallStatus)) {
+            return res.status(400).json({
+                success: false,
+                error: `No se puede agendar entrevista en estado: ${kit.overallStatus}`
+            });
+        }
+
+        // Reservar el slot atómicamente (anti-double-booking)
+        const slot = await OnboardingSlot.findOneAndUpdate(
+            {
+                _id: slotId,
+                purpose: 'interview',
+                status: 'available'
+            },
+            {
+                $set: {
+                    status: 'booked',
+                    booking: {
+                        kitId: kit._id,
+                        clientId: req.user._id,
+                        clientName: kit.clientName || req.user.name,
+                        clientEmail: kit.clientEmail || req.user.email,
+                        bookedAt: new Date()
+                    }
+                },
+                $inc: { version: 1 }
+            },
+            { new: true }
+        );
+
+        if (!slot) {
+            return res.status(409).json({
+                success: false,
+                error: 'Este horario ya no está disponible. Por favor elige otro.'
+            });
+        }
+
+        // Actualizar el WelcomeKit
+        kit.interview = {
+            slotId: slot._id,
+            scheduledAt: slot.startTime
+        };
+        kit.overallStatus = 'entrevista_agendada';
+        await kit.save();
+
+        // Formatear fecha para el email
+        const interviewDate = _formatDate(slot.startTime, timezone);
+        const interviewTime = _formatTime(slot.startTime, timezone);
+
+        // Enviar email de confirmación
+        const emailHtml = generateInterviewConfirmationEmail({
+            clientName: kit.clientName || req.user.name,
+            clientEmail: kit.clientEmail || req.user.email,
+            interviewDate,
+            interviewTime,
+            interviewTimezone: timezone,
+            meetingLink: slot.meetingLink,
+            staffName: slot.staffName,
+            whatsappNumber: process.env.WHATSAPP_NUMBER || ''
+        });
+
+        await EmailService.sendSafe({
+            to: kit.clientEmail || req.user.email,
+            subject: '📅 Entrevista de Bienvenida Confirmada — PianoLink',
+            html: emailHtml
+        });
+
+        console.log(`[Interview] ✅ Entrevista agendada: Kit ${kitId} → Slot ${slotId} → ${interviewDate} ${interviewTime}`);
+
+        res.json({
+            success: true,
+            message: 'Entrevista agendada exitosamente',
+            interview: {
+                date: interviewDate,
+                time: interviewTime,
+                timezone,
+                meetingLink: slot.meetingLink,
+                staffName: slot.staffName
+            }
+        });
+    } catch (error) {
+        console.error('[Interview] Error agendando entrevista:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+/**
+ * DELETE /api/welcome-kit/v2/interview-slots/:slotId
+ * Admin elimina un slot disponible.
+ */
+router.delete('/v2/interview-slots/:slotId', protect, adminOnly, async (req, res) => {
+    try {
+        const slot = await OnboardingSlot.findById(req.params.slotId);
+        if (!slot) {
+            return res.status(404).json({ success: false, error: 'Slot no encontrado' });
+        }
+        if (slot.status === 'booked') {
+            return res.status(400).json({ success: false, error: 'No se puede eliminar un slot ya reservado' });
+        }
+
+        await OnboardingSlot.deleteOne({ _id: slot._id });
+        res.json({ success: true, message: 'Slot eliminado' });
+    } catch (error) {
+        console.error('[Interview] Error eliminando slot:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+/**
+ * POST /api/welcome-kit/v2/interview-slots/:slotId/complete
+ * Admin marca una entrevista como completada.
+ */
+router.post('/v2/interview-slots/:slotId/complete', protect, adminOnly, async (req, res) => {
+    try {
+        const { notes } = req.body;
+        const slot = await OnboardingSlot.findById(req.params.slotId);
+        if (!slot) {
+            return res.status(404).json({ success: false, error: 'Slot no encontrado' });
+        }
+        if (slot.status !== 'booked') {
+            return res.status(400).json({ success: false, error: 'Solo se pueden completar slots reservados' });
+        }
+
+        // Marcar slot como completado
+        slot.status = 'completed';
+        await slot.save();
+
+        // Actualizar kit si existe
+        if (slot.booking?.kitId) {
+            const kit = await WelcomeKit.findById(slot.booking.kitId);
+            if (kit) {
+                kit.interview.completedAt = new Date();
+                if (notes) kit.interview.notes = notes;
+                // El admin puede avanzar el estado al siguiente paso manualmente
+                // o automáticamente:
+                // kit.overallStatus = 'esperando_equipo';
+                await kit.save();
+            }
+        }
+
+        res.json({ success: true, message: 'Entrevista marcada como completada' });
+    } catch (error) {
+        console.error('[Interview] Error completando entrevista:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+// ==================== HELPERS PARA FORMATO DE FECHAS ====================
+
+/**
+ * Formatea fecha en español. Ej: "Lunes 10 de Febrero, 2026"
+ */
+function _formatDate(date, timezone) {
+    try {
+        const d = new Date(date);
+        const options = {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            timeZone: timezone
+        };
+        let formatted = d.toLocaleDateString('es-CL', options);
+        // Capitalizar primera letra
+        return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    } catch {
+        return new Date(date).toISOString().split('T')[0];
+    }
+}
+
+/**
+ * Formatea hora. Ej: "10:00 AM"
+ */
+function _formatTime(date, timezone) {
+    try {
+        const d = new Date(date);
+        return d.toLocaleTimeString('es-CL', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: timezone
+        });
+    } catch {
+        return new Date(date).toISOString().split('T')[1].substring(0, 5);
+    }
+}
+
 
 module.exports = router;
 

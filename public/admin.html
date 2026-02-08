@@ -591,6 +591,9 @@
                             <button class="simple-tab" data-kit-tab="orders" onclick="switchSimpleKitTab('orders')">
                                 🧾 Órdenes Legacy
                             </button>
+                            <button class="simple-tab" data-kit-tab="interviews" onclick="switchSimpleKitTab('interviews')">
+                                📅 Entrevistas
+                            </button>
                             <button class="simple-tab" data-kit-tab="pricing" onclick="switchSimpleKitTab('pricing')">
                                 💰 Precios
                             </button>
@@ -670,6 +673,81 @@
                                 <div style="text-align:center; padding:60px 20px; color:#666;">
                                     <div style="font-size:48px; margin-bottom:15px;">🧾</div>
                                     <p>No hay órdenes aún</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab Content: Entrevistas -->
+                        <div id="kit-tab-interviews" class="kit-tab-content">
+                            <!-- Configurar disponibilidad -->
+                            <div style="background:linear-gradient(135deg, #1a1a2e, #16213e); border-radius:12px; padding:20px; margin-bottom:20px; border:1px solid #3b82f640;">
+                                <h3 style="color:#3b82f6; margin:0 0 15px 0; font-size:16px;">📅 Configurar Disponibilidad</h3>
+                                
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                                    <div>
+                                        <label style="font-size:12px; color:#888; display:block; margin-bottom:5px;">🔗 Link de reunión (Google Meet / Zoom)</label>
+                                        <input type="url" id="interview-meeting-link" class="form-input" placeholder="https://meet.google.com/xxx-xxx-xxx" style="font-size:13px;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size:12px; color:#888; display:block; margin-bottom:5px;">🌐 Timezone</label>
+                                        <select id="interview-timezone" class="form-input" style="font-size:13px;">
+                                            <option value="America/Santiago">Chile (GMT-3)</option>
+                                            <option value="America/Argentina/Buenos_Aires">Argentina (GMT-3)</option>
+                                            <option value="America/Lima">Perú (GMT-5)</option>
+                                            <option value="America/Bogota">Colombia (GMT-5)</option>
+                                            <option value="America/Mexico_City">México (GMT-6)</option>
+                                            <option value="America/Sao_Paulo">Brasil (GMT-3)</option>
+                                            <option value="Europe/Madrid">España (GMT+1)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style="margin-bottom:15px;">
+                                    <label style="font-size:12px; color:#888; display:block; margin-bottom:8px;">📆 Bloques horarios semanales</label>
+                                    <div id="interview-weekly-blocks" style="display:grid; gap:8px;">
+                                        <!-- Se agregan dinámicamente -->
+                                    </div>
+                                    <button onclick="addInterviewBlock()" style="margin-top:8px; background:#333; color:#aaa; border:1px dashed #555; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:12px; width:100%;">
+                                        + Agregar bloque horario
+                                    </button>
+                                </div>
+
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <div>
+                                        <label style="font-size:12px; color:#888;">Semanas a generar</label>
+                                        <input type="number" id="interview-weeks-ahead" class="form-input" value="4" min="1" max="12" style="width:80px; font-size:13px;">
+                                    </div>
+                                    <button class="btn btn-primary" onclick="generateInterviewSlots()" style="margin-top:18px; padding:10px 24px;">
+                                        🗓️ Generar Slots
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Stats de entrevistas -->
+                            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;">
+                                <div style="background:var(--bg-card); border-radius:10px; padding:12px; text-align:center;">
+                                    <div style="font-size:20px; font-weight:700; color:#3b82f6;" id="interview-stat-available">0</div>
+                                    <div style="font-size:11px; color:#888;">Disponibles</div>
+                                </div>
+                                <div style="background:var(--bg-card); border-radius:10px; padding:12px; text-align:center;">
+                                    <div style="font-size:20px; font-weight:700; color:#f59e0b;" id="interview-stat-booked">0</div>
+                                    <div style="font-size:11px; color:#888;">Agendadas</div>
+                                </div>
+                                <div style="background:var(--bg-card); border-radius:10px; padding:12px; text-align:center;">
+                                    <div style="font-size:20px; font-weight:700; color:#10b981;" id="interview-stat-upcoming">0</div>
+                                    <div style="font-size:11px; color:#888;">Próximas</div>
+                                </div>
+                                <div style="background:var(--bg-card); border-radius:10px; padding:12px; text-align:center;">
+                                    <div style="font-size:20px; font-weight:700; color:#8b5cf6;" id="interview-stat-completed">0</div>
+                                    <div style="font-size:11px; color:#888;">Completadas</div>
+                                </div>
+                            </div>
+
+                            <!-- Lista de entrevistas -->
+                            <div id="interview-calendar-list" style="display:grid; gap:10px;">
+                                <div style="text-align:center; padding:40px 20px; color:#666;">
+                                    <div style="font-size:48px; margin-bottom:15px;">📅</div>
+                                    <p>Configura tu disponibilidad para generar slots de entrevista</p>
                                 </div>
                             </div>
                         </div>

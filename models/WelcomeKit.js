@@ -160,12 +160,24 @@ const welcomeKitSchema = new mongoose.Schema({
         teacherNotes: { type: String }
     },
     
+    // ==================== ENTREVISTA DE BIENVENIDA ====================
+    interview: {
+        slotId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'OnboardingSlot'
+        },
+        scheduledAt: { type: Date },
+        completedAt: { type: Date },
+        notes: { type: String }
+    },
+
     // ==================== ESTADO GENERAL ====================
     overallStatus: {
         type: String,
         enum: [
             'paid',              // Pagó, esperando envío (legacy)
             'entrevista_pendiente', // V2: Esperando entrevista técnica
+            'entrevista_agendada',  // V2: Entrevista agendada por el cliente
             'esperando_equipo',  // V2: Email enviado, cliente comprando equipo
             'shipping',          // En camino (legacy)
             'delivered',         // Entregado, esperando confirmar (legacy)
@@ -220,6 +232,8 @@ welcomeKitSchema.pre('save', function(next) {
 // Método: Avanzar al siguiente estado
 welcomeKitSchema.methods.advanceStatus = function() {
     const transitions = {
+        'entrevista_pendiente': 'entrevista_agendada',
+        'entrevista_agendada': 'esperando_equipo',
         'paid': 'shipping',
         'shipping': 'delivered',
         'delivered': 'setup_pending',

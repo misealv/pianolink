@@ -2353,6 +2353,11 @@
                     `}
                 </section>
             `;
+
+            // Si el kit está en estado de agendar entrevista, cargar slots disponibles
+            if (myKit && ['entrevista_pendiente', 'pending', 'paid'].includes(myKit.overallStatus)) {
+                setTimeout(() => loadInterviewSlots(myKit._id), 100);
+            }
         }
 
         function getInitials(name) {
@@ -2382,18 +2387,28 @@
             
             const statusConfig = {
                 'pending': {
-                    icon: '📋',
-                    title: 'Pago recibido',
-                    message: 'Pronto nos pondremos en contacto para agendar tu entrevista de bienvenida.',
+                    icon: '�',
+                    title: 'Agenda tu Entrevista de Bienvenida',
+                    message: '¡Bienvenido! El primer paso es agendar una breve entrevista (15 min) para conocer tu equipo y darte recomendaciones.',
                     color: '#3b82f6',
-                    step: 1
+                    step: 1,
+                    showCalendar: true
                 },
                 'entrevista_pendiente': {
-                    icon: '📞',
+                    icon: '📅',
+                    title: 'Agenda tu Entrevista de Bienvenida',
+                    message: 'Selecciona un horario disponible para tu entrevista de bienvenida (15 min). Evaluaremos tu equipo y te daremos recomendaciones.',
+                    color: '#3b82f6',
+                    step: 1,
+                    showCalendar: true
+                },
+                'entrevista_agendada': {
+                    icon: '✅',
                     title: 'Entrevista Agendada',
-                    message: 'Te contactaremos pronto para conocer tu equipo y darte recomendaciones personalizadas.',
+                    message: '',
                     color: '#8b5cf6',
-                    step: 1
+                    step: 1,
+                    showInterviewDetails: true
                 },
                 'esperando_equipo': {
                     icon: '🛒',
@@ -2410,6 +2425,13 @@
                     color: '#10b981',
                     step: 3
                 },
+                'setup_pending': {
+                    icon: '⚙️',
+                    title: 'Setup pendiente',
+                    message: 'Pronto coordinaremos tu sesión de configuración técnica.',
+                    color: '#f97316',
+                    step: 3
+                },
                 'shipped': {
                     icon: '🎹',
                     title: 'Clase de prueba',
@@ -2421,6 +2443,28 @@
             
             const config = statusConfig[kit.overallStatus] || statusConfig['pending'];
             const currentStep = config.step || 1;
+
+            // Datos de la entrevista agendada
+            let interviewDetailsHtml = '';
+            if (config.showInterviewDetails && kit.interview?.scheduledAt) {
+                const d = new Date(kit.interview.scheduledAt);
+                const dateStr = d.toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const timeStr = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: true });
+                const capitalDate = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+                
+                interviewDetailsHtml = `
+                    <div style="background: #0d0d1a; border: 1px solid #8b5cf640; border-radius: 12px; padding: 20px; margin-top: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <span style="font-size: 32px;">📅</span>
+                            <div>
+                                <div style="font-size: 16px; font-weight: 700; color: #fff;">${capitalDate}</div>
+                                <div style="font-size: 14px; color: #8b5cf6; font-weight: 600;">${timeStr} — 15 minutos</div>
+                            </div>
+                        </div>
+                        <p style="color: #aaa; font-size: 13px; margin: 0;">Te enviaremos un recordatorio antes de la entrevista. Prepara tu teclado y cable MIDI si lo tienes.</p>
+                    </div>
+                `;
+            }
             
             return `
                 <section class="onboarding-status" style="background: linear-gradient(135deg, ${config.color}15, ${config.color}05); border: 1px solid ${config.color}30; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
@@ -2447,6 +2491,18 @@
                                     </div>
                                 `).join('')}
                             </div>
+                            
+                            ${config.showCalendar ? `
+                            <div id="interview-calendar-container" style="margin-top: 12px;">
+                                <div style="text-align:center; padding:20px; color:#888;">
+                                    <div class="spinner" style="width:24px; height:24px; border:3px solid #333; border-top:3px solid ${config.color}; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 10px;"></div>
+                                    Cargando horarios disponibles...
+                                </div>
+                            </div>
+                            <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+                            ` : ''}
+                            
+                            ${interviewDetailsHtml}
                             
                             ${config.showButton ? `
                             <button onclick="confirmEquipmentReady()" style="background: ${config.color}; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
@@ -2488,6 +2544,213 @@
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error de conexión');
+            }
+        }
+
+        // ============================================
+        // AGENDAR ENTREVISTA DE BIENVENIDA
+        // ============================================
+
+        /**
+         * Carga los slots de entrevista disponibles y los muestra en el calendario
+         */
+        async function loadInterviewSlots(kitId) {
+            const container = document.getElementById('interview-calendar-container');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/welcome-kit/v2/interview-slots', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (!data.success || !data.slots || data.slots.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align:center; padding:20px; color:#888; background:#0d0d1a; border-radius:12px;">
+                            <div style="font-size:32px; margin-bottom:8px;">📅</div>
+                            <p style="margin:0; font-size:14px;">No hay horarios disponibles en este momento.</p>
+                            <p style="margin:8px 0 0; font-size:12px; color:#666;">Pronto se publicarán nuevos horarios. Revisa en unas horas.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                renderInterviewCalendar(data.slots, kitId);
+            } catch (error) {
+                console.error('Error cargando slots de entrevista:', error);
+                container.innerHTML = `<p style="color:#f87171; font-size:13px;">Error cargando horarios. Recarga la página.</p>`;
+            }
+        }
+
+        /**
+         * Renderiza el calendario de selección de slot de entrevista
+         */
+        function renderInterviewCalendar(slots, kitId) {
+            const container = document.getElementById('interview-calendar-container');
+            if (!container) return;
+
+            // Agrupar slots por fecha
+            const grouped = {};
+            slots.forEach(slot => {
+                const dateKey = new Date(slot.startTime).toLocaleDateString('es-CL', {
+                    weekday: 'long', month: 'long', day: 'numeric'
+                });
+                if (!grouped[dateKey]) grouped[dateKey] = [];
+                grouped[dateKey].push(slot);
+            });
+
+            let html = `<div style="background:#0d0d1a; border-radius:12px; padding:16px; border:1px solid #333;">`;
+            html += `<div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+                        <span style="font-size:20px;">🗓️</span>
+                        <span style="font-size:14px; font-weight:600; color:#fff;">Selecciona un horario</span>
+                     </div>`;
+
+            for (const [dateLabel, daySlots] of Object.entries(grouped)) {
+                const capitalDate = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+                html += `
+                    <div style="margin-bottom:16px;">
+                        <div style="font-size:13px; font-weight:600; color:#d4af37; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid #333;">
+                            📅 ${capitalDate}
+                        </div>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                `;
+
+                for (const slot of daySlots) {
+                    const time = new Date(slot.startTime).toLocaleTimeString('es-CL', {
+                        hour: '2-digit', minute: '2-digit', hour12: true
+                    });
+                    html += `
+                        <button onclick="selectInterviewSlot('${slot._id}', '${kitId}', this)"
+                            data-slot-id="${slot._id}"
+                            style="background:#1a1a2e; border:1px solid #444; color:#fff; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; transition:all 0.2s;"
+                            onmouseover="this.style.borderColor='#3b82f6'; this.style.background='rgba(59,130,246,0.15)'"
+                            onmouseout="if(!this.classList.contains('selected')){this.style.borderColor='#444'; this.style.background='#1a1a2e'}"
+                        >
+                            ${time}
+                        </button>
+                    `;
+                }
+
+                html += `</div></div>`;
+            }
+
+            html += `
+                <div id="interview-confirm-section" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid #333;">
+                    <div id="interview-selected-summary" style="background:rgba(59,130,246,0.1); border:1px solid #3b82f640; border-radius:8px; padding:12px; margin-bottom:12px;">
+                    </div>
+                    <button id="interview-confirm-btn" onclick="confirmInterviewBooking()" style="width:100%; background:linear-gradient(135deg, #3b82f6, #2563eb); color:white; border:none; padding:14px; border-radius:8px; font-weight:700; font-size:15px; cursor:pointer;">
+                        ✅ Confirmar Entrevista
+                    </button>
+                </div>
+            </div>`;
+
+            container.innerHTML = html;
+        }
+
+        let selectedInterviewSlotId = null;
+        let selectedInterviewKitId = null;
+
+        /**
+         * Selecciona un slot de entrevista
+         */
+        function selectInterviewSlot(slotId, kitId, btn) {
+            selectedInterviewSlotId = slotId;
+            selectedInterviewKitId = kitId;
+
+            // Deseleccionar todos los botones
+            const container = document.getElementById('interview-calendar-container');
+            container.querySelectorAll('button[data-slot-id]').forEach(b => {
+                b.classList.remove('selected');
+                b.style.borderColor = '#444';
+                b.style.background = '#1a1a2e';
+            });
+
+            // Seleccionar este
+            btn.classList.add('selected');
+            btn.style.borderColor = '#3b82f6';
+            btn.style.background = 'rgba(59,130,246,0.25)';
+
+            // Mostrar sección de confirmación
+            const confirmSection = document.getElementById('interview-confirm-section');
+            confirmSection.style.display = 'block';
+
+            // Mostrar resumen
+            const slotBtn = btn;
+            const dateGroup = slotBtn.closest('[style*="margin-bottom:16px"]');
+            const dateLabel = dateGroup?.querySelector('[style*="color:#d4af37"]')?.textContent?.replace('📅 ', '') || '';
+            const time = slotBtn.textContent.trim();
+
+            document.getElementById('interview-selected-summary').innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:24px;">📅</span>
+                    <div>
+                        <div style="font-size:14px; font-weight:600; color:#fff;">${dateLabel}</div>
+                        <div style="font-size:13px; color:#3b82f6;">${time} — 15 minutos</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Confirma la reserva de la entrevista
+         */
+        async function confirmInterviewBooking() {
+            if (!selectedInterviewSlotId || !selectedInterviewKitId) {
+                alert('Selecciona un horario primero');
+                return;
+            }
+
+            const btn = document.getElementById('interview-confirm-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Agendando...';
+
+            try {
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santiago';
+                
+                const res = await fetch(`/api/welcome-kit/v2/${selectedInterviewKitId}/schedule-interview`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        slotId: selectedInterviewSlotId,
+                        timezone
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al agendar');
+                }
+
+                // Éxito — mostrar confirmación
+                const container = document.getElementById('interview-calendar-container');
+                container.innerHTML = `
+                    <div style="text-align:center; padding:24px; background:#0d0d1a; border-radius:12px; border:1px solid #22c55e40;">
+                        <div style="font-size:48px; margin-bottom:12px;">🎉</div>
+                        <h3 style="color:#22c55e; margin:0 0 8px;">¡Entrevista Agendada!</h3>
+                        <p style="color:#aaa; margin:0 0 12px; font-size:14px;">
+                            ${data.interview.date} a las ${data.interview.time}
+                        </p>
+                        ${data.interview.meetingLink ? `
+                        <a href="${data.interview.meetingLink}" target="_blank" style="display:inline-block; background:#4285f4; color:white; padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:600; font-size:13px; margin-top:8px;">
+                            🎥 Link de la reunión
+                        </a>
+                        ` : ''}
+                        <p style="color:#666; font-size:12px; margin:12px 0 0;">
+                            Te enviamos un email de confirmación con los detalles.
+                        </p>
+                    </div>
+                `;
+
+                // Recargar dashboard después de 3 segundos
+                setTimeout(() => loadDashboard(), 3000);
+            } catch (error) {
+                alert(error.message || 'Error al agendar entrevista. Intenta de nuevo.');
+                btn.disabled = false;
+                btn.textContent = '✅ Confirmar Entrevista';
             }
         }
 

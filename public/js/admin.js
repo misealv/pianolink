@@ -3870,6 +3870,8 @@ function switchSimpleKitTab(tabName) {
         loadKitProductsList();
     } else if (tabName === 'orders') {
         loadKitOrdersList();
+    } else if (tabName === 'interviews') {
+        loadInterviewCalendar();
     } else if (tabName === 'pricing') {
         loadServicePricing();
     }
@@ -3968,6 +3970,7 @@ function getV2StatusInfo(status) {
     const statuses = {
         'paid': { label: 'Pagado', icon: '💳', color: '#3b82f6', bgColor: 'rgba(59,130,246,0.15)' },
         'entrevista_pendiente': { label: 'Entrevista Pendiente', icon: '📞', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.15)' },
+        'entrevista_agendada': { label: 'Entrevista Agendada', icon: '📅', color: '#3b82f6', bgColor: 'rgba(59,130,246,0.15)' },
         'esperando_equipo': { label: 'Esperando Equipo', icon: '🛒', color: '#8b5cf6', bgColor: 'rgba(139,92,246,0.15)' },
         'setup_pending': { label: 'Setup Pendiente', icon: '⚙️', color: '#f97316', bgColor: 'rgba(249,115,22,0.15)' },
         'setup_scheduled': { label: 'Setup Agendado', icon: '📅', color: '#06b6d4', bgColor: 'rgba(6,182,212,0.15)' },
@@ -4146,6 +4149,7 @@ async function updateV2Status(orderId, newStatus) {
 function openChangeStatusModal(orderId, currentStatus) {
     const statuses = [
         { value: 'entrevista_pendiente', label: '📞 Entrevista Pendiente' },
+        { value: 'entrevista_agendada', label: '📅 Entrevista Agendada' },
         { value: 'esperando_equipo', label: '🛒 Esperando Equipo' },
         { value: 'setup_pending', label: '⚙️ Setup Pendiente' },
         { value: 'setup_scheduled', label: '📅 Setup Agendado' },
@@ -6889,5 +6893,241 @@ async function executePayoutAuto(payoutId) {
         }
     } catch (error) {
         showNotification('Error de conexión', 'error');
+    }
+}
+
+// ==================== ENTREVISTAS DE BIENVENIDA ====================
+
+let interviewBlockCount = 0;
+
+/**
+ * Agrega un bloque horario semanal para entrevistas
+ */
+function addInterviewBlock() {
+    const container = document.getElementById('interview-weekly-blocks');
+    if (!container) return;
+    
+    const blockId = interviewBlockCount++;
+    const blockHtml = `
+        <div id="interview-block-${blockId}" style="display:flex; gap:8px; align-items:center; background:#0d0d1a; padding:10px; border-radius:8px;">
+            <select id="interview-day-${blockId}" class="form-input" style="flex:1; font-size:12px;">
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+                <option value="6">Sábado</option>
+                <option value="0">Domingo</option>
+            </select>
+            <input type="time" id="interview-start-${blockId}" class="form-input" value="09:00" style="flex:0.7; font-size:12px;">
+            <span style="color:#666;">a</span>
+            <input type="time" id="interview-end-${blockId}" class="form-input" value="12:00" style="flex:0.7; font-size:12px;">
+            <button onclick="removeInterviewBlock(${blockId})" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:16px;">✕</button>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', blockHtml);
+}
+
+function removeInterviewBlock(blockId) {
+    document.getElementById(`interview-block-${blockId}`)?.remove();
+}
+
+/**
+ * Genera slots de entrevista basados en los bloques horarios configurados
+ */
+async function generateInterviewSlots() {
+    const container = document.getElementById('interview-weekly-blocks');
+    const blocks = container.querySelectorAll('[id^="interview-block-"]');
+    
+    if (blocks.length === 0) {
+        showNotification('Agrega al menos un bloque horario', 'error');
+        return;
+    }
+    
+    const weeklySlots = [];
+    blocks.forEach(block => {
+        const id = block.id.replace('interview-block-', '');
+        const dayOfWeek = parseInt(document.getElementById(`interview-day-${id}`)?.value);
+        const startTime = document.getElementById(`interview-start-${id}`)?.value;
+        const endTime = document.getElementById(`interview-end-${id}`)?.value;
+        
+        if (!isNaN(dayOfWeek) && startTime && endTime) {
+            weeklySlots.push({ dayOfWeek, startTime, endTime });
+        }
+    });
+    
+    if (weeklySlots.length === 0) {
+        showNotification('Configura al menos un bloque válido', 'error');
+        return;
+    }
+    
+    const meetingLink = document.getElementById('interview-meeting-link')?.value || '';
+    const timezone = document.getElementById('interview-timezone')?.value || 'America/Santiago';
+    const weeksAhead = parseInt(document.getElementById('interview-weeks-ahead')?.value) || 4;
+    
+    try {
+        const res = await fetch('/api/welcome-kit/v2/interview-availability', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                weeklySlots,
+                weeksAhead,
+                duration: 15,
+                meetingLink,
+                timezone
+            })
+        });
+        
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        
+        showNotification(`✅ ${data.message}`, 'success');
+        loadInterviewCalendar();
+    } catch (error) {
+        showNotification('Error: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Carga el calendario de entrevistas del admin
+ */
+async function loadInterviewCalendar() {
+    try {
+        const res = await fetch('/api/welcome-kit/v2/interview-calendar', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        
+        // Actualizar stats
+        const s = data.stats || {};
+        const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+        el('interview-stat-available', s.available || 0);
+        el('interview-stat-booked', s.booked || 0);
+        el('interview-stat-upcoming', s.upcoming || 0);
+        el('interview-stat-completed', s.completed || 0);
+        
+        renderInterviewSlots(data.slots || []);
+    } catch (error) {
+        console.error('Error cargando entrevistas:', error);
+    }
+}
+
+/**
+ * Renderiza la lista de slots de entrevista
+ */
+function renderInterviewSlots(slots) {
+    const container = document.getElementById('interview-calendar-list');
+    if (!container) return;
+    
+    if (slots.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:40px 20px; color:#666;">
+                <div style="font-size:48px; margin-bottom:15px;">📅</div>
+                <p>No hay slots de entrevista. Configura tu disponibilidad arriba.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Agrupar por fecha
+    const grouped = {};
+    slots.forEach(slot => {
+        const dateKey = new Date(slot.startTime).toLocaleDateString('es-CL', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+        if (!grouped[dateKey]) grouped[dateKey] = [];
+        grouped[dateKey].push(slot);
+    });
+    
+    let html = '';
+    for (const [dateLabel, daySlots] of Object.entries(grouped)) {
+        const capitalDate = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+        html += `<div style="margin-bottom:20px;">`;
+        html += `<h4 style="color:#d4af37; margin:0 0 10px; font-size:14px; border-bottom:1px solid #333; padding-bottom:6px;">📅 ${capitalDate}</h4>`;
+        html += `<div style="display:grid; gap:6px;">`;
+        
+        for (const slot of daySlots) {
+            const time = new Date(slot.startTime).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const endTime = new Date(slot.endTime).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: true });
+            
+            let statusBadge = '';
+            let actions = '';
+            
+            if (slot.status === 'available') {
+                statusBadge = `<span style="background:rgba(34,197,94,0.15); color:#22c55e; padding:3px 8px; border-radius:4px; font-size:11px;">Disponible</span>`;
+                actions = `<button onclick="deleteInterviewSlot('${slot._id}')" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:12px;" title="Eliminar">🗑️</button>`;
+            } else if (slot.status === 'booked') {
+                const clientName = slot.booking?.clientName || 'Cliente';
+                statusBadge = `<span style="background:rgba(59,130,246,0.15); color:#3b82f6; padding:3px 8px; border-radius:4px; font-size:11px;">🎯 ${clientName}</span>`;
+                actions = `<button onclick="completeInterview('${slot._id}')" style="background:#10b981; border:none; color:white; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px;">✅ Completar</button>`;
+            } else if (slot.status === 'completed') {
+                const clientName = slot.booking?.clientName || 'Cliente';
+                statusBadge = `<span style="background:rgba(139,92,246,0.15); color:#8b5cf6; padding:3px 8px; border-radius:4px; font-size:11px;">✅ ${clientName}</span>`;
+            }
+            
+            html += `
+                <div style="display:flex; align-items:center; justify-content:space-between; background:#0d0d1a; padding:10px 14px; border-radius:8px; border-left:3px solid ${slot.status === 'booked' ? '#3b82f6' : slot.status === 'completed' ? '#8b5cf6' : '#22c55e'};">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span style="color:#fff; font-size:13px; font-weight:500;">${time} - ${endTime}</span>
+                        ${statusBadge}
+                    </div>
+                    <div>${actions}</div>
+                </div>
+            `;
+        }
+        
+        html += `</div></div>`;
+    }
+    
+    container.innerHTML = html;
+}
+
+/**
+ * Elimina un slot de entrevista disponible
+ */
+async function deleteInterviewSlot(slotId) {
+    if (!confirm('¿Eliminar este slot de entrevista?')) return;
+    
+    try {
+        const res = await fetch(`/api/welcome-kit/v2/interview-slots/${slotId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        
+        showNotification('Slot eliminado', 'success');
+        loadInterviewCalendar();
+    } catch (error) {
+        showNotification('Error: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Marca una entrevista como completada
+ */
+async function completeInterview(slotId) {
+    const notes = prompt('Notas de la entrevista (opcional):') || '';
+    
+    try {
+        const res = await fetch(`/api/welcome-kit/v2/interview-slots/${slotId}/complete`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${userSession.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ notes })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        
+        showNotification('✅ Entrevista completada', 'success');
+        loadInterviewCalendar();
+    } catch (error) {
+        showNotification('Error: ' + error.message, 'error');
     }
 }
