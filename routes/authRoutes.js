@@ -23,4 +23,25 @@ router.delete('/delete/:id', deleteUser); // <--- La ruta nueva
 // Ruta protegida para actualizar perfil (requiere autenticación)
 router.put('/profile', protect, updateProfile);
 
+// Ruta para verificar sesión - funciona para cualquier tipo de usuario
+router.get('/me', protect, async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ error: 'No autenticado' });
+        }
+        res.json({
+            success: true,
+            user: {
+                _id: req.user._id,
+                name: req.user.name,
+                email: req.user.email,
+                role: req.user.role
+            }
+        });
+    } catch (error) {
+        console.error('[Auth] Error en /me:', error);
+        res.status(500).json({ error: 'Error interno' });
+    }
+});
+
 module.exports = router;

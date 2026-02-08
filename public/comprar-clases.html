@@ -361,6 +361,7 @@
             }
             
             try {
+                // Usar /api/auth/me para verificar sesión (funciona para cualquier rol)
                 const response = await fetch('/api/auth/me', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
