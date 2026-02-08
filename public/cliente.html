@@ -4402,8 +4402,7 @@
                 return true; // Permitir entrar
             }
             
-            const waitMinutes = Math.round((canJoinAt - now) / 60000);
-            alert(`⏳ La sala se abre ${waitMinutes} minutos antes de la clase.\n\nPodrás entrar a las ${canJoinAt.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}`);
+            alert(`⏳ La sala se abre 15 minutos antes de la clase.\n\nPodrás entrar a las ${canJoinAt.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}`);
             event.preventDefault();
             return false;
         }
