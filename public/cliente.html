@@ -2177,7 +2177,7 @@
             const nextClassHTML = renderNextClass(nextClass);
             
             // Renderizar estado del Onboarding Kit
-            const onboardingHTML = renderOnboardingStatus(myKit);
+            const onboardingHTML = renderOnboardingStatus(myKit, nextClass);
 
             const main = document.getElementById('mainContent');
             main.innerHTML = `
@@ -2216,9 +2216,11 @@
 
                 <!-- Actions -->
                 <section class="actions">
+                    ${!nextClass?.hasNext ? `
                     <a href="#" class="btn btn-primary" onclick="scheduleClass()">
                         📅 Agendar clase
                     </a>
+                    ` : ''}
                     ${(!myKit || myKit.overallStatus === 'completed') ? `
                     <a href="#packagesSection" class="btn btn-secondary" onclick="scrollToPackages()">
                         🎓 Ver paquetes de profesores
@@ -2388,9 +2390,12 @@
         // ONBOARDING KIT STATUS
         // ============================================
         
-        function renderOnboardingStatus(kit) {
+        function renderOnboardingStatus(kit, nextClass) {
             // Si no hay kit o está completado, no mostrar nada
             if (!kit || kit.overallStatus === 'completed') return '';
+            
+            // Detectar si ya tiene clase próxima agendada
+            const hasUpcomingClass = nextClass && nextClass.hasNext;
             
             const statusConfig = {
                 'pending': {
@@ -2450,11 +2455,11 @@
                 },
                 'trial_available': {
                     icon: '🎹',
-                    title: '¡Listo para tu Clase de Prueba!',
-                    message: 'Tu setup técnico está completado. Elige un profesor y agenda tu primera clase de prueba.',
+                    title: hasUpcomingClass ? '¡Clase de Prueba Agendada!' : '¡Listo para tu Clase de Prueba!',
+                    message: hasUpcomingClass ? 'Ya tienes tu clase de prueba agendada. Revisa los detalles abajo.' : 'Tu setup técnico está completado. Elige un profesor y agenda tu primera clase de prueba.',
                     color: '#6366f1',
                     step: 4,
-                    showTrialAction: true
+                    showTrialAction: !hasUpcomingClass
                 },
                 'shipped': {
                     icon: '🎹',
