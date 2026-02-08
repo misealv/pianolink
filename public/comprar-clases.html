@@ -354,16 +354,25 @@
 
         // Verificar sesión
         async function checkSession() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.log('No hay token en localStorage');
+                return;
+            }
+            
             try {
                 const response = await fetch('/api/auth/me', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
                     const data = await response.json();
                     currentUser = data.user;
+                    console.log('Sesión activa:', currentUser?.email);
+                } else {
+                    console.log('Token inválido, status:', response.status);
                 }
             } catch (e) {
-                console.log('No hay sesión activa');
+                console.log('Error verificando sesión:', e);
             }
         }
 
@@ -461,9 +470,14 @@
                     <div class="login-required">
                         <h2>Inicia sesión para continuar</h2>
                         <p>Necesitas una cuenta para comprar clases</p>
-                        <a href="/login?redirect=${encodeURIComponent(window.location.href)}" class="btn-login">
+                        <a href="/login.html?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}" class="btn-login">
                             Iniciar Sesión
                         </a>
+                        <p style="margin-top: 12px; font-size: 13px; color: var(--text-muted);">
+                            ¿No tienes cuenta? <a href="/registro.html" style="color: var(--accent-light);">Regístrate aquí</a>
+                        </p>
+                    </div>
+                `}
                     </div>
                 `}
             `;

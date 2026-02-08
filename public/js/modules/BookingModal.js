@@ -235,7 +235,7 @@ class BookingModal {
     
     showLoginRequired() {
         const content = document.getElementById('bookingModalContent');
-        const returnUrl = encodeURIComponent(window.location.href);
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
         
         content.innerHTML = `
             <div class="login-required">
@@ -244,10 +244,10 @@ class BookingModal {
                 <p>Necesitas una cuenta para agendar tu clase de prueba.</p>
                 
                 <div class="login-actions">
-                    <a href="/login.html?return=${returnUrl}" class="btn-primary">
+                    <a href="/login.html?redirect=${returnUrl}" class="btn-primary">
                         Iniciar Sesión
                     </a>
-                    <a href="/registro.html?return=${returnUrl}" class="btn-secondary">
+                    <a href="/registro.html?redirect=${returnUrl}" class="btn-secondary">
                         Crear Cuenta
                     </a>
                 </div>
