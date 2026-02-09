@@ -649,15 +649,21 @@ exports.updatePricingConfig = async (req, res) => {
 // Actualizar precio del Kit de Bienvenida V2
 exports.updateKitV2Price = async (req, res) => {
     try {
-        const { priceUSD } = req.body;
+        const { priceUSD, extraChildPriceUSD } = req.body;
         
-        // Validación (mínimo $0.01 para pruebas con dinero real)
+        // Validación precio base (mínimo $0.01 para pruebas con dinero real)
         if (typeof priceUSD !== 'number' || priceUSD < 0.01) {
-            return res.status(400).json({ message: 'El precio debe ser un número válido (mínimo $0.01)' });
+            return res.status(400).json({ message: 'El precio base debe ser un número válido (mínimo $0.01)' });
         }
         
         if (priceUSD > 500) {
-            return res.status(400).json({ message: 'El precio no puede exceder $500 USD' });
+            return res.status(400).json({ message: 'El precio base no puede exceder $500 USD' });
+        }
+        
+        // Validación precio por hijo extra (si se proporciona)
+        const extraPrice = typeof extraChildPriceUSD === 'number' ? extraChildPriceUSD : 15;
+        if (extraPrice < 0 || extraPrice > 100) {
+            return res.status(400).json({ message: 'El precio por hijo extra debe estar entre $0 y $100 USD' });
         }
         
         let config = await GlobalConfig.findOne({ isDefault: true });
@@ -665,21 +671,22 @@ exports.updateKitV2Price = async (req, res) => {
         if (!config) {
             config = new GlobalConfig({
                 isDefault: true,
-                welcomeKitV2: { priceUSD, enabled: true }
+                welcomeKitV2: { priceUSD, extraChildPriceUSD: extraPrice, enabled: true }
             });
         } else {
             if (!config.welcomeKitV2) {
                 config.welcomeKitV2 = {};
             }
             config.welcomeKitV2.priceUSD = priceUSD;
+            config.welcomeKitV2.extraChildPriceUSD = extraPrice;
         }
         
         await config.save();
         
-        console.log('[Admin] Precio Kit V2 actualizado a $' + priceUSD + ' USD');
+        console.log(`[Admin] Precio Kit V2 actualizado: Base=$${priceUSD}, Hijo extra=$${extraPrice} USD`);
         
         res.json({
-            message: 'Precio del Kit de Bienvenida actualizado',
+            message: 'Precios del Kit de Bienvenida actualizados',
             welcomeKitV2: config.welcomeKitV2
         });
     } catch (error) {

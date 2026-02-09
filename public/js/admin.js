@@ -6360,8 +6360,13 @@ async function loadKitV2Price() {
         const config = await res.json();
         
         const priceInput = document.getElementById('pricing-kit-v2');
+        const extraChildInput = document.getElementById('pricing-extra-child');
+        
         if (priceInput && config.welcomeKitV2) {
             priceInput.value = config.welcomeKitV2.priceUSD || 44;
+        }
+        if (extraChildInput && config.welcomeKitV2) {
+            extraChildInput.value = config.welcomeKitV2.extraChildPriceUSD || 15;
         }
     } catch (error) {
         console.error('Error cargando precio Kit V2:', error);
@@ -6370,17 +6375,24 @@ async function loadKitV2Price() {
 
 async function saveKitV2Price() {
     const priceInput = document.getElementById('pricing-kit-v2');
+    const extraChildInput = document.getElementById('pricing-extra-child');
     const statusDiv = document.getElementById('kit-v2-price-status');
     
     const price = parseFloat(priceInput.value);
+    const extraChildPrice = parseFloat(extraChildInput?.value) || 15;
     
     if (isNaN(price) || price < 0.01) {
-        showNotification('Por favor ingresa un precio válido (mínimo $0.01)', 'error');
+        showNotification('Por favor ingresa un precio base válido (mínimo $0.01)', 'error');
         return;
     }
     
     if (price > 500) {
-        showNotification('El precio no puede exceder $500 USD', 'error');
+        showNotification('El precio base no puede exceder $500 USD', 'error');
+        return;
+    }
+    
+    if (extraChildPrice < 0 || extraChildPrice > 100) {
+        showNotification('El precio por hijo extra debe estar entre $0 y $100 USD', 'error');
         return;
     }
     
@@ -6391,7 +6403,7 @@ async function saveKitV2Price() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${userSession.token}`
             },
-            body: JSON.stringify({ priceUSD: price })
+            body: JSON.stringify({ priceUSD: price, extraChildPriceUSD: extraChildPrice })
         });
         
         const data = await res.json();
@@ -6400,16 +6412,16 @@ async function saveKitV2Price() {
             statusDiv.style.display = 'block';
             statusDiv.style.background = '#10b981';
             statusDiv.style.color = 'white';
-            statusDiv.textContent = '✅ Precio actualizado a $' + price + ' USD';
+            statusDiv.textContent = `✅ Precios actualizados: Base $${price} + $${extraChildPrice}/hijo extra`;
             
             setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
-            showNotification('Precio del Kit actualizado', 'success');
+            showNotification('Precios del Kit actualizados', 'success');
         } else {
             statusDiv.style.display = 'block';
             statusDiv.style.background = '#ef4444';
             statusDiv.style.color = 'white';
             statusDiv.textContent = '❌ ' + (data.message || 'Error');
-            showNotification(data.message || 'Error guardando precio', 'error');
+            showNotification(data.message || 'Error guardando precios', 'error');
         }
     } catch (error) {
         console.error('Error:', error);

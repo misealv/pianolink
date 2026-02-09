@@ -24,7 +24,8 @@ const globalConfigSchema = new mongoose.Schema({
     
     // ==================== KIT DE BIENVENIDA V2 ====================
     welcomeKitV2: {
-        priceUSD: { type: Number, default: 44 },  // Precio en USD
+        priceUSD: { type: Number, default: 44 },           // Precio base en USD (1 estudiante)
+        extraChildPriceUSD: { type: Number, default: 15 }, // Precio por cada hijo adicional
         enabled: { type: Boolean, default: true }
     },
     

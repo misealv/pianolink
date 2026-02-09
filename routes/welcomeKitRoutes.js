@@ -59,16 +59,18 @@ router.get('/v2/price', async (req, res) => {
     try {
         const config = await GlobalConfig.findOne({ isDefault: true });
         const priceUSD = config?.welcomeKitV2?.priceUSD || 44;
+        const extraChildPriceUSD = config?.welcomeKitV2?.extraChildPriceUSD || 15;
         
         res.json({
             success: true,
             priceUSD,
+            extraChildPriceUSD,
             currency: 'USD',
             description: 'Asesoría técnica + Setup técnico + Clase de prueba 30 min'
         });
     } catch (error) {
         console.error('Error obteniendo precio Kit V2:', error);
-        res.json({ success: true, priceUSD: 44, currency: 'USD' });
+        res.json({ success: true, priceUSD: 44, extraChildPriceUSD: 15, currency: 'USD' });
     }
 });
 

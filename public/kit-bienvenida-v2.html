@@ -308,6 +308,97 @@
             color: var(--primary);
         }
 
+        .child-entry {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .child-entry:not(:first-child)::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .btn-add-child {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 1px dashed var(--primary);
+            border-radius: 10px;
+            color: var(--primary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-add-child:hover {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .btn-remove-child {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background: rgba(239, 68, 68, 0.2);
+            border: none;
+            border-radius: 50%;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-remove-child:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+
+        .extra-children-note {
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--success);
+        }
+
+        .price-breakdown {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .price-breakdown div {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .price-breakdown .total {
+            border-top: 1px solid var(--border);
+            padding-top: 6px;
+            margin-top: 6px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
         .payment-buttons {
             display: flex;
             flex-direction: column;
@@ -548,16 +639,26 @@
                         </div>
 
                         <div class="beneficiary-section" id="beneficiarySection">
-                            <h4>👶 Datos del estudiante</h4>
-                            <div class="form-row">
-                                <div class="form-group" style="flex: 2">
-                                    <label>Nombre del estudiante</label>
-                                    <input type="text" id="beneficiaryName" class="form-input" placeholder="María Pérez">
+                            <h4>👶 Datos de los estudiantes</h4>
+                            <div id="childrenList">
+                                <div class="child-entry" data-index="0">
+                                    <div class="form-row">
+                                        <div class="form-group" style="flex: 2">
+                                            <label>Nombre del estudiante</label>
+                                            <input type="text" class="form-input child-name" placeholder="María Pérez">
+                                        </div>
+                                        <div class="form-group" style="flex: 1">
+                                            <label>Edad</label>
+                                            <input type="number" class="form-input child-age" placeholder="10" min="4" max="99">
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="form-group" style="flex: 1">
-                                    <label>Edad</label>
-                                    <input type="number" id="beneficiaryAge" class="form-input" placeholder="10" min="4" max="99">
-                                </div>
+                            </div>
+                            <button type="button" class="btn-add-child" id="btnAddChild" onclick="addChild()">
+                                + Añadir otro hijo/a (+$15 USD)
+                            </button>
+                            <div class="extra-children-note" id="extraChildrenNote" style="display: none;">
+                                <span>👨‍👩‍👧‍👦 Incluye <strong id="childrenCountDisplay">1</strong> estudiante(s)</span>
                             </div>
                         </div>
 
@@ -592,7 +693,9 @@
 
     <script>
         let studentType = 'self';
-        let PRICE_USD = 44; // Default, se actualiza desde el servidor
+        let BASE_PRICE_USD = 44; // Precio base (1 estudiante)
+        let EXTRA_CHILD_PRICE = 15; // Precio por hijo adicional
+        let childrenCount = 1; // Número de hijos
 
         const form = document.getElementById('kitForm');
         const loadingOverlay = document.getElementById('loadingOverlay');
@@ -604,19 +707,56 @@
             loadDynamicPrice();
         });
 
+        // Calcula el precio total basado en el número de hijos
+        function calculateTotalPrice() {
+            if (studentType === 'self') {
+                return BASE_PRICE_USD;
+            }
+            // Precio base + $15 por cada hijo adicional (el primero está incluido)
+            const extraChildren = Math.max(0, childrenCount - 1);
+            return BASE_PRICE_USD + (extraChildren * EXTRA_CHILD_PRICE);
+        }
+
+        // Actualiza el precio mostrado en la UI
+        function updatePriceDisplay() {
+            const total = calculateTotalPrice();
+            document.querySelectorAll('.price-display').forEach(el => {
+                el.innerHTML = `$${total} <small>USD</small>`;
+            });
+
+            // Mostrar desglose si hay más de 1 hijo
+            const extraNote = document.getElementById('extraChildrenNote');
+            const countDisplay = document.getElementById('childrenCountDisplay');
+            
+            if (studentType === 'child' && childrenCount > 0) {
+                extraNote.style.display = 'block';
+                countDisplay.textContent = childrenCount;
+            } else {
+                extraNote.style.display = 'none';
+            }
+        }
+
         async function loadDynamicPrice() {
             try {
                 const res = await fetch('/api/welcome-kit/v2/price');
                 const data = await res.json();
-                if (data.success && data.priceUSD) {
-                    PRICE_USD = data.priceUSD;
-                    // Actualizar el precio mostrado en la UI
-                    document.querySelectorAll('.price-display').forEach(el => {
-                        el.textContent = '$' + PRICE_USD + ' USD';
-                    });
+                if (data.success) {
+                    if (data.priceUSD) {
+                        BASE_PRICE_USD = data.priceUSD;
+                    }
+                    if (typeof data.extraChildPriceUSD === 'number') {
+                        EXTRA_CHILD_PRICE = data.extraChildPriceUSD;
+                        // Actualizar texto del botón añadir hijo
+                        const btnAddChild = document.getElementById('btnAddChild');
+                        if (btnAddChild) {
+                            btnAddChild.textContent = `+ Añadir otro hijo/a (+$${EXTRA_CHILD_PRICE} USD)`;
+                        }
+                    }
+                    updatePriceDisplay();
                 }
             } catch (e) {
                 console.log('Usando precio por defecto');
+                updatePriceDisplay();
             }
         }
 
@@ -642,6 +782,73 @@
                 btn.classList.toggle('active', btn.dataset.type === type);
             });
             beneficiarySection.classList.toggle('visible', type === 'child');
+            
+            // Resetear contador de hijos al cambiar tipo
+            if (type === 'self') {
+                childrenCount = 1;
+            }
+            updatePriceDisplay();
+        }
+
+        // Añadir un nuevo hijo
+        function addChild() {
+            childrenCount++;
+            const container = document.getElementById('childrenList');
+            const index = container.children.length;
+            
+            const childEntry = document.createElement('div');
+            childEntry.className = 'child-entry';
+            childEntry.dataset.index = index;
+            childEntry.innerHTML = `
+                <button type="button" class="btn-remove-child" onclick="removeChild(this)">×</button>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2">
+                        <label>Nombre del estudiante ${index + 1}</label>
+                        <input type="text" class="form-input child-name" placeholder="Nombre del hijo/a">
+                    </div>
+                    <div class="form-group" style="flex: 1">
+                        <label>Edad</label>
+                        <input type="number" class="form-input child-age" placeholder="10" min="4" max="99">
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(childEntry);
+            updatePriceDisplay();
+        }
+
+        // Eliminar un hijo
+        function removeChild(btn) {
+            if (childrenCount <= 1) return; // Mínimo 1 hijo
+            
+            const entry = btn.closest('.child-entry');
+            entry.remove();
+            childrenCount--;
+            
+            // Reindexar los labels
+            const entries = document.querySelectorAll('.child-entry');
+            entries.forEach((entry, idx) => {
+                entry.dataset.index = idx;
+                const label = entry.querySelector('label');
+                if (label && idx > 0) {
+                    label.textContent = `Nombre del estudiante ${idx + 1}`;
+                }
+            });
+            
+            updatePriceDisplay();
+        }
+
+        // Obtener datos de todos los hijos
+        function getChildrenData() {
+            const children = [];
+            document.querySelectorAll('.child-entry').forEach(entry => {
+                const name = entry.querySelector('.child-name')?.value?.trim() || '';
+                const age = entry.querySelector('.child-age')?.value || null;
+                if (name) {
+                    children.push({ name, age: age ? parseInt(age) : null });
+                }
+            });
+            return children;
         }
 
         function validateForm() {
@@ -660,9 +867,9 @@
             }
             
             if (studentType === 'child') {
-                const beneficiaryName = document.getElementById('beneficiaryName').value.trim();
-                if (!beneficiaryName) {
-                    showError('Por favor ingresa el nombre del estudiante');
+                const children = getChildrenData();
+                if (children.length === 0) {
+                    showError('Por favor ingresa el nombre de al menos un estudiante');
                     return false;
                 }
             }
@@ -687,8 +894,10 @@
             const email = document.getElementById('email').value.trim();
             const country = document.getElementById('country').value;
             const whatsapp = document.getElementById('whatsapp').value.trim();
-            const beneficiaryName = document.getElementById('beneficiaryName')?.value?.trim() || null;
-            const beneficiaryAge = document.getElementById('beneficiaryAge')?.value || null;
+            
+            // Obtener datos de hijos si aplica
+            const children = studentType === 'child' ? getChildrenData() : [];
+            const totalPrice = calculateTotalPrice();
             
             try {
                 const checkoutRes = await fetch('/api/welcome-kit/checkout', {
@@ -700,10 +909,10 @@
                         whatsapp,
                         country,
                         studentType,
-                        beneficiaryName: studentType === 'child' ? beneficiaryName : null,
-                        beneficiaryAge: studentType === 'child' && beneficiaryAge ? parseInt(beneficiaryAge) : null,
+                        children: studentType === 'child' ? children : [],
+                        childrenCount: studentType === 'child' ? childrenCount : 1,
                         kitType: 'welcome_kit_v2',
-                        totalUSD: PRICE_USD
+                        totalUSD: totalPrice
                     })
                 });
                 
@@ -724,7 +933,8 @@
                         email,
                         country,
                         kitType: 'welcome_kit_v2',
-                        totalUSD: PRICE_USD
+                        childrenCount: studentType === 'child' ? childrenCount : 1,
+                        totalUSD: totalPrice
                     })
                 });
                 

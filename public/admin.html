@@ -1335,17 +1335,27 @@
                         <h3 style="color:var(--accent-green); margin-bottom:20px;">🎹 Kit de Bienvenida (Servicio)</h3>
                         
                         <div class="form-group">
-                            <label>💵 Precio del Kit V2 (USD)</label>
+                            <label>💵 Precio Base del Kit (USD)</label>
                             <input type="number" id="pricing-kit-v2" step="0.01" min="0.01" placeholder="44" 
                                 style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
                                 background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
                             <small style="color:var(--text-secondary); display:block; margin-top:5px;">
-                                Incluye: Asesoría técnica + Sesión de Setup + Clase de prueba 30 min
+                                Incluye: Asesoría técnica + Sesión de Setup + Clase de prueba 30 min (1 estudiante)
+                            </small>
+                        </div>
+                        
+                        <div class="form-group" style="margin-top:15px;">
+                            <label>👶 Precio por Hijo Adicional (USD)</label>
+                            <input type="number" id="pricing-extra-child" step="0.01" min="0" max="100" placeholder="15" 
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                            <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                Se suma al precio base por cada hijo extra que el apoderado añada
                             </small>
                         </div>
                         
                         <button class="btn btn-primary" onclick="saveKitV2Price()" style="width:100%; padding:12px; margin-top:15px;">
-                            💾 Guardar Precio Kit
+                            💾 Guardar Precios Kit
                         </button>
                         <div id="kit-v2-price-status" style="display:none; padding:10px; border-radius:8px; margin-top:10px;"></div>
                     </div>
