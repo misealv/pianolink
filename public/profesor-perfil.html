@@ -458,11 +458,6 @@
             document.title = `${teacher.name} | PianoLink`;
             
             const main = document.getElementById('mainContent');
-            const token = localStorage.getItem('token');
-            const isLoggedIn = !!token;
-            const buyClassesUrl = isLoggedIn 
-                ? `/comprar-clases.html?profesor=${teacher.slug}` 
-                : 'https://pianolink.net/';
             
             // Construir lista de paquetes
             let packagesHTML = '';
@@ -518,10 +513,6 @@
                         <div class="price-note">Clase de 45-60 minutos</div>
                         
                         ${packagesHTML}
-                        
-                        <a href="${buyClassesUrl}" class="btn-book">
-                            📅 Reservar Clase
-                        </a>
                         
                         ${teacher.acceptsTrialClass ? `
                             <div class="trial-banner">
