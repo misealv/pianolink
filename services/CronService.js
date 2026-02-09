@@ -8,6 +8,7 @@ const RoomService = require('./RoomService');
 const SubscriptionService = require('./SubscriptionService');
 const PayoutCronService = require('./PayoutCronService');
 const MembershipReminderService = require('./MembershipReminderService');
+const packageExpirationJob = require('../jobs/package-expiration');
 
 class CronService {
     static jobs = [];
@@ -146,6 +147,20 @@ class CronService {
         });
         this.jobs.push(membershipReminderJob);
 
+        // 9. Avisos de expiración de paquetes de clases - Diario a las 10:00 Chile
+        const packageExpirationCron = cron.schedule('0 10 * * *', async () => {
+            console.log('[Cron] 📦 Verificando paquetes de clases por expirar...');
+            try {
+                const result = await packageExpirationJob.processExpirationWarnings();
+                console.log(`[Cron] ✅ Paquetes: ${result.enrollmentsProcessed} revisados, ${result.emailsSent} emails, ${result.classesExpired} clases expiradas`);
+            } catch (error) {
+                console.error('[Cron] ❌ Error en expiración de paquetes:', error);
+            }
+        }, {
+            timezone: 'America/Santiago'
+        });
+        this.jobs.push(packageExpirationCron);
+
         console.log(`[CronService] ✅ ${this.jobs.length} tareas programadas iniciadas`);
     }
 
@@ -195,6 +210,13 @@ class CronService {
     }
 
     /**
+     * Ejecutar chequeo de expiración de paquetes manualmente
+     */
+    static async runPackageExpirationNow() {
+        return packageExpirationJob.processExpirationWarnings();
+    }
+
+    /**
      * Estado de todos los jobs
      */
     static getStatus() {
@@ -207,7 +229,9 @@ class CronService {
                 { name: 'autoConfirm', schedule: '30 * * * *', description: 'Auto-confirmar clases 48h' },
                 { name: 'monthlyPayout', schedule: '0 0 1 * *', description: 'Generar payouts mensuales' },
                 { name: 'renewals', schedule: '0 6 * * *', description: 'Renovaciones automáticas' },
-                { name: 'disputes', schedule: '0 12 * * 0', description: 'Escalar disputas' }
+                { name: 'disputes', schedule: '0 12 * * 0', description: 'Escalar disputas' },
+                { name: 'membershipReminder', schedule: '0 9 * * *', description: 'Recordatorios membresía' },
+                { name: 'packageExpiration', schedule: '0 10 * * *', description: 'Avisos expiración paquetes' }
             ]
         };
     }

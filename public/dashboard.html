@@ -541,6 +541,241 @@
     color: #22c55e;
     font-weight: 600;
 }
+
+/* ==================== CALENDARIO SEMANAL ==================== */
+.weekly-calendar-section {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 30px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.calendar-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.calendar-title h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.calendar-title .week-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.calendar-nav {
+    display: flex;
+    gap: 8px;
+}
+
+.calendar-nav button {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.calendar-nav button:hover {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+}
+
+.calendar-nav .btn-today {
+    width: auto;
+    padding: 0 16px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.weekly-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+}
+
+.day-column {
+    background: rgba(255,255,255,0.02);
+    border-radius: 10px;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+}
+
+.day-header {
+    padding: 12px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px 10px 0 0;
+}
+
+.day-name {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.day-number {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-top: 4px;
+}
+
+.day-column.today .day-header {
+    background: linear-gradient(135deg, rgba(255,118,77,0.15) 0%, rgba(255,118,77,0.05) 100%);
+}
+
+.day-column.today .day-number {
+    color: var(--accent);
+}
+
+.day-classes {
+    flex: 1;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    max-height: 280px;
+}
+
+.class-card {
+    background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(99,102,241,0.05) 100%);
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.class-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99,102,241,0.2);
+}
+
+.class-card.trial {
+    background: linear-gradient(135deg, rgba(34,197,94,0.15) 0%, rgba(34,197,94,0.05) 100%);
+    border-color: rgba(34,197,94,0.3);
+}
+
+.class-card.trial:hover {
+    box-shadow: 0 4px 12px rgba(34,197,94,0.2);
+}
+
+.class-time {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.class-student {
+    font-size: 12px;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.class-type {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.class-type .badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.class-type .badge-trial {
+    background: rgba(34,197,94,0.2);
+    color: #22c55e;
+}
+
+.class-type .badge-regular {
+    background: rgba(99,102,241,0.2);
+    color: #818cf8;
+}
+
+.empty-day {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-style: italic;
+}
+
+.calendar-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    color: var(--text-muted);
+    gap: 10px;
+}
+
+.calendar-loading .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 1200px) {
+    .weekly-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .weekly-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .day-column {
+        min-height: 200px;
+    }
+}
   </style>
   
   <!-- Sistema de Ayuda Interactivo -->
@@ -726,9 +961,6 @@
             <button onclick="window.location.href='/teacher-availability.html'" class="action-btn btn-secondary">
                 📅 MI DISPONIBILIDAD
             </button>
-            <button onclick="togglePackagesSection()" class="action-btn btn-secondary" id="btnPackages">
-                📦 MIS PAQUETES
-            </button>
             <button onclick="toggleValidationsSection()" class="action-btn btn-secondary" id="btnValidations" style="position: relative;">
                 ✅ VALIDAR CLASES
                 <span id="validationsCount" style="display: none; position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px;">0</span>
@@ -770,6 +1002,27 @@
         <div id="adminMessagesSection" class="admin-msg-box" style="display:none;">
             <div class="admin-msg-title">📨 Mensajes de la Administración</div>
             <div id="messagesList" style="max-height: 150px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- ==================== CALENDARIO SEMANAL ==================== -->
+        <div class="weekly-calendar-section">
+            <div class="calendar-header">
+                <div class="calendar-title">
+                    <h2>📅 Mi Agenda</h2>
+                    <span class="week-label" id="weekLabel">Semana del 1 al 7 de enero</span>
+                </div>
+                <div class="calendar-nav">
+                    <button onclick="changeWeek(-1)" title="Semana anterior">←</button>
+                    <button class="btn-today" onclick="goToToday()">Hoy</button>
+                    <button onclick="changeWeek(1)" title="Semana siguiente">→</button>
+                </div>
+            </div>
+            <div id="calendarContent">
+                <div class="calendar-loading">
+                    <div class="spinner"></div>
+                    <span>Cargando agenda...</span>
+                </div>
+            </div>
         </div>
 
         <div class="dashboard-grid">
@@ -1196,43 +1449,6 @@
     </div>
     <!-- ==================== FIN DATOS DE PAGO ==================== -->
 
-    <!-- ==================== MIS PAQUETES DE CLASES ==================== -->
-    <div id="packagesSection" style="display: none; margin-top: 30px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div>
-                <h2 style="margin: 0; color: white; font-size: 20px;">📦 Mis Paquetes de Clases</h2>
-                <p style="margin: 5px 0 0; color: #888; font-size: 13px;">Configura los paquetes que tus estudiantes pueden comprar</p>
-            </div>
-            <button onclick="openPackageModal()" style="padding: 12px 20px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                ➕ Nuevo Paquete
-            </button>
-        </div>
-
-        <!-- Info sobre comisiones -->
-        <div style="background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%); border: 1px solid #3d3d5c; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="font-size: 24px;">💰</div>
-                <div>
-                    <div style="color: white; font-weight: 600;">Tú recibes el 80% de cada pago</div>
-                    <div style="color: #888; font-size: 12px;">PianoLink retiene 20% por gestión de pagos, soporte y plataforma. Los pagos se liberan mensualmente por clase validada.</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Lista de paquetes -->
-        <div id="packagesList" style="display: grid; gap: 15px;">
-            <div style="text-align: center; padding: 40px; color: #666;">
-                <div style="font-size: 48px; margin-bottom: 15px;">📦</div>
-                <div>Cargando paquetes...</div>
-            </div>
-        </div>
-
-        <!-- Estadísticas -->
-        <div id="packagesStats" style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-        </div>
-    </div>
-    <!-- ==================== FIN MIS PAQUETES ==================== -->
-
     <!-- ==================== VALIDAR CLASES ==================== -->
     <div id="validationsSection" style="display: none; margin-top: 30px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -1271,116 +1487,6 @@
     <!-- ==================== FIN VALIDAR CLASES ==================== -->
 
   </main>
-
-  <!-- Modal para Crear/Editar Paquete -->
-  <div id="packageModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: #1e1e1e; border-radius: 16px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; border: 1px solid #333;">
-        <div style="padding: 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
-            <h3 id="packageModalTitle" style="margin: 0; color: white;">Nuevo Paquete</h3>
-            <button onclick="closePackageModal()" style="background: none; border: none; color: #888; font-size: 24px; cursor: pointer;">&times;</button>
-        </div>
-        
-        <form id="packageForm" onsubmit="savePackage(event)" style="padding: 20px;">
-            <input type="hidden" id="packageId">
-            
-            <!-- Categoría -->
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">CATEGORÍA *</label>
-                <select id="packageCategory" required style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
-                    <option value="piano">🎹 Clases de Piano</option>
-                    <option value="teoria">📚 Teoría Musical</option>
-                    <option value="armonia">🎼 Armonía</option>
-                    <option value="solfeo">🎵 Solfeo y Lectura</option>
-                    <option value="composicion">✍️ Composición</option>
-                    <option value="improvisacion">🎷 Improvisación</option>
-                    <option value="otro">📋 Otro</option>
-                </select>
-            </div>
-            
-            <div id="customCategoryBox" style="display: none; margin-bottom: 15px;">
-                <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">NOMBRE DE LA CATEGORÍA</label>
-                <input type="text" id="packageCategoryCustom" placeholder="Ej: Técnica Vocal" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
-            </div>
-            
-            <!-- Nombre -->
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">NOMBRE DEL PAQUETE *</label>
-                <input type="text" id="packageName" required placeholder="Ej: Pack Mensual 4 Clases" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
-            </div>
-            
-            <!-- Descripción -->
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">DESCRIPCIÓN</label>
-                <textarea id="packageDescription" rows="2" placeholder="Descripción corta del paquete..." style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white; resize: vertical;"></textarea>
-            </div>
-            
-            <!-- Grid: Clases y Duración -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                <div>
-                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">CANTIDAD DE CLASES *</label>
-                    <input type="number" id="packageClassCount" required min="1" max="100" value="4" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
-                </div>
-                <div>
-                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">DURACIÓN (min)</label>
-                    <select id="packageDuration" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
-                        <option value="30">30 minutos</option>
-                        <option value="45" selected>45 minutos</option>
-                        <option value="60">60 minutos</option>
-                        <option value="90">90 minutos</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Precio -->
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">PRECIO TOTAL (USD) *</label>
-                <div style="position: relative;">
-                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #888;">$</span>
-                    <input type="number" id="packagePrice" required min="5" step="1" value="40" style="width: 100%; padding: 12px 12px 12px 30px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
-                </div>
-                <div id="pricePerClass" style="font-size: 12px; color: #6366f1; margin-top: 5px;">= $10.00 USD por clase</div>
-            </div>
-            
-            <!-- Vigencia -->
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; color: #888; font-size: 12px; margin-bottom: 5px;">VIGENCIA (días) *</label>
-                <select id="packageValidity" style="width: 100%; padding: 12px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white;">
-                    <option value="30">30 días (1 mes)</option>
-                    <option value="60">60 días (2 meses)</option>
-                    <option value="90">90 días (3 meses)</option>
-                    <option value="180">180 días (6 meses)</option>
-                    <option value="365">365 días (1 año) - Máximo</option>
-                </select>
-                <div style="font-size: 11px; color: #666; margin-top: 5px;">Tiempo máximo para usar las clases del paquete</div>
-            </div>
-            
-            <!-- Opciones -->
-            <div style="margin-bottom: 20px; padding: 15px; background: #252525; border-radius: 8px;">
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 10px;">
-                    <input type="checkbox" id="packageRecurring" checked style="width: 18px; height: 18px; accent-color: #6366f1;">
-                    <span style="color: white; font-size: 14px;">Renovación automática</span>
-                </label>
-                <div style="font-size: 11px; color: #666; margin-left: 28px;">El estudiante será cobrado automáticamente al agotar sus clases</div>
-                
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-top: 15px;">
-                    <input type="checkbox" id="packageFeatured" style="width: 18px; height: 18px; accent-color: #fbbf24;">
-                    <span style="color: white; font-size: 14px;">⭐ Destacar este paquete</span>
-                </label>
-                <div style="font-size: 11px; color: #666; margin-left: 28px;">Aparecerá primero en tu perfil público</div>
-            </div>
-            
-            <!-- Botones -->
-            <div style="display: flex; gap: 10px;">
-                <button type="button" onclick="closePackageModal()" style="flex: 1; padding: 14px; background: #333; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                    Cancelar
-                </button>
-                <button type="submit" style="flex: 2; padding: 14px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                    💾 Guardar Paquete
-                </button>
-            </div>
-        </form>
-    </div>
-  </div>
 
   <!-- Modal de Edición de Perfil -->
   <div id="profileModal" class="profile-modal">
@@ -1523,6 +1629,166 @@
             return false;
         }
     } 
+
+    // ==================== CALENDARIO SEMANAL ====================
+    let currentWeekStart = getWeekStart(new Date());
+    
+    function getWeekStart(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = day === 0 ? -6 : 1 - day; // Lunes como inicio
+        d.setDate(d.getDate() + diff);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+    
+    function formatWeekLabel(start) {
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        
+        const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                       'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        
+        if (start.getMonth() === end.getMonth()) {
+            return `Semana del ${start.getDate()} al ${end.getDate()} de ${months[start.getMonth()]}`;
+        } else {
+            return `${start.getDate()} ${months[start.getMonth()].substring(0,3)} - ${end.getDate()} ${months[end.getMonth()].substring(0,3)}`;
+        }
+    }
+    
+    function changeWeek(delta) {
+        currentWeekStart.setDate(currentWeekStart.getDate() + (delta * 7));
+        loadWeeklyCalendar();
+    }
+    
+    function goToToday() {
+        currentWeekStart = getWeekStart(new Date());
+        loadWeeklyCalendar();
+    }
+    
+    async function loadWeeklyCalendar() {
+        const container = document.getElementById('calendarContent');
+        const weekLabel = document.getElementById('weekLabel');
+        
+        weekLabel.textContent = formatWeekLabel(currentWeekStart);
+        
+        container.innerHTML = `
+            <div class="calendar-loading">
+                <div class="spinner"></div>
+                <span>Cargando agenda...</span>
+            </div>
+        `;
+        
+        try {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 7);
+            
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/bookings/teacher?from=${currentWeekStart.toISOString()}&to=${weekEnd.toISOString()}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (!res.ok) throw new Error('Error cargando clases');
+            
+            const bookings = await res.json();
+            renderWeeklyCalendar(bookings);
+            
+        } catch (error) {
+            console.error('Error cargando calendario:', error);
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+                    <div>Error cargando la agenda</div>
+                    <button onclick="loadWeeklyCalendar()" style="margin-top: 10px; padding: 8px 16px; background: var(--accent); color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        Reintentar
+                    </button>
+                </div>
+            `;
+        }
+    }
+    
+    function renderWeeklyCalendar(bookings) {
+        const container = document.getElementById('calendarContent');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        
+        // Agrupar bookings por día
+        const bookingsByDay = {};
+        for (let i = 0; i < 7; i++) {
+            const dayDate = new Date(currentWeekStart);
+            dayDate.setDate(dayDate.getDate() + i);
+            const key = dayDate.toISOString().split('T')[0];
+            bookingsByDay[key] = [];
+        }
+        
+        bookings.forEach(booking => {
+            const bookingDate = new Date(booking.scheduledStart);
+            const key = bookingDate.toISOString().split('T')[0];
+            if (bookingsByDay[key]) {
+                bookingsByDay[key].push(booking);
+            }
+        });
+        
+        let html = '<div class="weekly-grid">';
+        
+        for (let i = 0; i < 7; i++) {
+            const dayDate = new Date(currentWeekStart);
+            dayDate.setDate(dayDate.getDate() + i);
+            const key = dayDate.toISOString().split('T')[0];
+            const isToday = dayDate.getTime() === today.getTime();
+            const dayBookings = bookingsByDay[key] || [];
+            
+            // Ordenar por hora
+            dayBookings.sort((a, b) => new Date(a.scheduledStart) - new Date(b.scheduledStart));
+            
+            html += `
+                <div class="day-column ${isToday ? 'today' : ''}">
+                    <div class="day-header">
+                        <div class="day-name">${dayNames[i]}</div>
+                        <div class="day-number">${dayDate.getDate()}</div>
+                    </div>
+                    <div class="day-classes">
+            `;
+            
+            if (dayBookings.length === 0) {
+                html += `<div class="empty-day">Sin clases</div>`;
+            } else {
+                dayBookings.forEach(booking => {
+                    const startTime = new Date(booking.scheduledStart);
+                    const timeStr = startTime.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                    const isTrial = booking.classType === 'trial';
+                    const studentName = booking.studentId?.name || booking.studentName || 'Alumno';
+                    
+                    html += `
+                        <div class="class-card ${isTrial ? 'trial' : ''}" onclick="openClassRoom('${booking._id}')">
+                            <div class="class-time">${timeStr}</div>
+                            <div class="class-student">${studentName}</div>
+                            <div class="class-type">
+                                <span class="badge ${isTrial ? 'badge-trial' : 'badge-regular'}">
+                                    ${isTrial ? '🎯 Prueba' : '🎹 Clase'}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        container.innerHTML = html;
+    }
+    
+    function openClassRoom(bookingId) {
+        // Abrir la sala de clases con el booking específico
+        window.open(`/c/${user.slug}?booking=${bookingId}`, '_blank');
+    }
 
     async function loadData() {
         document.getElementById('welcomeName').textContent = user.name;
@@ -1827,6 +2093,7 @@
     loadGlobalBrand();
     loadMyMessages(); // Cargar mensajes admin si existen
     loadSubscriptionStatus(); // Cargar estado de suscripción
+    loadWeeklyCalendar(); // Cargar calendario semanal
 
     // ============================================
     // FUNCIONALIDAD DE MEMBRESÍA STRIPE
@@ -2166,7 +2433,7 @@ El sistema está en modo TEST.`;
                 updateRateDisplay(rates.teacherEarns);
                 
                 currentPackages = rates.packages || [];
-                renderPackages();
+                renderRatePackages();
             }
         } catch (error) {
             console.error('[Dashboard] Error cargando tarifas:', error);
@@ -2184,7 +2451,7 @@ El sistema está en modo TEST.`;
     document.getElementById('hourlyRateInput').addEventListener('input', function() {
         const rate = parseFloat(this.value) || 15;
         updateRateDisplay(rate);
-        renderPackages(); // Actualizar precios de paquetes
+        renderRatePackages(); // Actualizar precios de paquetes
     });
     
     // Guardar tarifa
@@ -2219,8 +2486,8 @@ El sistema está en modo TEST.`;
         }
     }
     
-    // Renderizar paquetes
-    function renderPackages() {
+    // Renderizar paquetes (sección de tarifas)
+    function renderRatePackages() {
         const container = document.getElementById('packagesContainer');
         const teacherRate = parseFloat(document.getElementById('hourlyRateInput').value) || 25;
         const studentPrice = teacherRate / 0.80;
@@ -2238,20 +2505,32 @@ El sistema está en modo TEST.`;
         container.innerHTML = currentPackages.map((pkg, index) => {
             const pricePerClass = studentPrice * (1 - pkg.discountPercent / 100);
             const total = pricePerClass * pkg.classes;
+            const validDays = pkg.validDays || 30;
             
             return `
-                <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid #333;">
-                    <input type="number" value="${pkg.classes}" min="2" max="50" 
-                           onchange="updatePackage(${index}, 'classes', this.value)"
-                           style="width: 50px; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: white; text-align: center;">
-                    <span style="color: #888; font-size: 12px;">clases</span>
+                <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid #333; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <input type="number" value="${pkg.classes}" min="2" max="50" 
+                               onchange="updatePackage(${index}, 'classes', this.value)"
+                               style="width: 45px; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: white; text-align: center;">
+                        <span style="color: #888; font-size: 11px;">clases</span>
+                    </div>
                     
-                    <input type="number" value="${pkg.discountPercent}" min="0" max="50" 
-                           onchange="updatePackage(${index}, 'discountPercent', this.value)"
-                           style="width: 50px; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: white; text-align: center;">
-                    <span style="color: #888; font-size: 12px;">% off</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <input type="number" value="${pkg.discountPercent}" min="0" max="50" 
+                               onchange="updatePackage(${index}, 'discountPercent', this.value)"
+                               style="width: 45px; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: white; text-align: center;">
+                        <span style="color: #888; font-size: 11px;">% off</span>
+                    </div>
                     
-                    <div style="flex: 1; text-align: right;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <input type="number" value="${validDays}" min="7" max="365" 
+                               onchange="updatePackage(${index}, 'validDays', this.value)"
+                               style="width: 50px; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: white; text-align: center;">
+                        <span style="color: #888; font-size: 11px;">días</span>
+                    </div>
+                    
+                    <div style="flex: 1; text-align: right; min-width: 80px;">
                         <div style="font-size: 14px; font-weight: 600; color: #4ade80;">$${total.toFixed(0)}</div>
                         <div style="font-size: 10px; color: #666;">($${pricePerClass.toFixed(2)}/clase)</div>
                     </div>
@@ -2264,20 +2543,20 @@ El sistema está en modo TEST.`;
     
     // Agregar paquete
     function addPackage() {
-        currentPackages.push({ classes: 4, discountPercent: 10, isActive: true });
-        renderPackages();
+        currentPackages.push({ classes: 4, discountPercent: 10, validDays: 30, isActive: true });
+        renderRatePackages();
     }
     
     // Actualizar paquete
     function updatePackage(index, field, value) {
         currentPackages[index][field] = parseInt(value);
-        renderPackages();
+        renderRatePackages();
     }
     
     // Eliminar paquete
     function removePackage(index) {
         currentPackages.splice(index, 1);
-        renderPackages();
+        renderRatePackages();
     }
     
     // Guardar paquetes
@@ -2540,7 +2819,7 @@ El sistema está en modo TEST.`;
     }
 
     async function loadPendingValidations() {
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         try {
             // Cargar clases pendientes y historial reciente
             const [pendingRes, historyRes] = await Promise.all([
@@ -2679,7 +2958,7 @@ El sistema está en modo TEST.`;
 
     async function markClassComplete(sessionId) {
         const notes = document.getElementById(`notes-${sessionId}`)?.value || '';
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         
         try {
             const res = await fetch(`/api/class-sessions/${sessionId}/teacher-complete`, {
@@ -2724,7 +3003,7 @@ El sistema está en modo TEST.`;
             return;
         }
         
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         
         try {
             const res = await fetch(`/api/class-sessions/${sessionId}/student-noshow`, {
@@ -2764,7 +3043,7 @@ El sistema está en modo TEST.`;
 
     // Cargar conteo de validaciones pendientes al inicio
     async function loadValidationsCount() {
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         try {
             const res = await fetch('/api/class-sessions/pending', { 
                 headers: { 'Authorization': `Bearer ${token}` } 
@@ -2784,7 +3063,7 @@ El sistema está en modo TEST.`;
     let paymentInfoData = null;
 
     async function loadPaymentInfo() {
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         try {
             const res = await fetch('/api/teacher-profile/my-payment-info', { 
                 headers: { 'Authorization': `Bearer ${token}` } 
@@ -2897,7 +3176,7 @@ El sistema está en modo TEST.`;
     }
 
     async function savePaymentInfo() {
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         const statusEl = document.getElementById('paymentSaveStatus');
         
         const data = {
@@ -2994,7 +3273,7 @@ El sistema está en modo TEST.`;
     let teacherEarnings = null;
 
     async function loadTeacherEarnings() {
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         try {
             const res = await fetch('/api/class-sessions/teacher-earnings', { 
                 headers: { 'Authorization': `Bearer ${token}` } 
@@ -3195,7 +3474,7 @@ El sistema está en modo TEST.`;
 
     async function openWithdrawalModal(payoutId) {
         currentWithdrawalPayoutId = payoutId;
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         
         try {
             const res = await fetch(`/api/class-sessions/withdrawal-options/${payoutId}`, {
@@ -3277,7 +3556,7 @@ El sistema está en modo TEST.`;
     }
 
     async function selectWithdrawalMethod(method) {
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         
         try {
             const res = await fetch(`/api/class-sessions/payout/${currentWithdrawalPayoutId}/set-withdrawal-method`, {
@@ -3442,7 +3721,7 @@ El sistema está en modo TEST.`;
             return;
         }
         
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         
         try {
             const res = await fetch(`/api/class-sessions/payout/${currentInvoicePayoutId}/submit-invoice`, {
@@ -3480,7 +3759,7 @@ El sistema está en modo TEST.`;
     
     // Cargar paquetes del profesor
     async function loadPackages() {
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         try {
             const res = await fetch('/api/teacher-packages/my', {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -3678,7 +3957,7 @@ El sistema está en modo TEST.`;
     async function savePackage(event) {
         event.preventDefault();
         
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         const packageId = document.getElementById('packageId').value;
         const isEdit = !!packageId;
         
@@ -3732,7 +4011,7 @@ El sistema está en modo TEST.`;
     
     // Activar/Desactivar paquete
     async function togglePackageActive(id, currentlyActive) {
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         
         try {
             const res = await fetch(`/api/teacher-packages/${id}`, {
@@ -3761,7 +4040,7 @@ El sistema está en modo TEST.`;
             return;
         }
         
-        const token = localStorage.getItem('pianoToken');
+        const token = localStorage.getItem('token');
         
         try {
             const res = await fetch(`/api/teacher-packages/${id}`, {

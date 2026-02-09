@@ -13,7 +13,7 @@ const PLATFORM_COMMISSION = 0.20; // 20% para PianoLink
  */
 router.post('/create-checkout', protect, async (req, res) => {
     try {
-        const { teacherSlug, classes, discountPercent, total } = req.body;
+        const { teacherSlug, classes, discountPercent, validDays, total } = req.body;
         const studentId = req.user._id;
 
         // Validaciones
@@ -86,6 +86,7 @@ router.post('/create-checkout', protect, async (req, res) => {
                 teacherId: teacher._id.toString(),
                 classes: classes.toString(),
                 discountPercent: discount.toString(),
+                validDays: (validDays || 30).toString(),
                 teacherRate: teacherRate.toString(),
                 pricePerClass: pricePerClass.toFixed(2),
                 enrollmentId: enrollment?._id?.toString() || 'new'
@@ -188,7 +189,7 @@ router.get('/status/:sessionId', protect, async (req, res) => {
  * (Usado por webhook y confirmación manual)
  */
 async function processClassPurchase(session) {
-    const { studentId, teacherId, classes, discountPercent, teacherRate, pricePerClass } = session.metadata;
+    const { studentId, teacherId, classes, discountPercent, validDays, teacherRate, pricePerClass } = session.metadata;
     
     const classCount = parseInt(classes);
     const rate = parseFloat(teacherRate);
@@ -223,6 +224,10 @@ async function processClassPurchase(session) {
     const platformEarnings = totalAmount * PLATFORM_COMMISSION;
     const teacherEarnings = totalAmount - platformEarnings;
 
+    // Calcular fecha de expiración
+    const packageValidDays = parseInt(validDays) || 30;
+    const expiresAt = new Date(Date.now() + (packageValidDays * 24 * 60 * 60 * 1000));
+
     // Registrar la compra
     enrollment.purchases.push({
         date: new Date(),
@@ -231,13 +236,21 @@ async function processClassPurchase(session) {
         pricePerClass: parseFloat(pricePerClass),
         platformEarnings: platformEarnings,
         teacherEarnings: teacherEarnings,
+        validDays: packageValidDays,
+        expiresAt: expiresAt,
         stripeSessionId: session.id,
         stripePaymentIntent: session.payment_intent
     });
 
-    // Actualizar contadores
+    // Actualizar contadores y fecha de expiración
     enrollment.classesPurchased += classCount;
     enrollment.classesRemaining += classCount;
+    
+    // Actualizar expiración global del enrollment
+    // Si ya tenía clases, extender la fecha más lejana
+    if (!enrollment.classesExpiresAt || expiresAt > enrollment.classesExpiresAt) {
+        enrollment.classesExpiresAt = expiresAt;
+    }
 
     await enrollment.save();
 

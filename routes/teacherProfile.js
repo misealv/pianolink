@@ -134,6 +134,7 @@ router.put('/packages', protect, async (req, res) => {
             'teacherData.packages': packages.map(pkg => ({
                 classes: pkg.classes,
                 discountPercent: pkg.discountPercent || 0,
+                validDays: pkg.validDays || 30,
                 isActive: pkg.isActive !== false
             }))
         });

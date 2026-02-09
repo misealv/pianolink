@@ -68,6 +68,9 @@ const studentEnrollmentSchema = mongoose.Schema({
     // Clases canceladas (con pérdida o sin)
     classesCancelled: { type: Number, default: 0 },
     
+    // Fecha de expiración del paquete actual
+    classesExpiresAt: { type: Date },
+    
     // ==================== CLASE DE PRUEBA ====================
     // Si ya tomó clase de prueba con este profesor
     trialClassTaken: { type: Boolean, default: false },
@@ -83,6 +86,8 @@ const studentEnrollmentSchema = mongoose.Schema({
         teacherEarnings: { type: Number, required: true }, // 80% para el profesor
         platformFee: { type: Number, required: true },    // 20% para PianoLink
         packageDiscount: { type: Number, default: 0 },    // % descuento aplicado
+        validDays: { type: Number, default: 30 },         // Días de vigencia del paquete
+        expiresAt: { type: Date },                        // Fecha de expiración calculada
         stripePaymentId: { type: String },
         paypalOrderId: { type: String }
     }],
@@ -112,7 +117,16 @@ const studentEnrollmentSchema = mongoose.Schema({
     lastClassAt: { type: Date },
     
     // Próxima clase agendada
-    nextClassAt: { type: Date }
+    nextClassAt: { type: Date },
+    
+    // ==================== AVISOS DE EXPIRACIÓN ====================
+    // Tracking de emails de aviso enviados (evitar duplicados)
+    expirationWarnings: {
+        day7Sent: { type: Boolean, default: false },
+        day3Sent: { type: Boolean, default: false },
+        day1Sent: { type: Boolean, default: false },
+        expiredSent: { type: Boolean, default: false }
+    }
     
 }, { timestamps: true });
 
@@ -120,6 +134,7 @@ const studentEnrollmentSchema = mongoose.Schema({
 studentEnrollmentSchema.index({ student: 1, teacher: 1 }, { unique: true });
 studentEnrollmentSchema.index({ teacher: 1, status: 1 });
 studentEnrollmentSchema.index({ student: 1, status: 1 });
+studentEnrollmentSchema.index({ classesExpiresAt: 1, classesRemaining: 1 }); // Para job de expiración
 
 // Método para verificar si se puede subir la tarifa
 studentEnrollmentSchema.methods.canUpdateRate = function() {
