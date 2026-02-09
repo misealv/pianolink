@@ -129,7 +129,7 @@ router.post('/create-kit-payment', async (req, res) => {
 // ============================================
 router.post('/create-kit-payment-mercadopago', async (req, res) => {
     try {
-        const { email, name, country, kitType, cableType } = req.body;
+        const { email, name, country, kitType, cableType, totalUSD, childrenCount } = req.body;
 
         console.log('[MercadoPago Kit] ========================================');
         console.log('[MercadoPago Kit] Datos recibidos:', JSON.stringify(req.body));
@@ -156,13 +156,23 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
         const includesCable = kitType === 'full';
         
         // Detectar si es el nuevo Kit V2
-        const isV2 = kitType === 'welcome_kit_v2' || req.body.totalUSD;
+        const isV2 = kitType === 'welcome_kit_v2' || totalUSD;
         
         let servicePrice, cablePrice, currency;
         
         if (isV2) {
-            // Kit V2: leer precio desde config o usar default $44 USD
-            servicePrice = config?.welcomeKitV2?.priceUSD || 44;
+            // Kit V2: usar totalUSD del frontend si viene (ya incluye hijos extra)
+            // Si no, calcularlo desde config
+            if (totalUSD && typeof totalUSD === 'number') {
+                servicePrice = totalUSD;
+                console.log('[MercadoPago Kit] Usando totalUSD del frontend:', totalUSD);
+            } else {
+                const basePrice = config?.welcomeKitV2?.priceUSD || 44;
+                const extraChildPrice = config?.welcomeKitV2?.extraChildPriceUSD || 15;
+                const extraChildren = Math.max(0, (childrenCount || 1) - 1);
+                servicePrice = basePrice + (extraChildren * extraChildPrice);
+                console.log('[MercadoPago Kit] Calculando precio:', basePrice, '+', extraChildren, 'x', extraChildPrice, '=', servicePrice);
+            }
             cablePrice = 0;
             currency = 'USD';
         } else {

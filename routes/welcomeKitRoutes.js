@@ -494,7 +494,7 @@ router.get('/countries', async (req, res) => {
 /**
  * POST /api/welcome-kit/checkout
  * Crea la orden de pago en PayPal y guarda los datos del cliente
- * Acepta kitType: 'full' (con productos) o 'setup_only' (solo servicio)
+ * Acepta kitType: 'full' (con productos), 'setup_only' (solo servicio), o 'welcome_kit_v2' (nuevo kit)
  */
 router.post('/checkout', async (req, res) => {
     try {
@@ -510,7 +510,7 @@ router.post('/checkout', async (req, res) => {
             postalCode,
             country,
             // Tipo de kit
-            kitType = 'setup_only',  // 'full' (con productos) o 'setup_only' (solo servicio)
+            kitType = 'setup_only',  // 'full' (con productos), 'setup_only' (solo servicio), o 'welcome_kit_v2'
             // Tipo de estudiante
             studentType = 'self', // 'self' o 'child'
             // Productos opcionales
@@ -519,8 +519,47 @@ router.post('/checkout', async (req, res) => {
             beneficiaries = [], // Array de {name, age}
             // Backward compatibility
             beneficiaryName,
-            beneficiaryAge
+            beneficiaryAge,
+            // Kit V2: datos de hijos y precio total
+            children = [], // Array de {name, age} (nuevo formato)
+            childrenCount = 1,
+            totalUSD = null
         } = req.body;
+        
+        // ============= KIT V2: Solo guardar datos, sin crear orden PayPal =============
+        if (kitType === 'welcome_kit_v2') {
+            // Validaciones básicas
+            if (!name || !email || !whatsapp) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Nombre, email y WhatsApp son requeridos'
+                });
+            }
+            
+            // Buscar o crear lead
+            let lead = await Lead.findOne({ email: email.toLowerCase() });
+            if (!lead) {
+                lead = await Lead.create({
+                    name,
+                    email: email.toLowerCase(),
+                    whatsapp,
+                    country: country || 'CL',
+                    source: 'kit_v2_checkout',
+                    stage: 'interesado'
+                });
+            }
+            
+            console.log('[WelcomeKit V2] 📝 Datos guardados:', email, '- Hijos:', childrenCount, '- Total USD:', totalUSD);
+            
+            return res.json({
+                success: true,
+                leadId: lead._id,
+                message: 'Datos guardados correctamente',
+                childrenCount,
+                totalUSD
+            });
+        }
+        // ============= FIN KIT V2 =============
         
         // Validaciones básicas
         if (!name || !email || !whatsapp) {
