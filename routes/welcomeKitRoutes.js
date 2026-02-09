@@ -27,6 +27,8 @@ const OnboardingSlot = require('../models/OnboardingSlot');
 const { generateInterviewConfirmationEmail } = require('../templates/interviewConfirmationEmail');
 const { generateWelcomeKitEmail } = require('../templates/welcomeKitEmail');
 const moment = require('moment-timezone');
+require('moment/locale/es'); // Cargar locale español para moment
+moment.locale('es');
 
 // Helper: Obtener datos del admin para inyectar en emails
 async function _getAdminEmailData() {
@@ -3608,6 +3610,7 @@ router.post('/v2/:id/schedule-interview', protect, async (req, res) => {
         // Formatear fecha para el email
         const interviewDate = _formatDate(slot.startTime, timezone);
         const interviewTime = _formatTime(slot.startTime, timezone);
+        const timezoneLabel = _getTimezoneLabel(timezone);
 
         // Enviar email de confirmación
         const adminData = await _getAdminEmailData();
@@ -3616,7 +3619,7 @@ router.post('/v2/:id/schedule-interview', protect, async (req, res) => {
             clientEmail: kit.clientEmail || req.user.email,
             interviewDate,
             interviewTime,
-            interviewTimezone: timezone,
+            interviewTimezone: timezoneLabel,
             meetingLink: slot.meetingLink,
             staffName: adminData.adminName || slot.staffName,
             ...adminData
@@ -3810,6 +3813,7 @@ router.post('/v2/:id/schedule-setup', protect, async (req, res) => {
         // Formatear fecha para el email
         const setupDate = _formatDate(slot.startTime, timezone);
         const setupTime = _formatTime(slot.startTime, timezone);
+        const timezoneLabel = _getTimezoneLabel(timezone);
 
         // Enviar email de confirmación
         const adminData = await _getAdminEmailData();
@@ -3818,7 +3822,7 @@ router.post('/v2/:id/schedule-setup', protect, async (req, res) => {
             clientEmail: kit.clientEmail || req.user.email,
             interviewDate: setupDate,
             interviewTime: setupTime,
-            interviewTimezone: timezone,
+            interviewTimezone: timezoneLabel,
             meetingLink: slot.meetingLink,
             staffName: adminData.adminName || slot.staffName,
             isSetup: true,
@@ -3854,40 +3858,60 @@ router.post('/v2/:id/schedule-setup', protect, async (req, res) => {
 // ==================== HELPERS PARA FORMATO DE FECHAS ====================
 
 /**
- * Formatea fecha en español. Ej: "Lunes 10 de Febrero, 2026"
+ * Formatea fecha en español usando moment-timezone. Ej: "Lunes 10 de Febrero, 2026"
  */
 function _formatDate(date, timezone) {
     try {
-        const d = new Date(date);
-        const options = {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            timeZone: timezone
-        };
-        let formatted = d.toLocaleDateString('es-CL', options);
-        // Capitalizar primera letra
+        // Usar moment-timezone para conversión confiable
+        const m = moment(date).tz(timezone || 'America/Santiago');
+        m.locale('es');
+        // Capitalizar primera letra del día
+        let formatted = m.format('dddd D [de] MMMM, YYYY');
         return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-    } catch {
+    } catch (err) {
+        console.error('[_formatDate] Error:', err.message);
         return new Date(date).toISOString().split('T')[0];
     }
 }
 
 /**
- * Formatea hora. Ej: "10:00 AM"
+ * Formatea hora usando moment-timezone. Ej: "10:00 AM"
  */
 function _formatTime(date, timezone) {
     try {
-        const d = new Date(date);
-        return d.toLocaleTimeString('es-CL', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-            timeZone: timezone
-        });
-    } catch {
+        // Usar moment-timezone para conversión confiable
+        const m = moment(date).tz(timezone || 'America/Santiago');
+        return m.format('h:mm A');
+    } catch (err) {
+        console.error('[_formatTime] Error:', err.message);
         return new Date(date).toISOString().split('T')[1].substring(0, 5);
+    }
+}
+
+/**
+ * Convierte timezone IANA a label legible. Ej: "America/Santiago" → "Chile (GMT-3)"
+ */
+function _getTimezoneLabel(timezone) {
+    const labels = {
+        'America/Santiago': 'Chile',
+        'America/Lima': 'Perú',
+        'America/Bogota': 'Colombia',
+        'America/Mexico_City': 'México',
+        'America/Buenos_Aires': 'Argentina',
+        'America/New_York': 'Nueva York',
+        'America/Los_Angeles': 'Los Ángeles',
+        'Europe/Madrid': 'España',
+        'UTC': 'UTC'
+    };
+    
+    try {
+        const m = moment().tz(timezone || 'America/Santiago');
+        const offset = m.format('Z'); // Ej: "-03:00"
+        const offsetShort = offset.replace(':00', '').replace('+0', '+').replace('-0', '-'); // "-3"
+        const label = labels[timezone] || timezone.split('/').pop().replace('_', ' ');
+        return `${label} (GMT${offsetShort})`;
+    } catch {
+        return timezone || 'Hora local';
     }
 }
 
