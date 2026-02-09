@@ -536,6 +536,22 @@ router.post('/checkout', async (req, res) => {
                 });
             }
             
+            // Normalizar beneficiarios desde children (nuevo formato V2)
+            const normalizedBeneficiaries = (children || []).map(c => ({
+                name: c.name,
+                age: c.age || null,
+                relationship: 'child'
+            }));
+            
+            // Si studentType es 'self', el estudiante es el mismo que compra
+            if (studentType === 'self') {
+                normalizedBeneficiaries.push({
+                    name: name,
+                    age: null,
+                    relationship: 'self'
+                });
+            }
+            
             // Buscar o crear lead
             let lead = await Lead.findOne({ email: email.toLowerCase() });
             if (!lead) {
@@ -545,11 +561,21 @@ router.post('/checkout', async (req, res) => {
                     whatsapp,
                     country: country || 'CL',
                     source: 'kit_v2_checkout',
-                    stage: 'interesado'
+                    stage: 'interesado',
+                    type: 'client',
+                    clientType: studentType === 'self' ? 'adult_learner' : 'guardian',
+                    beneficiaries: normalizedBeneficiaries
                 });
+            } else {
+                // Actualizar datos existentes
+                lead.name = name;
+                lead.whatsapp = whatsapp;
+                lead.clientType = studentType === 'self' ? 'adult_learner' : 'guardian';
+                lead.beneficiaries = normalizedBeneficiaries;
+                await lead.save();
             }
             
-            console.log('[WelcomeKit V2] 📝 Datos guardados:', email, '- Hijos:', childrenCount, '- Total USD:', totalUSD);
+            console.log('[WelcomeKit V2] 📝 Datos guardados:', email, '- Estudiantes:', normalizedBeneficiaries.map(b => b.name).join(', '), '- Total USD:', totalUSD);
             
             return res.json({
                 success: true,
@@ -1342,10 +1368,32 @@ router.post('/verify-mercadopago', async (req, res) => {
         }
         
         // 4. Obtener datos del checkout guardados
-        const checkoutData = welcomeKit.get('_checkoutData') || {};
+        let checkoutData = welcomeKit.get('_checkoutData') || {};
         const payerEmail = checkoutData.email || mpEmail || email;
         const payerName = checkoutData.name || payerNameParam || 'Estudiante';
-        const studentType = checkoutData.studentType || 'self';
+        
+        // Si no hay checkoutData, buscar en Lead (kit V2 guarda datos ahí)
+        let leadData = null;
+        if (!checkoutData.beneficiaries || checkoutData.beneficiaries.length === 0) {
+            const Lead = require('../models/Lead');
+            leadData = await Lead.findOne({ email: payerEmail?.toLowerCase() }).lean();
+            if (leadData && leadData.beneficiaries && leadData.beneficiaries.length > 0) {
+                console.log('[WelcomeKit-MP] 📋 Datos encontrados en Lead:', leadData.beneficiaries.map(b => b.name).join(', '));
+                // Enriquecer checkoutData con datos del Lead
+                checkoutData = {
+                    ...checkoutData,
+                    name: leadData.name || payerName,
+                    email: leadData.email || payerEmail,
+                    whatsapp: leadData.whatsapp || checkoutData.whatsapp,
+                    studentType: leadData.clientType === 'guardian' ? 'child' : 'self',
+                    beneficiaries: leadData.beneficiaries
+                        .filter(b => b.relationship !== 'self')
+                        .map(b => ({ name: b.name, age: b.age }))
+                };
+            }
+        }
+        
+        const studentType = checkoutData.studentType || (leadData?.clientType === 'guardian' ? 'child' : 'self');
         
         // 5. Crear o actualizar usuario (mismo flujo que PayPal)
         let user = await User.findOne({ email: payerEmail?.toLowerCase() });
