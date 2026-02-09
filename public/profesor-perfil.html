@@ -67,10 +67,22 @@
         /* Profile Header */
         .profile-header {
             display: grid;
-            grid-template-columns: 200px 1fr 300px;
+            grid-template-columns: 200px 1fr 280px;
             gap: 40px;
             margin-bottom: 40px;
             align-items: start;
+        }
+        
+        @media (max-width: 900px) {
+            .profile-header {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            .profile-photo, .profile-photo-placeholder {
+                width: 150px !important;
+                height: 150px !important;
+                margin: 0 auto;
+            }
         }
 
         .profile-photo {
@@ -225,6 +237,84 @@
             transform: none;
             box-shadow: none;
             background: var(--border);
+        }
+
+        /* Availability Section - Full Width */
+        .availability-section {
+            background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(129,140,248,0.04));
+            border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 40px;
+        }
+        .availability-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .availability-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .availability-title h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+        }
+        .availability-title .trial-badge {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            color: #000;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .availability-cta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .btn-confirm-trial {
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-confirm-trial:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99,102,241,0.4);
+        }
+        .btn-confirm-trial:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .selected-slot-info {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        .selected-slot-info strong {
+            color: var(--accent-light);
+        }
+        
+        @media (max-width: 768px) {
+            .availability-section { padding: 20px; }
+            .availability-header { flex-direction: column; align-items: flex-start; }
+            .availability-cta { width: 100%; flex-direction: column; }
+            .btn-confirm-trial { width: 100%; justify-content: center; }
         }
 
         /* Sections */
@@ -430,17 +520,29 @@
                         
                         ${teacher.acceptsTrialClass ? `
                             <div class="trial-banner">
-                                <div class="trial-banner-text">🎁 Primera clase de prueba GRATIS</div>
+                                <div class="trial-banner-text">🎁 Clase de prueba GRATIS disponible abajo</div>
                             </div>
-                            
-                            <div id="bookingCalendar"></div>
-                            
-                            <button class="btn-book btn-trial" id="btnBookTrial" disabled>
-                                Selecciona un horario arriba
-                            </button>
                         ` : ''}
                     </div>
                 </div>
+                
+                ${teacher.acceptsTrialClass ? `
+                <section class="availability-section">
+                    <div class="availability-header">
+                        <div class="availability-title">
+                            <h2>📅 Disponibilidad para Clase de Prueba</h2>
+                            <span class="trial-badge">GRATIS</span>
+                        </div>
+                        <div class="availability-cta">
+                            <span class="selected-slot-info" id="selectedSlotInfo">Selecciona un horario</span>
+                            <button class="btn-confirm-trial" id="btnBookTrial" disabled>
+                                🎹 Reservar Clase de Prueba
+                            </button>
+                        </div>
+                    </div>
+                    <div id="bookingCalendar"></div>
+                </section>
+                ` : ''}
 
                 <div class="profile-sections">
                     <div class="section-card">
@@ -555,15 +657,23 @@
         
         function onSlotSelected(slot) {
             const btn = document.getElementById('btnBookTrial');
+            const slotInfo = document.getElementById('selectedSlotInfo');
+            
             if (btn) {
                 btn.disabled = false;
-                btn.textContent = '🎹 Reservar Clase de Prueba GRATIS';
                 btn.onclick = () => {
                     // Pasar managed students al modal para que muestre selector si es guardian
                     bookingModal.open(currentTeacher, slot, {
                         managedStudents: managedStudents
                     });
                 };
+            }
+            
+            if (slotInfo) {
+                const date = new Date(slot.startTime);
+                const dateStr = date.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
+                const timeStr = date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+                slotInfo.innerHTML = `<strong>${dateStr}</strong> a las <strong>${timeStr}</strong>`;
             }
         }
         

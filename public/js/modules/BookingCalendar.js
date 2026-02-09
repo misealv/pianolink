@@ -123,7 +123,14 @@ class BookingCalendar {
         const grid = document.getElementById('calendarGrid');
         if (!grid) return;
         
-        if (!this.slots || this.slots.length === 0) {
+        // Filtrar slots pasados (solo mostrar los que son en el futuro)
+        const now = new Date();
+        const futureSlots = (this.slots || []).filter(slot => {
+            const slotTime = new Date(slot.startTime);
+            return slotTime > now;
+        });
+        
+        if (futureSlots.length === 0) {
             grid.innerHTML = `
                 <div class="no-slots">
                     <p>😔 No hay horarios disponibles esta semana</p>
@@ -139,7 +146,7 @@ class BookingCalendar {
         const slotsByDay = {};
         const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         
-        this.slots.forEach(slot => {
+        futureSlots.forEach(slot => {
             const date = new Date(slot.startTime);
             const dayKey = date.toDateString();
             if (!slotsByDay[dayKey]) {
@@ -246,51 +253,77 @@ if (!document.getElementById('bookingCalendarStyles')) {
     styles.id = 'bookingCalendarStyles';
     styles.textContent = `
         .booking-calendar {
-            background: var(--bg-card, #141414);
-            border: 1px solid var(--border, #2a2a2a);
-            border-radius: 16px;
-            padding: 20px;
-            margin-top: 20px;
+            background: transparent;
         }
         
         .calendar-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            margin-bottom: 20px;
+            gap: 20px;
+            margin-bottom: 24px;
         }
         
         .nav-btn {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--border, #2a2a2a);
-            color: var(--text-main, #e0e0e0);
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
+            background: rgba(99,102,241,0.1);
+            border: 1px solid rgba(99,102,241,0.3);
+            color: var(--accent, #6366f1);
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 20px;
+            font-weight: 600;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .nav-btn:hover {
-            background: rgba(99,102,241,0.2);
-            border-color: var(--accent, #6366f1);
+            background: var(--accent, #6366f1);
+            color: white;
+            transform: scale(1.05);
         }
         
         .week-label {
-            font-weight: 600;
-            font-size: 14px;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text-main, #e0e0e0);
+            min-width: 180px;
+            text-align: center;
         }
         
         .days-container {
-            display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            padding-bottom: 10px;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 12px;
+        }
+        
+        @media (max-width: 900px) {
+            .days-container {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        @media (max-width: 600px) {
+            .days-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
         
         .day-column {
-            min-width: 80px;
-            flex: 1;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border, #2a2a2a);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .day-column:hover {
+            border-color: rgba(99,102,241,0.3);
+            background: rgba(255,255,255,0.04);
+        }
+        .day-column.today {
+            border-color: var(--accent, #6366f1);
+            background: rgba(99,102,241,0.08);
         }
         .day-column.today .day-header {
             background: var(--accent, #6366f1);
@@ -299,109 +332,126 @@ if (!document.getElementById('bookingCalendarStyles')) {
         
         .day-header {
             background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-            padding: 10px 8px;
+            padding: 16px 12px;
             text-align: center;
-            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border, #2a2a2a);
         }
         .day-name {
             display: block;
             font-size: 11px;
             color: var(--text-muted, #888);
             text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
         }
         .day-column.today .day-name { color: rgba(255,255,255,0.8); }
         
         .day-num {
             display: block;
-            font-size: 20px;
-            font-weight: 700;
-            line-height: 1.2;
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1.1;
         }
         .day-month {
             display: block;
-            font-size: 10px;
+            font-size: 11px;
             color: var(--text-muted, #888);
+            margin-top: 2px;
         }
         .day-column.today .day-month { color: rgba(255,255,255,0.7); }
         
         .slots-list {
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+        .slots-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .slots-list::-webkit-scrollbar-thumb {
+            background: var(--border, #2a2a2a);
+            border-radius: 4px;
         }
         
         .slot-btn {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid var(--border, #2a2a2a);
+            background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(129,140,248,0.05));
+            border: 1px solid rgba(99,102,241,0.2);
             color: var(--text-main, #e0e0e0);
-            padding: 10px 8px;
-            border-radius: 8px;
+            padding: 12px 10px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
+            font-size: 14px;
+            font-weight: 600;
             transition: all 0.2s;
+            text-align: center;
         }
         .slot-btn:hover {
-            background: rgba(99,102,241,0.15);
+            background: rgba(99,102,241,0.2);
             border-color: var(--accent, #6366f1);
+            transform: scale(1.02);
         }
         .slot-btn.selected {
-            background: var(--accent, #6366f1);
+            background: linear-gradient(135deg, var(--accent, #6366f1), var(--accent-light, #818cf8));
             border-color: var(--accent, #6366f1);
             color: white;
+            box-shadow: 0 4px 15px rgba(99,102,241,0.3);
         }
         
         .no-slots, .calendar-error {
             text-align: center;
-            padding: 40px 20px;
+            padding: 60px 20px;
             color: var(--text-muted, #888);
         }
         .no-slots p, .calendar-error p {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            font-size: 16px;
         }
         
         .btn-secondary {
             background: transparent;
-            border: 1px solid var(--accent, #6366f1);
+            border: 2px solid var(--accent, #6366f1);
             color: var(--accent, #6366f1);
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 12px 24px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
+            font-weight: 600;
             transition: all 0.2s;
         }
         .btn-secondary:hover {
-            background: rgba(99,102,241,0.15);
+            background: var(--accent, #6366f1);
+            color: white;
         }
         
         .loading-slots {
             text-align: center;
-            padding: 40px;
+            padding: 60px;
             color: var(--text-muted, #888);
         }
         .spinner-small {
-            width: 24px;
-            height: 24px;
+            width: 32px;
+            height: 32px;
             border: 3px solid var(--border, #2a2a2a);
             border-top-color: var(--accent, #6366f1);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            margin: 0 auto 15px;
         }
         
         .timezone-info {
             text-align: center;
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-muted, #888);
-            margin-top: 15px;
-            padding-top: 15px;
+            margin-top: 20px;
+            padding-top: 16px;
             border-top: 1px solid var(--border, #2a2a2a);
         }
         
-        @media (max-width: 600px) {
-            .day-column { min-width: 65px; }
-            .slot-btn { padding: 8px 4px; font-size: 12px; }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     `;
     document.head.appendChild(styles);
