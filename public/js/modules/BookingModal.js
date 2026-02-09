@@ -324,27 +324,8 @@ class BookingModal {
     }
     
     showLoginRequired() {
-        const content = document.getElementById('bookingModalContent');
-        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-        
-        content.innerHTML = `
-            <div class="login-required">
-                <div class="login-icon">🔐</div>
-                <h2>Inicia sesión para reservar</h2>
-                <p>Necesitas una cuenta para agendar tu clase de prueba.</p>
-                
-                <div class="login-actions">
-                    <a href="/login.html?redirect=${returnUrl}" class="btn-primary">
-                        Iniciar Sesión
-                    </a>
-                    <a href="/registro.html?redirect=${returnUrl}" class="btn-secondary">
-                        Crear Cuenta
-                    </a>
-                </div>
-            </div>
-        `;
-        
-        this.isLoading = false;
+        // Redirigir directamente a la landing page
+        window.location.href = 'https://www.pianolink.net/';
     }
     
     addToCalendar() {
