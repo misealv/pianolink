@@ -2024,19 +2024,6 @@
         </div>
     </div>
 
-    <!-- Modal Compra de Paquete -->
-    <div class="modal-overlay" id="packageModal">
-        <div class="modal-content package-modal-content">
-            <div class="modal-header">
-                <h2>🎹 Comprar Paquete de Clases</h2>
-                <button class="modal-close" onclick="closePackageModal()">×</button>
-            </div>
-            <div class="modal-body" id="packageModalBody">
-                <!-- Se llena dinámicamente -->
-            </div>
-        </div>
-    </div>
-
     <!-- Modal de Disputa -->
     <div class="dispute-modal" id="disputeModal">
         <div class="dispute-modal-content">
@@ -2092,33 +2079,18 @@
         const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         const DIAS_COMPLETOS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-        // Variables para paquetes y suscripciones
-        let allPackages = [];
-        let mySubscriptions = [];
-        let selectedPackage = null;
+        // Variables para validaciones pendientes
         let pendingValidations = []; // Clases pendientes de confirmar
-        const CATEGORY_LABELS = {
-            piano: '🎹 Piano',
-            teoria: '📚 Teoría Musical',
-            armonia: '🎶 Armonía',
-            solfeo: '🎼 Solfeo',
-            composicion: '✍️ Composición',
-            improvisacion: '🎤 Improvisación',
-            otro: '🎵 Otro'
-        };
         const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
         // Cargar datos del usuario
         async function loadDashboard() {
             try {
-                const [userRes, paymentsRes, subscriptionRes, ordersRes, nextClassRes, packagesRes, mySubsRes, pendingRes, myKitRes, pendingTrialRes] = await Promise.all([
+                const [userRes, paymentsRes, subscriptionRes, nextClassRes, pendingRes, myKitRes, pendingTrialRes] = await Promise.all([
                     fetch('/api/client/me', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/client/payments', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/client/subscription', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('/api/client/orders', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/bookings/my-next', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('/api/teacher-packages/available', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('/api/subscriptions/my', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/class-sessions/pending', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/welcome-kit/v2/my-kit', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/bookings/pending-trial-rating', { headers: { 'Authorization': `Bearer ${token}` } })
@@ -2131,12 +2103,7 @@
                 const user = await userRes.json();
                 const paymentsData = await paymentsRes.json();
                 const subscription = await subscriptionRes.json();
-                const ordersData = await ordersRes.json();
                 const nextClassData = nextClassRes.ok ? await nextClassRes.json() : { hasNext: false };
-                
-                // Cargar paquetes disponibles y mis suscripciones
-                allPackages = packagesRes.ok ? await packagesRes.json() : [];
-                mySubscriptions = mySubsRes.ok ? await mySubsRes.json() : [];
                 
                 // Cargar clases pendientes de confirmación
                 const pendingData = pendingRes.ok ? await pendingRes.json() : { sessions: [] };
@@ -2152,7 +2119,7 @@
                 // Guardar referencia para uso en agendamiento
                 currentUserData = user;
 
-                renderDashboard(user, paymentsData.payments, subscription, ordersData.orders, nextClassData, myKitData, pendingTrialData);
+                renderDashboard(user, paymentsData.payments, subscription, nextClassData, myKitData, pendingTrialData);
             } catch (error) {
                 console.error('Error cargando dashboard:', error);
                 if (error.message === 'No autorizado') {
@@ -2167,7 +2134,7 @@
         // Variable global para el kit del usuario
         let currentUserKit = null;
 
-        function renderDashboard(user, payments, subscription, orders, nextClass, myKit, pendingTrial = {}) {
+        function renderDashboard(user, payments, subscription, nextClass, myKit, pendingTrial = {}) {
             // Actualizar nombre en header
             document.getElementById('userName').textContent = user.name;
             
@@ -2251,26 +2218,10 @@
 
                 <!-- Actions -->
                 <section class="actions">
-                    ${!nextClass?.hasNext ? `
-                    <a href="#" class="btn btn-primary" onclick="scheduleClass()">
-                        📅 Agendar clase
-                    </a>
-                    ` : ''}
-                    ${isOnboardingComplete ? `
-                    <a href="#packagesSection" class="btn btn-secondary" onclick="scrollToPackages()">
-                        🎓 Ver paquetes de profesores
-                    </a>
-                    ` : ''}
                     <a href="#" class="btn btn-secondary" onclick="contactSupport()">
                         💬 Soporte WhatsApp
                     </a>
                 </section>
-
-                <!-- Mis Suscripciones Activas (solo si no está en onboarding) -->
-                ${isOnboardingComplete ? renderMySubscriptions() : ''}
-
-                <!-- Paquetes de Profesores Disponibles (solo si no está en onboarding) -->
-                ${isOnboardingComplete ? renderAvailablePackages() : ''}
 
                 <!-- Students (if guardian) -->
                 ${isGuardian ? `
@@ -2303,13 +2254,7 @@
                 </section>
                 ` : ''}
 
-                <!-- Orders & Tracking -->
-                ${orders && orders.length > 0 ? `
-                <section class="orders-section">
-                    <h2 class="section-title">📦 Mis pedidos</h2>
-                    ${orders.map(order => renderOrder(order)).join('')}
-                </section>
-                ` : ''}
+
 
                 <!-- Payment Status -->
                 <section class="payment-status">
@@ -3408,499 +3353,6 @@
             }
         }
 
-        // ============================================
-        // SUSCRIPCIONES Y PAQUETES
-        // ============================================
-
-        function scrollToPackages() {
-            const section = document.getElementById('packagesSection');
-            if (section) section.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function renderMySubscriptions() {
-            if (!mySubscriptions || mySubscriptions.length === 0) return '';
-            
-            const activeSubs = mySubscriptions.filter(s => s.status === 'active' || s.status === 'paused');
-            if (activeSubs.length === 0) return '';
-
-            return `
-                <section class="my-subscriptions">
-                    <h2 class="section-title">🎓 Mis Suscripciones con Profesores</h2>
-                    ${activeSubs.map(sub => {
-                        const teacher = sub.teacher || {};
-                        const pkg = sub.package || {};
-                        const expiresDate = new Date(sub.expiresAt);
-                        const daysLeft = Math.ceil((expiresDate - new Date()) / (1000 * 60 * 60 * 24));
-                        
-                        return `
-                            <div class="subscription-card">
-                                <div class="subscription-info">
-                                    <div class="package-teacher-avatar">${getInitials(teacher.name || 'P')}</div>
-                                    <div>
-                                        <h4 style="margin: 0 0 4px 0;">${teacher.brandName || teacher.name || 'Profesor'}</h4>
-                                        <div style="color: var(--text-muted); font-size: 13px;">
-                                            ${CATEGORY_LABELS[pkg.category] || pkg.category || 'Piano'} · 
-                                            ${sub.autoRenew ? '🔄 Renovación automática' : 'Sin renovación'}
-                                        </div>
-                                        <div style="color: ${daysLeft <= 7 ? 'var(--warning)' : 'var(--text-muted)'}; font-size: 12px; margin-top: 4px;">
-                                            ${sub.status === 'paused' ? '⏸️ Pausada' : `Vence: ${expiresDate.toLocaleDateString('es-CL')}`}
-                                            ${daysLeft <= 7 && sub.status !== 'paused' ? ` (${daysLeft} días)` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="subscription-classes">
-                                    <div class="subscription-classes-count">${sub.classesRemaining}</div>
-                                    <div class="subscription-classes-label">clases restantes</div>
-                                </div>
-                                <div class="subscription-actions">
-                                    ${sub.classesRemaining > 0 ? `
-                                        <button class="btn btn-sm" onclick="scheduleClassWithTeacher('${teacher._id}', '${teacher.name}')">
-                                            📅 Agendar
-                                        </button>
-                                    ` : ''}
-                                    ${sub.status === 'paused' ? `
-                                        <button class="btn btn-sm btn-secondary" onclick="resumeSubscription('${sub._id}')">
-                                            ▶️ Reanudar
-                                        </button>
-                                    ` : `
-                                        <button class="btn btn-sm btn-secondary" onclick="pauseSubscription('${sub._id}')">
-                                            ⏸️ Pausar
-                                        </button>
-                                    `}
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </section>
-            `;
-        }
-
-        function renderAvailablePackages() {
-            if (!allPackages || allPackages.length === 0) {
-                return `
-                    <section class="packages-section" id="packagesSection">
-                        <h2 class="section-title">🎓 Paquetes de Clases Disponibles</h2>
-                        <div class="empty-state">
-                            <p>No hay paquetes disponibles en este momento.</p>
-                            <p style="font-size: 13px; margin-top: 8px;">Los profesores irán publicando sus paquetes pronto.</p>
-                        </div>
-                    </section>
-                `;
-            }
-
-            // Agrupar por profesor y mostrar destacados primero
-            const featured = allPackages.filter(p => p.isFeatured);
-            const regular = allPackages.filter(p => !p.isFeatured);
-            const sorted = [...featured, ...regular];
-
-            return `
-                <section class="packages-section" id="packagesSection">
-                    <div class="section-header">
-                        <h2 class="section-title">🎓 Paquetes de Clases Disponibles</h2>
-                    </div>
-                    <div class="packages-grid">
-                        ${sorted.map(pkg => renderPackageCard(pkg)).join('')}
-                    </div>
-                </section>
-            `;
-        }
-
-        function renderPackageCard(pkg) {
-            const teacher = pkg.teacher || {};
-            const pricePerClass = (pkg.priceUSD / pkg.classCount).toFixed(2);
-            
-            return `
-                <div class="package-card ${pkg.isFeatured ? 'featured' : ''}">
-                    <div class="package-header">
-                        <div class="package-teacher">
-                            <div class="package-teacher-avatar">${getInitials(teacher.name || 'P')}</div>
-                            <div class="package-teacher-info">
-                                <h4>${teacher.brandName || teacher.name || 'Profesor'}</h4>
-                                <small>${teacher.specialties?.join(', ') || 'Piano'}</small>
-                            </div>
-                        </div>
-                        <div class="package-name">${pkg.name}</div>
-                        <span class="package-category">${CATEGORY_LABELS[pkg.category] || pkg.category}</span>
-                    </div>
-                    <div class="package-body">
-                        <div class="package-stats">
-                            <div class="package-stat">
-                                <div class="package-stat-value">${pkg.classCount}</div>
-                                <div class="package-stat-label">Clases</div>
-                            </div>
-                            <div class="package-stat">
-                                <div class="package-stat-value">${pkg.validityDays}</div>
-                                <div class="package-stat-label">Días válido</div>
-                            </div>
-                            <div class="package-stat">
-                                <div class="package-stat-value">$${pricePerClass}</div>
-                                <div class="package-stat-label">Por clase</div>
-                            </div>
-                        </div>
-                        ${pkg.description ? `<p class="package-description">${pkg.description}</p>` : ''}
-                        <div class="package-price">
-                            <div>
-                                <div class="package-price-amount">$${pkg.priceUSD}</div>
-                                <div class="package-price-per">USD${pkg.isRecurring ? ' / renovación auto' : ''}</div>
-                            </div>
-                            <button class="btn-buy-package" onclick="openPackagePurchase('${pkg._id}')">
-                                🛒 Comprar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function openPackagePurchase(packageId) {
-            selectedPackage = allPackages.find(p => p._id === packageId);
-            if (!selectedPackage) return;
-
-            const teacher = selectedPackage.teacher || {};
-            const pricePerClass = (selectedPackage.priceUSD / selectedPackage.classCount).toFixed(2);
-
-            document.getElementById('packageModalBody').innerHTML = `
-                <div class="package-modal-summary">
-                    <div class="package-modal-teacher">
-                        <div class="package-teacher-avatar" style="width: 56px; height: 56px; font-size: 20px;">
-                            ${getInitials(teacher.name || 'P')}
-                        </div>
-                        <div>
-                            <h3 style="margin: 0 0 4px 0;">${selectedPackage.name}</h3>
-                            <div style="color: var(--text-muted);">con ${teacher.brandName || teacher.name || 'Profesor'}</div>
-                        </div>
-                    </div>
-                    <div class="package-modal-details">
-                        <div class="package-modal-detail">
-                            <div class="package-modal-detail-label">Clases</div>
-                            <div class="package-modal-detail-value">${selectedPackage.classCount}</div>
-                        </div>
-                        <div class="package-modal-detail">
-                            <div class="package-modal-detail-label">Validez</div>
-                            <div class="package-modal-detail-value">${selectedPackage.validityDays} días</div>
-                        </div>
-                        <div class="package-modal-detail">
-                            <div class="package-modal-detail-label">Categoría</div>
-                            <div class="package-modal-detail-value">${CATEGORY_LABELS[selectedPackage.category] || selectedPackage.category}</div>
-                        </div>
-                        <div class="package-modal-detail">
-                            <div class="package-modal-detail-label">Precio/clase</div>
-                            <div class="package-modal-detail-value">$${pricePerClass}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="package-modal-total">
-                    <div class="package-modal-total-label">Total a pagar</div>
-                    <div class="package-modal-total-amount">$${selectedPackage.priceUSD} USD</div>
-                </div>
-
-                <div class="package-features">
-                    <div class="package-feature">
-                        <span class="package-feature-icon">✓</span>
-                        <span>Clases 1-a-1 con MIDI sincronizado en vivo</span>
-                    </div>
-                    <div class="package-feature">
-                        <span class="package-feature-icon">✓</span>
-                        <span>Agenda las clases cuando quieras</span>
-                    </div>
-                    <div class="package-feature">
-                        <span class="package-feature-icon">✓</span>
-                        <span>Pago seguro - fondos en garantía</span>
-                    </div>
-                    ${selectedPackage.isRecurring ? `
-                    <div class="package-feature">
-                        <span class="package-feature-icon">🔄</span>
-                        <span>Renovación automática (puedes cancelar)</span>
-                    </div>
-                    ` : ''}
-                </div>
-
-                <button class="btn-purchase" id="btnPurchasePackage" onclick="purchasePackage()">
-                    🛒 Pagar con MercadoPago
-                </button>
-                <p class="payment-note">
-                    🔒 Pago seguro. Los fondos quedan en garantía hasta completar cada clase.
-                </p>
-            `;
-
-            document.getElementById('packageModal').classList.add('active');
-        }
-
-        function closePackageModal() {
-            document.getElementById('packageModal').classList.remove('active');
-            selectedPackage = null;
-        }
-
-        async function purchasePackage() {
-            if (!selectedPackage) return;
-
-            const btn = document.getElementById('btnPurchasePackage');
-            const originalText = btn.textContent;
-            btn.disabled = true;
-            btn.textContent = '⏳ Procesando...';
-
-            try {
-                const response = await fetch('/api/subscriptions/purchase', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        packageId: selectedPackage._id,
-                        autoRenew: selectedPackage.isRecurring || false
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.paymentUrl) {
-                    // Redirigir a MercadoPago
-                    window.location.href = data.paymentUrl;
-                } else if (data.success && data.subscription) {
-                    // Compra exitosa sin redirección (pago directo)
-                    closePackageModal();
-                    alert('✅ ¡Paquete comprado exitosamente!');
-                    loadDashboard();
-                } else {
-                    throw new Error(data.error || 'Error al procesar la compra');
-                }
-
-            } catch (error) {
-                console.error('Error:', error);
-                alert('❌ ' + (error.message || 'Error al procesar la compra'));
-                btn.disabled = false;
-                btn.textContent = originalText;
-            }
-        }
-
-        async function pauseSubscription(subscriptionId) {
-            if (!confirm('¿Pausar esta suscripción? Las clases restantes se conservarán.')) return;
-            
-            try {
-                const res = await fetch(`/api/subscriptions/${subscriptionId}/pause`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (res.ok) {
-                    alert('⏸️ Suscripción pausada');
-                    loadDashboard();
-                } else {
-                    const data = await res.json();
-                    alert('Error: ' + (data.error || 'No se pudo pausar'));
-                }
-            } catch (error) {
-                alert('Error de conexión');
-            }
-        }
-
-        async function resumeSubscription(subscriptionId) {
-            try {
-                const res = await fetch(`/api/subscriptions/${subscriptionId}/resume`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (res.ok) {
-                    alert('▶️ Suscripción reanudada');
-                    loadDashboard();
-                } else {
-                    const data = await res.json();
-                    alert('Error: ' + (data.error || 'No se pudo reanudar'));
-                }
-            } catch (error) {
-                alert('Error de conexión');
-            }
-        }
-
-        function scheduleClassWithTeacher(teacherId, teacherName) {
-            // Abrir el modal de agendar y seleccionar automáticamente el profesor
-            openBookingModal();
-            setTimeout(() => {
-                selectTeacher(teacherId, teacherName);
-            }, 500);
-        }
-
-        function renderOrder(order) {
-            const statusLabels = {
-                'pending_payment': 'Pago pendiente',
-                'processing': 'Preparando envío',
-                'shipped': 'En camino',
-                'delivered': 'Entregado'
-            };
-
-            const statusIcons = {
-                'pending_payment': '⏳',
-                'processing': '📦',
-                'shipped': '🚚',
-                'delivered': '✅'
-            };
-
-            const shippingStatus = order.shipping?.status || 'processing';
-            const physicalProducts = order.products.filter(p => p.type === 'physical');
-            const serviceProducts = order.products.filter(p => p.type === 'service');
-
-            return `
-                <div class="order-card">
-                    <div class="order-header">
-                        <div class="order-info">
-                            <h3>Pedido #${order.id.slice(-8).toUpperCase()}</h3>
-                            <div class="order-date">
-                                ${new Date(order.orderDate).toLocaleDateString('es-CL', { 
-                                    day: 'numeric', 
-                                    month: 'long', 
-                                    year: 'numeric' 
-                                })}
-                            </div>
-                        </div>
-                        <div class="shipping-status ${shippingStatus}">
-                            ${statusIcons[shippingStatus]} ${statusLabels[shippingStatus]}
-                        </div>
-                    </div>
-
-                    <!-- Shipping Timeline -->
-                    ${physicalProducts.length > 0 ? `
-                    <div class="shipping-timeline">
-                        <div class="timeline-step ${getTimelineClass('processing', shippingStatus)}">
-                            <div class="timeline-dot ${getTimelineClass('processing', shippingStatus)}">📦</div>
-                            <div class="timeline-label">Preparando</div>
-                        </div>
-                        <div class="timeline-step ${getTimelineClass('shipped', shippingStatus)}">
-                            <div class="timeline-dot ${getTimelineClass('shipped', shippingStatus)}">🚚</div>
-                            <div class="timeline-label">En camino</div>
-                        </div>
-                        <div class="timeline-step ${getTimelineClass('delivered', shippingStatus)}">
-                            <div class="timeline-dot ${getTimelineClass('delivered', shippingStatus)}">🏠</div>
-                            <div class="timeline-label">Entregado</div>
-                        </div>
-                    </div>
-                    ` : ''}
-
-                    <!-- Products -->
-                    <div class="products-list">
-                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">
-                            Productos del pedido
-                        </div>
-                        ${physicalProducts.map(p => `
-                            <div class="product-item">
-                                <div class="product-info">
-                                    <div class="product-icon">🎹</div>
-                                    <div>
-                                        <div class="product-name">${p.name}</div>
-                                        ${p.keyboardModel ? `<div class="product-detail">Para: ${p.keyboardModel}</div>` : ''}
-                                    </div>
-                                </div>
-                                <span class="product-type physical">Físico</span>
-                            </div>
-                        `).join('')}
-                        ${serviceProducts.map(p => `
-                            <div class="product-item">
-                                <div class="product-info">
-                                    <div class="product-icon">${p.name.includes('Setup') ? '🔧' : '🎓'}</div>
-                                    <div>
-                                        <div class="product-name">${p.name}</div>
-                                        ${p.scheduledAt ? `<div class="product-detail">Programado: ${new Date(p.scheduledAt).toLocaleDateString('es-CL')}</div>` : ''}
-                                    </div>
-                                </div>
-                                <span class="product-type service">Servicio</span>
-                            </div>
-                        `).join('')}
-                    </div>
-
-                    <!-- Tracking Info (si hay envío) -->
-                    ${order.shipping && order.shipping.trackingNumber ? `
-                    <div class="tracking-box">
-                        <div class="tracking-header">
-                            📍 Información de seguimiento
-                        </div>
-                        <div class="tracking-details">
-                            <div class="tracking-item">
-                                <div class="tracking-label">Número de tracking</div>
-                                <div class="tracking-value">${order.shipping.trackingNumber}</div>
-                            </div>
-                            ${order.shipping.carrier ? `
-                            <div class="tracking-item">
-                                <div class="tracking-label">Courier</div>
-                                <div class="tracking-value">${order.shipping.carrier}</div>
-                            </div>
-                            ` : ''}
-                            ${order.shipping.estimatedDelivery ? `
-                            <div class="tracking-item">
-                                <div class="tracking-label">Entrega estimada</div>
-                                <div class="tracking-value">${new Date(order.shipping.estimatedDelivery).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-                            </div>
-                            ` : ''}
-                            ${order.shipping.trackingUrl ? `
-                            <div class="tracking-item">
-                                <div class="tracking-label">Seguir envío</div>
-                                <a href="${order.shipping.trackingUrl}" target="_blank" class="tracking-link">
-                                    Ver en ${order.shipping.carrier || 'courier'} →
-                                </a>
-                            </div>
-                            ` : ''}
-                        </div>
-                        ${shippingStatus === 'shipped' && !order.shipping.clientConfirmedReceipt ? `
-                        <button class="btn-confirm-receipt" onclick="confirmReceipt('${order.id}')">
-                            ✅ Confirmar que recibí mi pedido
-                        </button>
-                        ` : ''}
-                        ${order.shipping.clientConfirmedReceipt ? `
-                        <div style="margin-top: 12px; padding: 10px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; font-size: 13px; color: var(--success);">
-                            ✓ Confirmaste la recepción el ${order.shipping.deliveredAt ? new Date(order.shipping.deliveredAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }) : 'recientemente'}
-                        </div>
-                        ` : order.shipping.deliveredAt ? `
-                        <div style="margin-top: 12px; font-size: 13px; color: var(--success);">
-                            ✓ Entregado el ${new Date(order.shipping.deliveredAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </div>
-                        ` : ''}
-                    </div>
-                    ` : physicalProducts.length > 0 && shippingStatus === 'processing' ? `
-                    <div class="tracking-box" style="background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.2);">
-                        <div class="tracking-header" style="color: var(--warning);">
-                            📦 Tu pedido está siendo preparado
-                        </div>
-                        <p style="font-size: 14px; color: var(--text-muted);">
-                            Te enviaremos el número de seguimiento por email cuando tu pedido sea despachado.
-                        </p>
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-        }
-
-        function getTimelineClass(step, currentStatus) {
-            const order = ['pending_payment', 'processing', 'shipped', 'delivered'];
-            const stepIndex = order.indexOf(step);
-            const currentIndex = order.indexOf(currentStatus);
-            
-            if (currentIndex > stepIndex) return 'completed';
-            if (currentIndex === stepIndex) return 'active';
-            return '';
-        }
-
-        async function confirmReceipt(orderId) {
-            if (!confirm('¿Confirmas que recibiste tu pedido?')) return;
-            
-            try {
-                const res = await fetch(`/api/client/orders/${orderId}/confirm-receipt`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (res.ok) {
-                    alert('¡Gracias por confirmar! Disfruta tu equipo 🎹');
-                    loadDashboard(); // Recargar datos
-                } else {
-                    alert('Error al confirmar. Intenta de nuevo.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error de conexión');
-            }
-        }
-
         function scheduleClass(studentName = null, studentId = null) {
             const students = currentUserData?.clientData?.managedStudents || [];
             const isGuardian = students.length > 0;
@@ -4478,12 +3930,8 @@
             }
 
             if (!nextClassData || !nextClassData.hasNext) {
-                return `
-                    <div class="no-class-scheduled">
-                        <p>📅 No tienes clases programadas</p>
-                        <button class="btn btn-primary" onclick="scheduleClass()">Agendar una clase</button>
-                    </div>
-                `;
+                // No mostrar nada si no hay clase programada (evita confusión)
+                return '';
             }
 
             const booking = nextClassData.booking;
