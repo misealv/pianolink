@@ -723,8 +723,28 @@ const User = require('../models/User');
  */
 router.post('/trial-class', protect, async (req, res) => {
     try {
-        const { teacherId, slotId, timezone } = req.body;
-        const studentId = req.user._id;
+        const { teacherId, slotId, timezone, studentId: requestedStudentId, studentName } = req.body;
+        
+        // Determinar estudiante: si es guardian, puede especificar un managedStudent
+        let studentId = req.user._id;
+        let effectiveStudentName = req.user.name;
+        
+        if (requestedStudentId && requestedStudentId !== req.user._id.toString()) {
+            // Verificar que el usuario sea guardian del estudiante especificado
+            const managedStudents = req.user.clientData?.managedStudents || [];
+            const foundStudent = managedStudents.find(s => s._id?.toString() === requestedStudentId);
+            
+            if (!foundStudent) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'No tienes permiso para agendar clases para este estudiante'
+                });
+            }
+            
+            studentId = foundStudent._id;
+            effectiveStudentName = foundStudent.name || studentName || 'Estudiante';
+            console.log(`[TrialClass] Guardian ${req.user.name} reservando para estudiante: ${effectiveStudentName}`);
+        }
         
         // Validaciones básicas
         if (!teacherId || !slotId) {
@@ -769,9 +789,12 @@ router.post('/trial-class', protect, async (req, res) => {
             status: { $nin: ['cancelled'] }
         });
         if (existingTrial) {
+            const msg = requestedStudentId && requestedStudentId !== req.user._id.toString()
+                ? `${effectiveStudentName} ya tomó una clase de prueba con este profesor`
+                : 'Ya has tomado una clase de prueba con este profesor';
             return res.status(409).json({ 
                 success: false, 
-                message: 'Ya has tomado una clase de prueba con este profesor' 
+                message: msg
             });
         }
         
@@ -786,10 +809,13 @@ router.post('/trial-class', protect, async (req, res) => {
         await slot.save();
         
         // Crear booking confirmado
+        const isGuardianBooking = requestedStudentId && requestedStudentId !== req.user._id.toString();
         const booking = await Booking.create({
             slotId: slot._id,
             teacherId,
             studentId,
+            clientId: isGuardianBooking ? req.user._id : null,
+            studentName: effectiveStudentName,
             scheduledStart: slot.startTime,
             scheduledEnd: slot.endTime,
             duration: slot.duration,

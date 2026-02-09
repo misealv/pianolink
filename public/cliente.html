@@ -2172,8 +2172,8 @@
             // Renderizar tarjeta de próxima clase
             const nextClassHTML = renderNextClass(nextClass);
             
-            // Renderizar estado del Onboarding Kit
-            const onboardingHTML = renderOnboardingStatus(myKit, nextClass);
+            // Renderizar estado del Onboarding Kit (pasar students para guardians)
+            const onboardingHTML = renderOnboardingStatus(myKit, nextClass, students);
             
             // Renderizar calificación de clase trial pendiente
             const trialRatingHTML = renderTrialRating(pendingTrial);
@@ -2370,7 +2370,7 @@
         // ONBOARDING KIT STATUS
         // ============================================
         
-        function renderOnboardingStatus(kit, nextClass) {
+        function renderOnboardingStatus(kit, nextClass, students = []) {
             // Usar estado real calculado si existe, sino usar el almacenado
             const effectiveStatus = kit?._realStatus || kit?.overallStatus;
             
@@ -2379,6 +2379,9 @@
             
             // Detectar si ya tiene clase próxima agendada
             const hasUpcomingClass = nextClass && nextClass.hasNext;
+            
+            // Detectar si es guardian con múltiples estudiantes
+            const isGuardian = students.length > 0;
             
             const statusConfig = {
                 'pending': {
@@ -2438,11 +2441,16 @@
                 },
                 'trial_available': {
                     icon: '🎹',
-                    title: hasUpcomingClass ? '¡Clase de Prueba Agendada!' : '¡Listo para tu Clase de Prueba!',
-                    message: hasUpcomingClass ? 'Ya tienes tu clase de prueba agendada. Revisa los detalles abajo.' : 'Tu setup técnico está completado. Elige un profesor y agenda tu primera clase de prueba.',
+                    title: hasUpcomingClass ? '¡Clase de Prueba Agendada!' : '¡Listo para la Clase de Prueba!',
+                    message: hasUpcomingClass 
+                        ? 'Ya tienes tu clase de prueba agendada. Revisa los detalles abajo.' 
+                        : isGuardian 
+                            ? `Tu setup técnico está completado. Agenda una clase de prueba para cada estudiante.`
+                            : 'Tu setup técnico está completado. Elige un profesor y agenda tu primera clase de prueba.',
                     color: '#6366f1',
                     step: 4,
-                    showTrialAction: !hasUpcomingClass
+                    showTrialAction: !hasUpcomingClass,
+                    showStudentsList: isGuardian && !hasUpcomingClass
                 },
                 'trial_scheduled': {
                     icon: '📅',
@@ -2567,6 +2575,20 @@
                             <button onclick="confirmEquipmentReady()" style="background: ${config.color}; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                                 ✅ Ya tengo mi equipo listo
                             </button>
+                            ` : ''}
+                            
+                            ${config.showStudentsList && students.length > 0 ? `
+                            <div style="margin-bottom: 16px;">
+                                <p style="font-size: 14px; color: #666; margin-bottom: 12px;">👶 Estudiantes para agendar clase de prueba:</p>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${students.map(s => `
+                                        <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 8px 14px; display: flex; align-items: center; gap: 8px;">
+                                            <span style="font-weight: 600; color: #166534;">${s.name}</span>
+                                            <span style="font-size: 12px; color: #666;">${s.age ? s.age + ' años' : ''}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
                             ` : ''}
                             
                             ${config.showTrialAction ? `

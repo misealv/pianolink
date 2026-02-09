@@ -13,6 +13,11 @@ class BookingModal {
         this.isOpen = false;
         this.isLoading = false;
         
+        // Datos del estudiante (puede ser el usuario o un managed student)
+        this.studentId = null;
+        this.studentName = null;
+        this.managedStudents = []; // Lista de estudiantes si es guardian
+        
         this.createModal();
         this.bindEvents();
     }
@@ -48,12 +53,28 @@ class BookingModal {
         });
     }
     
-    open(teacher, slot) {
+    open(teacher, slot, options = {}) {
         this.teacher = teacher;
         this.slot = slot;
         this.isOpen = true;
         
-        this.renderConfirmation();
+        // Opciones de estudiante
+        this.studentId = options.studentId || null;
+        this.studentName = options.studentName || null;
+        this.managedStudents = options.managedStudents || [];
+        
+        // Si es guardian con múltiples estudiantes y no se especificó, mostrar selector
+        if (this.managedStudents.length > 1 && !this.studentId) {
+            this.renderStudentSelection();
+        } else if (this.managedStudents.length === 1 && !this.studentId) {
+            // Auto-seleccionar único estudiante
+            this.studentId = this.managedStudents[0]._id;
+            this.studentName = this.managedStudents[0].name;
+            this.renderConfirmation();
+        } else {
+            this.renderConfirmation();
+        }
+        
         document.getElementById('bookingModal').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
@@ -62,6 +83,63 @@ class BookingModal {
         this.isOpen = false;
         document.getElementById('bookingModal').classList.add('hidden');
         document.body.style.overflow = '';
+    }
+    
+    // Selector de estudiante para guardians con múltiples hijos
+    renderStudentSelection() {
+        const content = document.getElementById('bookingModalContent');
+        
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>👶 ¿Para quién es la clase?</h2>
+            </div>
+            
+            <p style="color: #666; margin-bottom: 20px;">Selecciona el estudiante que tomará la clase de prueba:</p>
+            
+            <div class="student-selection-list" style="display: flex; flex-direction: column; gap: 12px;">
+                ${this.managedStudents.map(student => `
+                    <button class="student-select-btn" data-id="${student._id}" data-name="${student.name}" style="
+                        display: flex; align-items: center; gap: 16px;
+                        padding: 16px 20px; border: 2px solid #e5e7eb; border-radius: 12px;
+                        background: white; cursor: pointer; transition: all 0.2s;
+                        text-align: left;
+                    ">
+                        <div style="
+                            width: 48px; height: 48px; border-radius: 50%;
+                            background: linear-gradient(135deg, #6366f1, #4f46e5);
+                            color: white; display: flex; align-items: center; justify-content: center;
+                            font-size: 18px; font-weight: 700;
+                        ">${student.name.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 16px; color: #111;">${student.name}</div>
+                            <div style="font-size: 13px; color: #666;">
+                                ${student.age ? student.age + ' años' : 'Estudiante'}
+                                ${student.classesRemaining !== undefined ? ` • ${student.classesRemaining} clases disponibles` : ''}
+                            </div>
+                        </div>
+                    </button>
+                `).join('')}
+            </div>
+        `;
+        
+        // Bind events
+        content.querySelectorAll('.student-select-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.studentId = btn.dataset.id;
+                this.studentName = btn.dataset.name;
+                this.renderConfirmation();
+            });
+            
+            // Hover effects
+            btn.addEventListener('mouseenter', () => {
+                btn.style.borderColor = '#6366f1';
+                btn.style.background = '#f5f3ff';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.borderColor = '#e5e7eb';
+                btn.style.background = 'white';
+            });
+        });
     }
     
     renderConfirmation() {
@@ -78,12 +156,22 @@ class BookingModal {
             minute: '2-digit'
         });
         
+        // Mostrar para quién es la clase si es managed student
+        const studentBadge = this.studentName ? `
+            <div class="student-badge" style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">👶</span>
+                <span style="color: #166534; font-weight: 600;">Clase para: ${this.studentName}</span>
+            </div>
+        ` : '';
+        
         content.innerHTML = `
             <div class="modal-header">
                 <h2>🎹 Confirmar Clase de Prueba</h2>
             </div>
             
             <div class="booking-summary">
+                ${studentBadge}
+                
                 <div class="teacher-info">
                     ${this.teacher.photo 
                         ? `<img src="${this.teacher.photo}" class="teacher-photo-small" alt="${this.teacher.name}">`
@@ -159,7 +247,9 @@ class BookingModal {
                 body: JSON.stringify({
                     teacherId: this.teacher._id || this.teacher.id,
                     slotId: this.slot._id,
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    studentId: this.studentId || undefined,
+                    studentName: this.studentName || undefined
                 })
             });
             

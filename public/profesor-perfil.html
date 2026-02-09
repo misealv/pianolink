@@ -484,6 +484,27 @@
         let currentTeacher = null;
         let bookingCalendar = null;
         let bookingModal = null;
+        let currentUserData = null; // Datos del usuario autenticado
+        let managedStudents = []; // Estudiantes gestionados si es guardian
+        
+        // Cargar datos del usuario autenticado
+        async function loadUserData() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            
+            try {
+                const res = await fetch('/api/client/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    currentUserData = await res.json();
+                    managedStudents = currentUserData.clientData?.managedStudents || [];
+                    console.log('[Booking] Usuario cargado, estudiantes:', managedStudents.length);
+                }
+            } catch (e) {
+                console.log('[Booking] Usuario no autenticado');
+            }
+        }
         
         // Inicializar booking después de renderizar el perfil
         function initBooking(teacher) {
@@ -492,8 +513,9 @@
             // Solo si acepta clases de prueba
             if (!teacher.acceptsTrialClass) return;
             
-            // Cargar scripts de booking
+            // Cargar usuario y scripts de booking
             Promise.all([
+                loadUserData(),
                 loadScript('/js/modules/BookingCalendar.js'),
                 loadScript('/js/modules/BookingModal.js')
             ]).then(() => {
@@ -537,7 +559,10 @@
                 btn.disabled = false;
                 btn.textContent = '🎹 Reservar Clase de Prueba GRATIS';
                 btn.onclick = () => {
-                    bookingModal.open(currentTeacher, slot);
+                    // Pasar managed students al modal para que muestre selector si es guardian
+                    bookingModal.open(currentTeacher, slot, {
+                        managedStudents: managedStudents
+                    });
                 };
             }
         }
