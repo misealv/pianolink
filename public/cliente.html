@@ -2239,15 +2239,6 @@
                                     <div class="classes-count ${s.classesRemaining === 0 ? 'empty' : s.classesRemaining <= 2 ? 'low' : ''}">${s.classesRemaining}</div>
                                     <div class="classes-label">clases</div>
                                 </div>
-                                ${s.classesRemaining > 0 ? `
-                                <button class="btn btn-sm" onclick="scheduleClass('${s.name}', '${s._id}')">
-                                    📅 Agendar
-                                </button>
-                                ` : `
-                                <a href="/welcome-kit" class="btn btn-sm btn-secondary">
-                                    🛒 Comprar
-                                </a>
-                                `}
                             </div>
                         `).join('')}
                     </div>
