@@ -875,9 +875,9 @@ router.post('/mercadopago/teacher-subscription', protect, async (req, res) => {
                 last_name: user.name?.split(' ').slice(1).join(' ') || ''
             },
             back_urls: {
-                success: `${baseUrl}/dashboard?subscription=success&provider=mercadopago`,
-                failure: `${baseUrl}/dashboard?subscription=failed`,
-                pending: `${baseUrl}/dashboard?subscription=pending`
+                success: `${baseUrl}/dashboard.html?subscription=success&provider=mercadopago`,
+                failure: `${baseUrl}/dashboard.html?subscription=failed`,
+                pending: `${baseUrl}/dashboard.html?subscription=pending`
             },
             auto_return: 'approved',
             external_reference: externalRef,
