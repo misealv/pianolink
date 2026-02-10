@@ -42,10 +42,10 @@ class MembershipReminderService {
         };
 
         try {
-            // Buscar profesores con membresía
+            // Buscar profesores con membresía - CORREGIDO: usar teacherData
             const teachers = await User.find({
                 role: 'teacher',
-                'teacherSubscription.status': { $in: ['active', 'expired', 'cancelled'] }
+                'teacherData.subscriptionStatus': { $in: ['active', 'expired', 'cancelled', 'past_due'] }
             });
 
             console.log(`[MembershipReminder] Encontrados ${teachers.length} profesores con membresía`);
@@ -55,7 +55,7 @@ class MembershipReminderService {
 
             for (const teacher of teachers) {
                 try {
-                    const expiresAt = teacher.teacherSubscription?.expiresAt;
+                    const expiresAt = teacher.teacherData?.subscriptionExpiresAt;
                     if (!expiresAt) continue;
 
                     const expiryDate = new Date(expiresAt);
@@ -74,8 +74,8 @@ class MembershipReminderService {
 
                     if (reminderType) {
                         // Verificar si ya se envió este recordatorio
-                        const lastReminder = teacher.teacherSubscription?.lastReminderSent;
-                        const lastReminderType = teacher.teacherSubscription?.lastReminderType;
+                        const lastReminder = teacher.teacherData?.lastReminderSent;
+                        const lastReminderType = teacher.teacherData?.lastReminderType;
                         
                         if (lastReminderType === reminderType) {
                             console.log(`[MembershipReminder] Ya se envió ${reminderType} a ${teacher.email}`);
@@ -88,8 +88,8 @@ class MembershipReminderService {
                         if (sent) {
                             // Actualizar último recordatorio enviado
                             await User.findByIdAndUpdate(teacher._id, {
-                                'teacherSubscription.lastReminderSent': new Date(),
-                                'teacherSubscription.lastReminderType': reminderType
+                                'teacherData.lastReminderSent': new Date(),
+                                'teacherData.lastReminderType': reminderType
                             });
                             
                             results.sent++;
@@ -122,7 +122,7 @@ class MembershipReminderService {
     async sendReminder(teacher, type, daysUntilExpiry) {
         const isFounder = teacher.isFoundingMember || false;
         const price = isFounder ? 10 : 20;
-        const renewUrl = 'https://pianolink.net/dashboard';
+        const renewUrl = 'https://pianolink.net/dashboard.html';
 
         let subject, title, message, urgency, ctaText;
 
@@ -268,7 +268,7 @@ class MembershipReminderService {
             throw new Error('Profesor no encontrado');
         }
 
-        const expiresAt = teacher.teacherSubscription?.expiresAt;
+        const expiresAt = teacher.teacherData?.subscriptionExpiresAt;
         if (!expiresAt) {
             throw new Error('Profesor no tiene membresía');
         }
