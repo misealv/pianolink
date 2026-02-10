@@ -327,7 +327,7 @@ router.post('/mercadopago-teacher-subscription', async (req, res) => {
             
             if (resend) {
                 await resend.emails.send({
-                    from: process.env.EMAIL_FROM || 'PianoLink <notificaciones@pianolink.net>',
+                    from: 'PianoLink Team <hola@pianolink.net>',
                     to: teacher.email,
                     subject: '✅ Tu membresía PianoLink está activa',
                     html: `

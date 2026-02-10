@@ -16,7 +16,7 @@ const User = require('../models/User');
 class MembershipReminderService {
     constructor() {
         this.resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-        this.fromEmail = process.env.EMAIL_FROM || 'PianoLink <notificaciones@pianolink.net>';
+        this.fromEmail = 'PianoLink Team <hola@pianolink.net>';
     }
 
     isConfigured() {
