@@ -841,17 +841,19 @@ router.post('/mercadopago/teacher-subscription', protect, async (req, res) => {
         }
 
         // Obtener configuración de precios
-        const config = await GlobalConfig.findOne();
+        const config = await GlobalConfig.findOne({ isDefault: true });
         const isFounder = user.isFoundingMember || false;
         
-        // Precio en USD
+        // Precio en USD - corregido: usar ruta correcta memberships.teacherSubscription
         const priceUSD = isFounder 
-            ? (config?.teacherSubscription?.founder || 10)
-            : (config?.teacherSubscription?.regular || 20);
+            ? (config?.memberships?.teacherSubscription?.founder || 10)
+            : (config?.memberships?.teacherSubscription?.regular || 20);
         
         // Convertir a CLP (MercadoPago Chile solo acepta CLP)
         const usdToClp = config?.exchangeRates?.usdToClp || 950;
         const priceCLP = Math.round(priceUSD * usdToClp);
+        
+        console.log('[MercadoPago Teacher Sub] Precio configurado:', priceUSD, 'USD =>', priceCLP, 'CLP');
 
         const baseUrl = process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev';
         const externalRef = `teacher_sub_${userId}_${Date.now()}`;
