@@ -925,11 +925,11 @@
                             <!-- Precio -->
                             <div id="membershipPriceBox" style="margin: 12px 0;">
                                 <div id="priceRegular" style="color: white; font-size: 28px; font-weight: 800;">
-                                    $<span id="priceAmount">20</span><span style="font-size: 14px; font-weight: 400; opacity: 0.7;">/mes</span>
+                                    $<span id="priceAmount">--</span><span style="font-size: 14px; font-weight: 400; opacity: 0.7;">/mes</span>
                                 </div>
                                 <div id="priceFounder" style="display:none;">
                                     <div style="color: #fbbf24; font-size: 28px; font-weight: 800;">
-                                        $10<span style="font-size: 14px; font-weight: 400; opacity: 0.7;">/mes</span>
+                                        $<span id="priceFounderAmount">--</span><span style="font-size: 14px; font-weight: 400; opacity: 0.7;">/mes</span>
                                     </div>
                                     <div style="background: linear-gradient(90deg, #fbbf24, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 10px; font-weight: 600; margin-top: 2px;">
                                         ⭐ Precio exclusivo fundador
@@ -2099,6 +2099,9 @@
     // FUNCIONALIDAD DE MEMBRESÍA STRIPE
     // ============================================
     
+    // Variable global para almacenar precios de membresía
+    let membershipPricing = { regular: 20, founder: 10 };
+    
     async function loadSubscriptionStatus() {
         try {
             const response = await fetch('/api/payment/stripe/subscription-status', {
@@ -2114,7 +2117,13 @@
                 return;
             }
             
-            const { subscription } = data;
+            const { subscription, pricing } = data;
+            
+            // Guardar precios de membresía desde la configuración del admin
+            if (pricing) {
+                membershipPricing = pricing;
+                console.log('[Dashboard] 💰 Precios de membresía cargados:', membershipPricing);
+            }
             
             // Actualizar UI según estado
             switch(subscription.status) {
@@ -2217,6 +2226,17 @@
     })();
     
     function updateFounderPrice(isFounder) {
+        // Actualizar precios desde la configuración del admin
+        const priceAmountEl = document.getElementById('priceAmount');
+        const priceFounderAmountEl = document.getElementById('priceFounderAmount');
+        
+        if (priceAmountEl) {
+            priceAmountEl.textContent = membershipPricing.regular || 20;
+        }
+        if (priceFounderAmountEl) {
+            priceFounderAmountEl.textContent = membershipPricing.founder || 10;
+        }
+        
         if (isFounder) {
             document.getElementById('priceRegular').style.display = 'none';
             document.getElementById('priceFounder').style.display = 'block';

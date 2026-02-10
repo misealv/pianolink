@@ -1032,6 +1032,18 @@ router.get('/stripe/subscription-status', protect, async (req, res) => {
             });
         }
 
+        // Obtener precios de membresía desde configuración global
+        const GlobalConfig = require('../models/GlobalConfig');
+        let pricingConfig = { regular: 20, founder: 10 }; // Valores por defecto
+        try {
+            const config = await GlobalConfig.findOne({ isDefault: true });
+            if (config?.memberships?.teacherSubscription) {
+                pricingConfig = config.memberships.teacherSubscription;
+            }
+        } catch (configError) {
+            console.error('[Subscription] Error obteniendo precios:', configError);
+        }
+
         res.json({
             success: true,
             subscription: {
@@ -1040,6 +1052,10 @@ router.get('/stripe/subscription-status', protect, async (req, res) => {
                 isFounder: user.isFoundingMember || false,
                 hasStripeSubscription: !!user.teacherData?.stripeSubscriptionId,
                 stripeCustomerId: user.teacherData?.stripeCustomerId || null
+            },
+            pricing: {
+                regular: pricingConfig.regular || 20,
+                founder: pricingConfig.founder || 10
             }
         });
 
