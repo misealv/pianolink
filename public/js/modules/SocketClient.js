@@ -185,6 +185,11 @@ export class SocketClient {
             this.bus.emit("clock-sync-response", data);
         });
         
+        // ECHO GATE: Estado de actividad MIDI del profesor → para gate de eco en alumno
+        this.socket.on("teacher-playing-state", (data) => {
+            this.bus.emit("teacher-playing-state", data);
+        });
+        
         this.socket.on("room-users", (users) => this.bus.emit("room-users", users));
         this.socket.on("class-status", (status) => this.bus.emit("class-status", status));
         this.socket.on("user-pdf-updated", (data) => this.bus.emit("remote-pdf", data));

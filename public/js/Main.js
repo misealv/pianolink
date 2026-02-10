@@ -53,6 +53,8 @@ let plbHud = null;
 // ==================================================
 let videoManager = null; // Se inicializa de forma diferida (3 segundos después del bootstrap)
 let audioStateManager = null; // Gestor de perfiles de audio (3 modos)
+let echoGateManager = null; // Gate de eco inteligente (mutea eco de piano del alumno)
+let decayConfigManager = null; // Gestor de presets de decay/persistencia visual
 
 // 2.5. HELPER FUNCTION (Debe estar ANTES de usarse)
 const checkTeacherRole = function() {
@@ -198,6 +200,11 @@ const initVideoManager = function() {
                     // AUDIO STATE MANAGER - Inicializar después de VideoManager
                     // ========================================
                     _initAudioStateManager();
+                    
+                    // ========================================
+                    // ECHO GATE MANAGER - Gate de eco para estudiantes
+                    // ========================================
+                    _initEchoGateManager();
                 })
                 .catch(function(error) {
                     console.error('[Main] ❌ VideoManager falló (no crítico):', error.message);
@@ -336,6 +343,120 @@ const _initAudioStateManager = function() {
         
     } catch (error) {
         console.error('[Main] ❌ Error inicializando AudioStateManager:', error);
+    }
+};
+
+// ==================================================
+// ECHO GATE MANAGER - Gate de eco inteligente
+// ==================================================
+/**
+ * Inicializa el EchoGateManager para estudiantes.
+ * Mutea el mic del alumno cuando detecta eco de piano del profesor.
+ * Solo se activa en rol 'student'.
+ * @private
+ */
+const _initEchoGateManager = function() {
+    try {
+        if (typeof EchoGateManager === 'undefined') {
+            console.warn('[Main] ⚠️ EchoGateManager no disponible - Módulo no cargado');
+            return;
+        }
+
+        // Obtener rol del usuario
+        let userRole = 'student';
+        try {
+            const saved = JSON.parse(localStorage.getItem('pianoUser') || '{}');
+            userRole = saved.role || 'student';
+        } catch (e) {
+            console.warn('[Main] Error leyendo rol para EchoGate:', e);
+        }
+
+        // Crear instancia
+        echoGateManager = new EchoGateManager({
+            bus: bus,
+            userRole: userRole
+        });
+
+        // Inicializar (solo hace trabajo real si es estudiante)
+        echoGateManager.init();
+
+        // Si VideoManager ya tiene audio track, conectar
+        if (videoManager && videoManager.localAudioTrack) {
+            echoGateManager.setAudioTrack(videoManager.localAudioTrack);
+        }
+
+        // Exponer para diagnóstico
+        window.echoGateManager = echoGateManager;
+
+        console.log('✅ [Main] EchoGateManager inicializado (rol:', userRole + ')');
+    } catch (error) {
+        console.error('[Main] ❌ Error inicializando EchoGateManager:', error);
+    }
+};
+
+// ==================================================
+// DECAY CONFIG MANAGER — Presets de persistencia visual
+// ==================================================
+/**
+ * Inicializa el DecayConfigManager y conecta los listeners que propagan
+ * los cambios de preset a UIManager, Whiteboard, MidiStateManager y AudioEngine.
+ * @private
+ */
+const _initDecayConfigManager = function() {
+    try {
+        if (typeof DecayConfigManager === 'undefined') {
+            console.warn('[Main] ⚠️ DecayConfigManager no disponible - Módulo no cargado');
+            return;
+        }
+
+        // Obtener rol del usuario
+        let userRole = 'student';
+        try {
+            const saved = JSON.parse(localStorage.getItem('pianoUser') || '{}');
+            userRole = saved.role || 'student';
+        } catch (e) { /* ignorar */ }
+
+        // Crear instancia
+        decayConfigManager = new DecayConfigManager({ bus: bus });
+
+        // Conectar listener que propaga cambios a todos los módulos
+        bus.on('decay-config-changed', function(data) {
+            const v = data.values;
+
+            // → UIManager
+            if (ui) {
+                ui._uiWatchdogMs = v.uiWatchdogMs;
+                ui._staleKeyMs = v.staleKeyMs;
+            }
+
+            // → Whiteboard
+            if (whiteboard) {
+                whiteboard._whiteboardTTLMs = v.whiteboardTTLMs;
+            }
+
+            // → MidiStateManager (dentro de AudioEngine)
+            if (audio && audio.scheduler && audio.scheduler.stateManager) {
+                audio.scheduler.stateManager._hangThreshold = v.hangThresholdMs;
+            }
+
+            // → AudioEngine
+            if (audio) {
+                audio._silentPanicThresholdMs = v.silentPanicMs;
+                audio._pedalWatchdogMs = v.pedalWatchdogMs;
+            }
+
+            console.log('[Main] 🔄 Decay config aplicada a todos los módulos (preset:', data.preset + ')');
+        });
+
+        // Inicializar (emite valores por defecto + crea UI si es profesor)
+        decayConfigManager.init(userRole);
+
+        // Exponer para diagnóstico
+        window.decayConfigManager = decayConfigManager;
+
+        console.log('✅ [Main] DecayConfigManager inicializado');
+    } catch (error) {
+        console.error('[Main] ❌ Error inicializando DecayConfigManager:', error);
     }
 };
 
@@ -643,6 +764,15 @@ async function bootstrap() {
         setupEventHandlers();
     } catch (error) {
         console.warn('[Main] ⚠️ Error configurando event handlers:', error);
+    }
+    
+    // ========================================
+    // DECAY CONFIG MANAGER (presets de persistencia visual)
+    // ========================================
+    try {
+        _initDecayConfigManager();
+    } catch (error) {
+        console.warn('[Main] ⚠️ DecayConfigManager no disponible:', error);
     }
     
     // ========================================

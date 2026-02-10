@@ -10,6 +10,30 @@ const TimeSlot = require('../models/TimeSlot');
 // ==================== RESERVAS ====================
 
 /**
+ * GET /api/bookings/recovery-requests
+ * Profesor obtiene solicitudes de recuperación pendientes
+ * NOTA: Debe ir ANTES de las rutas /:id para que Express no lo confunda
+ */
+router.get('/recovery-requests', protect, async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Solo profesores' });
+        }
+
+        const requests = await BookingService.getPendingRecoveries(req.user._id);
+
+        res.json({
+            success: true,
+            count: requests.length,
+            requests
+        });
+    } catch (error) {
+        console.error('Error obteniendo solicitudes de recuperación:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
  * POST /api/bookings
  * Crear una nueva reserva
  */
@@ -315,7 +339,9 @@ router.get('/:id', protect, async (req, res) => {
 
 /**
  * DELETE /api/bookings/:id
- * Cancelar una reserva (estudiante/cliente - requiere 24h anticipación)
+ * Cancelar una reserva (estudiante/cliente)
+ * - Con +24h: reembolso automático
+ * - Con -24h: cancelación tardía, puede solicitar recuperación al profesor
  */
 router.delete('/:id', protect, async (req, res) => {
     try {
@@ -335,7 +361,7 @@ router.delete('/:id', protect, async (req, res) => {
             return res.status(404).json({ message: 'Reserva no encontrada' });
         }
         if (error.message === 'CANNOT_CANCEL') {
-            return res.status(400).json({ message: 'No puedes cancelar con menos de 24 horas de anticipación' });
+            return res.status(400).json({ message: 'Esta reserva no puede ser cancelada en su estado actual' });
         }
         
         res.status(500).json({ message: error.message });
@@ -477,6 +503,8 @@ router.post('/:id/no-show', protect, async (req, res) => {
         }
         
         booking.markAsNoShow(true);
+        // Permitir que el estudiante solicite recuperación
+        booking.recoveryRequest = { status: 'none' };
         await booking.save();
         
         // Actualizar slot
@@ -487,10 +515,93 @@ router.post('/:id/no-show', protect, async (req, res) => {
         res.json({
             success: true,
             booking,
-            message: 'Marcado como no-show'
+            message: 'Marcado como no-show. El estudiante puede solicitar recuperación.'
         });
     } catch (error) {
         console.error('Error marcando no-show:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ==================== SISTEMA DE RECUPERACIÓN DE CLASES ====================
+
+/**
+ * POST /api/bookings/:id/recovery-request
+ * Estudiante solicita recuperar una clase (cancelación tardía o no-show)
+ */
+router.post('/:id/recovery-request', protect, async (req, res) => {
+    try {
+        const { reason } = req.body;
+
+        if (!reason || reason.trim().length < 10) {
+            return res.status(400).json({ 
+                message: 'Debes indicar un motivo de al menos 10 caracteres' 
+            });
+        }
+
+        const result = await BookingService.requestRecovery(
+            req.params.id,
+            req.user._id,
+            reason.trim()
+        );
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error solicitando recuperación:', error);
+
+        const errorMap = {
+            'BOOKING_NOT_FOUND': { status: 404, msg: 'Reserva no encontrada' },
+            'NOT_AUTHORIZED': { status: 403, msg: 'No tienes permiso para esta acción' },
+            'INVALID_STATUS_FOR_RECOVERY': { status: 400, msg: 'Esta clase no es elegible para recuperación' },
+            'RECOVERY_ALREADY_REQUESTED': { status: 409, msg: 'Ya has enviado una solicitud de recuperación' },
+            'RECOVERY_ALREADY_APPROVED': { status: 409, msg: 'Esta clase ya fue aprobada para recuperación' }
+        };
+
+        const mapped = errorMap[error.message];
+        if (mapped) {
+            return res.status(mapped.status).json({ message: mapped.msg });
+        }
+
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
+ * POST /api/bookings/:id/recovery-respond
+ * Profesor aprueba o deniega recuperación
+ * Body: { approved: true/false, note: "..." }
+ */
+router.post('/:id/recovery-respond', protect, async (req, res) => {
+    try {
+        const { approved, note } = req.body;
+
+        if (typeof approved !== 'boolean') {
+            return res.status(400).json({ message: 'Debes indicar si apruebas o no (approved: true/false)' });
+        }
+
+        // Verificar que es profesor
+        if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Solo profesores pueden responder' });
+        }
+
+        const result = await BookingService.respondRecovery(
+            req.params.id,
+            req.user._id,
+            approved,
+            note || ''
+        );
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error respondiendo recuperación:', error);
+
+        if (error.message === 'BOOKING_NOT_FOUND') {
+            return res.status(404).json({ message: 'Reserva no encontrada o no te pertenece' });
+        }
+        if (error.message === 'NO_PENDING_RECOVERY') {
+            return res.status(400).json({ message: 'No hay solicitud de recuperación pendiente' });
+        }
+
         res.status(500).json({ message: error.message });
     }
 });

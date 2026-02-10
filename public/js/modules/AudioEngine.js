@@ -290,6 +290,10 @@ export class AudioEngine {
     // ⚡ SPRINT FINAL: FAIL-SAFE ANTI-STICKY
     // ==================================================
     
+    // ⏳ Timers configurables (se actualizan vía DecayConfigManager)
+    _silentPanicThresholdMs = 12000;
+    _pedalWatchdogMs = 15000;
+    
     /**
      * Pánico Silencioso: Verificar y limpiar notas zombies cada 10s
      * Se ejecuta en segundo plano sin notificar al usuario
@@ -309,8 +313,8 @@ export class AudioEngine {
                 activeNotes.forEach(([noteId, noteState]) => {
                     const age = now - noteState.timestamp;
                     
-                    // Si una nota lleva más de 12s sonando, es zombie
-                    if (age > 12000) {
+                    // Si una nota lleva más de el umbral configurado sonando, es zombie
+                    if (age > this._silentPanicThresholdMs) {
                         console.warn(`🧹 [SilentPanic] Nota zombie detectada: ${noteId} (${(age/1000).toFixed(1)}s). Auto-release.`);
                         this.scheduler.stateManager.handleNoteOff(noteId, 'SILENT_PANIC');
                         zombiesFound++;
@@ -353,7 +357,7 @@ export class AudioEngine {
                 
                 // Notificar UI
                 this.bus.emit('pedal-watchdog-triggered');
-            }, 15000); // 15 segundos máximo
+            }, this._pedalWatchdogMs);
         }
     }
     

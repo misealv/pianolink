@@ -195,8 +195,10 @@ class BookingService {
     
     /**
      * Cancela una reserva.
+     * Si faltan <24h, es cancelación tardía (sin reembolso, pero puede solicitar recuperación).
+     * Si faltan >24h, reembolso automático.
      * @param {ObjectId} bookingId 
-     * @param {ObjectId} cancelledBy - Quien cancela (profesor o estudiante)
+     * @param {ObjectId} cancelledBy - Quien cancela
      * @param {String} reason 
      * @returns {Object}
      */
@@ -215,9 +217,9 @@ class BookingService {
                 throw new Error('CANNOT_CANCEL');
             }
             
-            // Calcular si debe reembolsar clases (24h antes = sí)
-            const hoursUntilClass = (booking.scheduledStart - new Date()) / (1000 * 60 * 60);
-            const refundClasses = hoursUntilClass >= 24;
+            // Determinar si es cancelación tardía
+            const isLate = booking.isLateCancellation();
+            const refundClasses = !isLate; // Solo reembolsar si >24h
             
             // Actualizar booking
             booking.cancel(cancelledBy, reason, refundClasses);
@@ -229,7 +231,7 @@ class BookingService {
                 $unset: { booking: 1, midiSession: 1 }
             }, { session });
             
-            // Reembolsar clase si aplica
+            // Reembolsar clase solo si NO es tardía
             if (refundClasses) {
                 // PRIORIDAD: Si la reserva usó suscripción, devolver ahí
                 if (booking.subscriptionId) {
@@ -266,11 +268,19 @@ class BookingService {
             
             await session.commitTransaction();
             
-            return {
+            const result = {
                 success: true,
                 refunded: refundClasses,
+                isLateCancellation: isLate,
+                canRequestRecovery: isLate,
                 booking
             };
+
+            if (isLate) {
+                console.log(`[BookingService] ⚠️ Cancelación tardía (<24h). Clase NO reembolsada. Estudiante puede solicitar recuperación.`);
+            }
+
+            return result;
             
         } catch (error) {
             await session.abortTransaction();
@@ -453,6 +463,153 @@ class BookingService {
         console.log(`📧 Notificación: Clase reservada para ${student.name}`);
         console.log(`   Fecha: ${booking.scheduledStart}`);
         console.log(`   Sesión: ${slot.midiSession.sessionId}`);
+    }
+
+    // ==================== SISTEMA DE RECUPERACIÓN DE CLASES ====================
+
+    /**
+     * Estudiante solicita recuperación de una clase cancelada tarde o no-show.
+     * @param {ObjectId} bookingId 
+     * @param {ObjectId} studentId 
+     * @param {String} reason - Motivo de la solicitud
+     * @returns {Object}
+     */
+    static async requestRecovery(bookingId, studentId, reason) {
+        const booking = await Booking.findById(bookingId)
+            .populate('teacherId', 'name email');
+        
+        if (!booking) {
+            throw new Error('BOOKING_NOT_FOUND');
+        }
+
+        // Verificar que el solicitante es el estudiante o cliente de esta reserva
+        const isStudent = booking.studentId.toString() === studentId.toString();
+        const isClient = booking.clientId?.toString() === studentId.toString();
+        if (!isStudent && !isClient) {
+            throw new Error('NOT_AUTHORIZED');
+        }
+
+        // Verificar que el estado permite recuperación
+        if (!['cancelled', 'no_show'].includes(booking.status)) {
+            throw new Error('INVALID_STATUS_FOR_RECOVERY');
+        }
+
+        // Solicitar recuperación
+        booking.requestRecovery(studentId, reason);
+        await booking.save();
+
+        console.log(`[BookingService] 🙋 Solicitud de recuperación para booking ${bookingId} por ${studentId}`);
+        
+        return {
+            success: true,
+            booking,
+            message: 'Solicitud de recuperación enviada al profesor'
+        };
+    }
+
+    /**
+     * Profesor responde a solicitud de recuperación.
+     * Si aprueba: se devuelve el crédito de clase al estudiante.
+     * Si deniega: la clase queda perdida.
+     * @param {ObjectId} bookingId 
+     * @param {ObjectId} teacherId 
+     * @param {Boolean} approved 
+     * @param {String} teacherNote 
+     * @returns {Object}
+     */
+    static async respondRecovery(bookingId, teacherId, approved, teacherNote = '') {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            const booking = await Booking.findOne({
+                _id: bookingId,
+                teacherId
+            }).session(session);
+
+            if (!booking) {
+                throw new Error('BOOKING_NOT_FOUND');
+            }
+
+            // Responder
+            booking.respondRecovery(approved, teacherNote);
+            await booking.save({ session });
+
+            // Si se aprobó, devolver el crédito de clase
+            if (approved) {
+                if (booking.subscriptionId) {
+                    const subscription = await StudentSubscription.findById(booking.subscriptionId).session(session);
+                    if (subscription) {
+                        subscription.classesRemaining++;
+                        if (subscription.status === 'exhausted' && subscription.validUntil > new Date()) {
+                            subscription.status = 'active';
+                        }
+                        await subscription.save({ session });
+                        console.log(`[BookingService] ✅ Clase recuperada y devuelta a suscripción ${subscription._id}`);
+                    }
+                } else {
+                    // Fallback: sistema legacy
+                    const payerId = booking.clientId || booking.studentId;
+                    const payer = await User.findById(payerId).session(session);
+                    
+                    if (payer) {
+                        if (payer.role === 'client' && payer.clientData?.accountType === 'guardian') {
+                            const student = await User.findById(booking.studentId);
+                            const studentIndex = payer.clientData.managedStudents.findIndex(
+                                s => s.name.toLowerCase() === student?.name?.toLowerCase()
+                            );
+                            if (studentIndex >= 0) {
+                                payer.clientData.managedStudents[studentIndex].classesRemaining++;
+                                payer.markModified('clientData.managedStudents');
+                            }
+                        } else {
+                            payer.classesRemaining++;
+                        }
+                        await payer.save({ session });
+                    }
+                }
+
+                // Marcar booking como rescheduled
+                booking.status = 'rescheduled';
+                await booking.save({ session });
+            }
+
+            await session.commitTransaction();
+
+            const action = approved ? 'APROBADA' : 'DENEGADA';
+            console.log(`[BookingService] 📋 Recuperación ${action} para booking ${bookingId}`);
+
+            return {
+                success: true,
+                approved,
+                booking,
+                message: approved 
+                    ? 'Recuperación aprobada. El crédito de clase ha sido devuelto al estudiante.'
+                    : 'Recuperación denegada. La clase se mantiene como perdida.'
+            };
+
+        } catch (error) {
+            await session.abortTransaction();
+            throw error;
+        } finally {
+            session.endSession();
+        }
+    }
+
+    /**
+     * Obtener solicitudes de recuperación pendientes para un profesor.
+     * @param {ObjectId} teacherId 
+     * @returns {Array}
+     */
+    static async getPendingRecoveries(teacherId) {
+        return Booking.find({
+            teacherId,
+            'recoveryRequest.status': 'pending'
+        })
+        .populate('studentId', 'name email')
+        .populate('clientId', 'name email')
+        .sort({ 'recoveryRequest.requestedAt': -1 })
+        .lean();
     }
 
     /**

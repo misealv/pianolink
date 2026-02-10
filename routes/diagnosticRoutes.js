@@ -345,4 +345,167 @@ router.get('/audit/:auditId/export', adminAuth, async (req, res) => {
     }
 });
 
+// =============================================
+// HERRAMIENTAS DE RED
+// =============================================
+
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
+
+/**
+ * POST /api/diagnostic/traceroute
+ * Ejecuta traceroute hacia un host
+ * Body: { host: "pianolink.net", maxHops?: 30 }
+ */
+router.post('/traceroute', adminAuth, async (req, res) => {
+    try {
+        const { host, maxHops = 20 } = req.body;
+        
+        // Validación de host (prevenir inyección de comandos)
+        if (!host || typeof host !== 'string') {
+            return res.status(400).json({ error: 'Host requerido' });
+        }
+        
+        // Solo permitir hostnames válidos o IPs
+        const hostRegex = /^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$|^\d{1,3}(\.\d{1,3}){3}$/;
+        if (!hostRegex.test(host) || host.length > 253) {
+            return res.status(400).json({ error: 'Host inválido' });
+        }
+        
+        // Limitar maxHops
+        const hops = Math.min(Math.max(parseInt(maxHops) || 20, 5), 30);
+        
+        console.log(`[DiagnosticRoutes] 🔍 Traceroute a ${host} (max ${hops} hops)`);
+        
+        // Usar tracepath (no requiere root) con fallback a traceroute
+        let result;
+        let command;
+        
+        try {
+            // Intentar primero con tracepath (más común en contenedores)
+            command = `tracepath -m ${hops} ${host} 2>&1`;
+            result = await execAsync(command, { timeout: 60000 });
+        } catch (tracepathError) {
+            // Fallback a traceroute
+            try {
+                command = `traceroute -m ${hops} -w 2 ${host} 2>&1`;
+                result = await execAsync(command, { timeout: 60000 });
+            } catch (tracerouteError) {
+                // Si ambos fallan, intentar con ping como último recurso
+                command = `ping -c 5 ${host} 2>&1`;
+                result = await execAsync(command, { timeout: 30000 });
+            }
+        }
+        
+        // Parsear output
+        const lines = result.stdout.split('\n').filter(l => l.trim());
+        const hopsData = [];
+        
+        lines.forEach((line, index) => {
+            // Detectar líneas de hop (ej: "1:  gateway  0.123ms")
+            const hopMatch = line.match(/^\s*(\d+)[:\s]+(.+)/);
+            if (hopMatch) {
+                const hopNum = parseInt(hopMatch[1]);
+                const details = hopMatch[2].trim();
+                
+                // Extraer latencia si existe
+                const latencyMatch = details.match(/([\d.]+)\s*ms/);
+                const latency = latencyMatch ? parseFloat(latencyMatch[1]) : null;
+                
+                // Extraer hostname/IP
+                const hostMatch = details.match(/^([^\s(]+)/);
+                const hopHost = hostMatch ? hostMatch[1] : details;
+                
+                hopsData.push({
+                    hop: hopNum,
+                    host: hopHost,
+                    latency,
+                    raw: line.trim()
+                });
+            } else if (line.includes('ms') || line.includes('*')) {
+                // Línea de traceroute tradicional
+                hopsData.push({
+                    hop: hopsData.length + 1,
+                    raw: line.trim()
+                });
+            }
+        });
+        
+        res.json({
+            success: true,
+            host,
+            command: command.split(' ')[0], // Solo mostrar el comando usado
+            timestamp: new Date().toISOString(),
+            hops: hopsData,
+            raw: result.stdout
+        });
+        
+    } catch (error) {
+        console.error('[DiagnosticRoutes] Error en traceroute:', error);
+        res.status(500).json({ 
+            error: 'Error ejecutando traceroute',
+            details: error.message,
+            stderr: error.stderr || null
+        });
+    }
+});
+
+/**
+ * POST /api/diagnostic/ping
+ * Ejecuta ping hacia un host
+ * Body: { host: "pianolink.net", count?: 5 }
+ */
+router.post('/ping', adminAuth, async (req, res) => {
+    try {
+        const { host, count = 5 } = req.body;
+        
+        // Validación de host
+        if (!host || typeof host !== 'string') {
+            return res.status(400).json({ error: 'Host requerido' });
+        }
+        
+        const hostRegex = /^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$|^\d{1,3}(\.\d{1,3}){3}$/;
+        if (!hostRegex.test(host) || host.length > 253) {
+            return res.status(400).json({ error: 'Host inválido' });
+        }
+        
+        const pingCount = Math.min(Math.max(parseInt(count) || 5, 1), 20);
+        
+        console.log(`[DiagnosticRoutes] 📡 Ping a ${host} (${pingCount} paquetes)`);
+        
+        const command = `ping -c ${pingCount} ${host} 2>&1`;
+        const result = await execAsync(command, { timeout: 30000 });
+        
+        // Parsear estadísticas
+        const statsMatch = result.stdout.match(/(\d+) packets transmitted, (\d+) (?:packets )?received/);
+        const rttMatch = result.stdout.match(/rtt min\/avg\/max\/mdev = ([\d.]+)\/([\d.]+)\/([\d.]+)\/([\d.]+)/);
+        
+        res.json({
+            success: true,
+            host,
+            timestamp: new Date().toISOString(),
+            stats: statsMatch ? {
+                transmitted: parseInt(statsMatch[1]),
+                received: parseInt(statsMatch[2]),
+                lossPercent: ((1 - parseInt(statsMatch[2]) / parseInt(statsMatch[1])) * 100).toFixed(1)
+            } : null,
+            rtt: rttMatch ? {
+                min: parseFloat(rttMatch[1]),
+                avg: parseFloat(rttMatch[2]),
+                max: parseFloat(rttMatch[3]),
+                mdev: parseFloat(rttMatch[4])
+            } : null,
+            raw: result.stdout
+        });
+        
+    } catch (error) {
+        console.error('[DiagnosticRoutes] Error en ping:', error);
+        res.status(500).json({ 
+            error: 'Error ejecutando ping',
+            details: error.message
+        });
+    }
+});
+
 module.exports = router;

@@ -965,6 +965,9 @@
                 ✅ VALIDAR CLASES
                 <span id="validationsCount" style="display: none; position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px;">0</span>
             </button>
+            <button onclick="openHelpPanel()" class="action-btn btn-secondary" style="background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(79,70,229,0.1) 100%); border-color: #6366f1; color: #818cf8;">
+                📚 MANUAL DE OPERACIONES
+            </button>
             <div id="copyFeedback" style="font-size: 10px; color: #b4e080; text-align: center; margin-top: 5px; min-height: 15px;"></div>
         </div>
 
@@ -1449,6 +1452,39 @@
     </div>
     <!-- ==================== FIN DATOS DE PAGO ==================== -->
 
+    <!-- ==================== SOLICITUDES DE RECUPERACIÓN ==================== -->
+    <div id="recoveryRequestsSection" class="panel teacher-only" style="margin-top: 30px; display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+                <h2 style="margin: 0; color: white; font-size: 20px;">🔄 Solicitudes de Recuperación</h2>
+                <p style="margin: 5px 0 0; color: #888; font-size: 13px;">Estudiantes solicitan recuperar clases canceladas o no asistidas</p>
+            </div>
+            <div id="recoveryBadge" style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; display: none;">
+                <span id="recoveryCount">0</span> pendientes
+            </div>
+        </div>
+
+        <!-- Política -->
+        <div style="background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(79,70,229,0.1) 100%); border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 24px;">📋</div>
+                <div>
+                    <div style="color: #818cf8; font-weight: 600; font-size: 13px;">Política PianoLink</div>
+                    <div style="color: #888; font-size: 12px;">Cuando un estudiante cancela con menos de 24h o no se presenta, <strong style="color: #e0e0e0;">tú decides</strong> si le das la oportunidad de reagendar. Lee su motivo y decide con confianza.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de solicitudes -->
+        <div id="recoveryRequestsList" style="display: flex; flex-direction: column; gap: 15px;">
+            <div style="text-align: center; padding: 30px; color: #666;">
+                <div style="font-size: 40px; margin-bottom: 10px;">✨</div>
+                <div>No hay solicitudes pendientes</div>
+            </div>
+        </div>
+    </div>
+    <!-- ==================== FIN SOLICITUDES DE RECUPERACIÓN ==================== -->
+
     <!-- ==================== VALIDAR CLASES ==================== -->
     <div id="validationsSection" style="display: none; margin-top: 30px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -1551,6 +1587,519 @@
       </div>
     </div>
   </div>
+
+  <!-- Panel de Ayuda / Manual -->
+  <div id="helpPanel" class="help-panel">
+    <div class="help-overlay" onclick="closeHelpPanel()"></div>
+    <div class="help-sidebar">
+      <div class="help-header">
+        <div>
+          <h2>📚 Manual del Profesor</h2>
+          <p>Guía completa de PianoLink</p>
+        </div>
+        <button onclick="closeHelpPanel()" class="help-close">
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="help-search">
+        <input type="text" id="helpSearch" placeholder="Buscar en el manual..." onkeyup="filterHelpContent()">
+        <svg class="help-search-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35"/>
+        </svg>
+      </div>
+
+      <nav class="help-nav">
+        <a href="#help-inicio" class="help-nav-item active" onclick="showHelpSection('inicio', event)">
+          <span class="help-nav-icon">🏠</span>
+          <span>Primeros Pasos</span>
+        </a>
+        <a href="#help-disponibilidad" class="help-nav-item" onclick="showHelpSection('disponibilidad', event)">
+          <span class="help-nav-icon">📅</span>
+          <span>Disponibilidad</span>
+        </a>
+        <a href="#help-tarifas" class="help-nav-item" onclick="showHelpSection('tarifas', event)">
+          <span class="help-nav-icon">💰</span>
+          <span>Tarifas y Paquetes</span>
+        </a>
+        <a href="#help-perfil" class="help-nav-item" onclick="showHelpSection('perfil', event)">
+          <span class="help-nav-icon">🌐</span>
+          <span>Perfil Público</span>
+        </a>
+        <a href="#help-membresia" class="help-nav-item" onclick="showHelpSection('membresia', event)">
+          <span class="help-nav-icon">🎹</span>
+          <span>Membresía</span>
+        </a>
+        <a href="#help-trial" class="help-nav-item" onclick="showHelpSection('trial', event)">
+          <span class="help-nav-icon">✨</span>
+          <span>Clases de Prueba</span>
+        </a>
+        <a href="#help-sala" class="help-nav-item" onclick="showHelpSection('sala', event)">
+          <span class="help-nav-icon">🎥</span>
+          <span>Sala Virtual</span>
+        </a>
+        <a href="#help-validacion" class="help-nav-item" onclick="showHelpSection('validacion', event)">
+          <span class="help-nav-icon">✅</span>
+          <span>Validar Clases</span>
+        </a>
+        <a href="#help-recuperacion" class="help-nav-item" onclick="showHelpSection('recuperacion', event)">
+          <span class="help-nav-icon">🔄</span>
+          <span>Recuperaciones</span>
+        </a>
+        <a href="#help-pago" class="help-nav-item" onclick="showHelpSection('pago', event)">
+          <span class="help-nav-icon">💳</span>
+          <span>Configurar Pago</span>
+        </a>
+        <a href="#help-faq" class="help-nav-item" onclick="showHelpSection('faq', event)">
+          <span class="help-nav-icon">❓</span>
+          <span>Preguntas Frecuentes</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="help-content">
+      <div id="help-content-inner" class="help-content-inner">
+        <!-- Contenido se carga dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .help-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 10001;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .help-panel.active {
+      display: flex;
+      animation: helpFadeIn 0.3s ease forwards;
+    }
+
+    @keyframes helpFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .help-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+    }
+
+    .help-sidebar {
+      position: relative;
+      width: 320px;
+      background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+      border-right: 1px solid rgba(99, 102, 241, 0.2);
+      display: flex;
+      flex-direction: column;
+      z-index: 1;
+      transform: translateX(-100%);
+      animation: helpSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes helpSlideIn {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+
+    .help-header {
+      padding: 30px 25px;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), transparent);
+    }
+
+    .help-header h2 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .help-header p {
+      margin: 5px 0 0;
+      font-size: 13px;
+      color: #818cf8;
+    }
+
+    .help-close {
+      background: transparent;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .help-close:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      transform: rotate(90deg);
+    }
+
+    .help-search {
+      padding: 20px 25px;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+      position: relative;
+    }
+
+    .help-search input {
+      width: 100%;
+      padding: 12px 40px 12px 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      transition: all 0.2s;
+      box-sizing: border-box;
+    }
+
+    .help-search input:focus {
+      outline: none;
+      border-color: #6366f1;
+      background: rgba(0, 0, 0, 0.4);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .help-search-icon {
+      position: absolute;
+      right: 38px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666;
+      pointer-events: none;
+    }
+
+    .help-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px 10px;
+    }
+
+    .help-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 15px;
+      margin-bottom: 4px;
+      color: #aaa;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.2s;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .help-nav-item:hover {
+      background: rgba(99, 102, 241, 0.1);
+      color: #c7d2fe;
+      transform: translateX(4px);
+    }
+
+    .help-nav-item.active {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(79, 70, 229, 0.2));
+      color: #fff;
+      border-left: 3px solid #6366f1;
+      padding-left: 12px;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+    }
+
+    .help-nav-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+      width: 24px;
+      text-align: center;
+    }
+
+    .help-content {
+      flex: 1;
+      background: #0f0f0f;
+      overflow-y: auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .help-content-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 80px;
+      animation: helpContentFadeIn 0.5s ease 0.2s backwards;
+    }
+
+    @keyframes helpContentFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .help-content h1 {
+      font-size: 36px;
+      font-weight: 800;
+      color: #fff;
+      margin: 0 0 10px;
+      letter-spacing: -1px;
+    }
+
+    .help-content h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      margin: 50px 0 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .help-content h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #c7d2fe;
+      margin: 30px 0 15px;
+    }
+
+    .help-content h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #a5b4fc;
+      margin: 20px 0 10px;
+    }
+
+    .help-content p {
+      font-size: 15px;
+      line-height: 1.8;
+      color: #bbb;
+      margin: 0 0 20px;
+    }
+
+    .help-content ul, .help-content ol {
+      margin: 0 0 20px;
+      padding-left: 30px;
+    }
+
+    .help-content li {
+      color: #bbb;
+      line-height: 1.8;
+      margin-bottom: 8px;
+    }
+
+    .help-content strong {
+      color: #e0e0e0;
+      font-weight: 600;
+    }
+
+    .help-content code {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #c7d2fe;
+      font-family: 'Monaco', 'Courier New', monospace;
+    }
+
+    .help-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .help-content th {
+      background: rgba(99, 102, 241, 0.15);
+      color: #c7d2fe;
+      text-align: left;
+      padding: 12px 15px;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .help-content td {
+      padding: 12px 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      color: #bbb;
+      font-size: 14px;
+    }
+
+    .help-content tr:hover {
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .help-alert {
+      padding: 16px 20px;
+      border-radius: 10px;
+      margin: 25px 0;
+      border-left: 4px solid;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .help-alert-info {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: #3b82f6;
+      color: #93c5fd;
+    }
+
+    .help-alert-success {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: #22c55e;
+      color: #86efac;
+    }
+
+    .help-alert-warning {
+      background: rgba(251, 191, 36, 0.1);
+      border-color: #fbbf24;
+      color: #fde047;
+    }
+
+    .help-alert-danger {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+
+    .help-alert-icon {
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .help-steps {
+      counter-reset: step;
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .help-steps > li {
+      counter-increment: step;
+      position: relative;
+      padding-left: 45px;
+      margin-bottom: 25px;
+    }
+
+    .help-steps > li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .help-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      transition: all 0.3s;
+    }
+
+    .help-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(99, 102, 241, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .help-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin: 0 4px 4px 0;
+    }
+
+    .help-badge-primary {
+      background: rgba(99, 102, 241, 0.2);
+      color: #c7d2fe;
+    }
+
+    .help-badge-success {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+    }
+
+    .help-badge-warning {
+      background: rgba(251, 191, 36, 0.2);
+      color: #fde047;
+    }
+
+    /* Scrollbar personalizado */
+    .help-nav::-webkit-scrollbar,
+    .help-content::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .help-nav::-webkit-scrollbar-track,
+    .help-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .help-nav::-webkit-scrollbar-thumb,
+    .help-content::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.3);
+      border-radius: 4px;
+    }
+
+    .help-nav::-webkit-scrollbar-thumb:hover,
+    .help-content::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.5);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .help-sidebar {
+        width: 100%;
+        max-width: 320px;
+      }
+
+      .help-content-inner {
+        padding: 40px 30px;
+      }
+
+      .help-content h1 {
+        font-size: 28px;
+      }
+
+      .help-content h2 {
+        font-size: 22px;
+      }
+    }
+  </style>
 
   <script>
     // Verificar si viene de Stripe ANTES de verificar login
@@ -2440,6 +2989,9 @@ El sistema está en modo TEST.`;
         // Cargar conteo de clases pendientes de validar
         loadValidationsCount();
         
+        // Cargar solicitudes de recuperación pendientes
+        loadRecoveryRequests();
+        
         // Cargar ganancias del profesor
         loadTeacherEarnings();
         
@@ -2822,6 +3374,158 @@ El sistema está en modo TEST.`;
             loadPackages();
             // Scroll suave a la sección
             section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    // ============================================
+    // SOLICITUDES DE RECUPERACIÓN DE CLASES
+    // ============================================
+
+    let pendingRecoveries = [];
+
+    async function loadRecoveryRequests() {
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch('/api/bookings/recovery-requests', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            pendingRecoveries = data.requests || [];
+            
+            // Mostrar sección y badge si hay pendientes
+            const section = document.getElementById('recoveryRequestsSection');
+            const badge = document.getElementById('recoveryBadge');
+            const countEl = document.getElementById('recoveryCount');
+
+            if (pendingRecoveries.length > 0) {
+                section.style.display = 'block';
+                badge.style.display = 'inline-block';
+                countEl.textContent = pendingRecoveries.length;
+                renderRecoveryRequests();
+            } else {
+                badge.style.display = 'none';
+                // No ocultar la sección si ya está visible
+            }
+        } catch (err) {
+            console.error('[Dashboard] Error cargando recuperaciones:', err);
+        }
+    }
+
+    function renderRecoveryRequests() {
+        const container = document.getElementById('recoveryRequestsList');
+        
+        if (pendingRecoveries.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 30px; color: #666;">
+                    <div style="font-size: 40px; margin-bottom: 10px;">✨</div>
+                    <div>No hay solicitudes pendientes</div>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = pendingRecoveries.map(req => {
+            const student = req.studentId || req.clientId || {};
+            const studentName = student.name || 'Estudiante';
+            const studentEmail = student.email || '';
+            const reason = req.recoveryRequest?.reason || 'Sin motivo';
+            const requestedAt = req.recoveryRequest?.requestedAt ? new Date(req.recoveryRequest.requestedAt) : null;
+            const classDate = new Date(req.scheduledStart);
+            const statusLabel = req.status === 'no_show' ? '🚫 No se presentó' : '⏰ Cancelación tardía';
+            const statusColor = req.status === 'no_show' ? '#ef4444' : '#f59e0b';
+
+            return `
+            <div style="background: #1e1e1e; border: 1px solid #333; border-radius: 12px; padding: 20px; border-left: 4px solid ${statusColor};">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                    <div>
+                        <div style="font-size: 16px; font-weight: 700; color: white;">${studentName}</div>
+                        <div style="font-size: 12px; color: #888; margin-top: 2px;">${studentEmail}</div>
+                    </div>
+                    <span style="background: ${statusColor}22; color: ${statusColor}; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;">
+                        ${statusLabel}
+                    </span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div style="background: #161616; border-radius: 8px; padding: 10px;">
+                        <div style="font-size: 10px; color: #666; text-transform: uppercase;">Clase programada</div>
+                        <div style="color: #e0e0e0; font-size: 13px; font-weight: 600; margin-top: 4px;">
+                            ${classDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                            ${classDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    </div>
+                    <div style="background: #161616; border-radius: 8px; padding: 10px;">
+                        <div style="font-size: 10px; color: #666; text-transform: uppercase;">Solicitud enviada</div>
+                        <div style="color: #e0e0e0; font-size: 13px; font-weight: 600; margin-top: 4px;">
+                            ${requestedAt ? requestedAt.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '--'}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Motivo del estudiante -->
+                <div style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+                    <div style="font-size: 10px; color: #818cf8; text-transform: uppercase; margin-bottom: 6px; font-weight: 600;">💬 Motivo del estudiante</div>
+                    <div style="color: #e0e0e0; font-size: 13px; line-height: 1.5; font-style: italic;">"${reason}"</div>
+                </div>
+
+                <!-- Nota del profesor (opcional) -->
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size: 11px; color: #888; margin-bottom: 6px; display: block;">Tu nota (opcional):</label>
+                    <input type="text" id="recoveryNote_${req._id}" placeholder="Ej: Sí, entiendo tu situación..."
+                           style="width: 100%; padding: 10px; background: #121212; border: 1px solid #333; border-radius: 6px; color: white; font-size: 13px; box-sizing: border-box;">
+                </div>
+
+                <!-- Botones de acción -->
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="respondRecovery('${req._id}', true)" 
+                            style="flex: 1; padding: 12px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s;"
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(34,197,94,0.3)'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                        ✅ Aprobar Recuperación
+                    </button>
+                    <button onclick="respondRecovery('${req._id}', false)" 
+                            style="flex: 1; padding: 12px; background: transparent; color: #ef4444; border: 1px solid #ef4444; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;"
+                            onmouseover="this.style.background='rgba(239,68,68,0.1)'"
+                            onmouseout="this.style.background='transparent'">
+                        ❌ Denegar
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    async function respondRecovery(bookingId, approved) {
+        const noteEl = document.getElementById(`recoveryNote_${bookingId}`);
+        const note = noteEl ? noteEl.value.trim() : '';
+        const token = localStorage.getItem('token');
+        
+        const action = approved ? 'aprobar' : 'denegar';
+        if (!confirm(`¿Confirmas que deseas ${action} esta solicitud de recuperación?`)) return;
+
+        try {
+            const res = await fetch(`/api/bookings/${bookingId}/recovery-respond`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ approved, note })
+            });
+
+            const data = await res.json();
+            
+            if (res.ok && data.success) {
+                const msg = approved 
+                    ? '✅ Recuperación aprobada. El crédito de clase fue devuelto al estudiante.'
+                    : '❌ Solicitud denegada. La clase se mantiene como perdida.';
+                alert(msg);
+                // Recargar
+                loadRecoveryRequests();
+            } else {
+                alert('Error: ' + (data.message || 'No se pudo procesar'));
+            }
+        } catch (err) {
+            console.error('[Dashboard] Error respondiendo recuperación:', err);
+            alert('Error de red al procesar la solicitud');
         }
     }
 

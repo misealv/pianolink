@@ -53,6 +53,10 @@ export class UIManager {
         // Para el auto-release automático
         this.noteTimeouts = new Map();
         
+        // ⏳ Timer configurable (se actualiza vía DecayConfigManager)
+        this._uiWatchdogMs = 3000;
+        this._staleKeyMs = 2000;
+        
         // ⚡ SISTEMA DE NOTIFICACIONES DE AUDIO
         this.audioContext = null;
         this.userJoinedPlayed = new Set(); // Evitar reproducir múltiples veces para el mismo usuario
@@ -329,12 +333,13 @@ export class UIManager {
         // Guardar timestamp para detección de acordes
         key.dataset.activatedAt = Date.now();
 
-        // ⚡ FAIL-SAFE STACCATO: TTL reducido a 3s (era 8s)
-        // Si no llega NoteOff en 3s, liberar automáticamente
+        // ⚡ FAIL-SAFE STACCATO: TTL configurable (default 3s)
+        // Si no llega NoteOff, liberar automáticamente
+        const watchdogMs = this._uiWatchdogMs || 3000;
         const timeout = setTimeout(() => {
-            console.warn(`⏱️ UI Watchdog: Nota ${note} liberada por TTL (3s)`);
+            console.warn(`⏱️ UI Watchdog: Nota ${note} liberada por TTL (${watchdogMs}ms)`);
             this._forceKeyOff(note); 
-        }, 3000); // ⬅️ REDUCIDO de 8s a 3s para staccatos
+        }, watchdogMs);
 
         this.noteTimeouts.set(note, timeout);
     }
@@ -376,8 +381,9 @@ export class UIManager {
             const activatedAt = parseInt(key.dataset.activatedAt || 0);
             const age = now - activatedAt;
             
-            // Si la tecla lleva más de 2s activa, es sospechosa
-            if (age > 2000) {
+            // Si la tecla lleva más de staleKeyMs activa, es sospechosa
+            const staleMs = this._staleKeyMs || 2000;
+            if (age > staleMs) {
                 console.warn(`🧹 Auto-limpieza: Tecla ${note} (${age}ms activa) - Asumiendo noteOff perdido`);
                 this._forceKeyOff(note);
                 clearedCount++;

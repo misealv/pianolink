@@ -448,7 +448,7 @@
             // Crear cliente RTC con configuración optimizada para baja latencia
             self.client = AgoraRTC.createClient({
                 mode: 'rtc',   // RTC tiene menor latencia que live para 1:1
-                codec: 'vp8',  // VP8 tiene menor latencia de codificación que H264
+                codec: 'vp9',  // VP9: mejor compresión a mismo bitrate que VP8
                 role: 'host'
             });
             
@@ -830,15 +830,25 @@
             });
             console.log('[VideoManager] ✅ Video track creado (360p optimizado)');
             
-            // === CREAR AUDIO TRACK (Sin ANS/AGC para piano natural) ===
-            console.log('[VideoManager] 🎤 Creando audio track (natural piano)...');
+            // === CREAR AUDIO TRACK (Optimizado para música/piano) ===
+            // 🎹 HARDENING: Desactivar toda la DSP chain para preservar
+            // el sonido natural del piano (dinámicas, armónicos, sustain).
+            // Equivalente funcional a "Original Sound for Musicians" de Zoom.
+            console.log('[VideoManager] 🎤 Creando audio track (piano hardened)...');
             self.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-                AEC: true,  // Echo cancellation SI (evitar feedback)
-                ANS: false, // Noise suppression NO (piano es "ruido")
-                AGC: false, // Auto gain control NO (piano tiene dinámicas naturales)
-                echoCancellation: true // Echo cancellation adicional del navegador
+                AEC: true,                  // Echo cancellation SI (evitar feedback)
+                ANS: false,                 // Noise suppression NO (piano = "ruido" útil)
+                AGC: false,                 // Auto gain control NO (dinámicas naturales)
+                encoderConfig: 'music_standard',  // Perfil de audio para música (48kHz)
+                // Deshabilitar procesamiento de audio del navegador
+                echoCancellation: true,     // AEC del navegador (complementa Agora AEC)
+                noiseSuppression: false,    // No suprimir "ruido" (el piano lo es)
+                autoGainControl: false,     // No ajustar gain automáticamente
+                channelCount: 2,            // Estéreo para pianos con salida stereo
+                sampleRate: 48000,          // 48kHz para máxima fidelidad
+                sampleSize: 16              // 16-bit
             });
-            console.log('[VideoManager] ✅ Audio track creado');
+            console.log('[VideoManager] ✅ Audio track creado (music_standard, 48kHz stereo)');
             
             // === CONFIGURAR AUDIO BRIDGE CON DUCKING ===
             self._setupAudioBridge();
@@ -870,7 +880,8 @@
 
     /**
      * SMART AUDIO BRIDGE - Simplified Implementation
-     * Usa setVolume() de Agora para ducking MIDI-aware
+     * Establece volumen inicial y notifica al EchoGateManager.
+     * El ducking MIDI local fue REMOVIDO (ver EchoGateManager.js).
      * @private
      */
     VideoManager.prototype._setupAudioBridge = function() {
@@ -882,20 +893,18 @@
         }
         
         try {
-            console.log('[VideoManager] 🔧 Iniciando Smart Audio Bridge (Agora setVolume)...');
+            console.log('[VideoManager] 🔧 Iniciando Smart Audio Bridge...');
             
             // Establecer volumen normal inicial
             self.localAudioTrack.setVolume(Math.round(self.normalVolume * 100));
             
-            console.log('[VideoManager] ✅ Smart Audio Bridge activo:');
-            console.log('  - Ducking: 100% → 0% cuando MIDI activo (silencio total)');
-            console.log('  - Recovery: 0% → 100% fade-in gradual 1.5s tras 1s silencio');
+            // Notificar al EchoGateManager que el audio track está listo
+            if (typeof window !== 'undefined' && window.echoGateManager) {
+                window.echoGateManager.setAudioTrack(self.localAudioTrack);
+                console.log('[VideoManager] ✅ Audio track entregado a EchoGateManager');
+            }
             
-            // CONECTAR CON MIDI STATE MANAGER
-            self._connectMidiDucking();
-            
-            // NOTA: Los osciladores web están permanentemente deshabilitados
-            // No es necesario silenciar AudioScheduler porque ya no genera tonos
+            console.log('[VideoManager] ✅ Smart Audio Bridge activo (echo gate delegado)');
             
         } catch (error) {
             console.error('[VideoManager] ❌ Error en Smart Audio Bridge:', error);
@@ -904,81 +913,22 @@
     };
 
     /**
-     * SMART MIDI DUCKING - Conecta con MidiStateManager
-     * Usa setVolume() de Agora para atenuación limpia
+     * LEGACY: _connectMidiDucking — REMOVIDO
+     * 
+     * El ducking MIDI local fue reemplazado por EchoGateManager.js
+     * que implementa un gate inteligente del LADO DEL ALUMNO:
+     *   - Recibe flag 'teacher-playing-state' del servidor
+     *   - Analiza el audio del mic del alumno (FFT)
+     *   - Detecta voz humana vs eco de piano
+     *   - Solo mutea cuando hay eco, deja pasar la voz
+     * 
+     * El viejo ducking muteaba al tocador local (incorrecto para clases).
+     * Ver: public/js/modules/EchoGateManager.js
      * @private
+     * @deprecated Reemplazado por EchoGateManager (Feb 2026)
      */
     VideoManager.prototype._connectMidiDucking = function() {
-        var self = this;
-        
-        if (!self.localAudioTrack) {
-            console.warn('[VideoManager] ⚠️ Audio track no disponible, ducking deshabilitado');
-            return;
-        }
-        
-        // Escuchar eventos MIDI del bus (emitidos por MidiStateManager)
-        self.bus.on('local-note', function(data) {
-            if (!self.duckingEnabled || !self.localAudioTrack) return;
-            
-            // === MIDI ACTIVITY DETECTED ===
-            self.isMidiActive = true;
-            
-            // DUCKING INSTANTÁNEO: 100% → 0% (SILENCIO TOTAL)
-            self.localAudioTrack.setVolume(0); // 0% para eliminar eco completamente
-            
-            // Cancelar recovery anterior
-            if (self.duckingTimeoutId) {
-                clearTimeout(self.duckingTimeoutId);
-            }
-            
-            // Cancelar fade-in anterior si existe
-            if (self.fadeInIntervalId) {
-                clearInterval(self.fadeInIntervalId);
-                self.fadeInIntervalId = null;
-            }
-            
-            // === PROGRAMAR RECOVERY AUTOMÁTICA ===
-            // Esperar 1 segundo de silencio MIDI antes de restaurar
-            self.duckingTimeoutId = setTimeout(function() {
-                if (!self.localAudioTrack || self.isMuted.audio) return;
-                
-                // FADE-IN GRADUAL: 0% → 100% en 1.5 segundos
-                var currentVolume = 0;
-                var targetVolume = 100;
-                var steps = 30; // 30 pasos para suavidad
-                var stepDuration = self.FADE_IN_DURATION_MS / steps; // ~50ms por paso
-                var volumeIncrement = targetVolume / steps; // ~3.33% por paso
-                
-                self.fadeInIntervalId = setInterval(function() {
-                    if (!self.localAudioTrack || self.isMuted.audio) {
-                        clearInterval(self.fadeInIntervalId);
-                        self.fadeInIntervalId = null;
-                        return;
-                    }
-                    
-                    currentVolume += volumeIncrement;
-                    
-                    if (currentVolume >= targetVolume) {
-                        // Llegamos al 100%
-                        self.localAudioTrack.setVolume(targetVolume);
-                        clearInterval(self.fadeInIntervalId);
-                        self.fadeInIntervalId = null;
-                        self.isMidiActive = false;
-                        console.log('[VideoManager] 🎤 Micrófono restaurado a 100% (fade-in completo)');
-                    } else {
-                        // Incremento gradual
-                        self.localAudioTrack.setVolume(Math.round(currentVolume));
-                    }
-                }, stepDuration);
-                
-                console.log('[VideoManager] 🎤 Iniciando fade-in gradual (1.5s)');
-                
-            }, self.MIDI_SILENCE_THRESHOLD_MS);
-        });
-        
-        console.log('[VideoManager] ✅ Smart MIDI Ducking conectado');
-        console.log('  - Ducked Level: 0% (silencio total)');
-        console.log('  - Recovery: fade-in gradual 1.5s tras 1s silencio');
+        console.log('[VideoManager] ℹ️ Ducking MIDI legacy deshabilitado — delegado a EchoGateManager');
     };
 
     /**

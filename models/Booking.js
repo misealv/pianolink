@@ -117,6 +117,11 @@ const bookingSchema = mongoose.Schema({
         refundClasses: {
             type: Boolean,
             default: true
+        },
+        // Cancelación tardía (<24h)
+        isLateCancellation: {
+            type: Boolean,
+            default: false
         }
     },
     
@@ -124,6 +129,29 @@ const bookingSchema = mongoose.Schema({
     classConsumed: {
         type: Boolean,
         default: false  // ¿Se descontó del saldo?
+    },
+
+    // ==================== SOLICITUD DE RECUPERACIÓN ====================
+    // Cuando el estudiante cancela tarde (<24h) o no se presenta,
+    // puede solicitar recuperación. El PROFESOR decide.
+    recoveryRequest: {
+        status: {
+            type: String,
+            enum: ['none', 'pending', 'approved', 'denied'],
+            default: 'none'
+        },
+        requestedAt: Date,
+        requestedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        reason: String,            // Motivo del estudiante
+        respondedAt: Date,
+        teacherNote: String,       // Nota del profesor al responder
+        newBookingId: {            // Si se aprobó y reagendó, referencia a nueva reserva
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Booking'
+        }
     },
     classType: {
         type: String,
@@ -247,23 +275,62 @@ bookingSchema.pre('save', function(next) {
 
 // ==================== MÉTODOS ====================
 bookingSchema.methods.canBeCancelled = function() {
-    // Solo se puede cancelar si está pending o confirmed
-    // y faltan más de 24h para la clase
+    // Se puede cancelar si está pending o confirmed
     if (!['pending', 'confirmed'].includes(this.status)) {
         return false;
     }
+    return true; // Siempre se puede cancelar, pero <24h es "tardía"
+};
+
+bookingSchema.methods.isLateCancellation = function() {
+    // Devuelve true si faltan menos de 24h para la clase
     const hoursUntilClass = (this.scheduledStart - new Date()) / (1000 * 60 * 60);
-    return hoursUntilClass > 24;
+    return hoursUntilClass < 24;
 };
 
 bookingSchema.methods.cancel = function(userId, reason, refundClasses = true) {
+    const isLate = this.isLateCancellation();
     this.status = 'cancelled';
     this.cancellation = {
         cancelledAt: new Date(),
         cancelledBy: userId,
         reason,
-        refundClasses
+        refundClasses: isLate ? false : refundClasses,
+        isLateCancellation: isLate
     };
+    // Si es cancelación tardía, el estudiante puede solicitar recuperación
+    if (isLate) {
+        this.recoveryRequest = { status: 'none' };
+    }
+};
+
+// Solicitar recuperación de clase (estudiante)
+bookingSchema.methods.requestRecovery = function(userId, reason) {
+    if (!['cancelled', 'no_show'].includes(this.status)) {
+        throw new Error('INVALID_STATUS_FOR_RECOVERY');
+    }
+    if (this.recoveryRequest?.status === 'pending') {
+        throw new Error('RECOVERY_ALREADY_REQUESTED');
+    }
+    if (this.recoveryRequest?.status === 'approved') {
+        throw new Error('RECOVERY_ALREADY_APPROVED');
+    }
+    this.recoveryRequest = {
+        status: 'pending',
+        requestedAt: new Date(),
+        requestedBy: userId,
+        reason
+    };
+};
+
+// Responder a solicitud de recuperación (profesor)
+bookingSchema.methods.respondRecovery = function(approved, teacherNote = '') {
+    if (this.recoveryRequest?.status !== 'pending') {
+        throw new Error('NO_PENDING_RECOVERY');
+    }
+    this.recoveryRequest.status = approved ? 'approved' : 'denied';
+    this.recoveryRequest.respondedAt = new Date();
+    this.recoveryRequest.teacherNote = teacherNote;
 };
 
 bookingSchema.methods.markAsCompleted = function(actualEnd = new Date()) {

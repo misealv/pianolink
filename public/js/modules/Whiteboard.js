@@ -15,6 +15,9 @@ export class Whiteboard {
         this.noteTimestamps = new Map(); // { note: timestamp }
         this.noteTimeouts = new Map(); // { note: timeoutId }
         
+        // ⏳ TTL configurable (se actualiza vía DecayConfigManager)
+        this._whiteboardTTLMs = 8000;
+        
         // OPTIMIZACIÓN: Mantener renderer y contexto vivos para evitar recrear SVG
         this.renderer = null;
         this.ctx = null;
@@ -36,18 +39,19 @@ export class Whiteboard {
             this.teacherActiveNotes.add(note);
             this.noteTimestamps.set(note, Date.now());
             
-            // ⚡ TTL: Auto-limpiar después de 8 segundos si no llega noteOff
+            // ⚡ TTL: Auto-limpiar si no llega noteOff (configurable)
             if (this.noteTimeouts.has(note)) {
                 clearTimeout(this.noteTimeouts.get(note));
             }
             
+            const ttlMs = this._whiteboardTTLMs || 8000;
             const timeout = setTimeout(() => {
-                console.warn(`⏱️ [Whiteboard TTL] Nota ${note} liberada de partitura (8s)`);
+                console.warn(`⏱️ [Whiteboard TTL] Nota ${note} liberada de partitura (${ttlMs}ms)`);
                 this.teacherActiveNotes.delete(note);
                 this.noteTimestamps.delete(note);
                 this.noteTimeouts.delete(note);
                 this.scheduleRender();
-            }, 8000); // 8 segundos igual que las teclas visuales
+            }, ttlMs);
             
             this.noteTimeouts.set(note, timeout);
             

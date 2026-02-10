@@ -21,8 +21,8 @@ export class MidiStateManager {
         this.onStateChange = null; // (activeCount) => void
         
         // --- WATCHDOG TIMER (ANTI-HANG) ---
-        // ⚡ SPRINT FINAL: Reducir a 3s para detección ultra-agresiva
-        this._hangThreshold = 3000; // ⬅️ REDUCIDO DE 5000ms a 3000ms
+        // Timer configurable (se actualiza vía DecayConfigManager)
+        this._hangThreshold = 3000; // Default 3s
         this._watchdogInterval = null;
         
         // --- GRACE PERIOD PARA RECONCILIACIÓN ---

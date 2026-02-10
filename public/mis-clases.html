@@ -219,6 +219,54 @@
         </div>
     </div>
 
+    <!-- Modal: Solicitar Recuperación -->
+    <div id="recoveryModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 modal-backdrop" onclick="closeRecoveryModal()"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-dark-700 border border-dark-500 rounded-2xl p-8 max-w-md w-full relative">
+                <button onclick="closeRecoveryModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                
+                <div class="text-center mb-6">
+                    <div class="text-4xl mb-3">🔄</div>
+                    <h3 class="text-xl font-bold text-white">Solicitar Recuperación</h3>
+                    <p class="text-gray-400 text-sm mt-1">Envía tu solicitud a <span id="recoveryTeacherName" class="text-accent-light font-semibold"></span></p>
+                </div>
+
+                <!-- Info -->
+                <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 mb-6">
+                    <p class="text-indigo-300 text-sm leading-relaxed">
+                        Tu profesor revisará tu solicitud y decidirá si te permite reagendar la clase. 
+                        Explica claramente por qué no pudiste asistir o cancelaste tarde.
+                    </p>
+                </div>
+
+                <!-- Motivo -->
+                <textarea 
+                    id="recoveryReason" 
+                    placeholder="Explica tu motivo... (mínimo 10 caracteres)&#10;Ej: Tuve una emergencia médica y no pude avisar con anticipación."
+                    class="w-full bg-dark-600 border border-dark-500 rounded-xl p-4 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-accent resize-none h-32 mb-6"
+                ></textarea>
+
+                <!-- Submit Button -->
+                <button 
+                    id="submitRecoveryBtn"
+                    onclick="submitRecoveryRequest()"
+                    class="w-full bg-accent hover:bg-accent-dark text-white font-semibold py-3 rounded-xl transition-all"
+                >
+                    Enviar Solicitud
+                </button>
+
+                <p class="text-gray-500 text-xs text-center mt-4">
+                    El profesor recibirá tu solicitud y podrá aprobar o denegar la recuperación.
+                </p>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ============================================
         // ESTADO GLOBAL
@@ -429,6 +477,27 @@
             const canRate = booking.status === 'completed' && !booking.studentRating;
             const hasRating = booking.studentRating;
 
+            // Verificar si puede solicitar recuperación
+            const recoveryStatus = booking.recoveryRequest?.status || 'none';
+            const isLateCancellation = booking.cancellation?.isLateCancellation;
+            const canRequestRecovery = (
+                (booking.status === 'no_show' || (booking.status === 'cancelled' && isLateCancellation)) &&
+                recoveryStatus === 'none'
+            );
+            const hasPendingRecovery = recoveryStatus === 'pending';
+            const recoveryApproved = recoveryStatus === 'approved';
+            const recoveryDenied = recoveryStatus === 'denied';
+
+            // Badge de estado de recuperación
+            let recoveryBadgeHtml = '';
+            if (hasPendingRecovery) {
+                recoveryBadgeHtml = `<span class="border px-2 py-0.5 rounded-full text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">⏳ Recuperación pendiente</span>`;
+            } else if (recoveryApproved) {
+                recoveryBadgeHtml = `<span class="border px-2 py-0.5 rounded-full text-xs bg-green-500/20 text-green-400 border-green-500/30">✅ Recuperación aprobada</span>`;
+            } else if (recoveryDenied) {
+                recoveryBadgeHtml = `<span class="border px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-400 border-red-500/30">❌ Recuperación denegada</span>`;
+            }
+
             return `
                 <div class="bg-dark-700/50 border border-dark-500/50 rounded-xl p-4 hover:border-dark-500 transition-colors">
                     <div class="flex items-center gap-4">
@@ -441,18 +510,22 @@
                         
                         <!-- Info -->
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-3 flex-wrap">
                                 <h4 class="font-semibold text-gray-300 truncate">${teacherName}</h4>
                                 ${studentName ? `<span class="text-accent-light text-xs">• ${studentName}</span>` : ''}
                                 <span class="border px-2 py-0.5 rounded-full text-xs ${status.class}">
                                     ${status.text}
                                 </span>
+                                ${recoveryBadgeHtml}
                             </div>
                             <p class="text-gray-500 text-sm" title="${fullDate}">${date} · ${time}</p>
+                            ${booking.recoveryRequest?.teacherNote ? `
+                                <p class="text-gray-400 text-xs mt-1 italic">💬 Profesor: "${booking.recoveryRequest.teacherNote}"</p>
+                            ` : ''}
                         </div>
                         
-                        <!-- Rating / Action -->
-                        <div class="flex-shrink-0">
+                        <!-- Rating / Action / Recovery -->
+                        <div class="flex-shrink-0 flex flex-col gap-2 items-end">
                             ${hasRating ? `
                                 <div class="flex items-center gap-1 text-yellow-400">
                                     ${'★'.repeat(booking.studentRating)}${'☆'.repeat(5 - booking.studentRating)}
@@ -464,6 +537,14 @@
                                 >
                                     <span>⭐</span>
                                     Calificar
+                                </button>
+                            ` : ''}
+                            ${canRequestRecovery ? `
+                                <button 
+                                    onclick="openRecoveryModal('${booking._id}', '${teacherName}')"
+                                    class="inline-flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    🔄 Solicitar Recuperación
                                 </button>
                             ` : ''}
                         </div>
@@ -656,6 +737,67 @@
         }
 
         // ============================================
+        // SOLICITUD DE RECUPERACIÓN
+        // ============================================
+        
+        let recoveryBookingId = null;
+
+        function openRecoveryModal(bookingId, teacherName) {
+            recoveryBookingId = bookingId;
+            document.getElementById('recoveryTeacherName').textContent = teacherName;
+            document.getElementById('recoveryReason').value = '';
+            document.getElementById('recoveryModal').classList.remove('hidden');
+        }
+
+        function closeRecoveryModal() {
+            document.getElementById('recoveryModal').classList.add('hidden');
+            recoveryBookingId = null;
+        }
+
+        async function submitRecoveryRequest() {
+            if (!recoveryBookingId) return;
+            
+            const reason = document.getElementById('recoveryReason').value.trim();
+            if (reason.length < 10) {
+                alert('Por favor describe tu motivo con al menos 10 caracteres.');
+                return;
+            }
+
+            const token = getToken();
+            const btn = document.getElementById('submitRecoveryBtn');
+            btn.disabled = true;
+            btn.textContent = 'Enviando...';
+
+            try {
+                const response = await fetch(`/api/bookings/${recoveryBookingId}/recovery-request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ reason })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'No se pudo enviar la solicitud');
+                }
+
+                alert('✅ Solicitud enviada. Tu profesor revisará tu caso y decidirá si aprueba la recuperación.');
+                closeRecoveryModal();
+                await loadClasses();
+
+            } catch (error) {
+                console.error('Error enviando solicitud de recuperación:', error);
+                alert('Error: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Enviar Solicitud';
+            }
+        }
+
+        // ============================================
         // INICIALIZACIÓN
         // ============================================
 
@@ -674,6 +816,7 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeRatingModal();
+                closeRecoveryModal();
             }
         });
     </script>

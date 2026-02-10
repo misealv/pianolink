@@ -819,6 +819,20 @@ io.on("connection", (socket) => {
                     }
                     // Control Change (pedal, etc.) no afecta state tracking pero debe retransmitirse
 
+                    // --- ECHO GATE: Notificar estado de actividad MIDI del profesor ---
+                    if (stateChanged && socket.userRole === 'teacher') {
+                        const isTeacherPlaying = room.teacherActiveNotes.size > 0;
+                        // Solo emitir cambios de estado (no en cada nota)
+                        if (room._lastTeacherPlayingState !== isTeacherPlaying) {
+                            room._lastTeacherPlayingState = isTeacherPlaying;
+                            socket.broadcast.to(roomCode).emit('teacher-playing-state', {
+                                playing: isTeacherPlaying,
+                                noteCount: room.teacherActiveNotes.size,
+                                timestamp: Date.now()
+                            });
+                        }
+                    }
+
                     // --- SNAPSHOT REACTIVO ---
                     if (stateChanged && socket.userRole === 'teacher') {
                         room.lastActivityTime = Date.now();
