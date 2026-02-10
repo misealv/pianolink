@@ -197,59 +197,114 @@ router.post('/paypal', async (req, res) => {
  * Webhook para activar membresía de profesor tras pago con MercadoPago
  */
 router.post('/mercadopago-teacher-subscription', async (req, res) => {
-    console.log('[Webhook] MercadoPago Teacher Subscription recibido');
+    console.log('[Webhook MP] ========================================');
+    console.log('[Webhook MP] MercadoPago Teacher Subscription recibido');
+    console.log('[Webhook MP] Body:', JSON.stringify(req.body));
+    
+    // Responder inmediatamente para evitar timeout de MercadoPago
+    res.status(200).send('OK');
     
     try {
         // MercadoPago envía el tipo de notificación
-        const { type, data } = req.body;
+        const { type, data, action } = req.body;
         
-        // Solo procesar pagos aprobados
-        if (type !== 'payment') {
-            console.log('[Webhook] Ignorando tipo:', type);
-            return res.status(200).send('OK');
+        // MercadoPago puede enviar 'payment' o 'payment.updated' o query params
+        const isPaymentNotification = type === 'payment' || action?.includes('payment');
+        
+        // También puede venir por query string (topic=payment&id=xxx)
+        const topicFromQuery = req.query?.topic;
+        const idFromQuery = req.query?.id || req.query?.['data.id'];
+        
+        console.log('[Webhook MP] Type:', type, '| Action:', action, '| Topic:', topicFromQuery);
+        
+        if (!isPaymentNotification && topicFromQuery !== 'payment') {
+            console.log('[Webhook MP] Ignorando - no es notificación de pago');
+            return;
         }
         
-        const paymentId = data?.id;
+        const paymentId = data?.id || idFromQuery;
         if (!paymentId) {
-            console.log('[Webhook] No payment ID');
-            return res.status(200).send('OK');
+            console.log('[Webhook MP] No payment ID encontrado');
+            return;
         }
+        
+        console.log('[Webhook MP] Payment ID:', paymentId);
         
         // Obtener detalles del pago de MercadoPago
         const accessToken = process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN;
+        if (!accessToken) {
+            console.error('[Webhook MP] ❌ No hay access token configurado');
+            return;
+        }
+        
         const paymentRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         
         const payment = await paymentRes.json();
-        console.log('[Webhook] Payment status:', payment.status);
+        console.log('[Webhook MP] Payment status:', payment.status);
+        console.log('[Webhook MP] External ref:', payment.external_reference);
+        console.log('[Webhook MP] Metadata:', JSON.stringify(payment.metadata));
         
         // Solo procesar pagos aprobados
         if (payment.status !== 'approved') {
-            console.log('[Webhook] Pago no aprobado:', payment.status);
-            return res.status(200).send('OK');
+            console.log('[Webhook MP] Pago no aprobado, ignorando');
+            return;
         }
         
         // Verificar que es un pago de membresía de profesor
-        const metadata = payment.metadata;
-        if (metadata?.type !== 'teacher_subscription') {
-            console.log('[Webhook] No es pago de membresía profesor');
-            return res.status(200).send('OK');
+        // MercadoPago convierte metadata keys a snake_case
+        const metadata = payment.metadata || {};
+        const isTeacherSubscription = metadata.type === 'teacher_subscription';
+        
+        // También verificar por external_reference como backup
+        const extRef = payment.external_reference || '';
+        const isTeacherSubByRef = extRef.startsWith('teacher_sub_');
+        
+        if (!isTeacherSubscription && !isTeacherSubByRef) {
+            console.log('[Webhook MP] No es pago de membresía profesor');
+            return;
         }
         
-        const teacherId = metadata.teacherId;
-        if (!teacherId) {
-            console.error('[Webhook] No se encontró teacherId en metadata');
-            return res.status(200).send('OK');
+        // Obtener teacherId - MercadoPago convierte a snake_case
+        let teacherId = metadata.teacher_id || metadata.teacherId;
+        
+        // Si no está en metadata, extraer de external_reference
+        if (!teacherId && isTeacherSubByRef) {
+            // Format: teacher_sub_<userId>_<timestamp>
+            const parts = extRef.split('_');
+            if (parts.length >= 3) {
+                teacherId = parts[2];
+            }
         }
+        
+        if (!teacherId) {
+            console.error('[Webhook MP] ❌ No se encontró teacherId');
+            console.error('[Webhook MP] Metadata:', metadata);
+            console.error('[Webhook MP] ExtRef:', extRef);
+            return;
+        }
+        
+        console.log('[Webhook MP] Teacher ID encontrado:', teacherId);
         
         // Activar membresía del profesor
         const User = require('../models/User');
         const teacher = await User.findById(teacherId);
         
-        if (!teacher || teacher.role !== 'teacher') {
-            console.error('[Webhook] Profesor no encontrado:', teacherId);
-            return res.status(200).send('OK');
+        if (!teacher) {
+            console.error('[Webhook MP] ❌ Usuario no encontrado:', teacherId);
+            return;
+        }
+        
+        if (teacher.role !== 'teacher') {
+            console.error('[Webhook MP] ❌ Usuario no es profesor:', teacher.email);
+            return;
+        }
+        
+        // Verificar si ya está activa (evitar duplicados)
+        if (teacher.teacherData?.subscriptionStatus === 'active') {
+            console.log('[Webhook MP] ⚠️ Membresía ya está activa para:', teacher.email);
+            return;
         }
         
         // Calcular fecha de expiración (30 días)
@@ -258,6 +313,8 @@ router.post('/mercadopago-teacher-subscription', async (req, res) => {
         
         // Actualizar estado de membresía
         teacher.teacherData.subscriptionStatus = 'active';
+        teacher.teacherData.subscriptionExpiresAt = expiresAt;
+        teacher.teacherData.mercadopagoPaymentId = paymentId;
         teacher.teacherData.subscriptionExpiresAt = expiresAt;
         await teacher.save();
         
@@ -279,22 +336,19 @@ router.post('/mercadopago-teacher-subscription', async (req, res) => {
                             <p>Hola ${teacher.name},</p>
                             <p>Tu pago ha sido procesado exitosamente. Tu membresía de profesor está activa hasta el <strong>${expiresAt.toLocaleDateString('es-CL')}</strong>.</p>
                             <p>Ya puedes usar tu sala virtual y recibir estudiantes.</p>
-                            <a href="https://pianolink.net/dashboard" style="display: inline-block; background: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Ir a mi Dashboard</a>
+                            <a href="https://pianolink.net/dashboard.html" style="display: inline-block; background: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Ir a mi Dashboard</a>
                             <p style="color: #888; font-size: 12px; margin-top: 20px;">— Equipo PianoLink</p>
                         </div>
                     `
                 });
-                console.log('[Webhook] Email de confirmación enviado');
+                console.log('[Webhook MP] ✉️ Email de confirmación enviado a:', teacher.email);
             }
         } catch (emailErr) {
-            console.error('[Webhook] Error enviando email:', emailErr.message);
+            console.error('[Webhook MP] Error enviando email:', emailErr.message);
         }
         
-        res.status(200).send('OK');
-        
     } catch (error) {
-        console.error('[Webhook] Error MercadoPago Teacher Sub:', error);
-        res.status(200).send('OK'); // Siempre responder 200 para evitar reintentos
+        console.error('[Webhook MP] ❌ Error procesando webhook:', error);
     }
 });
 
