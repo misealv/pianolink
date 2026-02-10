@@ -1163,6 +1163,119 @@ router.post('/stripe/sync-by-email', protect, async (req, res) => {
 });
 
 /**
+ * POST /api/payment/mercadopago/sync-teacher-subscription
+ * Buscar y activar membresías de profesor pagadas con MercadoPago
+ */
+router.post('/mercadopago/sync-teacher-subscription', protect, async (req, res) => {
+    console.log('[MercadoPago] 🔄 Sincronización de membresía solicitada');
+    
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+
+        if (!user || user.role !== 'teacher') {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Solo profesores pueden acceder' 
+            });
+        }
+
+        const accessToken = process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN;
+        if (!accessToken) {
+            return res.status(503).json({
+                success: false,
+                error: 'MercadoPago no está configurado'
+            });
+        }
+
+        console.log('[MercadoPago] 📧 Buscando pagos para:', user.email);
+        
+        // Buscar pagos recientes del último mes
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const searchUrl = `https://api.mercadopago.com/v1/payments/search?payer.email=${encodeURIComponent(user.email)}&status=approved&begin_date=${thirtyDaysAgo.toISOString()}&end_date=${new Date().toISOString()}`;
+        
+        const searchRes = await fetch(searchUrl, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        
+        const searchData = await searchRes.json();
+        console.log('[MercadoPago] 🔍 Pagos encontrados:', searchData.results?.length || 0);
+        
+        // Buscar pago de membresía de profesor
+        const teacherPayment = searchData.results?.find(payment => {
+            const metadata = payment.metadata;
+            return metadata?.type === 'teacher_subscription' && 
+                   metadata?.teacher_id === userId.toString();
+        });
+        
+        if (!teacherPayment) {
+            // Intentar buscar también por external_reference
+            const extRefPayment = searchData.results?.find(payment => {
+                return payment.external_reference?.startsWith(`teacher_sub_${userId}`);
+            });
+            
+            if (extRefPayment) {
+                // Activar membresía
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 30);
+
+                user.teacherData.subscriptionStatus = 'active';
+                user.teacherData.subscriptionExpiresAt = expiresAt;
+                user.teacherData.mercadopagoPaymentId = extRefPayment.id;
+                await user.save();
+
+                console.log(`[MercadoPago] ✅ Membresía activada para ${user.email}`);
+                
+                return res.json({
+                    success: true,
+                    message: '¡Membresía activada exitosamente!',
+                    subscription: {
+                        status: 'active',
+                        expiresAt: expiresAt,
+                        paymentId: extRefPayment.id
+                    }
+                });
+            }
+            
+            return res.json({
+                success: false,
+                error: 'No se encontraron pagos de membresía para tu cuenta. Si acabas de pagar, espera unos minutos e intenta de nuevo.'
+            });
+        }
+        
+        // Activar membresía
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+
+        user.teacherData.subscriptionStatus = 'active';
+        user.teacherData.subscriptionExpiresAt = expiresAt;
+        user.teacherData.mercadopagoPaymentId = teacherPayment.id;
+        await user.save();
+
+        console.log(`[MercadoPago] ✅ Membresía activada para ${user.email} hasta ${expiresAt.toISOString()}`);
+        
+        res.json({
+            success: true,
+            message: '¡Membresía activada exitosamente!',
+            subscription: {
+                status: 'active',
+                expiresAt: expiresAt,
+                paymentId: teacherPayment.id
+            }
+        });
+
+    } catch (error) {
+        console.error('[MercadoPago] Error sincronizando membresía:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+/**
  * POST /api/payment/stripe/activate-from-session
  * Activar membresía usando session_id de Stripe Checkout
  * (Funciona aunque el webhook no esté configurado)

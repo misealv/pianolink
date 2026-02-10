@@ -2357,12 +2357,23 @@
             
             console.log('[Dashboard] 🔄 Sincronización manual iniciada...');
             
-            const response = await fetch('/api/payment/stripe/sync-by-email', {
+            // Intentar primero con MercadoPago (más común en Chile)
+            let response = await fetch('/api/payment/mercadopago/sync-teacher-subscription', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${user.token}` }
             });
             
-            const data = await response.json();
+            let data = await response.json();
+            
+            // Si no encuentra en MercadoPago, intentar con Stripe
+            if (!data.success) {
+                console.log('[Dashboard] 🔄 Intentando con Stripe...');
+                response = await fetch('/api/payment/stripe/sync-by-email', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${user.token}` }
+                });
+                data = await response.json();
+            }
             
             if (data.success) {
                 alert('🎉 ¡Membresía sincronizada exitosamente!');
