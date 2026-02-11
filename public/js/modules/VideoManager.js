@@ -38,17 +38,9 @@
         this.localVideoTrack = null;
         this.remoteUsers = {}; // Map de usuarios remotos
         
-        // === SMART AUDIO BRIDGE (Simplified - Agora setVolume) ===
-        this.duckingEnabled = true;
-        this.normalVolume = 1.0;         // 100% cuando solo se habla
-        this.duckedVolume = 0.0;         // 0% cuando MIDI activo (silencio total para evitar eco)
-        this.duckingTimeoutId = null;
-        this.fadeInIntervalId = null;    // Para fade-in gradual
-        this.MIDI_SILENCE_THRESHOLD_MS = 1000; // 1s sin MIDI para restaurar
-        this.FADE_IN_DURATION_MS = 1500; // 1.5s para fade-in suave
-        
-        // State
-        this.isMidiActive = false;       // Flag de actividad MIDI
+        // === ECHO GATE (delegado a EchoGateManager.js del lado del alumno) ===
+        // El control de eco ya NO se hace muteando al profesor.
+        // Ver: public/js/modules/EchoGateManager.js
         
         // State
         this.isMuted = {
@@ -895,8 +887,8 @@
         try {
             console.log('[VideoManager] 🔧 Iniciando Smart Audio Bridge...');
             
-            // Establecer volumen normal inicial
-            self.localAudioTrack.setVolume(Math.round(self.normalVolume * 100));
+            // Establecer volumen al 100% — el control de eco lo hace EchoGateManager del lado del alumno
+            self.localAudioTrack.setVolume(100);
             
             // Notificar al EchoGateManager que el audio track está listo
             if (typeof window !== 'undefined' && window.echoGateManager) {
@@ -910,25 +902,6 @@
             console.error('[VideoManager] ❌ Error en Smart Audio Bridge:', error);
             console.error('Fallback: Continuando sin procesamiento DSP');
         }
-    };
-
-    /**
-     * LEGACY: _connectMidiDucking — REMOVIDO
-     * 
-     * El ducking MIDI local fue reemplazado por EchoGateManager.js
-     * que implementa un gate inteligente del LADO DEL ALUMNO:
-     *   - Recibe flag 'teacher-playing-state' del servidor
-     *   - Analiza el audio del mic del alumno (FFT)
-     *   - Detecta voz humana vs eco de piano
-     *   - Solo mutea cuando hay eco, deja pasar la voz
-     * 
-     * El viejo ducking muteaba al tocador local (incorrecto para clases).
-     * Ver: public/js/modules/EchoGateManager.js
-     * @private
-     * @deprecated Reemplazado por EchoGateManager (Feb 2026)
-     */
-    VideoManager.prototype._connectMidiDucking = function() {
-        console.log('[VideoManager] ℹ️ Ducking MIDI legacy deshabilitado — delegado a EchoGateManager');
     };
 
     /**
@@ -1149,17 +1122,6 @@
             // NOTA: Los osciladores web están permanentemente deshabilitados
             // No es necesario reactivar nada
             
-            // === LIMPIAR SMART AUDIO BRIDGE ===
-            if (self.duckingTimeoutId) {
-                clearTimeout(self.duckingTimeoutId);
-                self.duckingTimeoutId = null;
-            }
-            
-            if (self.fadeInIntervalId) {
-                clearInterval(self.fadeInIntervalId);
-                self.fadeInIntervalId = null;
-            }
-            
             // === DETENER MONITOR DE AUDIO ===
             if (self.audioLevelInterval) {
                 clearInterval(self.audioLevelInterval);
@@ -1227,9 +1189,8 @@
                 hasPendingTrack: !!self._pendingAudioTrack,
                 pendingUid: self._pendingAudioUid
             },
-            ducking: {
-                enabled: self.duckingEnabled,
-                midiActive: self.isMidiActive
+            echoGate: {
+                delegated: 'EchoGateManager (lado alumno)'
             }
         };
         

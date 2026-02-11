@@ -27,7 +27,7 @@
      * - AEC: ON - Elimina eco del audio reproducido
      * - ANS: OFF - NO elimina "ruido" (el piano es "ruido" útil)
      * - AGC: ON - Normaliza volumen para el estudiante remoto
-     * - Ducking: Usa Smart Audio Bridge existente
+     * - Echo gate: delegado a EchoGateManager.js (lado alumno)
      */
     var PROFILE_MIDI_HYBRID = {
         name: 'MIDI_HYBRID',
@@ -39,8 +39,7 @@
             AGC: true,              // Auto gain control ON (normaliza para remoto)
             echoCancellation: true  // Extra browser echo cancellation
         },
-        icon: '🎹',
-        duckingEnabled: true        // Activa Smart Audio Bridge
+        icon: '🎹'
     };
     
     /**
@@ -59,8 +58,7 @@
             AGC: true,              // Auto gain control ON
             echoCancellation: true
         },
-        icon: '💬',
-        duckingEnabled: false       // NO ducking - conversación continua
+        icon: '💬'
     };
     
     /**
@@ -80,8 +78,7 @@
             echoCancellation: false
         },
         encoderConfig: 'music_standard', // Alta calidad, stereo si disponible
-        icon: '🔴',
-        duckingEnabled: false
+        icon: '🔴'
     };
 
     // Mapa de perfiles disponibles
@@ -323,19 +320,10 @@
             
             console.log('[AudioStateManager] 🔧 Aplicando configuración:', profile.config);
             
-            // Actualizar ducking según perfil
-            if (self.videoManager.duckingEnabled !== undefined) {
-                self.videoManager.duckingEnabled = profile.duckingEnabled;
-                console.log('[AudioStateManager] Ducking:', profile.duckingEnabled ? 'ACTIVADO' : 'DESACTIVADO');
-            }
-            
-            // Si el track actual está publicado, necesitamos unpublish -> recreate -> publish
-            // Por ahora, aplicamos lo que se puede sin recrear:
-            
-            // Restaurar volumen si estaba ducked (solo si ducking desactivado)
-            if (!profile.duckingEnabled && track.setVolume) {
+            // Echo gate delegado a EchoGateManager.js (lado alumno)
+            // Asegurar volumen al 100% — nunca mutear el mic del profesor
+            if (track.setVolume) {
                 track.setVolume(100);
-                console.log('[AudioStateManager] Volumen restaurado a 100%');
             }
             
             console.log('[AudioStateManager] ✅ Perfil aplicado (parcial, sin recrear track)');
@@ -392,15 +380,9 @@
             await client.publish([vm.localAudioTrack]);
             
             // 4. Actualizar estado interno
-            vm.duckingEnabled = profile.duckingEnabled;
             self.currentProfile = profileName;
             
-            // 5. Reconectar ducking si es necesario
-            if (profile.duckingEnabled && vm._connectMidiDucking) {
-                vm._connectMidiDucking();
-            }
-            
-            // 6. Reconectar monitor de audio
+            // 5. Reconectar monitor de audio
             if (vm._startAudioLevelMonitor) {
                 if (vm.audioLevelInterval) {
                     clearInterval(vm.audioLevelInterval);
