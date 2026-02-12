@@ -10,6 +10,46 @@ const PayoutCronService = require('./PayoutCronService');
 const MembershipReminderService = require('./MembershipReminderService');
 const packageExpirationJob = require('../jobs/package-expiration');
 
+// CRM: Runner de secuencias (lazy load para no impactar si el módulo CRM no existe)
+let CrmSequenceRunner = null;
+function getSequenceRunner() {
+    if (!CrmSequenceRunner) {
+        try {
+            CrmSequenceRunner = require('../crm/services/CrmSequenceRunner');
+        } catch (e) {
+            // Módulo CRM no disponible, silenciar
+        }
+    }
+    return CrmSequenceRunner;
+}
+
+// CRM Fase 3: Tracking Dispatcher — despacha conversiones a Meta/Google/GA4
+let CrmTrackingDispatcher = null;
+function getTrackingDispatcher() {
+    if (!CrmTrackingDispatcher) {
+        try { CrmTrackingDispatcher = require('../crm/services/CrmTrackingDispatcher'); } catch (e) { /* no disponible */ }
+    }
+    return CrmTrackingDispatcher;
+}
+
+// CRM Fase 3: Ads Spend Sync — sincroniza gasto real desde Meta/Google APIs
+let CrmAdsSpendSyncService = null;
+function getAdsSpendSync() {
+    if (!CrmAdsSpendSyncService) {
+        try { CrmAdsSpendSyncService = require('../crm/services/CrmAdsSpendSyncService'); } catch (e) { /* no disponible */ }
+    }
+    return CrmAdsSpendSyncService;
+}
+
+// CRM Fase 3: Alert Service — verifica umbrales de CPA, ROAS, presupuesto
+let CrmAlertService = null;
+function getAlertService() {
+    if (!CrmAlertService) {
+        try { CrmAlertService = require('../crm/services/CrmAlertService'); } catch (e) { /* no disponible */ }
+    }
+    return CrmAlertService;
+}
+
 class CronService {
     static jobs = [];
 
@@ -161,6 +201,74 @@ class CronService {
         });
         this.jobs.push(packageExpirationCron);
 
+        // 10. CRM: Procesar secuencias de email - Cada 10 minutos
+        const sequenceRunnerJob = cron.schedule('*/10 * * * *', async () => {
+            const runner = getSequenceRunner();
+            if (!runner) return; // Módulo CRM no disponible
+            try {
+                const result = await runner.processAll();
+                if (result.sent > 0 || result.errors > 0) {
+                    console.log(`[Cron] 📧 Secuencias: ${result.sent} emails, ${result.errors} errores, ${result.skipped} saltados`);
+                }
+            } catch (error) {
+                console.error('[Cron] ❌ Error procesando secuencias CRM:', error);
+            }
+        }, {
+            timezone: 'UTC'
+        });
+        this.jobs.push(sequenceRunnerJob);
+
+        // 11. CRM Fase 3: Despachar conversiones a Meta/Google/GA4 — Cada 15 minutos (offset con secuencias)
+        const trackingDispatchJob = cron.schedule('5,20,35,50 * * * *', async () => {
+            const dispatcher = getTrackingDispatcher();
+            if (!dispatcher) return;
+            try {
+                const result = await dispatcher.processAll();
+                const total = (result.meta?.sent || 0) + (result.google?.sent || 0) + (result.ga4?.sent || 0);
+                if (total > 0) {
+                    console.log(`[Cron] 📡 Tracking dispatch: Meta=${result.meta?.sent||0} Google=${result.google?.sent||0} GA4=${result.ga4?.sent||0} (${result.duration}ms)`);
+                }
+            } catch (error) {
+                console.error('[Cron] ❌ Error despacho tracking CRM:', error);
+            }
+        }, {
+            timezone: 'UTC'
+        });
+        this.jobs.push(trackingDispatchJob);
+
+        // 12. CRM Fase 3: Sincronizar gasto publicitario desde Meta/Google — Diario a las 04:00 UTC
+        const adsSpendSyncJob = cron.schedule('0 4 * * *', async () => {
+            const syncService = getAdsSpendSync();
+            if (!syncService) return;
+            console.log('[Cron] 💸 Sincronizando gasto publicitario...');
+            try {
+                const result = await syncService.syncAll();
+                console.log(`[Cron] ✅ Ads sync: ${result.synced} campañas, ${result.errors} errores`);
+            } catch (error) {
+                console.error('[Cron] ❌ Error sync gasto ads:', error);
+            }
+        }, {
+            timezone: 'UTC'
+        });
+        this.jobs.push(adsSpendSyncJob);
+
+        // 13. CRM Fase 3: Alertas automáticas de campañas — Diario a las 08:00 UTC
+        const alertCheckJob = cron.schedule('0 8 * * *', async () => {
+            const alertService = getAlertService();
+            if (!alertService) return;
+            try {
+                const result = await alertService.runAll();
+                if (result.alerts?.length > 0) {
+                    console.log(`[Cron] ⚠️ CRM Alertas: ${result.alerts.length} alertas generadas (${result.duration}ms)`);
+                }
+            } catch (error) {
+                console.error('[Cron] ❌ Error alertas CRM:', error);
+            }
+        }, {
+            timezone: 'UTC'
+        });
+        this.jobs.push(alertCheckJob);
+
         console.log(`[CronService] ✅ ${this.jobs.length} tareas programadas iniciadas`);
     }
 
@@ -217,6 +325,42 @@ class CronService {
     }
 
     /**
+     * Ejecutar runner de secuencias CRM manualmente
+     */
+    static async runSequenceRunnerNow() {
+        const runner = getSequenceRunner();
+        if (!runner) return { error: 'Módulo CRM no disponible' };
+        return runner.processAll();
+    }
+
+    /**
+     * Ejecutar tracking dispatch manualmente (Fase 3)
+     */
+    static async runTrackingDispatchNow() {
+        const dispatcher = getTrackingDispatcher();
+        if (!dispatcher) return { error: 'Módulo CRM no disponible' };
+        return dispatcher.processAll();
+    }
+
+    /**
+     * Ejecutar sync de gasto publicitario manualmente (Fase 3)
+     */
+    static async runAdsSpendSyncNow() {
+        const syncService = getAdsSpendSync();
+        if (!syncService) return { error: 'Módulo CRM no disponible' };
+        return syncService.syncAll();
+    }
+
+    /**
+     * Ejecutar alertas CRM manualmente (Fase 3)
+     */
+    static async runAlertCheckNow() {
+        const alertService = getAlertService();
+        if (!alertService) return { error: 'Módulo CRM no disponible' };
+        return alertService.runAll();
+    }
+
+    /**
      * Estado de todos los jobs
      */
     static getStatus() {
@@ -231,7 +375,11 @@ class CronService {
                 { name: 'renewals', schedule: '0 6 * * *', description: 'Renovaciones automáticas' },
                 { name: 'disputes', schedule: '0 12 * * 0', description: 'Escalar disputas' },
                 { name: 'membershipReminder', schedule: '0 9 * * *', description: 'Recordatorios membresía' },
-                { name: 'packageExpiration', schedule: '0 10 * * *', description: 'Avisos expiración paquetes' }
+                { name: 'packageExpiration', schedule: '0 10 * * *', description: 'Avisos expiración paquetes' },
+                { name: 'sequenceRunner', schedule: '*/10 * * * *', description: 'CRM: Procesar secuencias email' },
+                { name: 'trackingDispatch', schedule: '5,20,35,50 * * * *', description: 'CRM: Despachar conversiones a Meta/Google/GA4' },
+                { name: 'adsSpendSync', schedule: '0 4 * * *', description: 'CRM: Sync gasto publicitario' },
+                { name: 'alertCheck', schedule: '0 8 * * *', description: 'CRM: Alertas campañas' }
             ]
         };
     }

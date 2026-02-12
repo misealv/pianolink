@@ -5,6 +5,7 @@ const Booking = require('../models/Booking');
 const User = require('../models/User');
 const ClassSession = require('../models/ClassSession');
 const StudentSubscription = require('../models/StudentSubscription');
+const eventService = require('./EventService');
 
 /**
  * Servicio para gestionar reservas de clases.
@@ -175,7 +176,17 @@ class BookingService {
             
             // 7. Enviar notificaciones (async, fuera de transacción)
             this._sendBookingNotifications(booking[0], slot, { name: studentName });
-            
+
+            // Emitir evento para CRM Bridge
+            eventService.emitSafe('booking.created', {
+                bookingId: booking[0]._id,
+                teacherId: slot.teacherId._id || slot.teacherId,
+                studentId: clientId,
+                studentName,
+                scheduledStart: slot.startTime,
+                duration: slot.duration
+            });
+
             return {
                 success: true,
                 booking: booking[0],
@@ -359,6 +370,15 @@ class BookingService {
         }
         
         await booking.save();
+
+        // Emitir evento para CRM Bridge
+        eventService.emitSafe('booking.completed', {
+            bookingId: booking._id,
+            teacherId: booking.teacherId,
+            studentId: booking.studentId || booking.clientId,
+            bookingType: booking.bookingType,
+            duration: booking.actualDuration || booking.duration
+        });
         
         // Actualizar slot
         await TimeSlot.findByIdAndUpdate(booking.slotId, {

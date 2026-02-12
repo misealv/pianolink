@@ -19,6 +19,12 @@ console.log('[SERVER] 📬 Registrando listeners de email...');
 const { registerEmailListeners } = require('./listeners/emailListeners');
 registerEmailListeners(); // Registra listeners de email al iniciar la app
 
+// ✨ NUEVO: Inicializar listeners del CRM
+console.log('[SERVER] 📊 Registrando listeners del CRM...');
+const { registerCrmListeners } = require('./listeners/crmEventListener');
+const eventService = require('./services/EventService');
+registerCrmListeners(eventService);
+
 // Verificar configuración de email
 const emailService = require('./services/EmailService');
 const emailStatus = emailService.getStatus();
@@ -184,6 +190,10 @@ app.use('/api/class-purchase', require('./routes/classPurchase')); // Compra de 
 app.use('/api/teacher-packages', require('./routes/teacherPackageRoutes')); // Paquetes de clases
 app.use('/api/subscriptions', require('./routes/subscriptionRoutes')); // Suscripciones de estudiantes
 app.use('/api/class-sessions', require('./routes/classSessionRoutes')); // Sesiones y validación
+
+// === MÓDULO CRM ===
+app.use('/api/crm', require('./crm')); // CRM: leads, campañas, conversiones, dashboard
+app.use('/l', require('./crm/routes/crmLandingPublicRoutes')); // Landings públicas: /l/:slug
 
 // Ruta para página de éxito del Welcome Kit (sin .html)
 app.get('/welcome-kit/success', (req, res) => {

@@ -15,6 +15,7 @@ const Payment = require('../models/Payment');
 const WebhookLog = require('../models/WebhookLog');
 const User = require('../models/User');
 const GlobalConfig = require('../models/GlobalConfig');
+const eventService = require('./EventService');
 
 class StripeService {
 
@@ -758,6 +759,17 @@ class StripeService {
             });
 
             console.log(`[StripeService] ✅ ${classCount} clase(s) agregadas al estudiante ${studentId}`);
+
+            // Emitir evento para CRM Bridge
+            eventService.emitSafe('payment.received', {
+                paymentId: payment._id,
+                provider: 'stripe',
+                amount: session.amount_total,
+                currency: session.currency,
+                studentId,
+                teacherId,
+                classCount
+            });
 
             return { success: true, paymentId: payment._id };
 

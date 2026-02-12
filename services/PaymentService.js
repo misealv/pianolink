@@ -10,6 +10,7 @@ const Payment = require('../models/Payment');
 const WebhookLog = require('../models/WebhookLog');
 const Subscription = require('../models/Subscription');
 const SubscriptionService = require('./SubscriptionService');
+const eventService = require('./EventService');
 
 class PaymentService {
     
@@ -377,6 +378,17 @@ class PaymentService {
             await subscription.extend(30);
 
             console.log(`[PaymentService] Pago procesado: ${externalPaymentId}, suscripción extendida`);
+
+            // Emitir evento para CRM Bridge
+            eventService.emitSafe('payment.received', {
+                paymentId: payment._id,
+                provider,
+                amount,
+                currency,
+                subscriptionId: subscription._id,
+                studentId: subscription.studentId
+            });
+
             return { success: true, payment, subscription };
         } catch (error) {
             console.error('[PaymentService] Error procesando pago:', error.message);
