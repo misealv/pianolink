@@ -906,10 +906,18 @@
                 });
                 if (res.status === 401) {
                     console.warn('[CRM] Token inválido o expirado');
-                    // Podrías redirigir a login aquí
+                    showAuthError();
                     return null;
                 }
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                if (res.status === 403) {
+                    console.warn('[CRM] Sin permisos de administrador');
+                    showApiError('Necesitas rol de administrador para acceder al CRM.');
+                    return null;
+                }
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.message || `HTTP ${res.status}`);
+                }
                 return await res.json();
             } catch (err) {
                 console.error(`[CRM] Error en ${path}:`, err.message);
@@ -1251,10 +1259,67 @@
         }
 
         /* ===============================================================
+         *  ALERTA DE AUTENTICACIÓN
+         * =============================================================== */
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showAuthError();
+                return false;
+            }
+            return true;
+        }
+
+        function showAuthError() {
+            const content = document.querySelector('.content');
+            if (content) {
+                content.innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;">
+                        <div style="font-size:64px;margin-bottom:20px;">🔐</div>
+                        <h2 style="font-size:24px;color:#2d3436;margin-bottom:10px;">Acceso Requerido</h2>
+                        <p style="color:#636e72;margin-bottom:20px;max-width:400px;">
+                            Para acceder al CRM necesitas iniciar sesión como administrador.
+                        </p>
+                        <a href="/login.html" style="
+                            display:inline-block;
+                            padding:12px 24px;
+                            background:#6c5ce7;
+                            color:white;
+                            text-decoration:none;
+                            border-radius:8px;
+                            font-weight:500;
+                        ">Iniciar Sesión</a>
+                        <p style="color:#b2bec3;font-size:12px;margin-top:20px;">
+                            Después de iniciar sesión, vuelve a esta página.
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        function showApiError(message) {
+            const kpiGrid = document.getElementById('kpiGrid');
+            if (kpiGrid) {
+                kpiGrid.innerHTML = `
+                    <div style="grid-column:1/-1;padding:20px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;color:#856404;">
+                        <strong>⚠️ Error al cargar datos:</strong> ${message || 'No se pudo conectar con el servidor'}
+                        <br><small style="opacity:0.7">Verifica tu conexión o contacta al administrador.</small>
+                    </div>
+                `;
+            }
+        }
+
+        /* ===============================================================
          *  INICIALIZACIÓN — Solo activa lo necesario al cargar
          * =============================================================== */
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[CRM] 🚀 Inicializando dashboard...');
+
+            // Verificar autenticación primero
+            if (!checkAuth()) {
+                console.warn('[CRM] ❌ Sin token de autenticación');
+                return;
+            }
 
             // UI sin red
             initTabs();
@@ -1270,6 +1335,9 @@
                 loadLeads()
             ]).then(() => {
                 console.log('[CRM] ✅ Dashboard listo');
+            }).catch(err => {
+                console.error('[CRM] Error cargando datos:', err);
+                showApiError(err.message);
             });
         });
 
