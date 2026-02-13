@@ -43,34 +43,34 @@ async function seedWaitlistLanding() {
         
         content: {
             hero: {
-                headline: 'El 29 de marzo abre PianoLink',
-                subheadline: 'Solo 88 cupos. Clases 1 a 1 de piano online con tecnología MIDI. Desde tu casa.',
-                ctaText: '🎹 Reservar mi lugar gratis',
+                headline: '🎹 El 29 de marzo inicia PianoLink',
+                subheadline: 'Solo 88 cupos disponibles. Clases de piano 1 a 1 online con tecnología MIDI profesional. Aprende desde casa con profesores certificados.',
+                ctaText: '🎹 Quiero mi lugar (Gratis)',
                 ctaColor: '#c9a84c',
-                backgroundImage: '',
+                backgroundImage: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=1920&auto=format&fit=crop',
                 videoUrl: ''
             },
             
             benefits: [
                 {
                     icon: '🎯',
-                    title: 'Solo 88 cupos',
-                    description: 'Edición limitada del Día 88. Cuando se agoten, se agotaron.'
+                    title: 'Edición Limitada',
+                    description: 'Solo 88 lugares disponibles por el Día 88. Cupos limitados para garantizar calidad y atención personalizada.'
                 },
                 {
                     icon: '💰',
-                    title: '$44 USD (50% OFF)',
-                    description: 'Kit de Bienvenida a precio especial de lanzamiento. Después $90.'
+                    title: 'Precio Especial: $44',
+                    description: 'Kit de Bienvenida con 50% de descuento. Incluye asesoría técnica, setup y tu primera clase. Precio normal: $90 USD.'
                 },
                 {
                     icon: '🎁',
-                    title: '15% OFF adicional',
-                    description: 'Por estar en la lista, 15% de descuento en tus primeras 3 compras.'
+                    title: 'Bonus Exclusivo',
+                    description: '15% de descuento adicional en tus primeras 3 compras por registrarte en la lista de espera.'
                 },
                 {
                     icon: '⚡',
-                    title: 'Acceso anticipado',
-                    description: 'Recibes el link antes que nadie el 29 de marzo a las 9:00 AM.'
+                    title: 'Acceso VIP',
+                    description: 'Recibes el link de acceso 24 horas antes que el público general. Lanzamiento: 29 marzo, 9:00 AM.'
                 }
             ],
             
@@ -114,15 +114,15 @@ async function seedWaitlistLanding() {
             
             branding: {
                 primaryColor: '#c9a84c',
-                logoUrl: '',
+                logoUrl: 'https://pianolink.net/logo.png',
                 fontFamily: 'Georgia'
             }
         },
         
         seo: {
             title: 'Lista de Espera — PianoLink Día 88',
-            description: 'Reserva tu lugar para el lanzamiento de PianoLink el 29 de marzo. Solo 88 cupos a $44 USD. Clases de piano online 1 a 1.',
-            ogImage: ''
+            description: 'Reserva tu lugar para el lanzamiento de PianoLink el 29 de marzo. Solo 88 cupos a $44 USD. Clases de piano online 1 a 1 con tecnología MIDI.',
+            ogImage: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=1200&auto=format&fit=crop'
         },
         
         utmParams: {
