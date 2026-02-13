@@ -943,6 +943,11 @@
     }
 
     function loadSectionData(sectionId) {
+        // Si no hay token, mostrar error de auth en la sección
+        if (!getToken()) {
+            showAuthError();
+            return;
+        }
         switch(sectionId) {
             case 'leads-all': renderLeadsTable(allLeads, 'leadsTableAll'); break;
             case 'leads-profesores': renderLeadsTable(allLeads.filter(l => l.leadRef?.type === 'teacher'), 'leadsTableProfesores'); break;
@@ -1557,13 +1562,8 @@
 
     // === INIT ===
     document.addEventListener('DOMContentLoaded', () => {
-        if (!getToken()) {
-            showAuthError();
-            return;
-        }
-
+        // Siempre inicializar navegación del sidebar (independiente de auth)
         initNavigation();
-        loadDashboard();
 
         // Refresh button
         document.getElementById('btnRefresh')?.addEventListener('click', loadDashboard);
@@ -1572,10 +1572,11 @@
         document.getElementById('btnLogout')?.addEventListener('click', (e) => {
             e.preventDefault();
             localStorage.removeItem('token');
+            document.cookie = 'plk_token=; Max-Age=0; path=/';
             window.location.href = '/login.html';
         });
 
-        // Filters for leads
+        // Filtros de leads
         document.querySelectorAll('.filters .filter-btn[data-type]').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.filters .filter-btn[data-type]').forEach(b => b.classList.remove('active'));
@@ -1585,6 +1586,13 @@
                 renderLeadsTable(filtered, 'leadsTableAll');
             });
         });
+
+        // Verificar auth y cargar datos
+        if (!getToken()) {
+            showAuthError();
+            return;
+        }
+        loadDashboard();
     });
 
 })();
