@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PianoLink CRM</title>
+    <style>
+        /* === RESET & VARIABLES === */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --sidebar-w: 240px;
+            --header-h: 56px;
+            --bg-body: #f4f6f9;
+            --bg-sidebar: #1a1d23;
+            --bg-header: #ffffff;
+            --accent: #6c5ce7;
+            --accent-hover: #5a4bd1;
+            --text-primary: #2d3436;
+            --text-secondary: #636e72;
+            --text-sidebar: #b2bec3;
+            --text-sidebar-active: #ffffff;
+            --border: #e0e0e0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* === SIDEBAR === */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--bg-sidebar);
+            color: var(--text-sidebar);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+        }
+
+        .sidebar-brand .logo {
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .sidebar-brand span {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-sidebar-active);
+            letter-spacing: .3px;
+        }
+
+        .sidebar-section {
+            padding: 16px 12px 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,.3);
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0 8px;
+        }
+
+        .sidebar-nav li a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            color: var(--text-sidebar);
+            text-decoration: none;
+            font-size: 14px;
+            transition: background .15s, color .15s;
+        }
+
+        .sidebar-nav li a:hover {
+            background: rgba(255,255,255,.06);
+            color: var(--text-sidebar-active);
+        }
+
+        .sidebar-nav li a.active {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .sidebar-nav li a .icon {
+            width: 20px;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 16px 20px;
+            border-top: 1px solid rgba(255,255,255,.08);
+            font-size: 12px;
+            color: rgba(255,255,255,.25);
+        }
+
+        /* === MAIN LAYOUT === */
+        .main-wrapper {
+            margin-left: var(--sidebar-w);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* === HEADER === */
+        .header {
+            height: var(--header-h);
+            background: var(--bg-header);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-left h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header-breadcrumb {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-search {
+            padding: 7px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 13px;
+            width: 220px;
+            outline: none;
+            transition: border-color .15s;
+        }
+
+        .header-search:focus {
+            border-color: var(--accent);
+        }
+
+        .header-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .header-btn {
+            padding: 6px 14px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .header-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        /* === CONTENT AREA === */
+        .content {
+            flex: 1;
+            padding: 24px;
+        }
+
+        /* Placeholder para secciones futuras */
+        .placeholder-section {
+            background: var(--bg-header);
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        /* === KPI CARDS === */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--bg-header);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .kpi-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .kpi-icon.leads   { background: #dfe6e9; }
+        .kpi-icon.conv    { background: #d4f5e2; }
+        .kpi-icon.ads     { background: #ffeaa7; }
+        .kpi-icon.pending  { background: #fab1a0; }
+
+        .kpi-body h3 {
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+
+        .kpi-body p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .kpi-body .kpi-sub {
+            font-size: 11px;
+            color: var(--accent);
+            margin-top: 2px;
+        }
+
+        /* === LEADS TABLE === */
+        .table-wrapper {
+            background: var(--bg-header);
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .table-header h2 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .table-header .table-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .leads-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .leads-table thead th {
+            text-align: left;
+            padding: 10px 16px;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--text-secondary);
+            background: #fafafa;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .leads-table tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background .1s;
+        }
+
+        .leads-table tbody tr:last-child { border-bottom: none; }
+        .leads-table tbody tr:hover { background: #f8f9fb; }
+
+        .leads-table td {
+            padding: 12px 16px;
+            vertical-align: middle;
+        }
+
+        .lead-name {
+            font-weight: 500;
+        }
+
+        .lead-email {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-estudiante { background: #dfe6e9; color: #2d3436; }
+        .badge-profesor   { background: #e4d4f4; color: #5b2c8e; }
+
+        .badge-nuevo       { background: #b2f5ea; color: #0d6e5e; }
+        .badge-contactado  { background: #bee3f8; color: #2b6cb0; }
+        .badge-prueba      { background: #fefcbf; color: #975a16; }
+        .badge-convertido  { background: #c6f6d5; color: #276749; }
+
+        /* Botones de acción en tabla */
+        .action-btn {
+            padding: 4px 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: transparent;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background .12s, border-color .12s;
+            margin-right: 4px;
+        }
+
+        .action-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .action-btn.primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .action-btn.primary:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Responsive: colapsar cards en 2 cols en pantallas pequeñas */
+        @media (max-width: 900px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* === TABS — Herramientas de Crecimiento === */
+        .tools-section {
+            background: var(--bg-header);
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .tools-section > .section-title {
+            padding: 16px 20px 0;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .tabs-bar {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            padding: 0 20px;
+            gap: 0;
+        }
+
+        .tab-btn {
+            padding: 12px 18px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: color .15s, border-color .15s;
+        }
+
+        .tab-btn:hover { color: var(--text-primary); }
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-panel {
+            display: none;
+            padding: 20px;
+        }
+
+        .tab-panel.active { display: block; }
+
+        /* Formulario email */
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color .15s;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn {
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: background .15s, opacity .15s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+        .btn-success {
+            background: #00b894;
+            color: #fff;
+        }
+
+        .btn-success:hover { opacity: .85; }
+
+        /* Tabla de anuncios (reutiliza estilos de leads-table) */
+        .ads-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .ads-table thead th {
+            text-align: left;
+            padding: 10px 16px;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--text-secondary);
+            background: #fafafa;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .ads-table tbody tr {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .ads-table tbody tr:last-child { border-bottom: none; }
+        .ads-table tbody tr:hover { background: #f8f9fb; }
+        .ads-table td { padding: 12px 16px; vertical-align: middle; }
+
+        /* Landings list */
+        .landing-list {
+            list-style: none;
+        }
+
+        .landing-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .landing-item:last-child { border-bottom: none; }
+
+        .landing-info h4 {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .landing-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .landing-actions {
+            display: flex;
+            gap: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="logo">♪</div>
+            <span>PianoLink CRM</span>
+        </div>
+
+        <p class="sidebar-section">Principal</p>
+        <ul class="sidebar-nav">
+            <li><a href="#dashboard" class="active"><span class="icon">📊</span> Dashboard</a></li>
+            <li><a href="#leads"><span class="icon">👥</span> Leads</a></li>
+            <li><a href="#campaigns"><span class="icon">📣</span> Campañas</a></li>
+            <li><a href="#funnel"><span class="icon">🔻</span> Embudo</a></li>
+        </ul>
+
+        <p class="sidebar-section">Gestión</p>
+        <ul class="sidebar-nav">
+            <li><a href="#interactions"><span class="icon">💬</span> Interacciones</a></li>
+            <li><a href="#conversions"><span class="icon">💰</span> Conversiones</a></li>
+            <li><a href="#tracking"><span class="icon">📡</span> Tracking</a></li>
+        </ul>
+
+        <p class="sidebar-section">Sistema</p>
+        <ul class="sidebar-nav">
+            <li><a href="#settings"><span class="icon">⚙️</span> Configuración</a></li>
+        </ul>
+
+        <div class="sidebar-footer">
+            PianoLink CRM v1.0
+        </div>
+    </aside>
+
+    <!-- ========== MAIN WRAPPER ========== -->
+    <div class="main-wrapper">
+
+        <!-- ========== HEADER ========== -->
+        <header class="header">
+            <div class="header-left">
+                <h1>Dashboard</h1>
+                <span class="header-breadcrumb">CRM / Vista general</span>
+            </div>
+            <div class="header-right">
+                <input type="text" class="header-search" placeholder="Buscar lead..." id="globalSearch">
+                <button class="header-btn" id="btnRefresh">↻ Actualizar</button>
+                <div class="header-avatar" id="userAvatar" title="Admin">A</div>
+            </div>
+        </header>
+
+        <!-- ========== CONTENT ========== -->
+        <main class="content">
+
+            <!-- ========== KPI CARDS ========== -->
+            <section class="kpi-grid" id="kpiGrid">
+                <div class="kpi-card">
+                    <div class="kpi-icon leads">👥</div>
+                    <div class="kpi-body">
+                        <h3 id="kpiTotalLeads">--</h3>
+                        <p>Total Leads</p>
+                        <span class="kpi-sub" id="kpiLeadsSub">Estudiantes -- · Profesores --</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon conv">📈</div>
+                    <div class="kpi-body">
+                        <h3 id="kpiConversion">--%</h3>
+                        <p>Tasa de Conversión</p>
+                        <span class="kpi-sub" id="kpiConvSub">Últimos 30 días</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon ads">📣</div>
+                    <div class="kpi-body">
+                        <h3 id="kpiAds">--</h3>
+                        <p>Anuncios Activos</p>
+                        <span class="kpi-sub" id="kpiAdsSub">Meta -- · Google --</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon pending">🔔</div>
+                    <div class="kpi-body">
+                        <h3 id="kpiPending">--</h3>
+                        <p>Seguimientos Pendientes</p>
+                        <span class="kpi-sub" id="kpiPendingSub">Para hoy</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========== TABLA DE LEADS ========== -->
+            <section class="table-wrapper">
+                <div class="table-header">
+                    <h2>Gestión de Leads</h2>
+                    <span class="table-count" id="leadsCount">Cargando...</span>
+                </div>
+                <table class="leads-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Tipo</th>
+                            <th>Origen</th>
+                            <th>Estado</th>
+                            <th>Último Seguimiento</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadsTableBody">
+                        <!-- Filas de ejemplo estáticas — se reemplazan con JS en tarea posterior -->
+                        <tr>
+                            <td>
+                                <div class="lead-name">María García</div>
+                                <div class="lead-email">maria@email.com</div>
+                            </td>
+                            <td><span class="badge badge-estudiante">Estudiante</span></td>
+                            <td>Meta Ads</td>
+                            <td><span class="badge badge-nuevo">Nuevo</span></td>
+                            <td>--</td>
+                            <td>
+                                <button class="action-btn">✏️ Editar</button>
+                                <button class="action-btn primary">✉️ Email</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="lead-name">Carlos López</div>
+                                <div class="lead-email">carlos@email.com</div>
+                            </td>
+                            <td><span class="badge badge-profesor">Profesor</span></td>
+                            <td>Google Ads</td>
+                            <td><span class="badge badge-contactado">Contactado</span></td>
+                            <td>10 Feb 2026</td>
+                            <td>
+                                <button class="action-btn">✏️ Editar</button>
+                                <button class="action-btn primary">✉️ Email</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="lead-name">Ana Rodríguez</div>
+                                <div class="lead-email">ana@email.com</div>
+                            </td>
+                            <td><span class="badge badge-estudiante">Estudiante</span></td>
+                            <td>Orgánico</td>
+                            <td><span class="badge badge-prueba">Clase de Prueba</span></td>
+                            <td>09 Feb 2026</td>
+                            <td>
+                                <button class="action-btn">✏️ Editar</button>
+                                <button class="action-btn primary">✉️ Email</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="lead-name">Pedro Martínez</div>
+                                <div class="lead-email">pedro@email.com</div>
+                            </td>
+                            <td><span class="badge badge-profesor">Profesor</span></td>
+                            <td>Referido</td>
+                            <td><span class="badge badge-convertido">Convertido</span></td>
+                            <td>08 Feb 2026</td>
+                            <td>
+                                <button class="action-btn">✏️ Editar</button>
+                                <button class="action-btn primary">✉️ Email</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- ========== HERRAMIENTAS DE CRECIMIENTO ========== -->
+            <section class="tools-section" id="toolsSection">
+                <h2 class="section-title">Herramientas de Crecimiento</h2>
+
+                <!-- TABS BAR -->
+                <div class="tabs-bar">
+                    <button class="tab-btn active" data-tab="tab-email">✉️ Email Marketing</button>
+                    <button class="tab-btn" data-tab="tab-ads">📣 Gestor de Anuncios</button>
+                    <button class="tab-btn" data-tab="tab-landings">🌐 Landings</button>
+                </div>
+
+                <!-- ===== TAB 1: EMAIL MARKETING ===== -->
+                <div class="tab-panel active" id="tab-email">
+                    <form id="emailForm">
+                        <div class="form-group">
+                            <label for="emailSubject">Asunto</label>
+                            <input type="text" class="form-input" id="emailSubject" placeholder="Ej: ¡Tu primera clase gratis te espera!">
+                        </div>
+                        <div class="form-group">
+                            <label for="emailSegment">Segmento</label>
+                            <select class="form-select" id="emailSegment">
+                                <option value="">— Seleccionar segmento —</option>
+                                <option value="estudiantes">Estudiantes</option>
+                                <option value="profesores">Profesores</option>
+                                <option value="todos">Todos los leads</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="emailBody">Cuerpo del Email</label>
+                            <textarea class="form-textarea" id="emailBody" placeholder="Escribe el contenido del email..."></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-outline" id="btnScheduleEmail">🕐 Programar Seguimiento</button>
+                            <button type="button" class="btn btn-primary" id="btnSendEmail">📤 Enviar Ahora</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ===== TAB 2: GESTOR DE ANUNCIOS ===== -->
+                <div class="tab-panel" id="tab-ads">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                        <span style="font-size:13px;color:var(--text-secondary);">Campañas publicitarias activas</span>
+                        <button class="btn btn-success" id="btnSyncMeta">🔄 Sincronizar con Meta API</button>
+                    </div>
+                    <table class="ads-table">
+                        <thead>
+                            <tr>
+                                <th>Campaña</th>
+                                <th>Plataforma</th>
+                                <th>Presupuesto/día</th>
+                                <th>Clics</th>
+                                <th>Conversiones</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adsTableBody">
+                            <!-- Filas estáticas de ejemplo — se reemplazan con JS -->
+                            <tr>
+                                <td><strong>Clase Demo Piano</strong></td>
+                                <td><span class="badge" style="background:#1877f2;color:#fff;">Meta</span></td>
+                                <td>$15.00</td>
+                                <td>342</td>
+                                <td>28</td>
+                                <td><span class="badge badge-nuevo">Activa</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Busca Profesor Piano</strong></td>
+                                <td><span class="badge" style="background:#ea4335;color:#fff;">Google</span></td>
+                                <td>$10.00</td>
+                                <td>189</td>
+                                <td>15</td>
+                                <td><span class="badge badge-nuevo">Activa</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Registro Profesores</strong></td>
+                                <td><span class="badge" style="background:#1877f2;color:#fff;">Meta</span></td>
+                                <td>$8.00</td>
+                                <td>97</td>
+                                <td>6</td>
+                                <td><span class="badge badge-prueba">Pausada</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- ===== TAB 3: CONSTRUCTOR DE LANDINGS ===== -->
+                <div class="tab-panel" id="tab-landings">
+                    <ul class="landing-list" id="landingList">
+                        <li class="landing-item">
+                            <div class="landing-info">
+                                <h4>Landing Clase Demo</h4>
+                                <p>/clase-demo — 1,240 visitas · 8.2% conversión</p>
+                            </div>
+                            <div class="landing-actions">
+                                <button class="action-btn">✏️ Editar</button>
+                                <button class="action-btn primary">📊 Estadísticas</button>
+                            </div>
+                        </li>
+                        <li class="landing-item">
+                            <div class="landing-info">
+                                <h4>Registro Profesores</h4>
+                                <p>/registro-profesor — 876 visitas · 5.1% conversión</p>
+                            </div>
+                            <div class="landing-actions">
+                                <button class="action-btn">✏️ Editar</button>
+                                <button class="action-btn primary">📊 Estadísticas</button>
+                            </div>
+                        </li>
+                        <li class="landing-item">
+                            <div class="landing-info">
+                                <h4>Promoción Verano 2026</h4>
+                                <p>/verano-2026 — 320 visitas · 12.5% conversión</p>
+                            </div>
+                            <div class="landing-actions">
+                                <button class="action-btn">✏️ Editar</button>
+                                <button class="action-btn primary">📊 Estadísticas</button>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <script>
+    /* =================================================================
+     *  PianoLink CRM — Lógica Central (Tarea 4)
+     *  Vanilla JS · Modular · Lazy-load por sección
+     * ================================================================= */
+    (() => {
+        'use strict';
+
+        // ── Configuración base ──
+        const API = '/api/crm';
+
+        /** Devuelve headers con JWT desde localStorage */
+        function authHeaders() {
+            const token = localStorage.getItem('token');
+            return {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            };
+        }
+
+        /** Fetch genérico con manejo de errores */
+        async function apiFetch(path, opts = {}) {
+            try {
+                const res = await fetch(`${API}${path}`, {
+                    headers: authHeaders(),
+                    ...opts
+                });
+                if (res.status === 401) {
+                    console.warn('[CRM] Token inválido o expirado');
+                    showAuthError();
+                    return null;
+                }
+                if (res.status === 403) {
+                    console.warn('[CRM] Sin permisos de administrador');
+                    showApiError('Necesitas rol de administrador para acceder al CRM.');
+                    return null;
+                }
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.message || `HTTP ${res.status}`);
+                }
+                return await res.json();
+            } catch (err) {
+                console.error(`[CRM] Error en ${path}:`, err.message);
+                return null;
+            }
+        }
+
+        /* ===============================================================
+         *  1. NAVEGACIÓN — Tabs de Herramientas
+         * =============================================================== */
+        function initTabs() {
+            const buttons = document.querySelectorAll('.tab-btn');
+            const panels  = document.querySelectorAll('.tab-panel');
+
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const target = btn.dataset.tab;
+
+                    // Desactivar todos
+                    buttons.forEach(b => b.classList.remove('active'));
+                    panels.forEach(p => p.classList.remove('active'));
+
+                    // Activar seleccionado
+                    btn.classList.add('active');
+                    const panel = document.getElementById(target);
+                    if (panel) panel.classList.add('active');
+                });
+            });
+        }
+
+        /* ===============================================================
+         *  2. SIDEBAR — Navegación por secciones (scroll suave)
+         * =============================================================== */
+        function initSidebarNav() {
+            const links = document.querySelectorAll('.sidebar-nav a');
+
+            links.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const hash = link.getAttribute('href');
+                    const section = document.querySelector(hash);
+
+                    // Actualizar estado activo
+                    links.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+
+                    // Scroll suave si la sección existe
+                    if (section) {
+                        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+
+                    // Actualizar título del header
+                    const label = link.textContent.trim();
+                    const h1 = document.querySelector('.header-left h1');
+                    if (h1) h1.textContent = label;
+                });
+            });
+        }
+
+        /* ===============================================================
+         *  3. KPI CARDS — Carga desde /dashboard/quick-stats
+         * =============================================================== */
+        async function loadQuickStats() {
+            const data = await apiFetch('/dashboard/quick-stats');
+            if (!data?.success) return;
+
+            const d = data.data;
+
+            // Total leads
+            setText('kpiTotalLeads', d.totalLeads ?? '--');
+            setText('kpiLeadsSub', `Últimos 7d: ${d.leadsLast7Days ?? 0} · Hot: ${d.hotLeads ?? 0}`);
+
+            // Tasa de conversión
+            const convRate = d.totalLeads > 0
+                ? ((d.conversionsLast30Days / d.totalLeads) * 100).toFixed(1)
+                : '0.0';
+            setText('kpiConversion', `${convRate}%`);
+            setText('kpiConvSub', `${d.conversionsLast30Days ?? 0} conversiones / 30d`);
+
+            // Anuncios activos
+            setText('kpiAds', d.activeCampaigns ?? '--');
+            // Sub-detalle se llenará cuando carguemos campañas
+
+            // Seguimientos pendientes — se calcula al cargar leads
+            // (por ahora dejamos el placeholder)
+        }
+
+        /* ===============================================================
+         *  4. TABLA DE LEADS — Carga desde /leads
+         * =============================================================== */
+        async function loadLeads() {
+            const data = await apiFetch('/leads');
+            if (!data?.success) return;
+
+            const leads = data.data || data.leads || [];
+            const tbody = document.getElementById('leadsTableBody');
+            const counter = document.getElementById('leadsCount');
+            if (!tbody) return;
+
+            // Contador
+            if (counter) counter.textContent = `${leads.length} leads`;
+
+            // Limpiar filas estáticas
+            tbody.innerHTML = '';
+
+            if (leads.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-secondary);">Sin leads registrados</td></tr>';
+                return;
+            }
+
+            // Contador de seguimientos pendientes
+            let pendingCount = 0;
+
+            leads.forEach(lead => {
+                // Datos del lead referenciado (populate)
+                const ref = lead.leadRef || {};
+                const name  = ref.name  || ref.fullName || 'Sin nombre';
+                const email = ref.email || '';
+                const type  = ref.type  || 'estudiante';
+
+                // Mapeo lifecycle → estado visual
+                const stageMap = {
+                    subscriber: { label: 'Nuevo',          css: 'badge-nuevo' },
+                    lead:       { label: 'Nuevo',          css: 'badge-nuevo' },
+                    mql:        { label: 'Contactado',     css: 'badge-contactado' },
+                    sql:        { label: 'Contactado',     css: 'badge-contactado' },
+                    opportunity:{ label: 'Clase de Prueba', css: 'badge-prueba' },
+                    customer:   { label: 'Convertido',     css: 'badge-convertido' },
+                    evangelist: { label: 'Convertido',     css: 'badge-convertido' }
+                };
+                const stage = stageMap[lead.lifecycleStage] || stageMap.lead;
+
+                // Origen (primer touchpoint o utm)
+                const origin = lead.attribution?.firstTouch?.utmSource
+                    || lead.attribution?.firstTouch?.channel
+                    || 'Directo';
+
+                // Último seguimiento
+                const lastUpdate = lead.updatedAt
+                    ? new Date(lead.updatedAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : '--';
+
+                // Contar leads sin actividad reciente como pendientes
+                if (['subscriber','lead','mql'].includes(lead.lifecycleStage)) {
+                    pendingCount++;
+                }
+
+                // Tipo badge
+                const typeBadge = type === 'teacher'
+                    ? '<span class="badge badge-profesor">Profesor</span>'
+                    : '<span class="badge badge-estudiante">Estudiante</span>';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div class="lead-name">${esc(name)}</div>
+                        <div class="lead-email">${esc(email)}</div>
+                    </td>
+                    <td>${typeBadge}</td>
+                    <td>${esc(origin)}</td>
+                    <td><span class="badge ${stage.css}">${stage.label}</span></td>
+                    <td>${lastUpdate}</td>
+                    <td>
+                        <button class="action-btn" data-action="edit" data-id="${lead._id}">✏️ Editar</button>
+                        <button class="action-btn primary" data-action="email" data-id="${lead._id}">✉️ Email</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Actualizar KPI de pendientes
+            setText('kpiPending', pendingCount);
+
+            // Delegar clicks en acciones de tabla
+            tbody.addEventListener('click', handleLeadAction);
+        }
+
+        /* ===============================================================
+         *  5. ACTUALIZAR ESTADO (lifecycle) — PUT /leads/:id/lifecycle
+         * =============================================================== */
+        async function updateLeadLifecycle(leadId, newStage) {
+            const result = await apiFetch(`/leads/${leadId}/lifecycle`, {
+                method: 'PUT',
+                body: JSON.stringify({ lifecycleStage: newStage })
+            });
+
+            if (result?.success) {
+                console.log(`[CRM] ✅ Lead ${leadId} → ${newStage}`);
+                // Recargar tabla para reflejar cambio
+                await loadLeads();
+            } else {
+                console.error(`[CRM] ❌ Error actualizando lead ${leadId}`);
+            }
+
+            return result;
+        }
+
+        /* ===============================================================
+         *  6. ACCIONES EN TABLA — Editar / Email (delegación de eventos)
+         * =============================================================== */
+        function handleLeadAction(e) {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+            const leadId = btn.dataset.id;
+
+            switch (action) {
+                case 'edit':
+                    // Por ahora: prompt simple para cambiar lifecycle
+                    const stages = ['subscriber','lead','mql','sql','opportunity','customer','evangelist'];
+                    const input = prompt(
+                        `Cambiar estado del lead.\nOpciones: ${stages.join(', ')}\n\nNuevo estado:`,
+                        'mql'
+                    );
+                    if (input && stages.includes(input.trim())) {
+                        updateLeadLifecycle(leadId, input.trim());
+                    }
+                    break;
+
+                case 'email':
+                    // Saltar a la pestaña de Email Marketing
+                    document.querySelector('[data-tab="tab-email"]')?.click();
+                    console.log(`[CRM] 📧 Preparando email para lead ${leadId}`);
+                    break;
+            }
+        }
+
+        /* ===============================================================
+         *  7. SIMULACIÓN — Email Marketing
+         * =============================================================== */
+        function initEmailForm() {
+            const btnSend     = document.getElementById('btnSendEmail');
+            const btnSchedule = document.getElementById('btnScheduleEmail');
+
+            if (btnSend) {
+                btnSend.addEventListener('click', () => {
+                    const subject = document.getElementById('emailSubject')?.value || '';
+                    const segment = document.getElementById('emailSegment')?.value || '';
+                    const body    = document.getElementById('emailBody')?.value || '';
+
+                    if (!subject || !segment) {
+                        alert('Completa al menos el Asunto y el Segmento.');
+                        return;
+                    }
+
+                    console.log('[CRM] ✅ EMAIL ENVIADO (simulación)', {
+                        asunto: subject,
+                        segmento: segment,
+                        largo: body.length + ' caracteres'
+                    });
+                    alert(`✅ Email "${subject}" enviado al segmento "${segment}" (simulación).`);
+                });
+            }
+
+            if (btnSchedule) {
+                btnSchedule.addEventListener('click', () => {
+                    const subject = document.getElementById('emailSubject')?.value || '';
+                    console.log('[CRM] 🕐 SEGUIMIENTO PROGRAMADO (simulación)', { asunto: subject });
+                    alert(`🕐 Seguimiento programado para "${subject}" (simulación).`);
+                });
+            }
+        }
+
+        /* ===============================================================
+         *  8. SIMULACIÓN — Sincronización de Ads
+         * =============================================================== */
+        function initAdsSync() {
+            const btn = document.getElementById('btnSyncMeta');
+            if (!btn) return;
+
+            btn.addEventListener('click', () => {
+                btn.disabled = true;
+                btn.textContent = '⏳ Sincronizando...';
+
+                // Simular latencia de red
+                setTimeout(() => {
+                    console.log('[CRM] ✅ META ADS SINCRONIZADO (simulación)', {
+                        campañas: 3,
+                        timestamp: new Date().toISOString()
+                    });
+                    btn.textContent = '✅ Sincronizado';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.textContent = '🔄 Sincronizar con Meta API';
+                    }, 2000);
+                }, 1500);
+            });
+        }
+
+        /* ===============================================================
+         *  9. BÚSQUEDA GLOBAL — Filtro en tabla de leads
+         * =============================================================== */
+        function initSearch() {
+            const input = document.getElementById('globalSearch');
+            if (!input) return;
+
+            input.addEventListener('input', () => {
+                const q = input.value.toLowerCase().trim();
+                const rows = document.querySelectorAll('#leadsTableBody tr');
+
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(q) ? '' : 'none';
+                });
+            });
+        }
+
+        /* ===============================================================
+         *  10. BOTÓN REFRESH
+         * =============================================================== */
+        function initRefresh() {
+            const btn = document.getElementById('btnRefresh');
+            if (!btn) return;
+
+            btn.addEventListener('click', async () => {
+                btn.disabled = true;
+                btn.textContent = '⏳...';
+                await Promise.all([loadQuickStats(), loadLeads()]);
+                btn.disabled = false;
+                btn.textContent = '↻ Actualizar';
+            });
+        }
+
+        /* ===============================================================
+         *  UTILIDADES
+         * =============================================================== */
+        /** Escapar HTML para prevenir XSS */
+        function esc(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        /** Setear texto de un elemento por ID */
+        function setText(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        /* ===============================================================
+         *  ALERTA DE AUTENTICACIÓN
+         * =============================================================== */
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showAuthError();
+                return false;
+            }
+            return true;
+        }
+
+        function showAuthError() {
+            const content = document.querySelector('.content');
+            if (content) {
+                content.innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;">
+                        <div style="font-size:64px;margin-bottom:20px;">🔐</div>
+                        <h2 style="font-size:24px;color:#2d3436;margin-bottom:10px;">Acceso Requerido</h2>
+                        <p style="color:#636e72;margin-bottom:20px;max-width:400px;">
+                            Para acceder al CRM necesitas iniciar sesión como administrador.
+                        </p>
+                        <a href="/login.html" style="
+                            display:inline-block;
+                            padding:12px 24px;
+                            background:#6c5ce7;
+                            color:white;
+                            text-decoration:none;
+                            border-radius:8px;
+                            font-weight:500;
+                        ">Iniciar Sesión</a>
+                        <p style="color:#b2bec3;font-size:12px;margin-top:20px;">
+                            Después de iniciar sesión, vuelve a esta página.
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        function showApiError(message) {
+            const kpiGrid = document.getElementById('kpiGrid');
+            if (kpiGrid) {
+                kpiGrid.innerHTML = `
+                    <div style="grid-column:1/-1;padding:20px;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;color:#856404;">
+                        <strong>⚠️ Error al cargar datos:</strong> ${message || 'No se pudo conectar con el servidor'}
+                        <br><small style="opacity:0.7">Verifica tu conexión o contacta al administrador.</small>
+                    </div>
+                `;
+            }
+        }
+
+        /* ===============================================================
+         *  INICIALIZACIÓN — Solo activa lo necesario al cargar
+         * =============================================================== */
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('[CRM] 🚀 Inicializando dashboard...');
+
+            // Verificar autenticación primero
+            if (!checkAuth()) {
+                console.warn('[CRM] ❌ Sin token de autenticación');
+                return;
+            }
+
+            // UI sin red
+            initTabs();
+            initSidebarNav();
+            initSearch();
+            initRefresh();
+            initEmailForm();
+            initAdsSync();
+
+            // Datos del backend (lazy, en paralelo)
+            Promise.all([
+                loadQuickStats(),
+                loadLeads()
+            ]).then(() => {
+                console.log('[CRM] ✅ Dashboard listo');
+            }).catch(err => {
+                console.error('[CRM] Error cargando datos:', err);
+                showApiError(err.message);
+            });
+        });
+
+    })(); // IIFE
+    </script>
+
+</body>
+</html>
