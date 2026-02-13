@@ -870,7 +870,27 @@
     let allLandings = [];
 
     // === AUTH ===
-    function getToken() { return localStorage.getItem('token'); }
+    // Leer token de múltiples fuentes para máxima compatibilidad
+    function getToken() {
+        // 1. localStorage directo
+        const t = localStorage.getItem('token');
+        if (t) return t;
+        // 2. Dentro de pianoUser
+        try {
+            const pu = JSON.parse(localStorage.getItem('pianoUser'));
+            if (pu?.token) {
+                localStorage.setItem('token', pu.token); // Sincronizar
+                return pu.token;
+            }
+        } catch(e) {}
+        // 3. Cookie plk_token
+        const match = document.cookie.match(/(?:^|;\s*)plk_token=([^;]+)/);
+        if (match) {
+            localStorage.setItem('token', match[1]); // Sincronizar
+            return match[1];
+        }
+        return null;
+    }
     function authHeaders() {
         const token = getToken();
         return { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
@@ -1367,17 +1387,120 @@
     window.showCreateEmailModal = function() {
         alert('Crear campaña de email: usa la API POST /api/crm/emails o edita las 3 campañas de lanzamiento ya creadas.');
     };
-    window.previewEmail = function(id) {
-        window.open('/api/crm/emails/' + id + '/preview', '_blank');
+
+    // Preview: cargar HTML via API y mostrar en modal
+    window.previewEmail = async function(id) {
+        const res = await fetch(`${API}/emails/${id}/preview`, { headers: authHeaders() });
+        if (!res.ok) {
+            alert('Error al cargar preview: ' + res.statusText);
+            return;
+        }
+        const html = await res.text();
+        // Crear modal de preview
+        let modal = document.getElementById('modalPreviewEmail');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modalPreviewEmail';
+            modal.className = 'modal';
+            modal.innerHTML = `<div class="modal-content" style="max-width:700px;height:85vh;">
+                <div class="modal-header">
+                    <h3>Preview de Email</h3>
+                    <button class="modal-close" onclick="closeModal('modalPreviewEmail')">&times;</button>
+                </div>
+                <div class="modal-body" style="padding:0;flex:1;overflow:hidden;">
+                    <iframe id="previewIframe" style="width:100%;height:calc(85vh - 70px);border:none;"></iframe>
+                </div>
+            </div>`;
+            document.body.appendChild(modal);
+        }
+        modal.classList.add('show');
+        const iframe = document.getElementById('previewIframe');
+        iframe.srcdoc = html;
     };
-    window.editEmail = function(id) {
-        alert('Para editar el HTML, usa la API PUT /api/crm/emails/' + id);
+
+    // Editar: modal con editor de asunto y HTML
+    window.editEmail = async function(id) {
+        const res = await apiFetch('/emails/' + id);
+        if (!res?.success) { alert('Error al cargar campaña'); return; }
+        const c = res.data;
+
+        let modal = document.getElementById('modalEditEmail');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modalEditEmail';
+            modal.className = 'modal';
+            modal.innerHTML = `<div class="modal-content" style="max-width:800px;max-height:90vh;">
+                <div class="modal-header">
+                    <h3 id="editEmailTitle">Editar Campaña</h3>
+                    <button class="modal-close" onclick="closeModal('modalEditEmail')">&times;</button>
+                </div>
+                <div class="modal-body" style="overflow-y:auto;">
+                    <input type="hidden" id="editEmailId">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" class="form-control" id="editEmailNombre">
+                    </div>
+                    <div class="form-group">
+                        <label>Asunto</label>
+                        <input type="text" class="form-control" id="editEmailAsunto">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select class="form-control" id="editEmailTipo">
+                            <option value="secuencia">Secuencia</option>
+                            <option value="broadcast">Broadcast</option>
+                            <option value="transaccional">Transaccional</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>HTML del Email</label>
+                        <textarea class="form-control" id="editEmailHtml" rows="15" style="font-family:monospace;font-size:12px;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" onclick="closeModal('modalEditEmail')">Cancelar</button>
+                    <button class="btn btn-primary" onclick="saveEmail()">💾 Guardar</button>
+                </div>
+            </div>`;
+            document.body.appendChild(modal);
+        }
+
+        document.getElementById('editEmailId').value = c._id;
+        document.getElementById('editEmailNombre').value = c.nombre || '';
+        document.getElementById('editEmailAsunto').value = c.asunto || '';
+        document.getElementById('editEmailTipo').value = c.tipo || 'secuencia';
+        document.getElementById('editEmailHtml').value = c.contenidoHtml || '';
+        document.getElementById('editEmailTitle').textContent = 'Editar: ' + (c.nombre || 'Campaña');
+        modal.classList.add('show');
     };
+
+    // Guardar edición de email
+    window.saveEmail = async function() {
+        const id = document.getElementById('editEmailId').value;
+        const data = {
+            nombre: document.getElementById('editEmailNombre').value,
+            asunto: document.getElementById('editEmailAsunto').value,
+            tipo: document.getElementById('editEmailTipo').value,
+            contenidoHtml: document.getElementById('editEmailHtml').value
+        };
+        const res = await apiFetch('/emails/' + id, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+        if (res?.success) {
+            alert('Campaña guardada exitosamente');
+            closeModal('modalEditEmail');
+            loadEmailCampaigns();
+        } else {
+            alert('Error al guardar: ' + (res?.error || 'Intenta de nuevo'));
+        }
+    };
+
     window.sendEmail = async function(id) {
         if (!confirm('¿Enviar esta campaña ahora a todos los suscriptores?')) return;
         const res = await apiFetch('/emails/' + id + '/enviar', { method: 'POST' });
         if (res?.success) {
-            alert('Campaña enviada: ' + res.enviados + ' emails enviados');
+            alert('Campaña enviada: ' + (res.enviados || 0) + ' emails enviados');
             loadEmailCampaigns();
         } else {
             alert('Error: ' + (res?.error || 'No se pudo enviar'));
@@ -1398,9 +1521,11 @@
     }
 
     async function loadPixelSnippet() {
-        const res = await apiFetch('/config/pixel/snippet');
+        const res = await apiFetch('/config/meta-pixel');
         if (res?.success) {
-            document.getElementById('pixelSnippet').value = res.snippet || 'No disponible';
+            document.getElementById('pixelSnippet').value = res.data?.pixelId
+                ? `<!-- Meta Pixel -->\n<script>\n!function(f,b,e,v,n,t,s){...}('${res.data.pixelId}');\n</script>\n<!-- Configurado desde CRM PianoLink -->`
+                : 'Configura el Pixel ID y guarda.';
         }
     }
 

@@ -40,6 +40,15 @@ exports.loginUser = async (req, res) => {
       
       const token = generateToken(user._id);
       
+      // Establecer cookie httpOnly=false para que el CRM pueda leerla
+      res.cookie('plk_token', token, {
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/'
+      });
+      
       res.json({
         _id: user._id,
         name: user.name,

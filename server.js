@@ -3,6 +3,7 @@ const http = require("http");
 const path = require("path");
 const { Server } = require("socket.io");
 const dotenv = require("dotenv");
+const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const Annotation = require('./models/Annotation');
 
@@ -115,6 +116,7 @@ app.post('/api/webhooks/stripe',
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public"), { index: false }));
 
 // Servir páginas HTML específicas

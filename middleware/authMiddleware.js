@@ -10,11 +10,21 @@ const User = require('../models/User');
 const protect = async (req, res, next) => {
     let token;
     
-    // Verificar si el header Authorization existe y comienza con "Bearer"
+    // 1. Verificar header Authorization (Bearer token)
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1];
+    }
+    // 2. Fallback: leer token de cookie (para navegación directa)
+    if (!token && req.cookies?.plk_token) {
+        token = req.cookies.plk_token;
+    }
+    // 3. Fallback: leer token de query param (para window.open, iframes)
+    if (!token && req.query?.token) {
+        token = req.query.token;
+    }
+
+    if (token) {
         try {
-            // Extraer el token (formato: "Bearer TOKEN_AQUI")
-            token = req.headers.authorization.split(' ')[1];
             
             // Verificar y decodificar el token
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -32,9 +42,7 @@ const protect = async (req, res, next) => {
             console.error('[AUTH MIDDLEWARE] Error verificando token:', error.message);
             return res.status(401).json({ message: 'Token inválido o expirado' });
         }
-    }
-    
-    if (!token) {
+    } else {
         return res.status(401).json({ message: 'No autorizado, token no proporcionado' });
     }
 };
