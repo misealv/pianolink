@@ -47,7 +47,7 @@ async function seedWaitlistLanding() {
                 subheadline: 'Solo 88 cupos disponibles. Clases de piano 1 a 1 online con tecnología MIDI profesional. Aprende desde casa con profesores certificados.',
                 ctaText: '🎹 Quiero mi lugar (Gratis)',
                 ctaColor: '#c9a84c',
-                backgroundImage: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=1920&auto=format&fit=crop',
+                backgroundImage: 'https://images.unsplash.com/photo-1525201548942-d8732f6617a0?q=80&w=1920&auto=format&fit=crop',
                 videoUrl: ''
             },
             
@@ -122,7 +122,7 @@ async function seedWaitlistLanding() {
         seo: {
             title: 'Lista de Espera — PianoLink Día 88',
             description: 'Reserva tu lugar para el lanzamiento de PianoLink el 29 de marzo. Solo 88 cupos a $44 USD. Clases de piano online 1 a 1 con tecnología MIDI.',
-            ogImage: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=1200&auto=format&fit=crop'
+            ogImage: 'https://images.unsplash.com/photo-1525201548942-d8732f6617a0?q=80&w=1200&auto=format&fit=crop'
         },
         
         utmParams: {

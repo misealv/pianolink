@@ -311,16 +311,29 @@ function renderHead(landing) {
 
         /* === FORM === */
         .form-section {
-            background: #fff;
-            border-top: 1px solid #e5e7eb;
+            background: linear-gradient(135deg, #667eea 0%, ${primaryColor} 100%);
+            border-top: none;
+            padding: 4rem 1.5rem;
         }
         .form-wrapper {
             max-width: 520px;
             margin: 0 auto;
-            background: #f9fafb;
+            background: #ffffff;
             border-radius: 1rem;
             padding: 2.5rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+        }
+        .form-wrapper h2 {
+            color: #111827;
+            margin-bottom: 0.5rem;
+            font-size: 1.75rem;
+            text-align: center;
+        }
+        .form-wrapper .form-subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
         }
         .form-group { margin-bottom: 1.25rem; }
         .form-group label {
@@ -335,20 +348,22 @@ function renderHead(landing) {
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid #d1d5db;
+            padding: 0.875rem 1.125rem;
+            border: 2px solid #e5e7eb;
             border-radius: 0.5rem;
             font-size: 1rem;
             font-family: inherit;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            background: #fff;
+            transition: all 0.2s ease;
+            background: #f9fafb;
         }
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus {
             outline: none;
             border-color: ${primaryColor};
-            box-shadow: 0 0 0 3px ${primaryColor}33;
+            background: #fff;
+            box-shadow: 0 0 0 4px ${primaryColor}22;
+            transform: translateY(-1px);
         }
         .form-group textarea { resize: vertical; min-height: 80px; }
         .form-group .error-msg {
@@ -601,8 +616,9 @@ function renderForm(content, slug, utmParams, variantName) {
     return `
     <section class="section form-section" id="form-section">
         <div class="container">
-            <h2 class="section-title">${esc(form.submitText === 'Enviar' ? '¡Comienza ahora!' : '')}</h2>
             <div class="form-wrapper">
+                <h2>Reserva tu lugar ahora</h2>
+                <p class="form-subtitle">Solo toma 15 segundos. Recibirás acceso exclusivo el 29 de marzo.</p>
                 <form id="landing-form" novalidate>
                     ${fields}
                     ${utmHidden}
