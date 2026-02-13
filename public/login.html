@@ -344,7 +344,7 @@
             if (redirectUrl && (redirectUrl.startsWith('/') || redirectUrl.startsWith(window.location.origin))) {
               window.location.href = redirectUrl;
             } else if (userToSave.role === 'admin') {
-              window.location.href = "/crm-dashboard.html";
+              window.location.href = "admin.html";
             } else if (userToSave.role === 'teacher') {
               window.location.href = "dashboard.html";
             } else if (userToSave.role === 'client' || userToSave.role === 'student') {
