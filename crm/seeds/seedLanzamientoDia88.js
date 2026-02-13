@@ -108,7 +108,7 @@ async function seedWaitlistLanding() {
             footer: {
                 text: '© 2026 PianoLink · Fundado por Miguel Antonio',
                 links: [
-                    { label: 'hola@pianolink.pro', url: 'mailto:hola@pianolink.pro' }
+                    { label: 'hola@pianolink.net', url: 'mailto:hola@pianolink.net' }
                 ]
             },
             
