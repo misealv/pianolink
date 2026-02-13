@@ -19,6 +19,12 @@ router.use('/dashboard', require('./routes/crmDashboardRoutes'));
 router.use('/sequences', require('./routes/crmSequenceRoutes'));
 router.use('/landings', require('./routes/crmLandingRoutes'));
 
+// === Email Marketing (Lanzamiento Día 88) ===
+router.use('/emails', require('./routes/crmEmailCampaignRoutes'));
+
+// === Configuración (Meta Pixel, etc.) ===
+router.use('/config', require('./routes/crmConfigRoutes'));
+
 // === Fase 3: Growth Engine ===
 router.use('/growth', require('./routes/crmGrowthRoutes'));
 router.use('/webhooks', require('./routes/crmWebhookRoutes'));

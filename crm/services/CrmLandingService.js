@@ -463,6 +463,22 @@ class CrmLandingService {
             // Incrementar métricas (global + variante si aplica)
             await CrmLanding.incrementMetric(landing._id, 'formSubmissions', 1, trackingData.abVariant || null);
 
+            // COMPLETADO: Enviar email transaccional de confirmación para waitlist
+            if (slug === 'waitlist' && formData.email) {
+                try {
+                    const { getInstance: getResendService } = require('./CrmResendService');
+                    const resendService = getResendService();
+                    await resendService.sendWaitlistConfirmation(
+                        formData.email,
+                        formData.name || 'amigo/a'
+                    );
+                    console.log(`[CRM Landing] 📧 Email de confirmación enviado a ${formData.email}`);
+                } catch (emailErr) {
+                    console.error('[CRM Landing] Error enviando email de confirmación:', emailErr.message);
+                    // No fallar el proceso si el email falla
+                }
+            }
+
             console.log(`[CRM Landing] 📝 Form submit en /l/${slug} — email: ${formData.email || 'N/A'}${trackingData.abVariant ? ` (variante ${trackingData.abVariant})` : ''}`);
 
             return { 

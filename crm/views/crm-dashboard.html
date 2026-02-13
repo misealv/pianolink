@@ -280,9 +280,15 @@
 
     <p class="sidebar-section">Marketing</p>
     <ul class="sidebar-nav">
-        <li><a class="nav-link" data-section="campaigns"><span class="icon">📣</span> Campañas</a></li>
-        <li><a class="nav-link" data-section="sequences"><span class="icon">✉️</span> Secuencias Email</a></li>
+        <li><a class="nav-link" data-section="campaigns"><span class="icon">📣</span> Campañas Ads</a></li>
         <li><a class="nav-link" data-section="landings"><span class="icon">🌐</span> Landing Pages</a></li>
+        <li><a class="nav-link" data-section="emails"><span class="icon">📧</span> Campañas Email</a></li>
+        <li><a class="nav-link" data-section="sequences"><span class="icon">✉️</span> Secuencias Auto</a></li>
+    </ul>
+
+    <p class="sidebar-section">Configuración</p>
+    <ul class="sidebar-nav">
+        <li><a class="nav-link" data-section="pixel"><span class="icon">📊</span> Meta Pixel</a></li>
     </ul>
 
     <p class="sidebar-section">Análisis</p>
@@ -600,6 +606,110 @@
             </div>
         </section>
 
+        <!-- ==================== CAMPAÑAS EMAIL (NUEVO) ==================== -->
+        <section class="section" id="section-emails">
+            <div class="card">
+                <div class="card-header">
+                    <h2>📧 Campañas de Email</h2>
+                    <button class="btn btn-primary" onclick="showCreateEmailModal()">+ Nueva Campaña</button>
+                </div>
+                <div class="card-body">
+                    <p style="color:var(--text-secondary);margin-bottom:20px;">
+                        Gestiona campañas de email marketing. Edita HTML, programa envíos y revisa métricas.
+                    </p>
+                    <div class="filters">
+                        <button class="filter-btn active" data-estado="all">Todas</button>
+                        <button class="filter-btn" data-estado="borrador">Borradores</button>
+                        <button class="filter-btn" data-estado="programado">Programadas</button>
+                        <button class="filter-btn" data-estado="enviado">Enviadas</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Campaña</th>
+                                    <th>Tipo</th>
+                                    <th>Estado</th>
+                                    <th>Enviados</th>
+                                    <th>Abiertos</th>
+                                    <th>Clicks</th>
+                                    <th>Programado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="emailsTable">
+                                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando campañas...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== META PIXEL (NUEVO) ==================== -->
+        <section class="section" id="section-pixel">
+            <div class="card">
+                <div class="card-header">
+                    <h2>📊 Meta Pixel</h2>
+                </div>
+                <div class="card-body">
+                    <p style="color:var(--text-secondary);margin-bottom:20px;">
+                        Configura tu Meta Pixel para tracking de conversiones y remarketing.
+                    </p>
+                    <div class="form-group">
+                        <label>Estado del Pixel</label>
+                        <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+                            <input type="checkbox" id="pixelEnabled" style="width:20px;height:20px;cursor:pointer;">
+                            <span id="pixelStatusText">Desactivado</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Meta Pixel ID</label>
+                        <input type="text" class="form-control" id="pixelId" placeholder="Ej: 123456789012345">
+                    </div>
+                    <button class="btn btn-primary" onclick="savePixelConfig()">💾 Guardar Configuración</button>
+                    <hr style="margin:24px 0;">
+                    <h3 style="font-size:15px;margin-bottom:16px;">📋 Eventos Configurados por Página</h3>
+                    <table style="width:100%;margin-bottom:20px;">
+                        <thead>
+                            <tr>
+                                <th>Página</th>
+                                <th>Evento</th>
+                                <th>Datos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>/l/waitlist</td>
+                                <td><span class="badge badge-cliente">ViewContent</span></td>
+                                <td style="font-size:12px;font-family:monospace;">content_name: 'Lista de Espera'</td>
+                            </tr>
+                            <tr>
+                                <td>Submit waitlist</td>
+                                <td><span class="badge badge-convertido">Lead</span></td>
+                                <td style="font-size:12px;">—</td>
+                            </tr>
+                            <tr>
+                                <td>/welcome-kit</td>
+                                <td><span class="badge badge-prueba">InitiateCheckout</span></td>
+                                <td style="font-size:12px;font-family:monospace;">value: 44, currency: 'USD'</td>
+                            </tr>
+                            <tr>
+                                <td>Pago completado</td>
+                                <td><span class="badge badge-active">Purchase</span></td>
+                                <td style="font-size:12px;font-family:monospace;">value: 44, currency: 'USD'</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="form-group">
+                        <label>📌 Snippet para copiar (incluye en tu &lt;head&gt;)</label>
+                        <textarea class="form-control" id="pixelSnippet" rows="8" readonly style="font-family:monospace;font-size:12px;background:#f5f5f5;">Configura el Pixel ID y guarda para generar el snippet.</textarea>
+                        <button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="copyPixelSnippet()">📋 Copiar Snippet</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ==================== EMBUDO ==================== -->
         <section class="section" id="section-funnel">
             <div class="card">
@@ -822,6 +932,8 @@
             case 'landings': loadLandings(); break;
             case 'funnel': loadFunnel(); break;
             case 'attribution': loadAttribution(); break;
+            case 'emails': loadEmailCampaigns(); break;
+            case 'pixel': loadPixelConfig(); break;
         }
     }
 
@@ -1202,6 +1314,121 @@
     window.editSequence = function(id) { alert('Editar secuencia: ' + id); };
     window.viewSequenceMetrics = function(id) { alert('Ver métricas de secuencia: ' + id); };
     window.editLanding = function(id) { alert('Editar landing: ' + id); };
+
+    // === CAMPAÑAS EMAIL (NUEVO) ===
+    let allEmailCampaigns = [];
+
+    async function loadEmailCampaigns() {
+        const res = await apiFetch('/emails');
+        if (!res?.success) return;
+        allEmailCampaigns = res.data || [];
+        renderEmailsTable(allEmailCampaigns);
+    }
+
+    function renderEmailsTable(campaigns) {
+        const tbody = document.getElementById('emailsTable');
+        if (!tbody) return;
+        if (campaigns.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">
+                No hay campañas de email.<br><br>
+                <button class="btn btn-primary" onclick="showCreateEmailModal()">+ Crear Campaña</button>
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = campaigns.map(c => {
+            const estadoBadge = {
+                'borrador': 'badge-draft',
+                'programado': 'badge-prueba',
+                'enviando': 'badge-contactado',
+                'enviado': 'badge-active'
+            }[c.estado] || 'badge-draft';
+            const fechaProg = c.fechaProgramada ? new Date(c.fechaProgramada).toLocaleDateString('es-CL') : '—';
+            const m = c.metricas || {};
+            return `<tr>
+                <td>
+                    <div class="lead-name">${esc(c.nombre)}</div>
+                    <div class="lead-email">${esc(c.asunto)}</div>
+                </td>
+                <td><span class="badge">${c.tipo}</span></td>
+                <td><span class="badge ${estadoBadge}">${c.estado}</span></td>
+                <td>${m.totalEnviados || 0}</td>
+                <td>${m.totalAbiertos || 0}</td>
+                <td>${m.totalClicks || 0}</td>
+                <td>${fechaProg}</td>
+                <td>
+                    <button class="btn-icon" onclick="previewEmail('${c._id}')" title="Preview">👁</button>
+                    <button class="btn-icon" onclick="editEmail('${c._id}')" title="Editar">✏️</button>
+                    ${c.estado === 'borrador' ? `<button class="btn-icon" onclick="sendEmail('${c._id}')" title="Enviar">📤</button>` : ''}
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    window.showCreateEmailModal = function() {
+        alert('Crear campaña de email: usa la API POST /api/crm/emails o edita las 3 campañas de lanzamiento ya creadas.');
+    };
+    window.previewEmail = function(id) {
+        window.open('/api/crm/emails/' + id + '/preview', '_blank');
+    };
+    window.editEmail = function(id) {
+        alert('Para editar el HTML, usa la API PUT /api/crm/emails/' + id);
+    };
+    window.sendEmail = async function(id) {
+        if (!confirm('¿Enviar esta campaña ahora a todos los suscriptores?')) return;
+        const res = await apiFetch('/emails/' + id + '/enviar', { method: 'POST' });
+        if (res?.success) {
+            alert('Campaña enviada: ' + res.enviados + ' emails enviados');
+            loadEmailCampaigns();
+        } else {
+            alert('Error: ' + (res?.error || 'No se pudo enviar'));
+        }
+    };
+
+    // === META PIXEL (NUEVO) ===
+    async function loadPixelConfig() {
+        const res = await apiFetch('/config');
+        if (!res?.success) return;
+        const pixel = res.data?.metaPixel || {};
+        document.getElementById('pixelEnabled').checked = pixel.enabled || false;
+        document.getElementById('pixelId').value = pixel.pixelId || '';
+        document.getElementById('pixelStatusText').textContent = pixel.enabled ? 'Activado ✅' : 'Desactivado';
+        if (pixel.enabled && pixel.pixelId) {
+            loadPixelSnippet();
+        }
+    }
+
+    async function loadPixelSnippet() {
+        const res = await apiFetch('/config/pixel/snippet');
+        if (res?.success) {
+            document.getElementById('pixelSnippet').value = res.snippet || 'No disponible';
+        }
+    }
+
+    window.savePixelConfig = async function() {
+        const data = {
+            metaPixel: {
+                enabled: document.getElementById('pixelEnabled').checked,
+                pixelId: document.getElementById('pixelId').value.trim()
+            }
+        };
+        const res = await apiFetch('/config', {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+        if (res?.success) {
+            alert('Configuración guardada');
+            loadPixelConfig();
+        } else {
+            alert('Error al guardar');
+        }
+    };
+
+    window.copyPixelSnippet = function() {
+        const textarea = document.getElementById('pixelSnippet');
+        textarea.select();
+        document.execCommand('copy');
+        alert('Snippet copiado al portapapeles');
+    };
 
     // === INIT ===
     document.addEventListener('DOMContentLoaded', () => {

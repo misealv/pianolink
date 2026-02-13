@@ -59,6 +59,24 @@ function renderHead(landing) {
         ? `'${esc(branding.fontFamily)}', system-ui, -apple-system, sans-serif`
         : `system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`;
 
+    // COMPLETADO: Meta Pixel integrado si está configurado
+    const metaPixelId = process.env.META_PIXEL_ID || '';
+    const metaPixelSnippet = metaPixelId ? `
+    <!-- Meta Pixel Code - PianoLink -->
+    <script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){
+    n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;
+    s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}
+    (window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '${metaPixelId}');
+    fbq('track', 'PageView');
+    ${landing.slug === 'waitlist' ? "fbq('track', 'ViewContent', {content_name: 'Lista de Espera'});" : ''}
+    </script>
+    <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1"/></noscript>
+    <!-- End Meta Pixel Code -->` : '';
+
     return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -77,6 +95,7 @@ function renderHead(landing) {
     <meta name="robots" content="index, follow">
 
     ${fontFamily}
+    ${metaPixelSnippet}
 
     <style>
         /* === RESET + BASE === */
@@ -710,6 +729,8 @@ function renderScripts(landing, variantName) {
                 if (res.success) {
                     form.style.display = 'none';
                     if (successDiv) successDiv.style.display = 'block';
+                    // COMPLETADO: Disparar evento Lead de Meta Pixel al submit exitoso
+                    if (typeof fbq !== 'undefined') { fbq('track', 'Lead'); }
                     ${redirectUrl ? `setTimeout(function() { window.location.href = '${redirectUrl}'; }, 2000);` : ''}
                 } else {
                     btn.disabled = false;
@@ -774,10 +795,14 @@ function buildLandingHtml(landing, utmParams = {}, options = {}) {
     const previewBanner = options.preview ? renderPreviewBanner(landing) : '';
     const variantName = options.variantName || null;
 
+    // Countdown solo para landing de waitlist
+    const countdown = landing.slug === 'waitlist' ? renderCountdown() : '';
+
     return [
         renderHead(landing),
         previewBanner,
         renderHero(content),
+        countdown,
         renderBenefits(content),
         renderTestimonials(content),
         renderFaq(content),
@@ -785,6 +810,72 @@ function buildLandingHtml(landing, utmParams = {}, options = {}) {
         renderFooter(content),
         renderScripts(landing, variantName)
     ].join('\n');
+}
+
+/**
+ * Renderiza countdown para el Día 88 (29 de marzo de 2026)
+ * COMPLETADO: Countdown para landing de waitlist
+ */
+function renderCountdown() {
+    return `
+    <section class="countdown-section" style="background:#0a0a0a;padding:3rem 1.5rem;text-align:center;">
+        <div class="container" style="max-width:800px;margin:0 auto;">
+            <p style="color:#c9a84c;font-size:0.875rem;letter-spacing:3px;text-transform:uppercase;margin:0 0 1rem;">
+                Día 88 · 29 de marzo de 2026
+            </p>
+            <div id="countdown" style="display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;">
+                <div class="countdown-item" style="background:#1a1a1a;border-radius:8px;padding:1.25rem 1.5rem;min-width:80px;">
+                    <span id="days" style="display:block;font-size:2.5rem;font-weight:bold;color:#fff;font-family:Georgia,serif;">--</span>
+                    <span style="color:#888;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;">Días</span>
+                </div>
+                <div class="countdown-item" style="background:#1a1a1a;border-radius:8px;padding:1.25rem 1.5rem;min-width:80px;">
+                    <span id="hours" style="display:block;font-size:2.5rem;font-weight:bold;color:#fff;font-family:Georgia,serif;">--</span>
+                    <span style="color:#888;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;">Horas</span>
+                </div>
+                <div class="countdown-item" style="background:#1a1a1a;border-radius:8px;padding:1.25rem 1.5rem;min-width:80px;">
+                    <span id="minutes" style="display:block;font-size:2.5rem;font-weight:bold;color:#fff;font-family:Georgia,serif;">--</span>
+                    <span style="color:#888;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;">Minutos</span>
+                </div>
+                <div class="countdown-item" style="background:#1a1a1a;border-radius:8px;padding:1.25rem 1.5rem;min-width:80px;">
+                    <span id="seconds" style="display:block;font-size:2.5rem;font-weight:bold;color:#c9a84c;font-family:Georgia,serif;">--</span>
+                    <span style="color:#888;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;">Segundos</span>
+                </div>
+            </div>
+        </div>
+    </section>
+    <script>
+    (function() {
+        // Fecha objetivo: 29 de marzo de 2026 a las 9:00 AM Chile (UTC-3)
+        var targetDate = new Date('2026-03-29T12:00:00Z'); // 9:00 AM Chile = 12:00 UTC
+        
+        function updateCountdown() {
+            var now = new Date();
+            var diff = targetDate - now;
+            
+            if (diff <= 0) {
+                document.getElementById('days').textContent = '0';
+                document.getElementById('hours').textContent = '0';
+                document.getElementById('minutes').textContent = '0';
+                document.getElementById('seconds').textContent = '0';
+                return;
+            }
+            
+            var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            var seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            document.getElementById('days').textContent = days;
+            document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
+            document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
+            document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
+        }
+        
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    })();
+    </script>
+    `;
 }
 
 module.exports = { buildLandingHtml };
