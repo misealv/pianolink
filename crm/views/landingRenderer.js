@@ -159,13 +159,13 @@ function renderHead(landing) {
         }
         .hero--with-bg {
             background-size: cover;
-            background-position: center;
+            background-position: center 35%;
         }
         .hero--with-bg::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.4);
         }
         .hero__content {
             position: relative;
