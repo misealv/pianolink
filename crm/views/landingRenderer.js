@@ -159,7 +159,7 @@ function renderHead(landing) {
         }
         .hero--with-bg {
             background-size: cover;
-            background-position: center 20%;
+            background-position: center;
         }
         .hero--with-bg::before {
             content: '';
