@@ -1529,7 +1529,7 @@
         const res = await apiFetch('/config/meta-pixel');
         if (res?.success) {
             document.getElementById('pixelSnippet').value = res.data?.pixelId
-                ? `<!-- Meta Pixel -->\n<script>\n!function(f,b,e,v,n,t,s){...}('${res.data.pixelId}');\n</script>\n<!-- Configurado desde CRM PianoLink -->`
+                ? '<!-- Meta Pixel -->\n<scr' + 'ipt>\n!function(f,b,e,v,n,t,s){...}(\'' + res.data.pixelId + '\');\n</scr' + 'ipt>\n<!-- Configurado desde CRM PianoLink -->'
                 : 'Configura el Pixel ID y guarda.';
         }
     }
