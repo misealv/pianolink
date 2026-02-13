@@ -9,7 +9,7 @@ mongoose.connect(process.env.MONGO_URI).then(async () => {
     console.log('No hay admin');
     process.exit(1);
   }
-  const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+  const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
   console.log(token);
   process.exit(0);
 }).catch(e => {
