@@ -430,10 +430,33 @@ class BookingService {
                 const existingSession = await ClassSession.findOne({ bookingId: booking._id });
                 
                 if (!existingSession) {
-                    // Calcular montos (80% profesor, 20% plataforma)
+                    // Obtener source real del enrollment (platform o private_invite)
+                    const CommissionService = require('./CommissionService');
+                    const Enrollment = require('../models/Enrollment');
+                    let studentSource = 'platform';
+                    try {
+                        const enrollment = await Enrollment.findOne({
+                            studentId: booking.studentId,
+                            teacherId: booking.teacherId,
+                            status: 'active'
+                        });
+                        if (enrollment?.source) {
+                            studentSource = enrollment.source;
+                        }
+                    } catch (enrollErr) {
+                        // Si falla la búsqueda, usar 'platform' como fallback seguro
+                        console.warn('[BookingService] Error buscando enrollment source, usando platform:', enrollErr.message);
+                    }
+
+                    // Calcular montos usando CommissionService con source real
                     const pricePerClass = Math.round(subscription.totalPaidUSD / subscription.classesTotal);
-                    const platformFee = Math.round(pricePerClass * 0.20);
-                    const teacherPayout = pricePerClass - platformFee;
+                    const commissionResult = await CommissionService.calculateAndApply(
+                        booking.teacherId,
+                        studentSource,
+                        pricePerClass
+                    );
+                    const platformFee = commissionResult.platformFee;
+                    const teacherPayout = commissionResult.teacherEarnings;
 
                     const session = new ClassSession({
                         subscriptionId: subscription._id,

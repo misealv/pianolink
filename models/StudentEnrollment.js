@@ -92,6 +92,23 @@ const studentEnrollmentSchema = mongoose.Schema({
         paypalOrderId: { type: String }
     }],
     
+    // ==================== ORIGEN DEL ALUMNO (v5.0) ====================
+    source: {
+        type: String,
+        enum: ['platform', 'private_invite'],
+        default: 'platform'
+    },
+
+    // Código de invitación usado (si aplica)
+    inviteCode: { type: String, default: '' },
+
+    // Comisión aplicada en esta relación (se calcula al crear enrollment)
+    appliedCommission: {
+        platformPercent: { type: Number, default: 20 },
+        teacherPercent: { type: Number, default: 80 },
+        reason: { type: String, default: '' }
+    },
+
     // ==================== ESTADO ====================
     status: {
         type: String,
@@ -164,10 +181,14 @@ studentEnrollmentSchema.methods.updateRate = async function(newRate, changedBy =
 };
 
 // Método para comprar clases
+// Usa la comisión almacenada en appliedCommission (calculada por CommissionService al crear enrollment)
 studentEnrollmentSchema.methods.purchaseClasses = async function(classes, pricePerClass, paymentDetails = {}) {
     const totalPaid = classes * pricePerClass;
-    const teacherEarnings = totalPaid * 0.80;
-    const platformFee = totalPaid * 0.20;
+    // Usar comisión del enrollment (calculada por CommissionService) en vez de 0.80/0.20 hardcodeado
+    const teacherPercent = (this.appliedCommission?.teacherPercent || 80) / 100;
+    const platformPercent = (this.appliedCommission?.platformPercent || 20) / 100;
+    const teacherEarnings = Math.round(totalPaid * teacherPercent);
+    const platformFee = totalPaid - teacherEarnings; // Evitar error de redondeo
     
     this.purchases.push({
         classes,

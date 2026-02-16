@@ -121,7 +121,8 @@ class MembershipReminderService {
      */
     async sendReminder(teacher, type, daysUntilExpiry) {
         const isFounder = teacher.isFoundingMember || false;
-        const price = isFounder ? 10 : 20;
+        const planName = isFounder ? 'Founder' : 'Premium';
+        const price = isFounder ? 10 : 19;
         const renewUrl = 'https://pianolink.net/dashboard.html';
 
         let subject, title, message, urgency, ctaText;
@@ -222,7 +223,7 @@ class MembershipReminderService {
                             </a>
                             
                             <p style="color: #666; font-size: 11px; text-align: center; margin-top: 20px;">
-                                Pago seguro con MercadoPago
+                                Plan ${planName} · Pago seguro con MercadoPago o PayPal
                             </p>
                         </td>
                     </tr>

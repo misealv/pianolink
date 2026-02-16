@@ -540,7 +540,7 @@ router.get('/public/:slug', async (req, res) => {
         const teacher = await User.findOne({ 
             slug,
             role: 'teacher'
-        }).select('name lastName slug branding teacherData.hourlyRate teacherData.packages teacherData.profile teacherData.subscriptionStatus teacherData.earnings timezone');
+        }).select('name lastName slug country branding teacherData.hourlyRate teacherData.packages teacherData.profile teacherData.subscriptionStatus teacherData.earnings teacherData.paymentInfo.country timezone');
         
         if (!teacher) {
             return res.status(404).json({ error: 'Profesor no encontrado' });
@@ -580,6 +580,15 @@ router.get('/public/:slug', async (req, res) => {
             };
         }
         
+        // País efectivo del profesor (para resolver proveedor de pago)
+        const teacherCountry = teacher.teacherData?.paymentInfo?.country || teacher.country || teacher.branding?.country || '';
+        
+        // Mapeo país→moneda para informar al estudiante
+        const MP_COUNTRIES_MAP = { CL: 'CLP', MX: 'MXN', AR: 'ARS', CO: 'COP', BR: 'BRL', PE: 'PEN', UY: 'UYU' };
+        const isMPCountry = MP_COUNTRIES_MAP.hasOwnProperty(teacherCountry.toUpperCase());
+        const paymentCurrency = isMPCountry ? MP_COUNTRIES_MAP[teacherCountry.toUpperCase()] : 'USD';
+        const paymentProvider = isMPCountry ? 'mercadopago' : 'paypal';
+
         res.json({
             success: true,
             teacher: {
@@ -587,7 +596,9 @@ router.get('/public/:slug', async (req, res) => {
                 name: teacher.lastName ? `${teacher.name} ${teacher.lastName}` : teacher.name,
                 slug: teacher.slug,
                 photo: teacher.branding?.profilePhotoUrl || '',
-                country: teacher.branding?.country || '',
+                country: teacherCountry,
+                paymentCurrency,
+                paymentProvider,
                 bio: teacher.branding?.bio || '',
                 colors: teacher.branding?.colors || {},
                 specialties: teacher.teacherData?.profile?.specialties || [],

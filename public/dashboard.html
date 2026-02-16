@@ -875,87 +875,94 @@
                 👤 EDITAR PERFIL
             </button>
             
-            <!-- MEMBRESÍA - DISEÑO PROFESIONAL -->
+            <!-- MI PLAN - Fase 4 v5.0 -->
             <div id="membershipSection" style="margin-top: 15px;">
-                <!-- Estado: Activo (compacto) -->
-                <div id="membershipActive" style="display:none;">
-                    <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border-radius: 10px; padding: 12px; position: relative; overflow: hidden;">
-                        <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 36px; height: 36px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">✓</div>
-                            <div style="flex: 1;">
-                                <div style="color: white; font-size: 12px; font-weight: 700;">Membresía Activa</div>
-                                <div id="membershipExpiry" style="color: rgba(255,255,255,0.8); font-size: 10px;">Renueva: --</div>
-                            </div>
-                            <button onclick="openBillingPortal()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 10px; border-radius: 6px; font-size: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
-                                ⚙️ Gestionar
-                            </button>
+
+                <!-- === TARJETA MI PLAN === -->
+                <div id="planCard" style="background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%); border-radius: 10px; padding: 14px; border: 1px solid #3d3d5c; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <div>
+                            <div style="color: #888; font-size: 9px; text-transform: uppercase; letter-spacing: 1px;">Mi Plan</div>
+                            <div id="planName" style="color: white; font-size: 16px; font-weight: 800;">Free</div>
+                        </div>
+                        <div id="planBadge" style="padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; background: rgba(136,136,136,0.15); color: #888;">
+                            SIN COSTO
                         </div>
                     </div>
-                </div>
-                
-                <!-- Estado: Pago Pendiente -->
-                <div id="membershipPastDue" style="display:none;">
-                    <div style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border-radius: 10px; padding: 14px; text-align: center;">
-                        <div style="font-size: 24px; margin-bottom: 6px;">⚠️</div>
-                        <div style="color: white; font-size: 13px; font-weight: 700; margin-bottom: 4px;">Pago Pendiente</div>
-                        <div style="color: rgba(255,255,255,0.85); font-size: 10px; margin-bottom: 10px;">Actualiza tu método de pago</div>
-                        <button onclick="openBillingPortal()" style="width: 100%; padding: 10px; background: white; color: #b45309; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">
-                            💳 Actualizar Pago
+                    <!-- Comisión actual -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+                        <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 6px; text-align: center;">
+                            <div id="planCommission" style="color: #fbbf24; font-size: 16px; font-weight: 800;">25%</div>
+                            <div style="color: #666; font-size: 8px;">Comisión PL</div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 6px; text-align: center;">
+                            <div id="planTeacherCut" style="color: #4ade80; font-size: 16px; font-weight: 800;">75%</div>
+                            <div style="color: #666; font-size: 8px;">Para ti</div>
+                        </div>
+                    </div>
+                    <!-- Permisos -->
+                    <div id="planPermissions" style="font-size: 10px; color: #888; margin-bottom: 10px;">
+                        <div id="permInvite" style="margin-bottom: 3px;">❌ No puedes invitar alumnos propios</div>
+                        <div id="permPriority">❌ Sin prioridad en asignación</div>
+                    </div>
+                    <!-- Estado membresía (si tiene plan pago) -->
+                    <div id="planStatus" style="display: none; background: rgba(5,150,105,0.15); border-radius: 6px; padding: 6px; text-align: center; margin-bottom: 8px;">
+                        <div style="color: #4ade80; font-size: 10px; font-weight: 600;">
+                            <span id="planStatusIcon">✓</span> <span id="planStatusText">Activo</span>
+                        </div>
+                        <div id="planExpiry" style="color: #888; font-size: 9px;">Renueva: --</div>
+                    </div>
+                    <!-- Botones -->
+                    <div id="planActions">
+                        <button id="btnUpgrade" onclick="window.location.href='/pricing'" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 12px rgba(99,102,241,0.3);">
+                            ⚡ Upgrade a Premium — $19/mes
+                        </button>
+                        <button id="btnRenew" onclick="handleMembershipCheckout()" style="display: none; width: 100%; padding: 10px; background: linear-gradient(135deg, #00b1ea 0%, #009ee3 100%); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; margin-top: 6px;">
+                            🔄 Renovar Membresía
                         </button>
                     </div>
                 </div>
-                
-                <!-- Estado: Necesita Activar (Trial/Cancelado/Vencido) -->
-                <div id="membershipInactive" style="display:none;">
-                    <div id="membershipCard" style="background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%); border-radius: 10px; padding: 16px; border: 1px solid #3d3d5c; position: relative; overflow: hidden;">
-                        <!-- Efecto decorativo -->
-                        <div style="position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, transparent 100%); border-radius: 0 10px 0 100%;"></div>
-                        
-                        <div style="text-align: center; position: relative; z-index: 1;">
-                            <div style="font-size: 28px; margin-bottom: 8px;">🎹</div>
-                            <div style="color: white; font-size: 14px; font-weight: 700; margin-bottom: 4px;">Membresía Profesor</div>
-                            <div id="membershipTrialText" style="display:none; color: #fbbf24; font-size: 11px; margin-bottom: 10px; background: rgba(251,191,36,0.1); padding: 4px 10px; border-radius: 12px; display: inline-block;">
-                                🎁 Período de prueba
-                            </div>
-                            <div id="membershipCancelledText" style="display:none; color: #ef4444; font-size: 11px; margin-bottom: 10px;">
-                                Tu membresía ha expirado
-                            </div>
-                            
-                            <!-- Precio -->
-                            <div id="membershipPriceBox" style="margin: 12px 0;">
-                                <div id="priceRegular" style="color: white; font-size: 28px; font-weight: 800;">
-                                    $<span id="priceAmount">--</span><span style="font-size: 14px; font-weight: 400; opacity: 0.7;">/mes</span>
-                                </div>
-                                <div id="priceFounder" style="display:none;">
-                                    <div style="color: #fbbf24; font-size: 28px; font-weight: 800;">
-                                        $<span id="priceFounderAmount">--</span><span style="font-size: 14px; font-weight: 400; opacity: 0.7;">/mes</span>
-                                    </div>
-                                    <div style="background: linear-gradient(90deg, #fbbf24, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 10px; font-weight: 600; margin-top: 2px;">
-                                        ⭐ Precio exclusivo fundador
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Botón -->
-                            <button id="btnActivateMembership" onclick="handleSubscription()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #00b1ea 0%, #009ee3 100%); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,158,227,0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,158,227,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,158,227,0.3)'">
-                                🇨🇱 Activar con MercadoPago
+
+                <!-- === PANEL DE INVITACIONES (solo Premium/Founder) === -->
+                <div id="invitePanel" style="display: none; background: linear-gradient(135deg, #1e2e1e 0%, #2d442d 100%); border-radius: 10px; padding: 14px; border: 1px solid #3d5c3d; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <div style="color: #4ade80; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">🔗 Invitaciones Privadas</div>
+                        <button onclick="generateInviteLink()" style="background: rgba(74,222,128,0.2); border: none; color: #4ade80; padding: 4px 10px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: 600;">
+                            + Nueva
+                        </button>
+                    </div>
+                    <div style="color: rgba(255,255,255,0.7); font-size: 10px; margin-bottom: 10px;">
+                        Invita tus propios alumnos sin comisión (0% PL). Comparte el enlace.
+                    </div>
+                    <!-- Enlace generado -->
+                    <div id="inviteLinkBox" style="display: none; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <input id="inviteLinkInput" type="text" readonly style="flex: 1; background: transparent; border: none; color: #4ade80; font-size: 10px; outline: none; font-family: monospace;" value="">
+                            <button onclick="copyInviteLinkGenerated()" style="background: #4ade80; color: #0a0a0a; border: none; padding: 4px 8px; border-radius: 4px; font-size: 9px; cursor: pointer; font-weight: 700;">
+                                📋 Copiar
                             </button>
-                            
-                            <!-- Botón para sincronizar manualmente si ya pagó -->
-                            <button onclick="manualSyncMembership()" style="width: 100%; padding: 8px; margin-top: 8px; background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.borderColor='rgba(99,102,241,0.5)'; this.style.color='rgba(255,255,255,0.9)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'; this.style.color='rgba(255,255,255,0.6)'">
-                                🔄 ¿Ya pagaste? Sincronizar
-                            </button>
-                            
-                            <!-- Beneficios mini -->
-                            <div style="margin-top: 12px; display: flex; justify-content: center; gap: 15px; font-size: 9px; color: rgba(255,255,255,0.5);">
-                                <span>✓ Sala virtual</span>
-                                <span>✓ Sin comisiones</span>
-                                <span>✓ Soporte</span>
-                            </div>
                         </div>
                     </div>
+                    <!-- Lista de invitaciones -->
+                    <div id="invitesList" style="max-height: 120px; overflow-y: auto;">
+                        <div style="text-align: center; color: #555; font-size: 10px; padding: 8px;">Cargando invitaciones...</div>
+                    </div>
                 </div>
+
+                <!-- === NOTIFICACIÓN UPSELL (solo Free con >= 5 alumnos) === -->
+                <div id="upsellBanner" style="display: none; background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 10px; padding: 14px; border: 1px solid #4338ca; margin-bottom: 10px; position: relative;">
+                    <button onclick="dismissUpsell()" style="position: absolute; top: 6px; right: 8px; background: none; border: none; color: rgba(255,255,255,0.4); font-size: 14px; cursor: pointer;">×</button>
+                    <div style="font-size: 13px; color: white; font-weight: 700; margin-bottom: 6px;">💡 ¿Sabías que podrías ahorrar?</div>
+                    <div id="upsellMessage" style="color: rgba(255,255,255,0.8); font-size: 11px; line-height: 1.5; margin-bottom: 10px;">
+                        Has pagado <strong id="upsellPaid">$0</strong> en comisiones. Con Premium ahorrarías <strong id="upsellSave">$0</strong>/mes.
+                    </div>
+                    <button onclick="window.location.href='/pricing'" style="width: 100%; padding: 8px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer;">
+                        Ver planes y ahorros →
+                    </button>
+                </div>
+
+                <!-- Banners legacy de renovación/expiración (se mantienen) -->
+                <div id="legacyRenewalBanner" style="display: none;"></div>
             </div>
             
             <button onclick="window.location.href='/teacher-availability.html'" class="action-btn btn-secondary">
@@ -2645,7 +2652,7 @@
     loadWeeklyCalendar(); // Cargar calendario semanal
 
     // ============================================
-    // FUNCIONALIDAD DE MEMBRESÍA STRIPE
+    // FUNCIONALIDAD DE PLAN Y MEMBRESÍA — Fase 4 v5.0
     // ============================================
     
     // Variable global para almacenar precios de membresía
@@ -2653,158 +2660,152 @@
     
     async function loadSubscriptionStatus() {
         try {
-            const response = await fetch('/api/payment/stripe/subscription-status', {
+            // Cargar datos completos del dashboard (Fase 4)
+            const response = await fetch('/api/teacher/dashboard-data', {
                 headers: { 'Authorization': `Bearer ${user.token}` }
             });
             
-            const data = await response.json();
-            
-            if (!data.success) {
-                console.error('Error cargando suscripción:', data.error);
-                // Mostrar estado inactivo por defecto
-                showMembershipState('inactive', { isFounder: false });
+            if (!response.ok) {
+                // Fallback: si el endpoint nuevo no existe aún, usar el antiguo
+                console.warn('[Dashboard] Endpoint dashboard-data no disponible, usando fallback');
+                showPlanState('free', {});
                 return;
             }
             
-            const { subscription, pricing } = data;
-            
-            // Guardar precios de membresía desde la configuración del admin
-            if (pricing) {
-                membershipPricing = pricing;
-                console.log('[Dashboard] 💰 Precios de membresía cargados:', membershipPricing);
+            const data = await response.json();
+            if (!data.success) {
+                showPlanState('free', {});
+                return;
             }
             
-            // Actualizar UI según estado
-            switch(subscription.status) {
-                case 'active':
-                    showMembershipState('active', subscription);
-                    break;
-                    
-                case 'past_due':
-                    showMembershipState('pastdue', subscription);
-                    break;
-                    
-                case 'cancelled':
-                case 'expired':
-                    showMembershipState('cancelled', subscription);
-                    break;
-                    
-                case 'trial':
-                default:
-                    showMembershipState('inactive', subscription);
-                    break;
+            // Actualizar tarjeta de plan
+            updatePlanCard(data);
+            
+            // Mostrar panel de invitaciones si tiene permiso
+            if (data.permissions?.canInvitePrivateStudents) {
+                document.getElementById('invitePanel').style.display = 'block';
+                loadMyInvites();
+            }
+            
+            // Mostrar upsell si corresponde
+            if (data.upsell) {
+                showUpsellBanner(data.upsell);
+            }
+            
+            // Verificar si viene de un checkout exitoso
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('membership') === 'success') {
+                const plan = urlParams.get('plan') || 'premium';
+                await activateMembershipFromCheckout(plan);
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
             
         } catch (error) {
-            console.error('Error cargando estado de suscripción:', error);
-            showMembershipState('inactive', { isFounder: false });
+            console.error('[Dashboard] Error cargando plan:', error);
+            showPlanState('free', {});
         }
     }
     
-    function showMembershipState(state, subscription) {
-        // Ocultar todos los estados y banners
-        document.getElementById('membershipActive').style.display = 'none';
-        document.getElementById('membershipPastDue').style.display = 'none';
-        document.getElementById('membershipInactive').style.display = 'none';
-        document.getElementById('renewalBanner').style.display = 'none';
-        document.getElementById('expiredBanner').style.display = 'none';
+    function updatePlanCard(data) {
+        const plan = data.plan || 'free';
+        const planNames = { free: 'Free', premium: 'Premium', founder: 'Fundador' };
+        const planBadges = {
+            free: { bg: 'rgba(136,136,136,0.15)', color: '#888', text: 'SIN COSTO' },
+            premium: { bg: 'rgba(99,102,241,0.15)', color: '#818cf8', text: 'MEMBRESÍA' },
+            founder: { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24', text: '⭐ FUNDADOR' }
+        };
         
-        const isFounder = subscription.isFounder || false;
+        const badge = planBadges[plan] || planBadges.free;
+        document.getElementById('planName').textContent = planNames[plan] || 'Free';
+        const planBadgeEl = document.getElementById('planBadge');
+        planBadgeEl.textContent = badge.text;
+        planBadgeEl.style.background = badge.bg;
+        planBadgeEl.style.color = badge.color;
         
-        switch(state) {
-            case 'active':
-                document.getElementById('membershipActive').style.display = 'block';
-                if (subscription.expiresAt) {
-                    const date = new Date(subscription.expiresAt);
-                    const now = new Date();
-                    const daysUntilExpiry = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
-                    
-                    document.getElementById('membershipExpiry').textContent = `Renueva: ${date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}`;
-                    
-                    // Mostrar banner de renovación si quedan 7 días o menos
-                    if (daysUntilExpiry <= 7 && daysUntilExpiry > 0 && !localStorage.getItem('renewalBannerDismissed')) {
-                        document.getElementById('renewalBanner').style.display = 'block';
-                        document.getElementById('renewalTitle').textContent = daysUntilExpiry === 1 
-                            ? '¡Tu membresía vence mañana!' 
-                            : `Tu membresía vence en ${daysUntilExpiry} días`;
-                        document.getElementById('renewalMessage').textContent = 'Renueva ahora para seguir enseñando sin interrupciones';
-                    }
-                }
-                break;
-                
-            case 'pastdue':
-                document.getElementById('membershipPastDue').style.display = 'block';
-                document.getElementById('expiredBanner').style.display = 'block';
-                break;
-                
-            case 'cancelled':
-            case 'expired':
-                document.getElementById('membershipInactive').style.display = 'block';
-                document.getElementById('membershipTrialText').style.display = 'none';
-                document.getElementById('membershipCancelledText').style.display = 'block';
-                document.getElementById('btnActivateMembership').innerHTML = '🔄 Reactivar Membresía';
-                document.getElementById('expiredBanner').style.display = 'block';
-                updateFounderPrice(isFounder);
-                break;
-                
-            case 'inactive':
-            default:
-                document.getElementById('membershipInactive').style.display = 'block';
-                document.getElementById('membershipTrialText').style.display = 'inline-block';
-                document.getElementById('membershipCancelledText').style.display = 'none';
-                document.getElementById('btnActivateMembership').innerHTML = '🇨🇱 Activar con MercadoPago';
-                updateFounderPrice(isFounder);
-                break;
-        }
-    }
-    
-    // Ocultar banner de renovación temporalmente (por 24 horas)
-    function dismissRenewalBanner() {
-        document.getElementById('renewalBanner').style.display = 'none';
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        localStorage.setItem('renewalBannerDismissed', tomorrow.toISOString());
-    }
-    
-    // Limpiar dismiss si ya pasó el tiempo
-    (function checkRenewalDismiss() {
-        const dismissed = localStorage.getItem('renewalBannerDismissed');
-        if (dismissed && new Date(dismissed) < new Date()) {
-            localStorage.removeItem('renewalBannerDismissed');
-        }
-    })();
-    
-    function updateFounderPrice(isFounder) {
-        // Actualizar precios desde la configuración del admin
-        const priceAmountEl = document.getElementById('priceAmount');
-        const priceFounderAmountEl = document.getElementById('priceFounderAmount');
+        // Comisiones
+        const comm = data.commission || { platform: 25, teacher: 75 };
+        document.getElementById('planCommission').textContent = comm.platform + '%';
+        document.getElementById('planTeacherCut').textContent = comm.teacher + '%';
         
-        if (priceAmountEl) {
-            priceAmountEl.textContent = membershipPricing.regular || 20;
-        }
-        if (priceFounderAmountEl) {
-            priceFounderAmountEl.textContent = membershipPricing.founder || 10;
-        }
+        // Permisos
+        const perms = data.permissions || {};
+        document.getElementById('permInvite').innerHTML = perms.canInvitePrivateStudents
+            ? '✅ Puedes invitar alumnos propios (0% comisión)'
+            : '❌ No puedes invitar alumnos propios';
+        document.getElementById('permPriority').innerHTML = perms.hasPriorityQueue
+            ? '✅ Prioridad en asignación de alumnos'
+            : '❌ Sin prioridad en asignación';
         
-        if (isFounder) {
-            document.getElementById('priceRegular').style.display = 'none';
-            document.getElementById('priceFounder').style.display = 'block';
+        // Estado de membresía (si plan pago)
+        const statusEl = document.getElementById('planStatus');
+        if (plan !== 'free') {
+            statusEl.style.display = 'block';
+            const status = data.subscriptionStatus || 'active';
+            const statusConfig = {
+                active: { icon: '✓', text: 'Activo', bg: 'rgba(5,150,105,0.15)', color: '#4ade80' },
+                trial: { icon: '🎁', text: 'Período de prueba', bg: 'rgba(251,191,36,0.15)', color: '#fbbf24' },
+                expired: { icon: '⚠️', text: 'Expirado', bg: 'rgba(239,68,68,0.15)', color: '#ef4444' },
+                cancelled: { icon: '✕', text: 'Cancelado', bg: 'rgba(239,68,68,0.15)', color: '#ef4444' },
+                past_due: { icon: '⚠️', text: 'Pago pendiente', bg: 'rgba(217,119,6,0.15)', color: '#fbbf24' }
+            };
+            const sc = statusConfig[status] || statusConfig.active;
+            statusEl.style.background = sc.bg;
+            document.getElementById('planStatusIcon').textContent = sc.icon;
+            document.getElementById('planStatusText').textContent = sc.text;
+            document.getElementById('planStatusText').style.color = sc.color;
+            
+            if (data.expiresAt) {
+                const date = new Date(data.expiresAt);
+                document.getElementById('planExpiry').textContent = `Renueva: ${date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+            }
         } else {
-            document.getElementById('priceRegular').style.display = 'block';
-            document.getElementById('priceFounder').style.display = 'none';
+            statusEl.style.display = 'none';
+        }
+        
+        // Botones de acción
+        const btnUpgrade = document.getElementById('btnUpgrade');
+        const btnRenew = document.getElementById('btnRenew');
+        
+        if (plan === 'free') {
+            btnUpgrade.style.display = 'block';
+            btnRenew.style.display = 'none';
+            if (data.isFounder) {
+                btnUpgrade.textContent = '⭐ Activar Plan Fundador — $10/mes';
+                btnUpgrade.onclick = () => handleMembershipCheckout('founder');
+            }
+        } else if (['expired', 'cancelled', 'past_due'].includes(data.subscriptionStatus)) {
+            btnUpgrade.style.display = 'none';
+            btnRenew.style.display = 'block';
+            btnRenew.onclick = () => handleMembershipCheckout(plan);
+        } else {
+            // Plan activo: no mostrar botones de upgrade
+            btnUpgrade.style.display = 'none';
+            btnRenew.style.display = 'none';
+        }
+        
+        // Verificar país configurado
+        if (!data.country) {
+            checkAndSetCountry();
         }
     }
     
-    async function handleSubscription() {
-        const btn = document.getElementById('btnActivateMembership');
-        const originalText = btn.innerHTML;
+    function showPlanState(plan, data) {
+        updatePlanCard({ plan, commission: { platform: 25, teacher: 75 }, permissions: {}, ...data });
+    }
+    
+    // Checkout de membresía
+    async function handleMembershipCheckout(plan) {
+        plan = plan || 'premium';
+        const btn = event?.target;
+        const originalText = btn?.textContent;
         
         try {
-            btn.disabled = true;
-            btn.innerHTML = '⏳ Procesando...';
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '⏳ Procesando...';
+            }
             
-            // Usar MercadoPago (Stripe deshabilitado temporalmente)
-            const response = await fetch('/api/payment/mercadopago/teacher-subscription', {
+            const res = await fetch(`/api/membership/checkout/${plan}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${user.token}`,
@@ -2812,23 +2813,167 @@
                 }
             });
             
-            const data = await response.json();
+            const data = await res.json();
             
             if (data.success && data.checkoutUrl) {
-                // Redirigir a MercadoPago Checkout
                 window.location.href = data.checkoutUrl;
             } else {
-                alert('Error: ' + (data.error || 'No se pudo crear el checkout'));
-                btn.disabled = false;
-                btn.innerHTML = originalText;
+                alert(data.error || 'Error al crear checkout');
+                if (btn) { btn.disabled = false; btn.textContent = originalText; }
+            }
+        } catch (error) {
+            console.error('[Dashboard] Error checkout:', error);
+            alert('Error de conexión');
+            if (btn) { btn.disabled = false; btn.textContent = originalText; }
+        }
+    }
+    
+    // Activar plan después de checkout exitoso
+    async function activateMembershipFromCheckout(plan) {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentId = urlParams.get('payment_id') || urlParams.get('collection_id') || urlParams.get('token');
+            const provider = urlParams.get('payment_id') ? 'mercadopago' : 'paypal';
+            
+            const res = await fetch('/api/membership/activate', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${user.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ plan, paymentId, provider })
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                alert(`🎉 ¡Plan ${plan} activado exitosamente!`);
+                loadSubscriptionStatus(); // Recargar
+            }
+        } catch (error) {
+            console.error('[Dashboard] Error activando plan:', error);
+        }
+    }
+    
+    // === INVITACIONES PRIVADAS ===
+    async function generateInviteLink() {
+        try {
+            const res = await fetch('/api/invite/generate', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${user.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ expiresInDays: 7 })
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                const box = document.getElementById('inviteLinkBox');
+                box.style.display = 'block';
+                document.getElementById('inviteLinkInput').value = data.inviteUrl || `${window.location.origin}/invite/${data.code}`;
+                loadMyInvites();
+            } else {
+                alert(data.error || 'Error generando invitación');
+            }
+        } catch (error) {
+            console.error('[Dashboard] Error generando invite:', error);
+            alert('Error de conexión');
+        }
+    }
+    
+    function copyInviteLinkGenerated() {
+        const input = document.getElementById('inviteLinkInput');
+        navigator.clipboard.writeText(input.value).then(() => {
+            const feedback = document.getElementById('copyFeedback');
+            feedback.textContent = '✅ Enlace copiado';
+            setTimeout(() => { feedback.textContent = ''; }, 2000);
+        });
+    }
+    
+    async function loadMyInvites() {
+        try {
+            const res = await fetch('/api/invite/my-invites', {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            const data = await res.json();
+            const list = document.getElementById('invitesList');
+            
+            if (!data.success || !data.invites?.length) {
+                list.innerHTML = '<div style="text-align:center; color:#555; font-size:10px; padding:8px;">Sin invitaciones activas</div>';
+                return;
             }
             
+            list.innerHTML = data.invites.map(inv => {
+                const statusColors = { active: '#4ade80', used: '#888', expired: '#ef4444', revoked: '#ef4444' };
+                const statusLabels = { active: 'Activa', used: 'Usada', expired: 'Expirada', revoked: 'Revocada' };
+                const color = statusColors[inv.status] || '#888';
+                
+                return `<div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <div>
+                        <div style="color: #ddd; font-size: 10px; font-family: monospace;">${inv.code}</div>
+                        <div style="color: ${color}; font-size: 9px;">${statusLabels[inv.status] || inv.status}</div>
+                    </div>
+                    ${inv.status === 'active' ? `<button onclick="revokeInvite('${inv.code}')" style="background: rgba(239,68,68,0.15); border: none; color: #ef4444; padding: 3px 6px; border-radius: 3px; font-size: 9px; cursor: pointer;">Revocar</button>` : ''}
+                </div>`;
+            }).join('');
         } catch (error) {
-            console.error('Error:', error);
-            alert('Error al procesar la solicitud');
-            btn.disabled = false;
-            btn.innerHTML = originalText;
+            console.error('[Dashboard] Error cargando invites:', error);
         }
+    }
+    
+    async function revokeInvite(code) {
+        if (!confirm('¿Revocar esta invitación?')) return;
+        try {
+            await fetch(`/api/invite/${code}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            loadMyInvites();
+        } catch (e) { console.error(e); }
+    }
+    
+    // === UPSELL BANNER ===
+    function showUpsellBanner(upsellData) {
+        document.getElementById('upsellBanner').style.display = 'block';
+        document.getElementById('upsellPaid').textContent = '$' + (upsellData.totalCommissionsPaid || 0).toFixed(0);
+        document.getElementById('upsellSave').textContent = '$' + (upsellData.monthlySavings || 0).toFixed(0);
+    }
+    
+    function dismissUpsell() {
+        document.getElementById('upsellBanner').style.display = 'none';
+        // Registrar que se mostró
+        fetch('/api/teacher/upsell-shown', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${user.token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ triggerType: 'dashboard_banner' })
+        }).catch(() => {});
+    }
+    
+    // === COUNTRY AUTODETECT ===
+    async function checkAndSetCountry() {
+        try {
+            const res = await fetch('/api/teacher/detect-country');
+            const data = await res.json();
+            if (data.success && data.country) {
+                // Guardar automáticamente si no tiene país
+                await fetch('/api/teacher/set-country', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${user.token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ country: data.country })
+                });
+            }
+        } catch (e) { console.warn('[Dashboard] No se pudo detectar país:', e); }
+    }
+    
+    function updateFounderPrice(isFounder) {
+        // Legacy — Fase 4 ya no necesita priceAmount/priceFounderAmount elements
+        // Se mantiene para compatibilidad
+        console.log('[Dashboard] updateFounderPrice llamada (legacy)', isFounder);
+    }
+    
+    async function handleSubscription() {
+        // Redirigir al nuevo flujo de checkout (Fase 4)
+        handleMembershipCheckout('premium');
     }
     
     async function openBillingPortal() {

@@ -162,6 +162,11 @@ app.get(['/kit', '/welcome-kit', '/kit-bienvenida'], (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'kit-bienvenida-v2.html'));
 });
 
+// Página de Pricing / Planes para profesores (Fase 4 v5.0)
+app.get(['/pricing', '/precios', '/planes'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'pricing.html'));
+});
+
 // Rutas API (Mantenemos tu lógica de negocio intacta)
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/password', require('./routes/passwordRoutes')); // Magic Link y Recuperación
@@ -193,6 +198,16 @@ app.use('/api/teacher-packages', require('./routes/teacherPackageRoutes')); // P
 app.use('/api/subscriptions', require('./routes/subscriptionRoutes')); // Suscripciones de estudiantes
 app.use('/api/class-sessions', require('./routes/classSessionRoutes')); // Sesiones y validación
 
+// === INVITACIONES DE ALUMNOS PRIVADOS (Fase 3 v5.0) ===
+app.use('/api/invite', require('./routes/invite')); // Generar, listar, revocar, registrar por invitación
+
+// === CHECKOUT MEMBRESÍA PROFESOR (Fase 4 v5.0) ===
+app.use('/api/membership', require('./routes/membershipCheckout')); // Checkout premium/founder + estado
+
+// === OFERTA EARLY BIRD (Fase 5 v5.0) ===
+app.use('/api/config', require('./routes/configRoutes'));           // Config pública: /api/config/early-bird
+app.use('/api/early-bird', require('./routes/earlyBirdCheckout'));  // Checkout early bird kit
+
 // === MÓDULO CRM ===
 app.use('/api/crm', require('./crm')); // CRM: leads, campañas, conversiones, dashboard
 app.use('/l', require('./crm/routes/crmLandingPublicRoutes')); // Landings públicas: /l/:slug
@@ -202,6 +217,11 @@ app.get('/welcome-kit/success', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'welcome-kit', 'success.html'));
 });
 
+// Ruta para éxito de waitlist con oferta early bird (Fase 5 v5.0)
+app.get('/success-waitlist', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'success-waitlist.html'));
+});
+
 // Catálogo y perfiles de profesores (URLs limpias)
 app.get('/profesores', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'profesores.html'));
@@ -209,6 +229,11 @@ app.get('/profesores', (req, res) => {
 
 app.get('/profesor/:slug', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'profesor-perfil.html'));
+});
+
+// Ruta de invitación de alumno privado (Fase 3 v5.0)
+app.get('/invite/:code', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'invite-register.html'));
 });
 
 // Ruta para Mi Kit (dashboard del cliente)

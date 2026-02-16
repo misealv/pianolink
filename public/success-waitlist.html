@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Gracias por registrarte! — PianoLink</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 620px;
+            width: 100%;
+        }
+
+        /* Sección de confirmación */
+        .success-card {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 50px 40px 40px;
+            text-align: center;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .success-icon {
+            font-size: 72px;
+            margin-bottom: 16px;
+            animation: bounce 1s ease;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+
+        .success-card h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+
+        .success-card p {
+            color: #a0a0b0;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        /* Sección de oferta early bird */
+        .offer-card {
+            background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(168,85,247,0.15) 100%);
+            border: 2px solid rgba(139,92,246,0.4);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .offer-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse, rgba(139,92,246,0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .offer-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 6px 16px;
+            border-radius: 30px;
+            margin-bottom: 20px;
+        }
+
+        .offer-card h2 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .offer-card .subtitle {
+            color: #a0a0b0;
+            font-size: 15px;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        /* Precios */
+        .price-box {
+            margin-bottom: 24px;
+        }
+
+        .price-regular {
+            color: #888;
+            font-size: 18px;
+            text-decoration: line-through;
+            margin-bottom: 4px;
+        }
+
+        .price-offer {
+            font-size: 48px;
+            font-weight: 900;
+            color: #fff;
+            line-height: 1.1;
+        }
+
+        .price-offer small {
+            font-size: 20px;
+            font-weight: 600;
+            color: #a78bfa;
+        }
+
+        .discount-tag {
+            display: inline-block;
+            background: rgba(16,185,129,0.2);
+            color: #34d399;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-top: 8px;
+        }
+
+        /* Countdown */
+        .countdown-wrap {
+            margin: 24px 0;
+        }
+
+        .countdown-label {
+            color: #f59e0b;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .countdown {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .countdown .unit {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px 14px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .countdown .unit .num {
+            font-size: 28px;
+            font-weight: 800;
+            color: #fff;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .countdown .unit .lbl {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Botones de pago */
+        .pay-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .btn-pay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-pay:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .btn-pay:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-mp {
+            background: linear-gradient(135deg, #009ee3, #0077b6);
+            color: #fff;
+        }
+
+        .btn-paypal {
+            background: linear-gradient(135deg, #ffc439, #f0b90b);
+            color: #003087;
+        }
+
+        .btn-paypal:hover {
+            background: linear-gradient(135deg, #ffcf40, #f5c518);
+        }
+
+        /* Estado post-compra */
+        .purchase-success {
+            background: rgba(16,185,129,0.15);
+            border: 2px solid rgba(16,185,129,0.4);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            display: none;
+        }
+
+        .purchase-success h3 {
+            color: #34d399;
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+
+        .purchase-success p {
+            color: #a0a0b0;
+            font-size: 15px;
+        }
+
+        /* Expired */
+        .offer-expired {
+            padding: 30px;
+            text-align: center;
+            display: none;
+        }
+
+        .offer-expired p {
+            color: #888;
+            font-size: 15px;
+        }
+
+        /* Footer */
+        .footer-note {
+            text-align: center;
+            margin-top: 24px;
+            color: #666;
+            font-size: 13px;
+        }
+
+        .footer-note a {
+            color: #818cf8;
+            text-decoration: none;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 480px) {
+            .success-card, .offer-card { padding: 30px 20px; }
+            .success-card h1 { font-size: 22px; }
+            .offer-card h2 { font-size: 20px; }
+            .price-offer { font-size: 40px; }
+            .countdown .unit .num { font-size: 22px; }
+            .countdown .unit { min-width: 50px; padding: 8px 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Confirmación de registro -->
+        <div class="success-card">
+            <div class="success-icon">🎹</div>
+            <h1>¡Gracias por registrarte!</h1>
+            <p>Hemos recibido tu solicitud. Te contactaremos pronto con novedades sobre PianoLink. Revisa tu email para la confirmación.</p>
+        </div>
+
+        <!-- Oferta Early Bird -->
+        <div class="offer-card" id="offer-section" style="display:none;">
+            <span class="offer-badge">🔥 Oferta exclusiva</span>
+            <h2 id="offer-headline">¡Oferta exclusiva para madrugadores!</h2>
+            <p class="subtitle" id="offer-subtitle">Por registrarte hoy, accede al Welcome Kit con descuento único</p>
+
+            <div class="price-box">
+                <div class="price-regular" id="price-regular">$44 USD</div>
+                <div class="price-offer">$<span id="price-offer-value">29</span> <small>USD</small></div>
+                <div class="discount-tag" id="discount-tag">Ahorras $15 USD</div>
+            </div>
+
+            <div class="countdown-wrap" id="countdown-wrap">
+                <div class="countdown-label">⏰ Oferta válida por:</div>
+                <div class="countdown" id="countdown">
+                    <div class="unit">
+                        <div class="num" id="cd-min">00</div>
+                        <div class="lbl">Min</div>
+                    </div>
+                    <div class="unit">
+                        <div class="num" id="cd-sec">00</div>
+                        <div class="lbl">Seg</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pay-buttons" id="pay-buttons">
+                <button class="btn-pay btn-mp" id="btn-mp" onclick="checkout('mercadopago')" style="display:none;">
+                    🟦 Pagar con MercadoPago
+                </button>
+                <button class="btn-pay btn-paypal" id="btn-paypal" onclick="checkout('paypal')">
+                    💳 Pagar con PayPal
+                </button>
+            </div>
+        </div>
+
+        <!-- Compra exitosa -->
+        <div class="purchase-success" id="purchase-success">
+            <div style="font-size:56px; margin-bottom:12px;">🎉</div>
+            <h3>¡Compra exitosa!</h3>
+            <p>Tu Welcome Kit está en camino. Revisa tu email para los detalles y próximos pasos.</p>
+        </div>
+
+        <!-- Oferta expirada -->
+        <div class="offer-expired" id="offer-expired">
+            <p>⏰ La oferta ha expirado. Puedes ver nuestros kits disponibles en <a href="/kit-bienvenida-v2.html">la tienda</a>.</p>
+        </div>
+
+        <div class="footer-note">
+            <a href="/">← Volver a PianoLink</a>
+        </div>
+    </div>
+
+    <script>
+    // === Estado global ===
+    let earlyBirdConfig = null;
+    let countdownInterval = null;
+    let leadEmail = '';
+    let leadCountry = '';
+    let resolvedProvider = null;
+
+    // === Inicialización ===
+    document.addEventListener('DOMContentLoaded', init);
+
+    async function init() {
+        // Extraer email de query params
+        const params = new URLSearchParams(window.location.search);
+        leadEmail = params.get('email') || '';
+        leadCountry = (params.get('country') || '').toUpperCase();
+
+        // Si vuelve de un pago exitoso, mostrar confirmación
+        const paymentStatus = params.get('payment');
+        if (paymentStatus === 'success') {
+            document.getElementById('purchase-success').style.display = 'block';
+            return; // No mostrar oferta
+        }
+
+        // Cargar configuración de la oferta
+        try {
+            const res = await fetch('/api/config/early-bird');
+            const data = await res.json();
+
+            if (!data.success || !data.enabled) {
+                // Oferta deshabilitada — solo se muestra la confirmación
+                return;
+            }
+
+            earlyBirdConfig = data;
+            renderOffer(data);
+            await resolvePaymentProvider();
+            startCountdown(data.expiresAfterMinutes || 30);
+        } catch (err) {
+            console.error('Error cargando oferta early bird:', err);
+        }
+    }
+
+    // === Renderizar oferta ===
+    function renderOffer(config) {
+        const section = document.getElementById('offer-section');
+        section.style.display = 'block';
+
+        document.getElementById('offer-headline').textContent = config.headline;
+        document.getElementById('offer-subtitle').textContent = config.subtitle;
+
+        const priceOffer = (config.welcomeKitPriceUSD / 100).toFixed(0);
+        const priceRegular = (config.welcomeKitRegularPriceUSD / 100).toFixed(0);
+        const discount = ((config.welcomeKitRegularPriceUSD - config.welcomeKitPriceUSD) / 100).toFixed(0);
+
+        document.getElementById('price-offer-value').textContent = priceOffer;
+        document.getElementById('price-regular').textContent = `$${priceRegular} USD`;
+        document.getElementById('discount-tag').textContent = `Ahorras $${discount} USD`;
+    }
+
+    // === Resolver proveedor de pago ===
+    async function resolvePaymentProvider() {
+        try {
+            const countryParam = leadCountry ? `?country=${leadCountry}` : '';
+            const res = await fetch(`/api/early-bird/resolve-provider${countryParam}`);
+            const data = await res.json();
+
+            if (!data.success) return;
+
+            resolvedProvider = data;
+            leadCountry = data.countryCode;
+
+            // Mostrar botones según proveedor
+            if (data.isMpCountry) {
+                document.getElementById('btn-mp').style.display = 'flex';
+            }
+            // PayPal siempre visible como alternativa
+            document.getElementById('btn-paypal').style.display = 'flex';
+        } catch (err) {
+            console.error('Error resolviendo proveedor:', err);
+            // Fallback: mostrar solo PayPal
+            document.getElementById('btn-paypal').style.display = 'flex';
+        }
+    }
+
+    // === Countdown ===
+    function startCountdown(minutes) {
+        if (minutes <= 0) {
+            // Sin countdown — oferta permanente
+            document.getElementById('countdown-wrap').style.display = 'none';
+            return;
+        }
+
+        // Usar cookie para persistir el inicio del countdown
+        let startTime = getCookie('eb_start');
+        if (!startTime) {
+            startTime = Date.now().toString();
+            setCookie('eb_start', startTime, 1); // 1 día
+        }
+
+        const endTime = parseInt(startTime) + (minutes * 60 * 1000);
+
+        function tick() {
+            const remaining = endTime - Date.now();
+
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                onCountdownExpired();
+                return;
+            }
+
+            const mins = Math.floor(remaining / 60000);
+            const secs = Math.floor((remaining % 60000) / 1000);
+
+            document.getElementById('cd-min').textContent = String(mins).padStart(2, '0');
+            document.getElementById('cd-sec').textContent = String(secs).padStart(2, '0');
+        }
+
+        tick();
+        countdownInterval = setInterval(tick, 1000);
+    }
+
+    function onCountdownExpired() {
+        document.getElementById('offer-section').style.display = 'none';
+        document.getElementById('offer-expired').style.display = 'block';
+    }
+
+    // === Checkout ===
+    async function checkout(provider) {
+        const btnMp = document.getElementById('btn-mp');
+        const btnPaypal = document.getElementById('btn-paypal');
+
+        // Validar que tengamos email
+        if (!leadEmail) {
+            // Pedir email por prompt si no viene en URL
+            leadEmail = prompt('Ingresa tu email para completar la compra:');
+            if (!leadEmail) return;
+        }
+
+        // Deshabilitar botones
+        btnMp.disabled = true;
+        btnPaypal.disabled = true;
+
+        const activeBtn = provider === 'mercadopago' ? btnMp : btnPaypal;
+        const originalText = activeBtn.innerHTML;
+        activeBtn.innerHTML = '<span class="spinner"></span> Procesando...';
+
+        try {
+            const res = await fetch('/api/early-bird/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: leadEmail,
+                    country: leadCountry,
+                    provider
+                })
+            });
+
+            const data = await res.json();
+
+            if (!data.success || !data.checkoutUrl) {
+                throw new Error(data.error || 'Error al crear checkout');
+            }
+
+            // Redirigir al checkout externo
+            window.location.href = data.checkoutUrl;
+        } catch (err) {
+            console.error('Error en checkout:', err);
+            alert('Hubo un error al procesar tu pago. Intenta de nuevo.');
+            activeBtn.innerHTML = originalText;
+            btnMp.disabled = false;
+            btnPaypal.disabled = false;
+        }
+    }
+
+    // === Cookies helper ===
+    function setCookie(name, value, days) {
+        const d = new Date();
+        d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+        document.cookie = `${name}=${value};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+    }
+
+    function getCookie(name) {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? match[2] : null;
+    }
+    </script>
+</body>
+</html>

@@ -8,11 +8,32 @@
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({
-    // Suscripción asociada
+    // ==================== TIPO DE PAGO (v5.0) ====================
+    // Clasifica la transacción para reportes y lógica de comisión
+    type: {
+        type: String,
+        enum: ['class_payment', 'membership', 'kit_purchase', 'early_bird_kit', 'payout'],
+        default: 'class_payment'
+    },
+
+    // Suscripción asociada (opcional — no aplica para membership, kit, early_bird)
     subscriptionId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Subscription',
-        required: true
+        default: null
+    },
+
+    // Usuario asociado (puede ser null para leads sin cuenta)
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+
+    // Email del lead (para compras early_bird donde el lead aún no tiene cuenta)
+    leadEmail: {
+        type: String,
+        default: ''
     },
 
     // Proveedor de pago
@@ -28,7 +49,7 @@ const paymentSchema = new mongoose.Schema({
         required: true
     },
 
-    // Monto
+    // Monto (en centavos)
     amount: {
         type: Number,
         required: true
@@ -36,7 +57,7 @@ const paymentSchema = new mongoose.Schema({
 
     currency: {
         type: String,
-        default: 'ARS'
+        default: 'USD'
     },
 
     // Estado del pago

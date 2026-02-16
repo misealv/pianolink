@@ -63,7 +63,7 @@ const subscriptionSchema = new mongoose.Schema({
 
     currency: {
         type: String,
-        default: 'ARS'
+        default: 'USD'
     },
 
     // Metadata adicional del proveedor

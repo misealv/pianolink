@@ -1,6 +1,9 @@
 /**
  * routes/webhooks.js
- * Endpoints para webhooks de pagos - PianoLink v2.0
+ * Endpoints para webhooks de pagos - PianoLink v5.0
+ * 
+ * v5.0: Soporte multi-país. Webhooks de MP aceptan ?country=XX
+ * para resolver credenciales del país correcto.
  * 
  * ⚠️ SEGURIDAD: Todos los webhooks validan firma antes de procesar
  * ⚠️ NOTA: El webhook de Stripe está en server.js (necesita raw body antes de express.json)
@@ -12,16 +15,20 @@ const PaymentService = require('../services/PaymentService');
 const StripeService = require('../services/StripeService');
 const StudentSubscription = require('../models/StudentSubscription');
 const TeacherPackage = require('../models/TeacherPackage');
+const MpCountryRouter = require('../services/MpCountryRouter');
+const PlanPermissionService = require('../services/PlanPermissionService');
 
 /**
  * POST /api/webhooks/mercadopago
  * Webhook de Mercado Pago para Kit de Bienvenida
+ * v5.0: Acepta ?country=XX para resolver credenciales multi-país
  */
 router.post('/mercadopago', async (req, res) => {
-    console.log('[Webhook] Mercado Pago recibido:', req.body?.type);
+    const country = req.query?.country || 'CL'; // Default CL para retrocompatibilidad
+    console.log('[Webhook] Mercado Pago recibido:', req.body?.type, '| País:', country);
     
     try {
-        const result = await PaymentService.processMercadoPagoWebhook(req);
+        const result = await PaymentService.processMercadoPagoWebhook(req, country);
         
         if (!result.success && result.error === 'INVALID_SIGNATURE') {
             // Responder 401 pero Mercado Pago espera 200
@@ -40,9 +47,11 @@ router.post('/mercadopago', async (req, res) => {
 /**
  * POST /api/webhooks/mercadopago-package
  * Webhook de Mercado Pago para compra de paquetes de clases
+ * v5.0: Acepta ?country=XX para resolver credenciales multi-país
  */
 router.post('/mercadopago-package', async (req, res) => {
-    console.log('[Webhook Package] Mercado Pago recibido:', req.body?.type, req.body?.action);
+    const country = req.query?.country || 'CL';
+    console.log('[Webhook Package] Mercado Pago recibido:', req.body?.type, req.body?.action, '| País:', country);
     
     try {
         // Solo procesar pagos
@@ -56,8 +65,13 @@ router.post('/mercadopago-package', async (req, res) => {
             return res.status(200).send('OK');
         }
 
-        // Verificar el pago con MP
-        const accessToken = process.env.MP_ACCESS_TOKEN;
+        // Verificar el pago con MP (multi-país: usar token del país)
+        let accessToken = process.env.MP_ACCESS_TOKEN;
+        try {
+            const creds = await MpCountryRouter.getCredentials(country);
+            if (creds) accessToken = creds.accessToken;
+        } catch (e) { /* usar token global como fallback */ }
+        
         const paymentRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
@@ -195,10 +209,12 @@ router.post('/paypal', async (req, res) => {
 /**
  * POST /api/webhooks/mercadopago-teacher-subscription
  * Webhook para activar membresía de profesor tras pago con MercadoPago
+ * v5.0: Multi-país + sincronización de plan via PlanPermissionService
  */
 router.post('/mercadopago-teacher-subscription', async (req, res) => {
+    const country = req.query?.country || 'CL';
     console.log('[Webhook MP] ========================================');
-    console.log('[Webhook MP] MercadoPago Teacher Subscription recibido');
+    console.log('[Webhook MP] MercadoPago Teacher Subscription recibido | País:', country);
     console.log('[Webhook MP] Body:', JSON.stringify(req.body));
     
     // Responder inmediatamente para evitar timeout de MercadoPago
@@ -230,8 +246,13 @@ router.post('/mercadopago-teacher-subscription', async (req, res) => {
         
         console.log('[Webhook MP] Payment ID:', paymentId);
         
-        // Obtener detalles del pago de MercadoPago
-        const accessToken = process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN;
+        // Obtener detalles del pago de MercadoPago (multi-país)
+        let accessToken = process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN;
+        try {
+            const creds = await MpCountryRouter.getCredentials(country);
+            if (creds) accessToken = creds.accessToken;
+        } catch (e) { /* usar token global como fallback */ }
+        
         if (!accessToken) {
             console.error('[Webhook MP] ❌ No hay access token configurado');
             return;
@@ -315,8 +336,19 @@ router.post('/mercadopago-teacher-subscription', async (req, res) => {
         teacher.teacherData.subscriptionStatus = 'active';
         teacher.teacherData.subscriptionExpiresAt = expiresAt;
         teacher.teacherData.mercadopagoPaymentId = paymentId;
-        teacher.teacherData.subscriptionExpiresAt = expiresAt;
+        teacher.teacherData.membershipPaymentProvider = 'mercadopago';
         await teacher.save();
+        
+        // v5.0: Sincronizar plan y permisos via PlanPermissionService
+        // Determinar plan según metadata o plan actual
+        const targetPlan = metadata.plan || teacher.teacherData?.plan || 'premium';
+        if (targetPlan !== 'free') {
+            await PlanPermissionService.activatePlan(teacher._id, targetPlan, {
+                paymentProvider: 'mercadopago',
+                subscriptionId: paymentId
+            });
+            console.log(`[Webhook MP] Plan ${targetPlan} activado para ${teacher.email}`);
+        }
         
         console.log(`[Webhook] ✅ Membresía activada para ${teacher.email} hasta ${expiresAt.toISOString()}`);
         
@@ -350,6 +382,112 @@ router.post('/mercadopago-teacher-subscription', async (req, res) => {
     } catch (error) {
         console.error('[Webhook MP] ❌ Error procesando webhook:', error);
     }
+});
+
+/**
+ * POST /api/webhooks/mercadopago-early-bird
+ * Webhook de MercadoPago para pagos de Early Bird Kit.
+ * Fase 5 — v5.0
+ */
+router.post('/mercadopago-early-bird', async (req, res) => {
+    const country = req.query?.country || 'CL';
+    console.log('[Webhook EarlyBird] MP recibido:', req.body?.type, '| País:', country);
+
+    try {
+        if (req.body?.type !== 'payment') {
+            return res.status(200).send('OK');
+        }
+
+        const paymentId = req.body?.data?.id;
+        if (!paymentId) return res.status(200).send('OK');
+
+        // Obtener token del país
+        let accessToken = process.env.MP_ACCESS_TOKEN;
+        try {
+            const creds = await MpCountryRouter.getCredentials(country);
+            if (creds) accessToken = creds.accessToken;
+        } catch (e) { /* fallback token global */ }
+
+        // Verificar pago con API de MP
+        const paymentRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        const mpPayment = await paymentRes.json();
+
+        console.log('[Webhook EarlyBird] Pago:', mpPayment.id, mpPayment.status);
+
+        if (mpPayment.status !== 'approved') {
+            return res.status(200).send('OK');
+        }
+
+        // Verificar que no esté duplicado
+        const Payment = require('../models/Payment');
+        const existing = await Payment.findOne({ externalPaymentId: String(paymentId) });
+        if (existing) {
+            console.log('[Webhook EarlyBird] Pago ya procesado:', paymentId);
+            return res.status(200).send('OK');
+        }
+
+        // Extraer datos del metadata
+        const meta = mpPayment.metadata || {};
+        const leadEmail = meta.lead_email || meta.leadEmail || '';
+        const priceUSD = meta.price_usd || meta.priceUSD || 2900;
+        const regularPriceUSD = meta.regular_price_usd || meta.regularPriceUSD || 4400;
+
+        // Registrar pago
+        await Payment.create({
+            type: 'early_bird_kit',
+            provider: 'mercadopago',
+            externalPaymentId: String(paymentId),
+            amount: priceUSD,
+            currency: 'USD',
+            status: 'approved',
+            leadEmail,
+            signatureValid: true,
+            apiVerified: true,
+            webhookData: {
+                source: 'waitlist_early_bird',
+                mpPaymentId: paymentId,
+                countryCode: country,
+                transactionAmount: mpPayment.transaction_amount,
+                localCurrency: mpPayment.currency_id
+            },
+            metadata: {
+                source: 'waitlist_early_bird',
+                countryCode: country,
+                regularPrice: regularPriceUSD,
+                discountApplied: regularPriceUSD - priceUSD
+            }
+        });
+
+        console.log(`[Webhook EarlyBird] ✅ Pago registrado para ${leadEmail || 'desconocido'}: ${paymentId}`);
+
+        // Enviar email de confirmación (best-effort)
+        try {
+            if (leadEmail) {
+                const EmailService = require('../services/EmailService');
+                await EmailService.sendEmail({
+                    to: leadEmail,
+                    subject: '🎹 ¡Tu Welcome Kit está confirmado! — PianoLink',
+                    html: `
+                        <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
+                            <h2 style="color: #8b5cf6;">¡Gracias por tu compra! 🎹</h2>
+                            <p>Tu Welcome Kit de PianoLink ha sido confirmado.</p>
+                            <p>Te contactaremos pronto con los detalles de envío y próximos pasos.</p>
+                            <p style="color: #888; font-size: 12px; margin-top: 20px;">— Equipo PianoLink</p>
+                        </div>
+                    `
+                });
+            }
+        } catch (emailErr) {
+            console.error('[Webhook EarlyBird] Error enviando email:', emailErr.message);
+        }
+
+    } catch (error) {
+        console.error('[Webhook EarlyBird] ❌ Error:', error);
+    }
+
+    res.status(200).send('OK');
 });
 
 /**

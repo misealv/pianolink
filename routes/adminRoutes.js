@@ -257,11 +257,154 @@ router.put('/config/pricing', adminController.updatePricingConfig);
 // Actualizar precio del Kit de Bienvenida V2
 router.put('/config/kit-v2-price', adminController.updateKitV2Price);
 
+// Actualizar configuración de Early Bird (Fase 5 v5.0)
+router.put('/config/early-bird', adminController.updateEarlyBirdConfig);
+
 // Enviar recordatorio de membresía a profesor específico
 router.post('/teachers/:teacherId/send-membership-reminder', adminController.sendMembershipReminder);
 
 // Ejecutar verificación de membresías manualmente
 router.post('/membership-reminders/run', adminController.runMembershipReminders);
+
+/* -------------------------------------------------------------------------- */
+/* RUTAS FASE 4 v5.0: PLANES DE PROFESORES Y COMISIONES                     */
+/* -------------------------------------------------------------------------- */
+const User = require('../models/User');
+const StudentEnrollment = require('../models/StudentEnrollment');
+const LedgerEntry = require('../models/LedgerEntry');
+
+/**
+ * GET /admin/teacher-plans
+ * Lista todos los profesores con su plan, comisiones y estado de membresía.
+ * Query: ?plan=free|premium|founder  &status=active|expired  &page=1  &limit=50
+ */
+router.get('/teacher-plans', async (req, res) => {
+    try {
+        const { plan, status, page = 1, limit = 50 } = req.query;
+        const query = { role: 'teacher' };
+
+        if (plan) {
+            query['teacherData.plan'] = plan;
+        }
+        if (status) {
+            query['teacherData.subscriptionStatus'] = status;
+        }
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const total = await User.countDocuments(query);
+
+        const teachers = await User.find(query)
+            .select('name email country isFounder isFoundingMember teacherData.plan teacherData.subscriptionStatus teacherData.subscriptionExpiresAt teacherData.planActivatedAt teacherData.permissions teacherData.membershipPaymentProvider teacherData.earnings createdAt')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        // Resumen de planes
+        const planSummary = await User.aggregate([
+            { $match: { role: 'teacher' } },
+            { $group: { _id: '$teacherData.plan', count: { $sum: 1 } } }
+        ]);
+
+        const summary = {
+            free: 0, premium: 0, founder: 0, total: 0
+        };
+        planSummary.forEach(p => {
+            const key = p._id || 'free';
+            summary[key] = p.count;
+            summary.total += p.count;
+        });
+
+        res.json({
+            success: true,
+            teachers: teachers.map(t => ({
+                _id: t._id,
+                name: t.name,
+                email: t.email,
+                country: t.country,
+                isFounder: t.isFounder || t.isFoundingMember,
+                plan: t.teacherData?.plan || 'free',
+                subscriptionStatus: t.teacherData?.subscriptionStatus || 'trial',
+                expiresAt: t.teacherData?.subscriptionExpiresAt,
+                activatedAt: t.teacherData?.planActivatedAt,
+                permissions: t.teacherData?.permissions,
+                paymentProvider: t.teacherData?.membershipPaymentProvider,
+                earnings: t.teacherData?.earnings,
+                createdAt: t.createdAt
+            })),
+            summary,
+            pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) }
+        });
+    } catch (error) {
+        console.error('[Admin] Error teacher-plans:', error);
+        res.status(500).json({ error: 'Error al obtener planes de profesores' });
+    }
+});
+
+/**
+ * GET /admin/commission-report
+ * Reporte de comisiones por transacción (últimos 30 días por defecto).
+ * Query: ?days=30  &teacherId=xxx
+ */
+router.get('/commission-report', async (req, res) => {
+    try {
+        const { days = 30, teacherId } = req.query;
+        const since = new Date(Date.now() - parseInt(days) * 24 * 60 * 60 * 1000);
+
+        const matchQuery = {
+            createdAt: { $gte: since },
+            type: { $in: ['commission', 'class_payment', 'teacher_earning'] }
+        };
+        if (teacherId) {
+            matchQuery.$or = [
+                { 'metadata.teacherId': teacherId },
+                { userId: teacherId }
+            ];
+        }
+
+        // Buscar transacciones con comisión en LedgerEntry
+        const entries = await LedgerEntry.find(matchQuery)
+            .sort({ createdAt: -1 })
+            .limit(200)
+            .lean();
+
+        // Resumen agregado
+        const summary = await LedgerEntry.aggregate([
+            { $match: matchQuery },
+            {
+                $group: {
+                    _id: null,
+                    totalPlatformCommission: { $sum: '$platformAmount' },
+                    totalTeacherEarnings: { $sum: '$teacherAmount' },
+                    totalTransactions: { $sum: 1 },
+                    totalGrossRevenue: { $sum: '$amount' }
+                }
+            }
+        ]);
+
+        // Desglose por plan
+        const byPlan = await LedgerEntry.aggregate([
+            { $match: matchQuery },
+            {
+                $group: {
+                    _id: '$metadata.teacherPlan',
+                    totalCommission: { $sum: '$platformAmount' },
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        res.json({
+            success: true,
+            period: { days: parseInt(days), since },
+            summary: summary[0] || { totalPlatformCommission: 0, totalTeacherEarnings: 0, totalTransactions: 0, totalGrossRevenue: 0 },
+            byPlan,
+            entries: entries.slice(0, 50) // Limitar respuesta
+        });
+    } catch (error) {
+        console.error('[Admin] Error commission-report:', error);
+        res.status(500).json({ error: 'Error al generar reporte de comisiones' });
+    }
+});
 
 
 module.exports = router;

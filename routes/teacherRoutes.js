@@ -87,6 +87,151 @@ router.post('/my-messages/read/:id', async (req, res) => {
 });
 
 
+// ==================== FASE 4 v5.0: Dashboard & Plan ====================
+const { protect, teacherOrAdmin } = require('../middleware/authMiddleware');
+const StudentEnrollment = require('../models/StudentEnrollment');
+const GlobalConfig = require('../models/GlobalConfig');
+const UpsellService = require('../services/UpsellService');
+const GeoIPService = require('../services/GeoIPService');
+
+/**
+ * GET /api/teacher/dashboard-data
+ * Datos agregados para el dashboard del profesor: plan, permisos, ganancias, comisiones, alumnos.
+ */
+router.get('/dashboard-data', protect, teacherOrAdmin, async (req, res) => {
+    try {
+        const teacher = await User.findById(req.user._id).select('-password');
+        if (!teacher) return res.status(404).json({ error: 'Profesor no encontrado' });
+
+        const td = teacher.teacherData || {};
+        const plan = td.plan || 'free';
+        const permissions = td.permissions || {};
+
+        // Contar alumnos activos
+        const studentCounts = await StudentEnrollment.aggregate([
+            { $match: { teacher: teacher._id, status: { $in: ['active', 'confirmed'] } } },
+            { $group: { _id: '$source', count: { $sum: 1 } } }
+        ]);
+
+        const platformStudents = studentCounts.find(s => s._id !== 'private_invite')?.count || 0;
+        const privateStudents = studentCounts.find(s => s._id === 'private_invite')?.count || 0;
+
+        // Calcular comisiones del mes actual
+        const config = await GlobalConfig.findOne();
+        const plans = config?.memberships?.teacherPlans || {};
+        const currentPlanConfig = plans[plan] || plans.free;
+
+        // Verificar elegibilidad de upsell
+        let upsell = null;
+        if (plan === 'free') {
+            const shouldShow = await UpsellService.shouldShowUpsell(teacher._id);
+            if (shouldShow) {
+                const eligibility = await UpsellService.checkEligibility(teacher._id);
+                if (eligibility.eligible) {
+                    upsell = eligibility.data;
+                }
+            }
+        }
+
+        const daysUntilExpiry = td.subscriptionExpiresAt
+            ? Math.ceil((new Date(td.subscriptionExpiresAt) - new Date()) / (1000 * 60 * 60 * 24))
+            : null;
+
+        res.json({
+            success: true,
+            plan,
+            permissions,
+            subscriptionStatus: td.subscriptionStatus || 'trial',
+            expiresAt: td.subscriptionExpiresAt,
+            activatedAt: td.planActivatedAt,
+            daysUntilExpiry,
+            paymentProvider: td.membershipPaymentProvider,
+            isFounder: teacher.isFounder || teacher.isFoundingMember || false,
+            country: teacher.country,
+            commission: {
+                platform: currentPlanConfig.platformCommission,
+                teacher: currentPlanConfig.teacherCommission,
+                privateStudentCommission: currentPlanConfig.privateStudentCommission
+            },
+            students: {
+                platform: platformStudents,
+                private: privateStudents,
+                total: platformStudents + privateStudents
+            },
+            earnings: td.earnings || { pending: 0, paid: 0, totalClasses: 0 },
+            upsell
+        });
+    } catch (error) {
+        console.error('[TeacherRoutes] Error dashboard-data:', error);
+        res.status(500).json({ error: 'Error al obtener datos del dashboard' });
+    }
+});
+
+/**
+ * GET /api/teacher/commission-savings
+ * Calculadora de ahorro para la página de pricing.
+ */
+router.get('/commission-savings', protect, teacherOrAdmin, async (req, res) => {
+    try {
+        const savings = await UpsellService.getSavingsForPricing(req.user._id);
+        res.json({ success: true, savings });
+    } catch (error) {
+        console.error('[TeacherRoutes] Error commission-savings:', error);
+        res.status(500).json({ error: 'Error al calcular ahorros' });
+    }
+});
+
+/**
+ * POST /api/teacher/upsell-shown
+ * Registra que se mostró la notificación de upsell (para no repetir cada 7 días).
+ */
+router.post('/upsell-shown', protect, teacherOrAdmin, async (req, res) => {
+    try {
+        const { triggerType } = req.body;
+        await UpsellService.logUpsellEvent(req.user._id, triggerType || 'dashboard_banner');
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Error' });
+    }
+});
+
+/**
+ * GET /api/teacher/detect-country
+ * Detecta el país del profesor por IP (para registro / configuración).
+ */
+router.get('/detect-country', async (req, res) => {
+    try {
+        const country = await GeoIPService.detectFromRequest(req);
+        res.json({ success: true, country });
+    } catch (error) {
+        res.json({ success: true, country: 'CL' }); // Fallback
+    }
+});
+
+/**
+ * POST /api/teacher/set-country
+ * Establece el país del profesor (si no lo tiene configurado).
+ */
+router.post('/set-country', protect, teacherOrAdmin, async (req, res) => {
+    try {
+        const { country } = req.body;
+        if (!country || country.length !== 2) {
+            return res.status(400).json({ error: 'Código de país inválido (ISO 3166-1 alpha-2)' });
+        }
+
+        await User.findByIdAndUpdate(req.user._id, {
+            country: country.toUpperCase(),
+            'teacherData.paymentInfo.country': country.toUpperCase()
+        });
+
+        res.json({ success: true, country: country.toUpperCase() });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al establecer país' });
+    }
+});
+
+// ==================== FIN FASE 4 ====================
+
 const teacherController = require('../controllers/teacherController'); // Asegurar importación
 router.get('/conversation', teacherController.getMyConversation);
 

@@ -405,6 +405,17 @@
         function renderPage() {
             const main = document.getElementById('mainContent');
             
+            // Datos de moneda y proveedor del profesor
+            const currency = teacher.paymentCurrency || 'USD';
+            const provider = teacher.paymentProvider || 'stripe';
+            const isLocalCurrency = currency !== 'USD';
+            const countryNames = {
+                CL: 'Chile', MX: 'México', AR: 'Argentina', CO: 'Colombia',
+                BR: 'Brasil', PE: 'Perú', UY: 'Uruguay'
+            };
+            const teacherCountryName = countryNames[teacher.country?.toUpperCase()] || teacher.country || '';
+            const providerLabel = provider === 'mercadopago' ? 'MercadoPago' : (provider === 'paypal' ? 'PayPal' : 'Stripe');
+
             // Construir opciones de compra
             const options = buildOptions();
             
@@ -419,6 +430,22 @@
                     ${opt.savings > 0 ? `<div class="option-savings">Ahorras $${opt.savings.toFixed(0)}</div>` : ''}
                 </div>
             `).join('');
+
+            // Banner informativo de moneda local (Fase 4.9)
+            const currencyBannerHTML = isLocalCurrency ? `
+                <div style="background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(99,102,241,0.1)); border: 1px solid rgba(59,130,246,0.3); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 12px;">
+                    <span style="font-size: 24px; flex-shrink: 0;">💱</span>
+                    <div>
+                        <p style="color: #e5e5e5; font-size: 14px; margin: 0 0 4px; font-weight: 600;">
+                            El pago se procesará en ${currency}
+                        </p>
+                        <p style="color: #9ca3af; font-size: 13px; margin: 0; line-height: 1.5;">
+                            Tu profesor está en ${teacherCountryName}, por lo que el cobro se realizará en moneda local (${currency}) a través de ${providerLabel}. 
+                            Los precios mostrados son referenciales en USD — el monto exacto en ${currency} se mostrará al momento del pago.
+                        </p>
+                    </div>
+                </div>
+            ` : '';
 
             main.innerHTML = `
                 <h1 class="page-title">Comprar Clases de Piano</h1>
@@ -441,6 +468,8 @@
                         <p>Tu clase de prueba ya está incluida. Agenda directamente desde tu panel.</p>
                     </div>
                 ` : ''}
+
+                ${currencyBannerHTML}
 
                 <div class="options-grid">
                     ${optionsHTML}
@@ -466,7 +495,7 @@
                     <button class="btn-checkout" id="btnCheckout" disabled onclick="checkout()">
                         Selecciona una opción
                     </button>
-                    <p class="secure-text">🔒 Pago seguro con Stripe</p>
+                    <p class="secure-text">🔒 Pago seguro con ${providerLabel}</p>
                 ` : `
                     <div class="login-required">
                         <h2>Inicia sesión para continuar</h2>

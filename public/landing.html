@@ -716,6 +716,56 @@
                         </div>
                     </div>
                     
+                    <!-- País (Fase 4 v5.0 — Obligatorio para teachers) -->
+                    <div class="group">
+                        <label for="country" class="block text-sm font-semibold text-midnight mb-3 tracking-wide">
+                            País <span class="text-brand-cyan font-bold">*</span>
+                        </label>
+                        <div class="relative">
+                            <select id="country" 
+                                    name="country"
+                                    required
+                                    class="touch-target w-full px-6 py-4 bg-white border-2 border-slate-200 rounded-xl text-midnight focus:outline-none focus:border-brand-cyan focus:ring-4 focus:ring-brand-cyan/10 transition-all duration-300 shadow-sm hover:border-slate-300 appearance-none">
+                                <option value="" disabled selected>Selecciona tu país</option>
+                                <optgroup label="🌎 América Latina (MercadoPago disponible)">
+                                    <option value="CL">🇨🇱 Chile</option>
+                                    <option value="MX">🇲🇽 México</option>
+                                    <option value="AR">🇦🇷 Argentina</option>
+                                    <option value="CO">🇨🇴 Colombia</option>
+                                    <option value="BR">🇧🇷 Brasil</option>
+                                    <option value="PE">🇵🇪 Perú</option>
+                                    <option value="UY">🇺🇾 Uruguay</option>
+                                </optgroup>
+                                <optgroup label="🌍 Otros (PayPal)">
+                                    <option value="ES">🇪🇸 España</option>
+                                    <option value="US">🇺🇸 Estados Unidos</option>
+                                    <option value="VE">🇻🇪 Venezuela</option>
+                                    <option value="EC">🇪🇨 Ecuador</option>
+                                    <option value="BO">🇧🇴 Bolivia</option>
+                                    <option value="PY">🇵🇾 Paraguay</option>
+                                    <option value="CR">🇨🇷 Costa Rica</option>
+                                    <option value="PA">🇵🇦 Panamá</option>
+                                    <option value="DO">🇩🇴 República Dominicana</option>
+                                    <option value="GT">🇬🇹 Guatemala</option>
+                                    <option value="HN">🇭🇳 Honduras</option>
+                                    <option value="SV">🇸🇻 El Salvador</option>
+                                    <option value="NI">🇳🇮 Nicaragua</option>
+                                    <option value="CU">🇨🇺 Cuba</option>
+                                    <option value="PR">🇵🇷 Puerto Rico</option>
+                                    <option value="OTHER">🌐 Otro</option>
+                                </optgroup>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">
+                            Se usa para determinar tu método de pago disponible (MercadoPago o PayPal).
+                        </p>
+                    </div>
+                    
                     <!-- Background/Trayectoria (OBLIGATORIO) -->
                     <div class="group">
                         <label for="background" class="block text-sm font-semibold text-midnight mb-3 tracking-wide">
@@ -988,8 +1038,32 @@
         // =============================================
         // Tracking: Detectar cuando empiezan a llenar el formulario
         // =============================================
+        // Auto-detección de país por IP (Fase 4 v5.0)
+        // =============================================
+        (async function autoDetectCountry() {
+            try {
+                const res = await fetch('/api/teacher/detect-country');
+                const data = await res.json();
+                if (data.success && data.country) {
+                    const sel = document.getElementById('country');
+                    if (sel) {
+                        // Buscar la opción que coincida
+                        for (let i = 0; i < sel.options.length; i++) {
+                            if (sel.options[i].value === data.country) {
+                                sel.value = data.country;
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('[GeoIP] No se pudo auto-detectar país:', e.message);
+            }
+        })();
+
+        // =============================================
         let formStartTracked = false;
-        const formInputs = document.querySelectorAll('#leadForm input, #leadForm textarea');
+        const formInputs = document.querySelectorAll('#leadForm input, #leadForm textarea, #leadForm select');
         
         formInputs.forEach(input => {
             input.addEventListener('focus', () => {
@@ -1029,6 +1103,7 @@
                 name: document.getElementById('name').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 whatsapp: document.getElementById('whatsapp').value.trim(),
+                country: document.getElementById('country').value,
                 background: document.getElementById('background').value.trim()
             };
             

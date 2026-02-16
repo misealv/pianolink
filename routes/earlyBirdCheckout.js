@@ -1,0 +1,266 @@
+/**
+ * routes/earlyBirdCheckout.js
+ * Checkout de la oferta Early Bird (Welcome Kit con descuento post-waitlist).
+ * 
+ * Fase 5 — v5.0
+ * 
+ * El lead acaba de registrarse en el waitlist y ve una oferta exclusiva
+ * con countdown. Este checkout resuelve MP o PayPal según país del lead
+ * y crea la orden de pago.
+ * 
+ * No requiere autenticación (el lead puede no tener cuenta aún).
+ */
+
+const express = require('express');
+const router = express.Router();
+const GlobalConfig = require('../models/GlobalConfig');
+const Payment = require('../models/Payment');
+const PaymentProviderResolver = require('../services/PaymentProviderResolver');
+const PayPalService = require('../services/PayPalService');
+const GeoIPService = require('../services/GeoIPService');
+const MpCountryRouter = require('../services/MpCountryRouter');
+
+// Tasas de cambio aproximadas USD → moneda local (mismas que membershipCheckout)
+const USD_RATES = {
+    CLP: 950, MXN: 17.5, ARS: 900, COP: 4200,
+    BRL: 5.0, PEN: 3.75, UYU: 40
+};
+
+/**
+ * GET /api/early-bird/resolve-provider
+ * Resuelve qué proveedor de pago usar según el país del lead.
+ * Query: ?country=CL (opcional, si no se pasa se auto-detecta por IP)
+ */
+router.get('/resolve-provider', async (req, res) => {
+    try {
+        let country = (req.query.country || '').toUpperCase();
+
+        // Si no se envía país, detectar por IP
+        if (!country || country === 'DEFAULT') {
+            country = await GeoIPService.detectFromRequest(req);
+        }
+
+        const resolved = await PaymentProviderResolver.resolve(country, { type: 'early_bird_kit' });
+
+        res.json({
+            success: true,
+            provider: resolved.provider,
+            currency: resolved.currency,
+            countryCode: resolved.countryCode,
+            isMpCountry: PaymentProviderResolver.isMpCountry(country)
+        });
+    } catch (error) {
+        console.error('[EarlyBirdCheckout] Error resolve-provider:', error.message);
+        res.status(500).json({ success: false, error: 'Error al resolver proveedor' });
+    }
+});
+
+/**
+ * POST /api/early-bird/checkout
+ * Crea orden de pago para el Welcome Kit early bird.
+ * Body: { email: string, country?: string, provider?: 'mercadopago' | 'paypal' }
+ */
+router.post('/checkout', async (req, res) => {
+    try {
+        const { email, country: bodyCountry, provider: preferredProvider } = req.body;
+
+        // Validar email
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ success: false, error: 'Email inválido' });
+        }
+
+        // Obtener configuración de la oferta
+        const config = await GlobalConfig.findOne({ isDefault: true });
+        const earlyBird = config?.memberships?.earlyBirdOffer;
+
+        if (!earlyBird || !earlyBird.enabled) {
+            return res.status(400).json({ success: false, error: 'La oferta no está disponible' });
+        }
+
+        const priceUSD = earlyBird.welcomeKitPriceUSD || 2900; // centavos
+        const regularPriceUSD = earlyBird.welcomeKitRegularPriceUSD || 4400;
+
+        // Resolver país
+        let country = (bodyCountry || '').toUpperCase();
+        if (!country || country === 'DEFAULT') {
+            country = await GeoIPService.detectFromRequest(req);
+        }
+
+        // Resolver proveedor de pago
+        const resolved = await PaymentProviderResolver.resolve(country, { type: 'early_bird_kit' });
+
+        // Si se especifica proveedor preferido, usarlo (ej: lead en Chile quiere pagar con PayPal)
+        const useProvider = preferredProvider || resolved.provider;
+
+        const baseUrl = process.env.BASE_URL || 'https://pianolink.cl';
+        const successUrl = `${baseUrl}/success-waitlist?payment=success&email=${encodeURIComponent(email)}`;
+        const cancelUrl = `${baseUrl}/success-waitlist?payment=cancelled&email=${encodeURIComponent(email)}`;
+
+        let result;
+
+        if (useProvider === 'mercadopago' && PaymentProviderResolver.isMpCountry(country)) {
+            result = await _createMpEarlyBirdCheckout({
+                email, country, priceUSD, regularPriceUSD, resolved, successUrl, cancelUrl
+            });
+        } else {
+            result = await _createPayPalEarlyBirdCheckout({
+                email, country, priceUSD, regularPriceUSD, successUrl, cancelUrl
+            });
+        }
+
+        res.json(result);
+    } catch (error) {
+        console.error('[EarlyBirdCheckout] Error checkout:', error);
+        res.status(500).json({ success: false, error: 'Error al crear checkout' });
+    }
+});
+
+/**
+ * POST /api/early-bird/capture-paypal
+ * Captura un pago PayPal después de que el lead aprueba la orden.
+ * Body: { orderId: string, email: string }
+ */
+router.post('/capture-paypal', async (req, res) => {
+    try {
+        const { orderId, email } = req.body;
+
+        if (!orderId) {
+            return res.status(400).json({ success: false, error: 'orderId requerido' });
+        }
+
+        const capture = await PayPalService.captureOrder(orderId);
+
+        if (!capture.success) {
+            console.error('[EarlyBirdCheckout] Error capturando PayPal:', capture);
+            return res.status(400).json({ success: false, error: 'Error al capturar pago' });
+        }
+
+        // Obtener precio para auditoría
+        const config = await GlobalConfig.findOne({ isDefault: true });
+        const earlyBird = config?.memberships?.earlyBirdOffer;
+        const priceUSD = earlyBird?.welcomeKitPriceUSD || 2900;
+        const regularPriceUSD = earlyBird?.welcomeKitRegularPriceUSD || 4400;
+
+        // Registrar pago en BD
+        await Payment.create({
+            type: 'early_bird_kit',
+            provider: 'paypal',
+            externalPaymentId: capture.captureId || orderId,
+            amount: priceUSD,
+            currency: 'USD',
+            status: 'approved',
+            leadEmail: email || '',
+            signatureValid: true,
+            apiVerified: true,
+            webhookData: {
+                source: 'waitlist_early_bird',
+                orderId,
+                captureId: capture.captureId
+            },
+            metadata: {
+                source: 'waitlist_early_bird',
+                regularPrice: regularPriceUSD,
+                discountApplied: regularPriceUSD - priceUSD
+            }
+        });
+
+        console.log(`[EarlyBirdCheckout] ✅ Pago PayPal capturado para ${email}: ${orderId}`);
+
+        res.json({
+            success: true,
+            message: '¡Compra exitosa! Revisa tu email para los próximos pasos.',
+            captureId: capture.captureId
+        });
+    } catch (error) {
+        console.error('[EarlyBirdCheckout] Error capture-paypal:', error);
+        res.status(500).json({ success: false, error: 'Error al procesar pago' });
+    }
+});
+
+// ===================== FUNCIONES PRIVADAS =====================
+
+/**
+ * Crea preferencia de MercadoPago para el kit early bird.
+ * Convierte USD a moneda local.
+ */
+async function _createMpEarlyBirdCheckout({ email, country, priceUSD, regularPriceUSD, resolved, successUrl, cancelUrl }) {
+    const currency = resolved.currency || 'CLP';
+    const rate = USD_RATES[currency] || 950;
+    const localPrice = Math.round((priceUSD / 100) * rate);
+
+    const externalRef = `early_bird_${email.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
+
+    const items = [{
+        title: 'Welcome Kit PianoLink — Oferta Madrugadores',
+        description: 'Kit de bienvenida con descuento exclusivo',
+        quantity: 1,
+        currency_id: currency,
+        unit_price: localPrice
+    }];
+
+    const metadata = {
+        type: 'early_bird_kit',
+        leadEmail: email,
+        priceUSD,
+        regularPriceUSD,
+        discountApplied: regularPriceUSD - priceUSD,
+        source: 'waitlist_early_bird'
+    };
+
+    const options = {
+        back_urls: {
+            success: successUrl,
+            failure: cancelUrl,
+            pending: `${successUrl}&status=pending`
+        },
+        external_reference: externalRef,
+        auto_return: 'approved',
+        notification_url: process.env.MP_WEBHOOK_URL_EARLY_BIRD 
+            || `${process.env.BASE_URL || 'https://pianolink.cl'}/api/webhooks/mercadopago-early-bird`
+    };
+
+    const result = await MpCountryRouter.createPreference(country, items, metadata, options);
+
+    return {
+        success: true,
+        provider: 'mercadopago',
+        checkoutUrl: result.initPoint || result.sandboxInitPoint,
+        preferenceId: result.preferenceId,
+        currency,
+        localPrice,
+        priceUSD: priceUSD / 100
+    };
+}
+
+/**
+ * Crea orden PayPal para el kit early bird (USD directo).
+ */
+async function _createPayPalEarlyBirdCheckout({ email, country, priceUSD, regularPriceUSD, successUrl, cancelUrl }) {
+    const externalRef = `early_bird_${email.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
+
+    const order = await PayPalService.createOrder({
+        amount: priceUSD,
+        description: 'Welcome Kit PianoLink — Oferta Madrugadores',
+        externalReference: externalRef,
+        returnUrl: successUrl,
+        cancelUrl: cancelUrl,
+        metadata: {
+            type: 'early_bird_kit',
+            leadEmail: email,
+            countryCode: country,
+            regularPrice: regularPriceUSD,
+            discountApplied: regularPriceUSD - priceUSD
+        }
+    });
+
+    return {
+        success: true,
+        provider: 'paypal',
+        checkoutUrl: order.approveUrl,
+        orderId: order.orderId,
+        currency: 'USD',
+        priceUSD: priceUSD / 100
+    };
+}
+
+module.exports = router;

@@ -123,7 +123,12 @@ class WalletService {
         netAmount,
         currency = 'USD',
         description = '',
-        isPending = false
+        isPending = false,
+        // Nuevos campos de CommissionService (Fase 2)
+        commissionPercent = null,
+        commissionReason = '',
+        studentSource = 'platform',
+        teacherPlan = ''
     }) {
         const session = await mongoose.startSession();
         session.startTransaction();
@@ -152,7 +157,11 @@ class WalletService {
                     grossAmount,
                     platformFee,
                     netAmount,
-                    teacherPercent: Math.round((netAmount / grossAmount) * 100)
+                    teacherPercent: commissionPercent !== null ? (100 - commissionPercent) : Math.round((netAmount / grossAmount) * 100),
+                    platformPercent: commissionPercent,
+                    commissionReason,
+                    studentSource,
+                    teacherPlan
                 }
             }], { session });
 

@@ -48,7 +48,8 @@ function updateContentTitle(moduleName) {
         'payments': { icon: '💰', text: 'Pagos' },
         'welcome-kits': { icon: '📦', text: 'Welcome Kits' },
         'admin-profile': { icon: '👤', text: 'Mi Perfil' },
-        'pricing': { icon: '💰', text: 'Configuración de Precios' }
+        'pricing': { icon: '💰', text: 'Configuración de Precios' },
+        'teacher-plans': { icon: '📋', text: 'Planes y Comisiones' }
     };
     
     const titleEl = document.getElementById('content-title');
@@ -71,7 +72,8 @@ function loadModuleData(moduleName) {
         case 'payouts': loadPayouts(); break;
         case 'welcome-kits': loadWelcomeKits(); break;
         case 'admin-profile': loadAdminProfile(); break;
-        case 'pricing': loadPricingConfig(); loadKitV2Price(); break;
+        case 'pricing': loadPricingConfig(); loadKitV2Price(); loadEarlyBirdConfig(); break;
+        case 'teacher-plans': loadTeacherPlans(); loadCommissionReport(); break;
     }
 }
 
@@ -6510,6 +6512,137 @@ async function savePricingConfig() {
     }
 }
 
+// ==================== EARLY BIRD CONFIG (Fase 5 v5.0) ====================
+
+/**
+ * Cargar configuración actual de Early Bird desde la API pública
+ */
+async function loadEarlyBirdConfig() {
+    try {
+        const res = await fetch('/api/config/early-bird');
+        const data = await res.json();
+
+        if (!data.success) return;
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+        };
+        const setChecked = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.checked = val;
+        };
+
+        setChecked('eb-enabled', data.enabled !== false);
+        setVal('eb-price', data.enabled ? (data.welcomeKitPriceUSD / 100).toFixed(2) : '29.00');
+        setVal('eb-regular-price', data.enabled ? (data.welcomeKitRegularPriceUSD / 100).toFixed(2) : '44.00');
+        setVal('eb-countdown', data.expiresAfterMinutes || 30);
+        setVal('eb-headline', data.headline || '');
+        setVal('eb-subtitle', data.subtitle || '');
+        setVal('eb-cta', data.ctaText || '');
+
+        updateEarlyBirdPreview();
+    } catch (err) {
+        console.error('Error cargando config early bird:', err);
+    }
+}
+
+/**
+ * Actualizar vista previa de precios early bird
+ */
+function updateEarlyBirdPreview() {
+    const price = parseFloat(document.getElementById('eb-price')?.value) || 29;
+    const regular = parseFloat(document.getElementById('eb-regular-price')?.value) || 44;
+    const discount = regular - price;
+
+    const previewPrice = document.getElementById('eb-preview-price');
+    const previewRegular = document.getElementById('eb-preview-regular');
+    const previewDiscount = document.getElementById('eb-preview-discount');
+
+    if (previewPrice) previewPrice.textContent = `$${price.toFixed(0)} USD`;
+    if (previewRegular) previewRegular.textContent = `$${regular.toFixed(0)} USD`;
+    if (previewDiscount) previewDiscount.textContent = discount > 0 ? `Ahorras $${discount.toFixed(0)} USD` : '';
+}
+
+// Listeners para actualizar preview en tiempo real
+document.addEventListener('DOMContentLoaded', () => {
+    const ebPrice = document.getElementById('eb-price');
+    const ebRegular = document.getElementById('eb-regular-price');
+    if (ebPrice) ebPrice.addEventListener('input', updateEarlyBirdPreview);
+    if (ebRegular) ebRegular.addEventListener('input', updateEarlyBirdPreview);
+});
+
+/**
+ * Guardar configuración de Early Bird
+ */
+async function saveEarlyBirdConfig() {
+    const enabled = document.getElementById('eb-enabled')?.checked || false;
+    const price = parseFloat(document.getElementById('eb-price')?.value);
+    const regularPrice = parseFloat(document.getElementById('eb-regular-price')?.value);
+    const countdown = parseInt(document.getElementById('eb-countdown')?.value) || 0;
+    const headline = document.getElementById('eb-headline')?.value?.trim() || '';
+    const subtitle = document.getElementById('eb-subtitle')?.value?.trim() || '';
+    const ctaText = document.getElementById('eb-cta')?.value?.trim() || '';
+    const statusDiv = document.getElementById('eb-status');
+
+    // Validaciones
+    if (isNaN(price) || price < 0.01) {
+        showNotification('El precio early bird debe ser al menos $0.01', 'error');
+        return;
+    }
+    if (isNaN(regularPrice) || regularPrice < 0.01) {
+        showNotification('El precio regular debe ser al menos $0.01', 'error');
+        return;
+    }
+    if (price >= regularPrice) {
+        showNotification('El precio early bird debe ser menor al precio regular', 'error');
+        return;
+    }
+    if (countdown < 0 || countdown > 1440) {
+        showNotification('El countdown debe ser entre 0 y 1440 minutos', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch('/admin/config/early-bird', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userSession.token}`
+            },
+            body: JSON.stringify({
+                enabled,
+                welcomeKitPriceUSD: Math.round(price * 100),       // Convertir a centavos
+                welcomeKitRegularPriceUSD: Math.round(regularPrice * 100),
+                expiresAfterMinutes: countdown,
+                headline,
+                subtitle,
+                ctaText
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#10b981';
+            statusDiv.style.color = 'white';
+            statusDiv.textContent = `✅ Configuración Early Bird guardada${enabled ? '' : ' (deshabilitada)'}`;
+            setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
+            showNotification('Configuración Early Bird actualizada', 'success');
+        } else {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#ef4444';
+            statusDiv.style.color = 'white';
+            statusDiv.textContent = '❌ ' + (data.message || 'Error');
+            showNotification(data.message || 'Error guardando configuración', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
 // ==================== PAYOUTS A PROFESORES ====================
 
 let currentPayoutId = null;
@@ -7468,6 +7601,113 @@ async function saveAdminProfile() {
             statusEl.innerHTML = '❌ Error: ' + error.message;
         }
         showNotification('Error guardando perfil: ' + error.message, 'error');
+    }
+}
+
+// ==================== PLANES Y COMISIONES (Fase 4 v5.0) ====================
+
+let teacherPlansData = [];
+
+async function loadTeacherPlans(planFilter) {
+    try {
+        const queryParams = planFilter && planFilter !== 'all' ? `?plan=${planFilter}` : '';
+        const response = await fetch(`/admin/teacher-plans${queryParams}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (!data.success) {
+            console.error('[Admin] Error cargando planes:', data.error);
+            return;
+        }
+
+        teacherPlansData = data.teachers;
+
+        // Actualizar stats
+        const s = data.summary || {};
+        const el = (id) => document.getElementById(id);
+        if (el('plan-count-free')) el('plan-count-free').textContent = s.free || 0;
+        if (el('plan-count-premium')) el('plan-count-premium').textContent = s.premium || 0;
+        if (el('plan-count-founder')) el('plan-count-founder').textContent = s.founder || 0;
+        if (el('plan-count-total')) el('plan-count-total').textContent = s.total || 0;
+
+        // Renderizar tabla
+        renderPlansTable(data.teachers);
+    } catch (error) {
+        console.error('[Admin] Error loadTeacherPlans:', error);
+    }
+}
+
+function renderPlansTable(teachers) {
+    const tbody = document.getElementById('plans-table-body');
+    if (!tbody) return;
+
+    if (!teachers || teachers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:#666;">No hay profesores</td></tr>';
+        return;
+    }
+
+    const planBadges = {
+        free: { bg: 'rgba(136,136,136,0.15)', color: '#888', label: 'Free' },
+        premium: { bg: 'rgba(99,102,241,0.15)', color: '#818cf8', label: 'Premium' },
+        founder: { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24', label: '⭐ Fundador' }
+    };
+
+    const statusBadges = {
+        active: { bg: 'rgba(74,222,128,0.15)', color: '#4ade80', label: 'Activo' },
+        trial: { bg: 'rgba(251,191,36,0.15)', color: '#fbbf24', label: 'Trial' },
+        expired: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', label: 'Expirado' },
+        cancelled: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', label: 'Cancelado' },
+        past_due: { bg: 'rgba(217,119,6,0.15)', color: '#fbbf24', label: 'Pago pendiente' }
+    };
+
+    const commissions = { free: '25%', premium: '15%', founder: '15%' };
+
+    tbody.innerHTML = teachers.map(t => {
+        const plan = planBadges[t.plan] || planBadges.free;
+        const status = statusBadges[t.subscriptionStatus] || statusBadges.trial;
+        const expires = t.expiresAt ? new Date(t.expiresAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' }) : '—';
+        const provider = t.paymentProvider ? (t.paymentProvider === 'mercadopago' ? '🇲🇽 MP' : '💳 PayPal') : '—';
+
+        return `<tr>
+            <td><strong>${t.name || 'Sin nombre'}</strong> ${t.isFounder ? '👑' : ''}</td>
+            <td style="font-size:12px;">${t.email}</td>
+            <td>${t.country || '—'}</td>
+            <td><span style="background:${plan.bg}; color:${plan.color}; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:600;">${plan.label}</span></td>
+            <td><span style="background:${status.bg}; color:${status.color}; padding:3px 8px; border-radius:10px; font-size:11px;">${status.label}</span></td>
+            <td style="text-align:center; font-weight:700;">${commissions[t.plan] || '25%'}</td>
+            <td style="font-size:12px;">${expires}</td>
+            <td style="font-size:12px;">${provider}</td>
+        </tr>`;
+    }).join('');
+}
+
+function filterPlans(plan, btn) {
+    // Actualizar botones activos
+    if (btn) {
+        btn.closest('.filter-group').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+    loadTeacherPlans(plan);
+}
+
+async function loadCommissionReport() {
+    try {
+        const response = await fetch('/admin/commission-report?days=30', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (!data.success) return;
+
+        const s = data.summary || {};
+        const el = (id) => document.getElementById(id);
+        if (el('cr-gross')) el('cr-gross').textContent = '$' + ((s.totalGrossRevenue || 0) / 100).toFixed(0);
+        if (el('cr-platform')) el('cr-platform').textContent = '$' + ((s.totalPlatformCommission || 0) / 100).toFixed(0);
+        if (el('cr-teacher')) el('cr-teacher').textContent = '$' + ((s.totalTeacherEarnings || 0) / 100).toFixed(0);
+        if (el('cr-count')) el('cr-count').textContent = s.totalTransactions || 0;
+    } catch (error) {
+        console.error('[Admin] Error loadCommissionReport:', error);
     }
 }
 

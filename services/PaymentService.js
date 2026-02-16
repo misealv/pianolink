@@ -1,6 +1,9 @@
 /**
  * services/PaymentService.js
- * Procesamiento de Pagos y Webhooks - PianoLink v2.0
+ * Procesamiento de Pagos y Webhooks - PianoLink v5.0
+ * 
+ * v5.0: Soporta multi-país para MercadoPago via MpCountryRouter.
+ * Usa PaymentProviderResolver para determinar proveedor según país.
  * 
  * ⚠️ SEGURIDAD: Siempre validar firmas antes de procesar
  */
@@ -11,6 +14,7 @@ const WebhookLog = require('../models/WebhookLog');
 const Subscription = require('../models/Subscription');
 const SubscriptionService = require('./SubscriptionService');
 const eventService = require('./EventService');
+const MpCountryRouter = require('./MpCountryRouter');
 
 class PaymentService {
     
@@ -88,10 +92,31 @@ class PaymentService {
 
     /**
      * Verificar pago con API de Mercado Pago
+     * v5.0: Soporta multi-país. Intenta con token del país si se proporciona.
+     * @param {string} paymentId - ID del pago en MP
+     * @param {string} countryCode - Código de país (opcional, para multi-país)
      */
-    static async verifyMercadoPagoPayment(paymentId) {
+    static async verifyMercadoPagoPayment(paymentId, countryCode = null) {
         try {
-            const accessToken = process.env.MP_ACCESS_TOKEN;
+            let accessToken = null;
+
+            // Intentar obtener token por país (multi-país)
+            if (countryCode) {
+                try {
+                    const creds = await MpCountryRouter.getCredentials(countryCode);
+                    if (creds) {
+                        accessToken = creds.accessToken;
+                    }
+                } catch (err) {
+                    console.warn(`[PaymentService] No se pudo obtener token para ${countryCode}:`, err.message);
+                }
+            }
+
+            // Fallback: token global de .env
+            if (!accessToken) {
+                accessToken = process.env.MP_ACCESS_TOKEN;
+            }
+
             if (!accessToken) {
                 throw new Error('MP_ACCESS_TOKEN no configurado');
             }

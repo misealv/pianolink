@@ -90,11 +90,37 @@ const globalConfigSchema = new mongoose.Schema({
             classesIncluded: { type: Number, default: 4 }
         }],
         
-        // Suscripción del PROFESOR
+        // Suscripción del PROFESOR (legacy — usar teacherPlans para nueva lógica)
         teacherSubscription: {
             regular: { type: Number, default: 20 },       // USD
             founder: { type: Number, default: 10 },       // USD (programa fundadores)
             currency: { type: String, default: 'USD' }
+        },
+        
+        // ==================== PLANES DE PROFESOR (v5.0) ====================
+        // Reemplaza teacherSubscription como fuente de verdad para comisiones
+        teacherPlans: {
+            free: {
+                price: { type: Number, default: 0 },                    // Centavos USD ($0)
+                currency: { type: String, default: 'USD' },
+                platformCommission: { type: Number, default: 25 },      // % que retiene PianoLink
+                teacherCommission: { type: Number, default: 75 },       // % que gana el profesor
+                privateStudentCommission: { type: Number, default: 0 }  // N/A — no puede invitar
+            },
+            premium: {
+                price: { type: Number, default: 1900 },                 // Centavos USD ($19.00)
+                currency: { type: String, default: 'USD' },
+                platformCommission: { type: Number, default: 15 },
+                teacherCommission: { type: Number, default: 85 },
+                privateStudentCommission: { type: Number, default: 0 }  // 0% por alumnos propios
+            },
+            founder: {
+                price: { type: Number, default: 1000 },                 // Centavos USD ($10.00)
+                currency: { type: String, default: 'USD' },
+                platformCommission: { type: Number, default: 15 },
+                teacherCommission: { type: Number, default: 85 },
+                privateStudentCommission: { type: Number, default: 0 }
+            }
         },
         
         // =================================================
@@ -107,9 +133,20 @@ const globalConfigSchema = new mongoose.Schema({
             enabled: { type: Boolean, default: true }      // Si está habilitado el pago
         },
         
-        // Comisiones
+        // Comisiones (legacy — usar teacherPlans para nueva lógica)
         platformCommission: { type: Number, default: 20 },  // % que retiene PianoLink
-        teacherCommission: { type: Number, default: 80 }    // % que gana el profesor
+        teacherCommission: { type: Number, default: 80 },   // % que gana el profesor
+        
+        // ==================== OFERTA MADRUGADORES (v5.0) ====================
+        earlyBirdOffer: {
+            enabled: { type: Boolean, default: true },
+            welcomeKitPriceUSD: { type: Number, default: 2900 },         // Centavos ($29.00)
+            welcomeKitRegularPriceUSD: { type: Number, default: 4400 },  // Centavos ($44.00) — se muestra tachado
+            headline: { type: String, default: '¡Oferta exclusiva para madrugadores!' },
+            subtitle: { type: String, default: 'Por registrarte hoy, accede al Welcome Kit con descuento único' },
+            ctaText: { type: String, default: 'Comprar Welcome Kit — $29 USD' },
+            expiresAfterMinutes: { type: Number, default: 30 }           // Countdown (0 = sin límite)
+        }
     },
     
     // ==================== POLÍTICAS ====================

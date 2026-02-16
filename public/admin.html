@@ -78,6 +78,9 @@
                     <span class="icon">💸</span> Payouts Profesores
                     <span class="badge" id="payouts-badge" style="display:none;">0</span>
                 </div>
+                <div class="nav-item" data-module="teacher-plans" onclick="switchModule('teacher-plans')">
+                    <span class="icon">📋</span> Planes y Comisiones
+                </div>
             </div>
             
             <!-- Sistema -->
@@ -1133,6 +1136,90 @@
 
             <!-- ==================== CONFIGURACIÓN DE PRECIOS ==================== -->
             <div id="module-pricing" class="module-view">
+
+            <!-- ==================== PLANES Y COMISIONES (Fase 4 v5.0) ==================== -->
+            <div id="module-teacher-plans" class="module-view">
+                <!-- Resumen de planes -->
+                <div class="dashboard-grid" style="margin-bottom: 20px;">
+                    <div class="stat-card accent-gray" style="border-left: 4px solid #888;">
+                        <div class="stat-icon">🆓</div>
+                        <div class="stat-value" id="plan-count-free">0</div>
+                        <div class="stat-label">Plan Free</div>
+                    </div>
+                    <div class="stat-card accent-purple" style="border-left: 4px solid #6366f1;">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-value" id="plan-count-premium">0</div>
+                        <div class="stat-label">Plan Premium</div>
+                    </div>
+                    <div class="stat-card accent-yellow" style="border-left: 4px solid #fbbf24;">
+                        <div class="stat-icon">👑</div>
+                        <div class="stat-value" id="plan-count-founder">0</div>
+                        <div class="stat-label">Plan Fundador</div>
+                    </div>
+                    <div class="stat-card accent-green" style="border-left: 4px solid #4ade80;">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-value" id="plan-count-total">0</div>
+                        <div class="stat-label">Total Profesores</div>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="filters-bar" style="margin-bottom: 16px;">
+                    <div class="filter-group">
+                        <button class="filter-btn active" onclick="filterPlans('all', this)">Todos</button>
+                        <button class="filter-btn" onclick="filterPlans('free', this)">Free</button>
+                        <button class="filter-btn" onclick="filterPlans('premium', this)">Premium</button>
+                        <button class="filter-btn" onclick="filterPlans('founder', this)">Fundador</button>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadTeacherPlans()">🔄 Actualizar</button>
+                </div>
+
+                <!-- Tabla de planes -->
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Profesor</th>
+                                <th>Email</th>
+                                <th>País</th>
+                                <th>Plan</th>
+                                <th>Estado</th>
+                                <th>Comisión PL</th>
+                                <th>Vence</th>
+                                <th>Proveedor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="plans-table-body">
+                            <tr><td colspan="8" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Reporte de comisiones -->
+                <div style="margin-top: 30px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:24px;">
+                    <h3 style="color:var(--text-primary); margin-bottom:16px;">📊 Reporte de Comisiones (últimos 30 días)</h3>
+                    <div id="commission-report" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+                            <div style="color: #fbbf24; font-size: 24px; font-weight: 800;" id="cr-gross">$0</div>
+                            <div style="color: #888; font-size: 11px;">Ingreso Bruto</div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+                            <div style="color: #4ade80; font-size: 24px; font-weight: 800;" id="cr-platform">$0</div>
+                            <div style="color: #888; font-size: 11px;">Comisión PianoLink</div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+                            <div style="color: #818cf8; font-size: 24px; font-weight: 800;" id="cr-teacher">$0</div>
+                            <div style="color: #888; font-size: 11px;">Ganancia Profesores</div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+                            <div style="color: #e0e0e0; font-size: 24px; font-weight: 800;" id="cr-count">0</div>
+                            <div style="color: #888; font-size: 11px;">Transacciones</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="module-pricing-content" class="module-view">
                 <div style="max-width:800px;">
                     <h2 style="color:var(--text-primary); margin-bottom:10px;">💰 Configuración de Precios</h2>
                     <p style="color:var(--text-secondary); margin-bottom:30px;">Configura los precios de suscripciones y servicios.</p>
@@ -1247,6 +1334,91 @@
                     </div>
 
                     <div id="pricing-status" style="display:none; padding:15px; border-radius:8px; margin-top:15px;"></div>
+
+                    <!-- OFERTA EARLY BIRD (Fase 5 v5.0) -->
+                    <div style="background:linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(239,68,68,0.1) 100%); border:2px solid rgba(245,158,11,0.4); border-radius:12px; padding:30px; margin-top:20px;">
+                        <h3 style="color:#f59e0b; margin-bottom:8px;">🔥 Oferta para Madrugadores (Early Bird)</h3>
+                        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:20px;">
+                            Oferta exclusiva mostrada a leads después de completar el formulario de waitlist.
+                            Welcome Kit con descuento + countdown para crear urgencia.
+                        </p>
+
+                        <div class="form-group" style="margin-bottom:15px;">
+                            <label>Estado</label>
+                            <div style="display:flex; align-items:center; gap:12px; padding:12px; background:var(--bg-dark); border-radius:8px;">
+                                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0;">
+                                    <input type="checkbox" id="eb-enabled" style="width:20px; height:20px;">
+                                    <span style="color:var(--text-primary);">Oferta habilitada</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                            <div class="form-group">
+                                <label>💰 Precio Early Bird (USD)</label>
+                                <input type="number" id="eb-price" step="0.01" min="0.01" max="500" placeholder="29.00"
+                                    style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color);
+                                    background:var(--bg-dark); color:var(--text-primary); font-size:16px; font-weight:bold;">
+                                <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                    Precio con descuento que paga el lead
+                                </small>
+                            </div>
+                            <div class="form-group">
+                                <label>💵 Precio Regular Tachado (USD)</label>
+                                <input type="number" id="eb-regular-price" step="0.01" min="0.01" max="500" placeholder="44.00"
+                                    style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color);
+                                    background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                                <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                    Se muestra tachado como referencia
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:15px;">
+                            <label>⏰ Minutos del Countdown</label>
+                            <input type="number" id="eb-countdown" min="0" max="1440" placeholder="30"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color);
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                            <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                0 = sin límite de tiempo. Máximo 1440 min (24h)
+                            </small>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:15px;">
+                            <label>📢 Título de la Oferta</label>
+                            <input type="text" id="eb-headline" maxlength="100" placeholder="¡Oferta exclusiva para madrugadores!"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color);
+                                background:var(--bg-dark); color:var(--text-primary); font-size:14px;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:15px;">
+                            <label>📝 Subtítulo</label>
+                            <input type="text" id="eb-subtitle" maxlength="200" placeholder="Por registrarte hoy, accede al Welcome Kit con descuento único"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color);
+                                background:var(--bg-dark); color:var(--text-primary); font-size:14px;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:15px;">
+                            <label>🛒 Texto del Botón (CTA)</label>
+                            <input type="text" id="eb-cta" maxlength="80" placeholder="Comprar Welcome Kit — $29 USD"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color);
+                                background:var(--bg-dark); color:var(--text-primary); font-size:14px;">
+                        </div>
+
+                        <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:15px;">
+                            <p style="color:var(--accent-orange); font-weight:600; margin-bottom:8px;">👁️ Vista Previa</p>
+                            <div style="text-align:center; padding:15px;">
+                                <div style="color:#888; font-size:16px; text-decoration:line-through;" id="eb-preview-regular">$44 USD</div>
+                                <div style="color:#fff; font-size:32px; font-weight:900;" id="eb-preview-price">$29 USD</div>
+                                <div style="color:#34d399; font-size:13px; font-weight:600;" id="eb-preview-discount">Ahorras $15 USD</div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="saveEarlyBirdConfig()" style="width:100%; padding:15px; font-size:16px; background:linear-gradient(135deg, #f59e0b, #ef4444); border:none;">
+                            🔥 Guardar Configuración Early Bird
+                        </button>
+                        <div id="eb-status" style="display:none; padding:10px; border-radius:8px; margin-top:10px;"></div>
+                    </div>
                 </div>
             </div>
         </div>

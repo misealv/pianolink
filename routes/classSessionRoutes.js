@@ -139,10 +139,32 @@ router.post('/create-from-booking', authMiddleware, async (req, res) => {
             });
         }
 
-        // Calcular montos (80% profesor, 20% plataforma)
+        // Calcular montos usando CommissionService (reemplaza 0.20 hardcodeado)
+        const CommissionService = require('../services/CommissionService');
+        const Enrollment = require('../models/Enrollment');
+
+        let studentSource = 'platform';
+        try {
+            const enrollment = await Enrollment.findOne({
+                studentId: booking.studentId,
+                teacherId: booking.teacherId,
+                status: 'active'
+            });
+            if (enrollment?.source) {
+                studentSource = enrollment.source;
+            }
+        } catch (enrollErr) {
+            console.warn('[ClassSessions] Error buscando enrollment source:', enrollErr.message);
+        }
+
         const pricePerClass = Math.round(subscription.totalPaidUSD / subscription.classesTotal);
-        const platformFee = Math.round(pricePerClass * 0.20);
-        const teacherPayout = pricePerClass - platformFee;
+        const commissionResult = await CommissionService.calculateAndApply(
+            booking.teacherId,
+            studentSource,
+            pricePerClass
+        );
+        const platformFee = commissionResult.platformFee;
+        const teacherPayout = commissionResult.teacherEarnings;
 
         const session = new ClassSession({
             subscriptionId: subscription._id,

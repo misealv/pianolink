@@ -2,19 +2,24 @@
  * services/MercadoPagoTransferService.js
  * Servicio para transferencias de dinero a profesores vía MercadoPago
  * 
+ * v5.0: Refactorizado para multi-país. Resuelve el país del profesor
+ * y delega a MpCountryRouter para obtener el accessToken correcto.
+ * Mantiene fallback al token global de .env para retrocompatibilidad.
+ * 
  * Métodos de pago soportados:
- * - MercadoPago: Transferencia a cuenta MP del profesor
+ * - MercadoPago: Transferencia a cuenta MP del profesor (multi-país)
  * - Transferencia bancaria: Manual (se registra referencia)
  * - PayPal: Manual (se registra referencia)
  * - Wise: Manual (se registra referencia)
  */
 
 const axios = require('axios');
+const MpCountryRouter = require('./MpCountryRouter');
 
 class MercadoPagoTransferService {
     
     constructor() {
-        // Soporta ambos nombres de variable
+        // Token global como fallback (retrocompatibilidad con CL)
         this.accessToken = process.env.MP_ACCESS_TOKEN || process.env.MERCADOPAGO_ACCESS_TOKEN;
         this.baseUrl = 'https://api.mercadopago.com';
     }
@@ -209,6 +214,7 @@ class MercadoPagoTransferService {
 
     /**
      * Ejecutar payout a profesor según su método configurado
+     * v5.0: Resuelve país del profesor → obtiene credenciales del país → ejecuta transferencia
      * @param {Object} payout - Documento TeacherPayout
      * @param {Object} teacher - Documento User del profesor
      * @returns {Object} Resultado del pago
@@ -230,6 +236,29 @@ class MercadoPagoTransferService {
                 if (!mpEmail) {
                     throw new Error('Email de MercadoPago no configurado');
                 }
+
+                // v5.0: Resolver país del profesor para usar token correcto
+                const teacherCountry = teacher.country || paymentInfo.country || 'CL';
+                
+                try {
+                    // Intentar con MpCountryRouter (multi-país)
+                    const creds = await MpCountryRouter.getCredentials(teacherCountry);
+                    
+                    if (creds && creds.payout?.enabled) {
+                        console.log(`[MPTransfer] Usando credenciales de ${teacherCountry} para payout a ${mpEmail}`);
+                        return await MpCountryRouter.transferToTeacher(teacherCountry, {
+                            recipientEmail: mpEmail,
+                            amount: amount / 100, // Convertir centavos a unidades
+                            currency: creds.currency,
+                            reference: payout._id.toString(),
+                            description
+                        });
+                    }
+                } catch (routerError) {
+                    console.warn(`[MPTransfer] MpCountryRouter falló para ${teacherCountry}, usando token global:`, routerError.message);
+                }
+
+                // Fallback: usar token global (retrocompatibilidad)
                 return await this.transfer({
                     amount,
                     recipientEmail: mpEmail,

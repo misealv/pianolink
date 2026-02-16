@@ -9,6 +9,11 @@ const SubscriptionService = require('./SubscriptionService');
 const PayoutCronService = require('./PayoutCronService');
 const MembershipReminderService = require('./MembershipReminderService');
 const packageExpirationJob = require('../jobs/package-expiration');
+const PlanPermissionService = require('./PlanPermissionService');
+const TeacherInvite = require('../models/TeacherInvite');
+const User = require('../models/User');
+const Enrollment = require('../models/Enrollment');
+const emailService = require('./EmailService');
 
 // CRM: Runner de secuencias (lazy load para no impactar si el módulo CRM no existe)
 let CrmSequenceRunner = null;
@@ -269,6 +274,45 @@ class CronService {
         });
         this.jobs.push(alertCheckJob);
 
+        // ============================================
+        // JOBS FASE 3: PERMISOS Y PLANES
+        // ============================================
+
+        // 14. Downgrade automático de planes expirados — Diario a las 00:30 UTC
+        const planDowngradeJob = cron.schedule('30 0 * * *', async () => {
+            console.log('[Cron] 📉 Verificando planes expirados para downgrade...');
+            try {
+                const result = await CronService._processPlanDowngrades();
+                if (result.downgraded > 0) {
+                    console.log(`[Cron] ⚠️ ${result.downgraded} profesores degradados a plan free`);
+                }
+                if (result.graceExpired > 0) {
+                    console.log(`[Cron] ⚠️ ${result.graceExpired} alumnos privados cambiaron comisión (grace period expirado)`);
+                }
+            } catch (error) {
+                console.error('[Cron] ❌ Error en downgrade de planes:', error);
+            }
+        }, {
+            timezone: 'UTC'
+        });
+        this.jobs.push(planDowngradeJob);
+
+        // 15. Limpiar invitaciones expiradas — Diario a las 02:00 UTC
+        const cleanInvitesJob = cron.schedule('0 2 * * *', async () => {
+            console.log('[Cron] 🧹 Limpiando invitaciones expiradas...');
+            try {
+                const result = await CronService._cleanExpiredInvites();
+                if (result.cleaned > 0) {
+                    console.log(`[Cron] ✅ ${result.cleaned} invitaciones expiradas marcadas`);
+                }
+            } catch (error) {
+                console.error('[Cron] ❌ Error limpiando invitaciones:', error);
+            }
+        }, {
+            timezone: 'UTC'
+        });
+        this.jobs.push(cleanInvitesJob);
+
         console.log(`[CronService] ✅ ${this.jobs.length} tareas programadas iniciadas`);
     }
 
@@ -361,6 +405,143 @@ class CronService {
     }
 
     /**
+     * Procesar downgrades automáticos de planes expirados
+     * Llamado por cron diario y disponible para ejecución manual
+     */
+    static async _processPlanDowngrades() {
+        const result = { downgraded: 0, graceExpired: 0, errors: [] };
+
+        try {
+            // Buscar profesores con plan de pago y membresía expirada
+            const expiredTeachers = await User.find({
+                role: 'teacher',
+                'teacherData.plan': { $in: ['premium', 'founder'] },
+                'teacherData.subscriptionStatus': { $in: ['expired', 'cancelled', 'past_due'] },
+                'teacherData.subscriptionExpiresAt': { $lt: new Date() }
+            }).select('name email teacherData.plan teacherData.subscriptionStatus teacherData.subscriptionExpiresAt');
+
+            for (const teacher of expiredTeachers) {
+                try {
+                    const previousPlan = teacher.teacherData.plan;
+
+                    // Degradar plan y sincronizar permisos
+                    await PlanPermissionService.downgradeToPlan(teacher._id, 'free');
+
+                    // Enviar email de aviso
+                    try {
+                        await emailService.sendSafe({
+                            to: teacher.email,
+                            subject: '⚠️ Tu membresía PianoLink ha expirado',
+                            html: `
+                                <h2>Tu membresía ${previousPlan} ha expirado</h2>
+                                <p>Hola ${teacher.name},</p>
+                                <p>Tu plan <strong>${previousPlan}</strong> ha expirado y tu cuenta ha sido cambiada al plan <strong>free</strong>.</p>
+                                <h3>¿Qué cambia?</h3>
+                                <ul>
+                                    <li>Ya no puedes generar nuevas invitaciones para alumnos privados</li>
+                                    <li>La comisión de la plataforma pasa de 15% a 25% para alumnos de plataforma</li>
+                                    <li>Tus alumnos privados <strong>existentes mantienen 0% comisión por 30 días</strong> (período de gracia)</li>
+                                    <li>Ya no tienes prioridad en la asignación de nuevos alumnos</li>
+                                </ul>
+                                <p>Renueva tu membresía para recuperar todos los beneficios.</p>
+                            `
+                        });
+                    } catch (emailErr) {
+                        console.error(`[PlanDowngrade] Error email a ${teacher.email}:`, emailErr.message);
+                    }
+
+                    console.log(`[PlanDowngrade] ${teacher.email}: ${previousPlan} → free`);
+                    result.downgraded++;
+
+                } catch (teacherErr) {
+                    console.error(`[PlanDowngrade] Error procesando ${teacher.email}:`, teacherErr.message);
+                    result.errors.push({ email: teacher.email, error: teacherErr.message });
+                }
+            }
+
+            // Verificar grace period de comisiones para alumnos privados
+            // Después de 30 días del downgrade, cambiar comisión de 0% a 25/75
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const graceExpiredEnrollments = await Enrollment.find({
+                source: 'private_invite',
+                'appliedCommission.platformPercent': 0,
+                // El profesor ahora es free
+            }).populate('teacherId', 'teacherData.plan teacherData.subscriptionExpiresAt');
+
+            for (const enrollment of graceExpiredEnrollments) {
+                try {
+                    const teacher = enrollment.teacherId;
+                    if (!teacher || !teacher.teacherData) continue;
+
+                    // Solo procesar si el profesor es free Y la membresía expiró hace más de 30 días
+                    if (teacher.teacherData.plan !== 'free') continue;
+
+                    const expiredAt = teacher.teacherData.subscriptionExpiresAt;
+                    if (!expiredAt || new Date(expiredAt) > thirtyDaysAgo) continue;
+
+                    // Actualizar comisión del enrollment
+                    enrollment.appliedCommission.platformPercent = 25;
+                    enrollment.appliedCommission.teacherPercent = 75;
+                    enrollment.appliedCommission.reason = 'free_plan_grace_expired';
+                    await enrollment.save();
+
+                    result.graceExpired++;
+                } catch (err) {
+                    result.errors.push({ enrollmentId: enrollment._id, error: err.message });
+                }
+            }
+
+        } catch (error) {
+            console.error('[PlanDowngrade] Error general:', error.message);
+            result.errors.push({ general: error.message });
+        }
+
+        return result;
+    }
+
+    /**
+     * Limpiar invitaciones expiradas que no fueron eliminadas por TTL
+     * (Respaldo del TTL index de MongoDB)
+     */
+    static async _cleanExpiredInvites() {
+        const result = { cleaned: 0 };
+
+        try {
+            const updated = await TeacherInvite.updateMany(
+                {
+                    status: 'active',
+                    expiresAt: { $lt: new Date() }
+                },
+                {
+                    $set: { status: 'expired' }
+                }
+            );
+
+            result.cleaned = updated.modifiedCount || 0;
+        } catch (error) {
+            console.error('[CleanInvites] Error:', error.message);
+        }
+
+        return result;
+    }
+
+    /**
+     * Ejecutar downgrade de planes manualmente
+     */
+    static async runPlanDowngradeNow() {
+        return this._processPlanDowngrades();
+    }
+
+    /**
+     * Ejecutar limpieza de invitaciones manualmente
+     */
+    static async runCleanInvitesNow() {
+        return this._cleanExpiredInvites();
+    }
+
+    /**
      * Estado de todos los jobs
      */
     static getStatus() {
@@ -379,7 +560,9 @@ class CronService {
                 { name: 'sequenceRunner', schedule: '*/10 * * * *', description: 'CRM: Procesar secuencias email' },
                 { name: 'trackingDispatch', schedule: '5,20,35,50 * * * *', description: 'CRM: Despachar conversiones a Meta/Google/GA4' },
                 { name: 'adsSpendSync', schedule: '0 4 * * *', description: 'CRM: Sync gasto publicitario' },
-                { name: 'alertCheck', schedule: '0 8 * * *', description: 'CRM: Alertas campañas' }
+                { name: 'alertCheck', schedule: '0 8 * * *', description: 'CRM: Alertas campañas' },
+                { name: 'planDowngrade', schedule: '30 0 * * *', description: 'Downgrade automático planes expirados' },
+                { name: 'cleanInvites', schedule: '0 2 * * *', description: 'Limpiar invitaciones expiradas' }
             ]
         };
     }

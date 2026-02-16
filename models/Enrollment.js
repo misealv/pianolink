@@ -50,6 +50,24 @@ const enrollmentSchema = new mongoose.Schema({
         }
     }],
 
+    // ==================== ORIGEN DEL ALUMNO (v5.0) ====================
+    // Distingue si el alumno llegó por la plataforma o por invitación privada
+    source: {
+        type: String,
+        enum: ['platform', 'private_invite'],
+        default: 'platform'
+    },
+
+    // Código de invitación usado (si aplica)
+    inviteCode: { type: String, default: '' },
+
+    // Comisión aplicada en esta relación (se calcula al crear enrollment)
+    appliedCommission: {
+        platformPercent: { type: Number, default: 20 },   // % PianoLink (25, 15, o 0)
+        teacherPercent: { type: Number, default: 80 },    // % profesor (75, 85, o 100)
+        reason: { type: String, default: '' }              // Ej: 'free_plan_platform'
+    },
+
     // Notas del profesor sobre este alumno
     notes: {
         type: String,

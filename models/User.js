@@ -67,8 +67,38 @@ const userSchema = mongoose.Schema({
       totalClasses: { type: Number, default: 0 } // Clases completadas
     },
     
-    // Comisión que gana (default 80%)
+    // Comisión que gana (default 80%) — DEPRECADO: usar CommissionService
     commissionPercent: { type: Number, default: 80 },
+    
+    // ==================== PLAN DEL PROFESOR (v5.0) ====================
+    // Reemplaza la lógica binaria trial/active por 3 niveles
+    plan: {
+      type: String,
+      enum: ['free', 'premium', 'founder'],
+      default: 'free'
+    },
+    
+    // Fecha de inicio del plan de pago
+    planActivatedAt: { type: Date },
+    
+    // ID de suscripción recurrente para cobro mensual de membresía
+    mpSubscriptionId: { type: String, default: '' },       // Si paga con MercadoPago
+    paypalSubscriptionId: { type: String, default: '' },   // Si paga con PayPal
+    
+    // Proveedor de pago de la membresía del profesor
+    membershipPaymentProvider: {
+      type: String,
+      enum: ['mercadopago', 'paypal'],
+      default: 'mercadopago'
+    },
+    
+    // ==================== PERMISOS (Feature Flags) ====================
+    // Se calculan SIEMPRE a partir del campo `plan` vía PlanPermissionService
+    permissions: {
+      canInvitePrivateStudents: { type: Boolean, default: false },  // Solo premium/founder
+      hasPriorityQueue: { type: Boolean, default: false },          // Solo premium/founder
+      maxActiveStudents: { type: Number, default: -1 }              // -1 = ilimitado
+    },
     
     // PayPal para recibir pagos (legacy)
     paypalEmail: { type: String, default: '' },

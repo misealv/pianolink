@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planes para Profesores | PianoLink</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0a;
+            --bg-card: #141414;
+            --bg-card-hover: #1a1a1a;
+            --border: #2a2a2a;
+            --accent: #ff764d;
+            --accent-light: #ff8f6d;
+            --purple: #6366f1;
+            --purple-light: #818cf8;
+            --gold: #fbbf24;
+            --gold-light: #fcd34d;
+            --green: #4ade80;
+            --green-dark: #22c55e;
+            --text-main: #e0e0e0;
+            --text-muted: #888;
+            --text-dim: #555;
+            --mp-blue: #009ee3;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* === HEADER === */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            border-bottom: 1px solid var(--border);
+        }
+        .header-logo {
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent), #ff4d8d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            margin-left: 24px;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .header-nav a:hover { color: var(--text-main); }
+
+        /* === HERO === */
+        .hero {
+            text-align: center;
+            padding: 60px 20px 40px;
+        }
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 900;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--accent), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            color: var(--text-muted);
+            font-size: 18px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* === PRICING GRID === */
+        .pricing-section {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+        }
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 40px;
+        }
+        @media (max-width: 900px) {
+            .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 40px auto 0; }
+        }
+
+        /* === PLAN CARD === */
+        .plan-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px 28px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .plan-card:hover {
+            background: var(--bg-card-hover);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        }
+        .plan-card.featured {
+            border-color: var(--purple);
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.15);
+        }
+        .plan-card.founder-card {
+            border-color: var(--gold);
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.1);
+        }
+
+        .plan-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+        .badge-free { background: rgba(136,136,136,0.15); color: var(--text-muted); }
+        .badge-premium { background: rgba(99,102,241,0.15); color: var(--purple-light); }
+        .badge-founder { background: rgba(251,191,36,0.15); color: var(--gold); }
+
+        .popular-tag {
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--purple), #4f46e5);
+            color: white;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .plan-name {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+        .plan-desc {
+            color: var(--text-muted);
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            min-height: 40px;
+        }
+
+        .plan-price {
+            margin-bottom: 24px;
+        }
+        .plan-price .amount {
+            font-size: 48px;
+            font-weight: 900;
+        }
+        .plan-price .currency {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        .plan-price .period {
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+        .plan-price .free-label {
+            font-size: 48px;
+            font-weight: 900;
+            color: var(--green);
+        }
+
+        .plan-commission {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .commission-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .commission-value {
+            font-size: 20px;
+            font-weight: 800;
+        }
+        .commission-detail {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin-bottom: 28px;
+        }
+        .plan-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: 13px;
+            color: var(--text-main);
+        }
+        .plan-features li .icon {
+            flex-shrink: 0;
+            width: 18px;
+            text-align: center;
+        }
+        .plan-features li.disabled {
+            color: var(--text-dim);
+            text-decoration: line-through;
+        }
+
+        .plan-btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-main);
+        }
+        .btn-outline:hover { border-color: var(--text-muted); }
+        .btn-premium {
+            background: linear-gradient(135deg, var(--purple), #4f46e5);
+            color: white;
+        }
+        .btn-premium:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
+        .btn-founder {
+            background: linear-gradient(135deg, var(--gold), #f59e0b);
+            color: #1a1a1a;
+        }
+        .btn-founder:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(251,191,36,0.4); }
+
+        .current-plan-badge {
+            display: none;
+            background: var(--green);
+            color: #0a0a0a;
+            padding: 14px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        /* === CALCULADORA DE AHORRO === */
+        .savings-section {
+            max-width: 700px;
+            margin: 0 auto 60px;
+            padding: 0 20px;
+        }
+        .savings-card {
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+            border: 1px solid var(--purple);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+        }
+        .savings-card h3 {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+        .savings-card .subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        .savings-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 600px) { .savings-grid { grid-template-columns: 1fr; } }
+        .savings-stat {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .savings-stat .value {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--green);
+        }
+        .savings-stat .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .savings-stat.negative .value { color: #ef4444; }
+        .savings-stat.warning .value { color: var(--gold); }
+        .savings-message {
+            color: var(--purple-light);
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .savings-login {
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 20px;
+        }
+        .savings-login a { color: var(--purple-light); }
+
+        /* === FAQ === */
+        .faq-section {
+            max-width: 700px;
+            margin: 0 auto 80px;
+            padding: 0 20px;
+        }
+        .faq-section h2 {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 32px;
+        }
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+            padding: 20px 0;
+        }
+        .faq-q {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .faq-a {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* === FOOTER === */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            border-top: 1px solid var(--border);
+            color: var(--text-dim);
+            font-size: 12px;
+        }
+
+        /* Loading */
+        .loading-spinner {
+            width: 24px; height: 24px;
+            border: 3px solid var(--border);
+            border-top-color: var(--purple);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-logo">🎹 PianoLink</div>
+        <nav class="header-nav">
+            <a href="/profesores">Profesores</a>
+            <a href="/dashboard.html">Mi Estudio</a>
+            <a href="/login">Iniciar Sesión</a>
+        </nav>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+        <h1>Elige el plan que <span>impulse tu carrera</span></h1>
+        <p>Nosotros conseguimos los alumnos, tú solo enseñas. Mientras más alumnos, más conviene Premium.</p>
+    </section>
+
+    <!-- PRICING CARDS -->
+    <section class="pricing-section">
+        <div class="pricing-grid">
+
+            <!-- PLAN FREE -->
+            <div class="plan-card" id="cardFree">
+                <span class="plan-badge badge-free">Sin Costo</span>
+                <h3 class="plan-name">Free</h3>
+                <p class="plan-desc">Comienza a enseñar sin inversión inicial</p>
+
+                <div class="plan-price">
+                    <span class="free-label">$0</span>
+                </div>
+
+                <div class="plan-commission">
+                    <div class="commission-label">Comisión por alumno de plataforma</div>
+                    <div class="commission-value" style="color: var(--gold);">25%</div>
+                    <div class="commission-detail">PianoLink 25% — Tú 75%</div>
+                </div>
+
+                <ul class="plan-features">
+                    <li><span class="icon">✅</span> Sala virtual ilimitada</li>
+                    <li><span class="icon">✅</span> Recibe alumnos de la plataforma</li>
+                    <li><span class="icon">✅</span> Perfil público de profesor</li>
+                    <li><span class="icon">✅</span> Calendario de disponibilidad</li>
+                    <li class="disabled"><span class="icon">❌</span> Invitar alumnos particulares</li>
+                    <li class="disabled"><span class="icon">❌</span> Prioridad en asignación</li>
+                </ul>
+
+                <div class="current-plan-badge" id="currentFree">✓ Tu plan actual</div>
+                <a href="/dashboard.html" class="plan-btn btn-outline" id="btnFree">Empezar Gratis</a>
+            </div>
+
+            <!-- PLAN PREMIUM -->
+            <div class="plan-card featured" id="cardPremium">
+                <div class="popular-tag">⭐ Más popular</div>
+                <span class="plan-badge badge-premium">Membresía</span>
+                <h3 class="plan-name">Premium</h3>
+                <p class="plan-desc">Menos comisión + invita tus propios alumnos</p>
+
+                <div class="plan-price">
+                    <span class="currency">$</span><span class="amount">19</span>
+                    <span class="period">USD/mes</span>
+                </div>
+
+                <div class="plan-commission">
+                    <div class="commission-label">Comisión por alumno de plataforma</div>
+                    <div class="commission-value" style="color: var(--green);">15%</div>
+                    <div class="commission-detail">PianoLink 15% — Tú 85%</div>
+                </div>
+
+                <ul class="plan-features">
+                    <li><span class="icon">✅</span> Todo lo de Free</li>
+                    <li><span class="icon">✅</span> <strong>Invitar alumnos particulares (0% comisión)</strong></li>
+                    <li><span class="icon">✅</span> <strong>Prioridad en asignación de alumnos</strong></li>
+                    <li><span class="icon">✅</span> Comisión reducida al 15%</li>
+                    <li><span class="icon">✅</span> Soporte prioritario</li>
+                </ul>
+
+                <div class="current-plan-badge" id="currentPremium">✓ Tu plan actual</div>
+                <button class="plan-btn btn-premium" id="btnPremium" onclick="handleCheckout('premium')">
+                    Activar Premium — $19/mes
+                </button>
+            </div>
+
+            <!-- PLAN FOUNDER -->
+            <div class="plan-card founder-card" id="cardFounder">
+                <span class="plan-badge badge-founder">⭐ Exclusivo</span>
+                <h3 class="plan-name">Fundador</h3>
+                <p class="plan-desc">Precio congelado de por vida para fundadores</p>
+
+                <div class="plan-price">
+                    <span class="currency" style="color: var(--gold);">$</span>
+                    <span class="amount" style="color: var(--gold);">10</span>
+                    <span class="period">USD/mes <em>de por vida</em></span>
+                </div>
+
+                <div class="plan-commission">
+                    <div class="commission-label">Comisión por alumno de plataforma</div>
+                    <div class="commission-value" style="color: var(--green);">15%</div>
+                    <div class="commission-detail">PianoLink 15% — Tú 85%</div>
+                </div>
+
+                <ul class="plan-features">
+                    <li><span class="icon">✅</span> Todo lo de Premium</li>
+                    <li><span class="icon">⭐</span> <strong>Precio $10/mes congelado para siempre</strong></li>
+                    <li><span class="icon">✅</span> Invitar alumnos particulares (0% comisión)</li>
+                    <li><span class="icon">✅</span> Prioridad en asignación</li>
+                    <li><span class="icon">👑</span> Chat directo con soporte</li>
+                </ul>
+
+                <div class="current-plan-badge" id="currentFounder">✓ Tu plan actual</div>
+                <button class="plan-btn btn-founder" id="btnFounder" onclick="handleCheckout('founder')" style="display: none;">
+                    Activar Fundador — $10/mes
+                </button>
+                <div id="founderLocked" class="plan-btn btn-outline" style="cursor: default; opacity: 0.5;">
+                    🔒 Solo para profesores fundadores
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CALCULADORA DE AHORRO -->
+    <section class="savings-section">
+        <div class="savings-card" id="savingsCard">
+            <h3>💰 Calculadora de Ahorro</h3>
+            <p class="subtitle">Inicia sesión para ver cuánto ahorrarías con Premium</p>
+            <div id="savingsContent">
+                <div class="savings-login">
+                    <a href="/login">Inicia sesión</a> para ver tu calculadora personalizada de ahorro basada en tus ventas reales.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq-section">
+        <h2>Preguntas Frecuentes</h2>
+
+        <div class="faq-item">
+            <div class="faq-q">¿Puedo cambiar de plan en cualquier momento?</div>
+            <div class="faq-a">Sí. Puedes hacer upgrade de Free a Premium en cualquier momento. El cambio es inmediato y se prorratea al mes actual. Si cancelas Premium, al vencer pasas automáticamente a Free sin perder tus alumnos de plataforma.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">¿Qué significa "alumnos de plataforma" vs "alumnos particulares"?</div>
+            <div class="faq-a"><strong>De plataforma:</strong> alumnos que llegan a ti a través de PianoLink (catálogo, búsquedas, asignación). Aquí se aplica comisión (25% Free / 15% Premium). <br><strong>Particulares:</strong> alumnos que tú mismo invitas con un enlace personal. En Premium/Founder la comisión es 0% por estos alumnos.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">¿Cómo funciona la prioridad en asignación?</div>
+            <div class="faq-a">Cuando un nuevo alumno busca profesor en PianoLink, los profesores Premium y Fundador aparecen primero en los resultados. Esto significa más visibilidad y más oportunidades de clase.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">¿Qué métodos de pago aceptan para la membresía?</div>
+            <div class="faq-a">Si estás en Chile, México, Argentina, Colombia, Brasil, Perú o Uruguay, puedes pagar con <strong>MercadoPago</strong> en tu moneda local. Para otros países, usamos <strong>PayPal</strong> en USD.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">¿Qué pasa con el plan Fundador?</div>
+            <div class="faq-a">El plan Fundador está reservado exclusivamente para los profesores que se unieron al programa de fundadores de PianoLink. Ofrece todos los beneficios de Premium a $10 USD/mes, precio congelado de por vida como agradecimiento por su confianza temprana.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-q">¿Puedo enseñar gratis sin pagar membresía?</div>
+            <div class="faq-a">¡Sí! El plan Free es completamente gratuito. Recibes alumnos de la plataforma con una comisión del 25%. No necesitas pagar nada para empezar a enseñar.</div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        © 2026 PianoLink — Todos los derechos reservados
+    </footer>
+
+    <script>
+        // Variables globales
+        let currentUser = null;
+        let authToken = null;
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', async () => {
+            authToken = localStorage.getItem('token');
+            if (authToken) {
+                await loadUserData();
+                await loadSavingsCalculator();
+            }
+        });
+
+        // Cargar datos del usuario autenticado
+        async function loadUserData() {
+            try {
+                const res = await fetch('/api/membership/status', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!res.ok) return;
+
+                currentUser = await res.json();
+                updateUIForCurrentPlan();
+            } catch (e) {
+                console.error('Error cargando datos:', e);
+            }
+        }
+
+        // Actualizar UI según plan actual
+        function updateUIForCurrentPlan() {
+            if (!currentUser) return;
+            const plan = currentUser.plan || 'free';
+
+            // Mostrar badge "Tu plan actual" en el plan correcto
+            document.getElementById(`current${capitalize(plan)}`).style.display = 'block';
+
+            // Ocultar botón de ese plan
+            const btnId = `btn${capitalize(plan)}`;
+            const btn = document.getElementById(btnId);
+            if (btn) btn.style.display = 'none';
+
+            // Si es founder, mostrar botón founder y ocultar locked
+            if (currentUser.isFounder) {
+                document.getElementById('btnFounder').style.display = 'block';
+                document.getElementById('founderLocked').style.display = 'none';
+                if (plan === 'founder') {
+                    document.getElementById('btnFounder').style.display = 'none';
+                }
+            }
+
+            // Si ya es premium, cambiar botón a "Gestionar"
+            if (plan === 'premium') {
+                document.getElementById('btnPremium').textContent = 'Plan Actual';
+                document.getElementById('btnPremium').style.display = 'none';
+            }
+
+            // Actualizar header nav
+            const navLinks = document.querySelector('.header-nav');
+            if (navLinks) {
+                const loginLink = navLinks.querySelector('a[href="/login"]');
+                if (loginLink) {
+                    loginLink.textContent = 'Mi Estudio';
+                    loginLink.href = '/dashboard.html';
+                }
+            }
+        }
+
+        // Cargar calculadora de ahorro
+        async function loadSavingsCalculator() {
+            try {
+                const res = await fetch('/api/teacher/commission-savings', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!res.ok) return;
+
+                const data = await res.json();
+                if (!data.savings) return;
+
+                const s = data.savings;
+                const content = document.getElementById('savingsContent');
+                document.querySelector('.savings-card .subtitle').textContent =
+                    'Tu ahorro personalizado basado en tus ventas reales';
+
+                content.innerHTML = `
+                    <div class="savings-grid">
+                        <div class="savings-stat warning">
+                            <div class="value">$${s.totalPaid.toFixed(0)}</div>
+                            <div class="label">Comisiones pagadas (total)</div>
+                        </div>
+                        <div class="savings-stat">
+                            <div class="value">$${s.monthlySavings.toFixed(0)}</div>
+                            <div class="label">Ahorrarías / mes con Premium</div>
+                        </div>
+                        <div class="savings-stat ${s.netSavings > 0 ? '' : 'negative'}">
+                            <div class="value">$${s.netSavings > 0 ? '+' : ''}${s.netSavings.toFixed(0)}</div>
+                            <div class="label">Ahorro neto / mes (- $${s.membershipCost} membresía)</div>
+                        </div>
+                    </div>
+                    ${s.message ? `<div class="savings-message">${s.message}</div>` : ''}
+                `;
+            } catch (e) {
+                console.error('Error cargando ahorros:', e);
+            }
+        }
+
+        // Manejar checkout
+        async function handleCheckout(plan) {
+            if (!authToken) {
+                window.location.href = '/login?redirect=/pricing';
+                return;
+            }
+
+            const btn = document.getElementById(`btn${capitalize(plan)}`);
+            const originalText = btn.textContent;
+            btn.textContent = 'Procesando...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/api/membership/checkout/${plan}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ returnUrl: window.location.origin + '/dashboard.html?membership=success&plan=' + plan })
+                });
+
+                const data = await res.json();
+
+                if (data.success && data.checkoutUrl) {
+                    window.location.href = data.checkoutUrl;
+                } else {
+                    alert(data.error || 'Error al crear checkout');
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                console.error('Error checkout:', e);
+                alert('Error de conexión. Intenta de nuevo.');
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+    </script>
+
+</body>
+</html>

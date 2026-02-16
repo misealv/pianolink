@@ -695,6 +695,65 @@ exports.updateKitV2Price = async (req, res) => {
     }
 };
 
+// Actualizar configuración de Early Bird (Fase 5 v5.0)
+exports.updateEarlyBirdConfig = async (req, res) => {
+    try {
+        const {
+            enabled,
+            welcomeKitPriceUSD,
+            welcomeKitRegularPriceUSD,
+            expiresAfterMinutes,
+            headline,
+            subtitle,
+            ctaText
+        } = req.body;
+
+        // Validaciones
+        if (typeof welcomeKitPriceUSD !== 'number' || welcomeKitPriceUSD < 1) {
+            return res.status(400).json({ message: 'Precio early bird inválido (mínimo 1 centavo)' });
+        }
+        if (typeof welcomeKitRegularPriceUSD !== 'number' || welcomeKitRegularPriceUSD < 1) {
+            return res.status(400).json({ message: 'Precio regular inválido (mínimo 1 centavo)' });
+        }
+        if (welcomeKitPriceUSD >= welcomeKitRegularPriceUSD) {
+            return res.status(400).json({ message: 'El precio early bird debe ser menor al precio regular' });
+        }
+        if (typeof expiresAfterMinutes === 'number' && (expiresAfterMinutes < 0 || expiresAfterMinutes > 1440)) {
+            return res.status(400).json({ message: 'El countdown debe ser entre 0 y 1440 minutos' });
+        }
+
+        let config = await GlobalConfig.findOne({ isDefault: true });
+
+        if (!config) {
+            config = new GlobalConfig({ isDefault: true, memberships: {} });
+        }
+
+        if (!config.memberships) config.memberships = {};
+
+        config.memberships.earlyBirdOffer = {
+            enabled: enabled !== false,
+            welcomeKitPriceUSD: welcomeKitPriceUSD,
+            welcomeKitRegularPriceUSD: welcomeKitRegularPriceUSD,
+            expiresAfterMinutes: typeof expiresAfterMinutes === 'number' ? expiresAfterMinutes : 30,
+            headline: headline || '¡Oferta exclusiva para madrugadores!',
+            subtitle: subtitle || 'Por registrarte hoy, accede al Welcome Kit con descuento único',
+            ctaText: ctaText || 'Comprar Welcome Kit — $29 USD'
+        };
+
+        await config.save();
+
+        console.log('[Admin] Configuración Early Bird actualizada:', config.memberships.earlyBirdOffer);
+
+        res.json({
+            message: 'Configuración Early Bird actualizada',
+            earlyBirdOffer: config.memberships.earlyBirdOffer
+        });
+    } catch (error) {
+        console.error('Error actualizando config Early Bird:', error);
+        res.status(500).json({ message: 'Error actualizando configuración' });
+    }
+};
+
 /**
  * Enviar recordatorio de membresía a un profesor específico
  */
