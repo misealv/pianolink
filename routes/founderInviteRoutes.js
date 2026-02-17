@@ -13,6 +13,7 @@
  */
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const FounderInvite = require('../models/FounderInvite');
 const User = require('../models/User');
@@ -423,6 +424,67 @@ router.get('/eligible-leads', protect, adminOnly, async (req, res) => {
         res.json({ success: true, leads: enriched });
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+});
+
+// ==================== LANDING PAGE CONTENT ====================
+
+/**
+ * GET /landing-content — Lee el contenido editable de la landing
+ */
+router.get('/landing-content', protect, adminOnly, async (req, res) => {
+    try {
+        const fs = require('fs');
+        const filePath = path.join(__dirname, '..', 'public', 'founder-invite.html');
+        const html = fs.readFileSync(filePath, 'utf-8');
+
+        // Extraer textos editables usando regex
+        const extract = (id) => {
+            // Buscar contenido entre tags con ese id
+            const re = new RegExp(`data-editable="${id}"[^>]*>([\\s\\S]*?)</`, 'i');
+            const m = html.match(re);
+            return m ? m[1].trim() : '';
+        };
+
+        // Extraer secciones principales por estructura
+        const content = { html };
+        res.json({ success: true, content });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * PUT /landing-content — Guarda cambios en la landing
+ * Recibe el HTML completo editado
+ */
+router.put('/landing-content', protect, adminOnly, async (req, res) => {
+    try {
+        const fs = require('fs');
+        const { html } = req.body;
+        if (!html || html.length < 100) {
+            return res.status(400).json({ success: false, message: 'HTML inválido' });
+        }
+
+        // Validación básica de seguridad
+        if (!html.includes('PianoLink') || !html.includes('founder-invite')) {
+            return res.status(400).json({ success: false, message: 'El HTML no parece ser una landing válida de PianoLink' });
+        }
+
+        const filePath = path.join(__dirname, '..', 'public', 'founder-invite.html');
+
+        // Backup antes de guardar
+        const backupPath = filePath + '.backup.' + Date.now();
+        const currentHtml = fs.readFileSync(filePath, 'utf-8');
+        fs.writeFileSync(backupPath, currentHtml, 'utf-8');
+
+        // Guardar nuevo HTML
+        fs.writeFileSync(filePath, html, 'utf-8');
+
+        console.log(`[FounderInvite] 📝 Landing actualizada por admin. Backup: ${backupPath}`);
+        res.json({ success: true, message: 'Landing actualizada', backupFile: backupPath });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 

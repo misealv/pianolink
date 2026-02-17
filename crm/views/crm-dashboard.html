@@ -840,6 +840,7 @@
                     <button onclick="fiSendBatch()" id="fi-send-batch-btn" style="background:var(--accent); color:#fff; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;">🚀 Enviar a pendientes</button>
                     <button onclick="fiPreviewEmail()" style="background:#fff; color:var(--text-primary); border:1px solid var(--border); padding:10px 20px; border-radius:8px; cursor:pointer; font-size:13px;">👁️ Preview Email</button>
                     <button onclick="fiPreviewLanding()" style="background:#fff; color:var(--text-primary); border:1px solid var(--border); padding:10px 20px; border-radius:8px; cursor:pointer; font-size:13px;">🌐 Ver Landing</button>
+                    <button onclick="fiEditLanding()" style="background:#fff; color:var(--text-primary); border:1px solid var(--border); padding:10px 20px; border-radius:8px; cursor:pointer; font-size:13px;">✏️ Editar Landing</button>
                     <button onclick="loadFounderInvites()" style="background:#fff; color:var(--text-primary); border:1px solid var(--border); padding:10px 20px; border-radius:8px; cursor:pointer; font-size:13px;">🔄 Actualizar</button>
                 </div>
 
@@ -1047,6 +1048,40 @@
         <div class="modal-footer">
             <button class="btn btn-outline" onclick="closeModal('modalCreateLanding')">Cancelar</button>
             <button class="btn btn-primary" onclick="createLanding()">Crear Landing</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Editar Landing Fundador (editor HTML con preview) -->
+<div class="modal" id="modalEditLanding">
+    <div class="modal-content" style="max-width:95vw; width:1200px; height:90vh; display:flex; flex-direction:column;">
+        <div class="modal-header" style="flex-shrink:0;">
+            <h3>✏️ Editar Landing — Profesor Fundador</h3>
+            <button class="modal-close" onclick="closeModal('modalEditLanding')">&times;</button>
+        </div>
+        <div style="display:flex; flex:1; overflow:hidden; border-top:1px solid var(--border);">
+            <!-- Panel izquierdo: Editor HTML -->
+            <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid var(--border);">
+                <div style="padding:10px 16px; background:#f8f9fa; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:600; font-size:13px;">Código HTML</span>
+                    <button onclick="fiRefreshPreview()" style="background:var(--accent); color:#fff; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px;">🔄 Actualizar Preview</button>
+                </div>
+                <textarea id="fiLandingEditor" style="flex:1; width:100%; border:none; padding:12px; font-family:'Fira Code',monospace,Consolas; font-size:13px; line-height:1.5; resize:none; outline:none; background:#1e1e1e; color:#d4d4d4;" spellcheck="false"></textarea>
+            </div>
+            <!-- Panel derecho: Preview -->
+            <div style="flex:1; display:flex; flex-direction:column;">
+                <div style="padding:10px 16px; background:#f8f9fa; border-bottom:1px solid var(--border);">
+                    <span style="font-weight:600; font-size:13px;">Vista Previa</span>
+                </div>
+                <iframe id="fiLandingPreview" style="flex:1; width:100%; border:none; background:#1a1a2e;"></iframe>
+            </div>
+        </div>
+        <div class="modal-footer" style="flex-shrink:0; display:flex; justify-content:space-between;">
+            <span id="fiLandingStatus" style="font-size:12px; color:var(--text-secondary);"></span>
+            <div>
+                <button class="btn btn-outline" onclick="closeModal('modalEditLanding')">Cancelar</button>
+                <button class="btn btn-primary" onclick="fiSaveLanding()" id="fiSaveLandingBtn">💾 Guardar Cambios</button>
+            </div>
         </div>
     </div>
 </div>
@@ -2513,6 +2548,70 @@
         } catch(e) { alert('Error de conexión'); }
     }
 
+    // === EDITAR LANDING FUNDADOR ===
+    async function fiEditLanding() {
+        try {
+            const res = await fetch(`${FI_API}/landing-content`, { headers: authHeaders() });
+            const data = await res.json();
+            if (!data.success) { alert('Error al cargar landing'); return; }
+
+            const editor = document.getElementById('fiLandingEditor');
+            editor.value = data.content.html;
+            document.getElementById('fiLandingStatus').textContent = `${data.content.html.length} caracteres`;
+            document.getElementById('modalEditLanding').classList.add('show');
+
+            // Cargar preview inicial
+            setTimeout(() => fiRefreshPreview(), 200);
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    }
+
+    function fiRefreshPreview() {
+        const html = document.getElementById('fiLandingEditor').value;
+        const iframe = document.getElementById('fiLandingPreview');
+        // Inyectar HTML en el iframe sin ejecutar scripts de validación de token
+        const previewHtml = html.replace(
+            /init\(\);/g,
+            '// init() desactivado en preview\n' +
+            'document.getElementById("loadingState").style.display="none";\n' +
+            'document.getElementById("mainContent").style.display="block";'
+        );
+        iframe.srcdoc = previewHtml;
+        document.getElementById('fiLandingStatus').textContent = `${html.length} caracteres | Preview actualizado`;
+    }
+
+    async function fiSaveLanding() {
+        const btn = document.getElementById('fiSaveLandingBtn');
+        const html = document.getElementById('fiLandingEditor').value;
+
+        if (!html || html.length < 100) { alert('El HTML es demasiado corto'); return; }
+        if (!confirm('¿Guardar los cambios en la landing de profesores fundadores?')) return;
+
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+
+        try {
+            const res = await fetch(`${FI_API}/landing-content`, {
+                method: 'PUT',
+                headers: authHeaders(),
+                body: JSON.stringify({ html })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('✅ Landing actualizada correctamente');
+                document.getElementById('fiLandingStatus').textContent = 'Guardado ✅';
+            } else {
+                alert('❌ ' + (data.message || 'Error al guardar'));
+            }
+        } catch (e) {
+            alert('Error: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '💾 Guardar Cambios';
+        }
+    }
+
     // Exponer funciones de founder invites al scope global
     window.loadFounderInvites = loadFounderInvites;
     window.fiSendToLead = fiSendToLead;
@@ -2520,6 +2619,9 @@
     window.fiToggleSelectAll = fiToggleSelectAll;
     window.fiPreviewEmail = fiPreviewEmail;
     window.fiPreviewLanding = fiPreviewLanding;
+    window.fiEditLanding = fiEditLanding;
+    window.fiRefreshPreview = fiRefreshPreview;
+    window.fiSaveLanding = fiSaveLanding;
 
 })();
 </script>
