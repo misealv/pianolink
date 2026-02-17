@@ -407,19 +407,34 @@ class CrmLandingService {
             // Intentar encontrar Lead existente por email o crear nuevo via core LeadService
             let crmLead = null;
             if (formData.email) {
-                // Buscar CrmLead cuyo leadRef (Lead del core) tenga este email
                 const Lead = require('../../models/Lead');
-                const coreLead = await Lead.findOne({ email: formData.email.toLowerCase().trim() }).lean();
+                const CrmLeadService = require('./CrmLeadService');
+                let coreLead = await Lead.findOne({ email: formData.email.toLowerCase().trim() }).lean();
 
                 if (coreLead) {
+                    // Buscar CrmLead; si no existe, crearlo explícitamente (bridge pudo fallar o lead pre-CRM)
                     crmLead = await CrmLead.findOne({ leadRef: coreLead._id });
+                    if (!crmLead) {
+                        const enrichment = {
+                            channel: trackingData.utmSource ? 'referral' : 'organic',
+                            utmSource: trackingData.utmSource || landing.utmParams?.source || '',
+                            utmMedium: trackingData.utmMedium || landing.utmParams?.medium || '',
+                            utmCampaign: trackingData.utmCampaign || landing.utmParams?.campaign || '',
+                            landingPage: `/l/${slug}`,
+                            tags: [`landing:${slug}`]
+                        };
+                        const bridgeResult = await CrmLeadService.findOrCreateFromCoreLead(coreLead._id, enrichment);
+                        if (bridgeResult.success) {
+                            crmLead = bridgeResult.data;
+                            console.log(`[CRM Landing] 🔗 CrmLead creado para lead existente: ${coreLead.email}`);
+                        }
+                    }
                 }
 
-                // Si no existe lead en el core, crearlo via LeadService (bridge lo enriquecerá)
+                // Si no existe lead en el core, crearlo via LeadService y luego crear CrmLead directamente
                 if (!coreLead) {
                     try {
                         const LeadService = require('../../services/LeadService');
-                        // LeadService.createOrUpdate requiere name, email, whatsapp
                         const result = await LeadService.createOrUpdate({
                             name: formData.name || '',
                             email: formData.email,
@@ -430,9 +445,20 @@ class CrmLandingService {
                             utmCampaign: trackingData.utmCampaign || landing.utmParams?.campaign || '',
                             notes: `Capturado desde landing: /l/${slug}`
                         }, false);
-                        // El bridge (lead.created event) creará el CrmLead automáticamente
+                        // Crear CrmLead directamente en vez de depender del bridge asíncrono
                         if (result.success && result.lead?._id) {
-                            crmLead = await CrmLead.findOne({ leadRef: result.lead._id });
+                            const enrichment = {
+                                channel: trackingData.utmSource ? 'referral' : 'organic',
+                                utmSource: trackingData.utmSource || landing.utmParams?.source || '',
+                                utmMedium: trackingData.utmMedium || landing.utmParams?.medium || '',
+                                utmCampaign: trackingData.utmCampaign || landing.utmParams?.campaign || '',
+                                landingPage: `/l/${slug}`,
+                                tags: [`landing:${slug}`]
+                            };
+                            const bridgeResult = await CrmLeadService.findOrCreateFromCoreLead(result.lead._id, enrichment);
+                            if (bridgeResult.success) {
+                                crmLead = bridgeResult.data;
+                            }
                         }
                     } catch (leadErr) {
                         console.error('[CRM Landing] Error creando lead desde landing form:', leadErr.message);
