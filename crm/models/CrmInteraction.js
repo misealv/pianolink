@@ -19,7 +19,7 @@ const crmInteractionSchema = new mongoose.Schema({
         type: String, 
         enum: [
             'page_view', 'form_start', 'form_submit',
-            'email_sent', 'email_open', 'email_click', 'email_bounce', 'email_unsubscribe',
+            'email_sent', 'email_open', 'email_click', 'email_bounce', 'email_unsubscribe', 'email_reply',
             'demo_scheduled', 'demo_completed', 'demo_no_show',
             'booking_created', 'booking_completed', 'booking_cancelled',
             'payment_received', 'subscription_created', 'subscription_cancelled',

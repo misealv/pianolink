@@ -22,6 +22,9 @@ router.use('/landings', require('./routes/crmLandingRoutes'));
 // === Email Marketing (Lanzamiento Día 88) ===
 router.use('/emails', require('./routes/crmEmailCampaignRoutes'));
 
+// === Inbox — Emails entrantes (respuestas de leads) ===
+router.use('/inbound', require('./routes/crmInboundEmailRoutes'));
+
 // === Configuración (Meta Pixel, etc.) ===
 router.use('/config', require('./routes/crmConfigRoutes'));
 
