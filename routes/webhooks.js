@@ -494,7 +494,7 @@ router.post('/mercadopago-early-bird', async (req, res) => {
                         classesRemaining: 1,
                         classesCompleted: 0,
                         studentData: {
-                            source: 'early_bird',
+                            source: 'platform',
                             level: 'beginner'
                         },
                         kitPurchased: true,

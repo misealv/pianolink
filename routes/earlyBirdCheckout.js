@@ -375,7 +375,7 @@ router.post('/verify', async (req, res) => {
                 role: 'student',
                 classesRemaining: 1,
                 classesCompleted: 0,
-                studentData: { source: 'early_bird', level: 'beginner' },
+                studentData: { source: 'platform', level: 'beginner' },
                 kitPurchased: true,
                 kitPurchaseDate: new Date(),
                 magicLinkToken,
