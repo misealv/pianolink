@@ -107,6 +107,7 @@ class CrmResendService {
 
     /**
      * Enviar campaña masiva (broadcast)
+     * Soporta broadcast dual: versión A (activos) y B (fríos)
      * @param {string} campaignId - ID de la campaña
      */
     async sendCampaign(campaignId) {
@@ -138,7 +139,13 @@ class CrmResendService {
                 return { success: false, error: 'No hay suscriptores para enviar' };
             }
 
+            // Obtener cupos restantes para variable dinámica
+            const cuposRestantes = await this._getCuposRestantes();
+
             console.log(`[CRM Resend] 📤 Enviando campaña "${campaign.nombre}" a ${suscriptores.length} suscriptores`);
+
+            // Broadcast dual: separar activos vs fríos si hay versión para activos
+            const tieneVersionDual = !!campaign.contenidoHtmlActivos;
 
             // Enviar en batches
             let enviados = 0;
@@ -150,11 +157,17 @@ class CrmResendService {
                 console.log(`[CRM Resend] Procesando batch ${i + 1}/${batches.length}`);
 
                 const promises = batch.map(async (sub) => {
+                    // Elegir contenido según engagement (broadcast dual)
+                    let contenido = campaign.contenidoHtml;
+                    if (tieneVersionDual && sub.opensCount >= (campaign.umbralEngagement || 4)) {
+                        contenido = campaign.contenidoHtmlActivos;
+                    }
+
                     const result = await this.sendEmail(
                         sub.email,
                         campaign.asunto,
-                        campaign.contenidoHtml,
-                        { nombre: sub.nombre }
+                        contenido,
+                        { nombre: sub.nombre, cupos_restantes: cuposRestantes }
                     );
                     return result.success;
                 });
@@ -248,6 +261,7 @@ class CrmResendService {
 
     /**
      * Obtener suscriptores para una campaña según targeting
+     * Incluye opensCount para segmentación por engagement (broadcast dual)
      */
     async _getSuscriptoresParaCampaign(targeting = {}) {
         try {
@@ -270,12 +284,13 @@ class CrmResendService {
                 .limit(10000) // Límite de seguridad
                 .lean();
 
-            // Extraer email y nombre del lead referenciado
+            // Extraer email, nombre y opensCount del lead
             return crmLeads
                 .filter(l => l.leadRef?.email)
                 .map(l => ({
                     email: l.leadRef.email,
-                    nombre: l.leadRef.name || 'amigo/a'
+                    nombre: l.leadRef.name || 'amigo/a',
+                    opensCount: l.emailPreferences?.opensCount || 0
                 }));
 
         } catch (error) {
@@ -285,12 +300,38 @@ class CrmResendService {
     }
 
     /**
+     * Obtener cupos restantes de los 88 disponibles
+     * Cuenta compras completadas del Kit de Bienvenida
+     */
+    async _getCuposRestantes() {
+        try {
+            const Order = require('../../models/Order');
+            // Contar orders completadas del Welcome Kit
+            const vendidos = await Order.countDocuments({
+                'items.type': 'welcome-kit',
+                status: { $in: ['completed', 'paid', 'active'] }
+            });
+            return Math.max(0, 88 - vendidos);
+        } catch (error) {
+            // Si no se puede calcular, devolver null (se mostrará '—')
+            console.warn('[CRM Resend] No se pudo calcular cupos restantes:', error.message);
+            return null;
+        }
+    }
+
+    /**
      * Reemplazar variables en el HTML
+     * Soporta: {{nombre}}, {{email}}, {{cupos_restantes}}
      */
     _replaceVariables(html, data) {
         let result = html;
         result = result.replace(/\{\{nombre\}\}/g, data.nombre || 'amigo/a');
         result = result.replace(/\{\{email\}\}/g, data.email || '');
+        // Variable dinámica de cupos restantes (se calcula al momento del envío)
+        if (result.includes('{{cupos_restantes}}')) {
+            const cupos = data.cupos_restantes != null ? data.cupos_restantes : '—';
+            result = result.replace(/\{\{cupos_restantes\}\}/g, String(cupos));
+        }
         return result;
     }
 

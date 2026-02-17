@@ -64,6 +64,15 @@ function getBroadcastScheduler() {
     return CrmBroadcastScheduler;
 }
 
+// CRM: Abandoned Cart — detecta clicks sin pago y envía trigger email
+let CrmAbandonedCartService = null;
+function getAbandonedCartService() {
+    if (!CrmAbandonedCartService) {
+        try { CrmAbandonedCartService = require('../crm/services/CrmAbandonedCartService'); } catch (e) { /* no disponible */ }
+    }
+    return CrmAbandonedCartService;
+}
+
 class CronService {
     static jobs = [];
 
@@ -299,6 +308,23 @@ class CronService {
             timezone: 'UTC'
         });
         this.jobs.push(broadcastSchedulerJob);
+
+        // 13c. CRM: Abandoned Cart — Detecta clicks sin pago y envía email trigger — Cada 15 min (offset)
+        const abandonedCartJob = cron.schedule('3,18,33,48 * * * *', async () => {
+            const service = getAbandonedCartService();
+            if (!service) return;
+            try {
+                const result = await service.processAll();
+                if (result.sent > 0) {
+                    console.log(`[Cron] 🛒 Carrito abandonado: ${result.sent} emails enviados de ${result.checked} detectados`);
+                }
+            } catch (error) {
+                console.error('[Cron] ❌ Error carrito abandonado:', error);
+            }
+        }, {
+            timezone: 'UTC'
+        });
+        this.jobs.push(abandonedCartJob);
 
         // ============================================
         // JOBS FASE 3: PERMISOS Y PLANES

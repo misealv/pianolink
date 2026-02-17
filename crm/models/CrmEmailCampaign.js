@@ -42,13 +42,58 @@ const crmEmailCampaignSchema = new mongoose.Schema({
     // === TIPO Y CONFIGURACIÓN ===
     tipo: { 
         type: String, 
-        enum: ['secuencia', 'broadcast', 'transaccional'],
+        enum: ['secuencia', 'broadcast', 'transaccional', 'trigger'],
         default: 'broadcast'
     },
     
     ordenSecuencia: { 
         type: Number, 
         default: null 
+    },
+
+    // === ARQUITECTURA HÍBRIDA (relativo vs broadcast) ===
+    modoEnvio: {
+        type: String,
+        enum: ['relativo', 'fechaFija', 'trigger'],
+        default: 'fechaFija'
+    },
+
+    // Para emails relativos: días después del registro
+    diasDespuesRegistro: {
+        type: Number,
+        default: null
+    },
+
+    // Para emails relativos: fecha límite de entrada
+    fechaLimiteEntrada: {
+        type: Date,
+        default: null
+    },
+
+    // Para triggers: evento que lo dispara
+    triggerEvento: {
+        type: String,
+        enum: ['click_sin_pago', 'cupos_completados', null],
+        default: null
+    },
+
+    // Delay del trigger en minutos
+    triggerDelayMinutos: {
+        type: Number,
+        default: 60
+    },
+
+    // === BROADCAST DUAL (segmentación por engagement) ===
+    // Si existe contenidoHtmlActivos, el broadcast tiene 2 versiones
+    contenidoHtmlActivos: {
+        type: String,
+        default: null
+    },
+
+    // Umbral de opens para considerar "lead activo"
+    umbralEngagement: {
+        type: Number,
+        default: 4 // 4+ emails abiertos = activo
     },
     
     estado: { 
@@ -141,6 +186,34 @@ crmEmailCampaignSchema.statics.getSecuencia = async function() {
     return this.find({ tipo: 'secuencia' })
         .sort({ ordenSecuencia: 1 })
         .lean();
+};
+
+/**
+ * Obtener campañas relativas pendientes para un lead específico
+ * según su fecha de registro
+ */
+crmEmailCampaignSchema.statics.getRelativosPendientes = async function(fechaRegistro) {
+    const ahora = new Date();
+    return this.find({
+        tipo: 'secuencia',
+        modoEnvio: 'relativo',
+        estado: { $in: ['borrador', 'programado'] },
+        $or: [
+            { fechaLimiteEntrada: null },
+            { fechaLimiteEntrada: { $gt: fechaRegistro } }
+        ]
+    }).sort({ ordenSecuencia: 1 }).lean();
+};
+
+/**
+ * Obtener triggers activos por evento
+ */
+crmEmailCampaignSchema.statics.getTriggersPorEvento = async function(evento) {
+    return this.find({
+        tipo: 'trigger',
+        triggerEvento: evento,
+        estado: { $in: ['borrador', 'programado'] }
+    }).lean();
 };
 
 /**
