@@ -141,22 +141,38 @@ exports.receiveInbound = async (req, res) => {
         const headers = data.headers || [];
 
         // Resend inbound webhook NO incluye el body en el payload (diseño oficial).
-        // Se usa el endpoint /emails/receiving/:id para obtener html/text.
+        // Se usa GET /emails/receiving/:id (HTTP directo, SDK v4 no lo soporta).
         let textBody = '';
         let htmlBody = '';
         const resendEmailId = data.email_id || data.id || '';
 
         if (resendEmailId) {
             try {
-                const resendService = getCrmResendService();
-                if (resendService.isConfigured()) {
+                const apiKey = process.env.RESEND_API_KEY;
+                if (apiKey) {
                     console.log(`[CRM Inbound] 📥 Obteniendo body vía receiving API: ${resendEmailId}`);
-                    const emailDetail = await resendService.resend.emails.receiving.get(resendEmailId);
-                    if (emailDetail?.data) {
-                        textBody = emailDetail.data.text || '';
-                        htmlBody = emailDetail.data.html || '';
-                        console.log(`[CRM Inbound] ✅ Body obtenido: text=${textBody.length} chars, html=${htmlBody.length} chars`);
-                    }
+                    const https = require('https');
+                    const emailDetail = await new Promise((resolve, reject) => {
+                        const req = https.request({
+                            hostname: 'api.resend.com',
+                            path: `/emails/receiving/${resendEmailId}`,
+                            method: 'GET',
+                            headers: { 'Authorization': `Bearer ${apiKey}` }
+                        }, (res) => {
+                            let body = '';
+                            res.on('data', chunk => body += chunk);
+                            res.on('end', () => {
+                                try { resolve(JSON.parse(body)); }
+                                catch (e) { reject(new Error(`Parse error: ${body.substring(0, 200)}`)); }
+                            });
+                        });
+                        req.on('error', reject);
+                        req.setTimeout(10000, () => { req.destroy(); reject(new Error('Timeout 10s')); });
+                        req.end();
+                    });
+                    textBody = emailDetail.text || '';
+                    htmlBody = emailDetail.html || '';
+                    console.log(`[CRM Inbound] ✅ Body obtenido: text=${textBody.length} chars, html=${htmlBody.length} chars`);
                 }
             } catch (fetchErr) {
                 console.warn(`[CRM Inbound] ⚠️ No se pudo obtener body vía receiving API: ${fetchErr.message}`);
