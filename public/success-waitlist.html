@@ -405,7 +405,7 @@
             earlyBirdConfig = data;
             renderOffer(data);
             await resolvePaymentProvider();
-            startCountdown(data.expiresAfterMinutes || 30);
+            startCountdown(typeof data.expiresAfterMinutes === 'number' ? data.expiresAfterMinutes : 30);
         } catch (err) {
             console.error('Error cargando oferta early bird:', err);
         }
