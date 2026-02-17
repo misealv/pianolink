@@ -55,6 +55,15 @@ function getAlertService() {
     return CrmAlertService;
 }
 
+// CRM: Broadcast Scheduler — envía emails broadcast programados por fecha
+let CrmBroadcastScheduler = null;
+function getBroadcastScheduler() {
+    if (!CrmBroadcastScheduler) {
+        try { CrmBroadcastScheduler = require('../crm/services/CrmBroadcastScheduler'); } catch (e) { /* no disponible */ }
+    }
+    return CrmBroadcastScheduler;
+}
+
 class CronService {
     static jobs = [];
 
@@ -273,6 +282,23 @@ class CronService {
             timezone: 'UTC'
         });
         this.jobs.push(alertCheckJob);
+
+        // 13b. CRM: Broadcast Scheduler — Envía emails broadcast programados — Cada 15 min (offset)
+        const broadcastSchedulerJob = cron.schedule('7,22,37,52 * * * *', async () => {
+            const scheduler = getBroadcastScheduler();
+            if (!scheduler) return;
+            try {
+                const result = await scheduler.processAll();
+                if (result.totalEnviados > 0) {
+                    console.log(`[Cron] 📧 Broadcast scheduler: ${result.totalEnviados} emails enviados en ${result.campanasEnviadas} campañas (${result.duration}ms)`);
+                }
+            } catch (error) {
+                console.error('[Cron] ❌ Error broadcast scheduler:', error);
+            }
+        }, {
+            timezone: 'UTC'
+        });
+        this.jobs.push(broadcastSchedulerJob);
 
         // ============================================
         // JOBS FASE 3: PERMISOS Y PLANES
