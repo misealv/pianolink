@@ -500,11 +500,13 @@
         const btnMp = document.getElementById('btn-mp');
         const btnPaypal = document.getElementById('btn-paypal');
 
-        // Validar que tengamos email
+        // Validar que tengamos email (debería venir en URL, pero fallback a input)
         if (!leadEmail) {
-            // Pedir email por prompt si no viene en URL
             leadEmail = prompt('Ingresa tu email para completar la compra:');
-            if (!leadEmail) return;
+            if (!leadEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadEmail)) {
+                alert('Por favor ingresa un email válido.');
+                return;
+            }
         }
 
         // Deshabilitar botones

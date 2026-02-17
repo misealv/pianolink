@@ -42,12 +42,16 @@ router.get('/resolve-provider', async (req, res) => {
 
         const resolved = await PaymentProviderResolver.resolve(country, { type: 'early_bird_kit' });
 
+        // isMpCountry debe reflejar si REALMENTE hay credenciales MP activas,
+        // no solo si el país está en la lista teórica
+        const actuallyHasMp = resolved.provider === 'mercadopago';
+
         res.json({
             success: true,
             provider: resolved.provider,
             currency: resolved.currency,
             countryCode: resolved.countryCode,
-            isMpCountry: PaymentProviderResolver.isMpCountry(country)
+            isMpCountry: actuallyHasMp
         });
     } catch (error) {
         console.error('[EarlyBirdCheckout] Error resolve-provider:', error.message);
@@ -89,16 +93,20 @@ router.post('/checkout', async (req, res) => {
         // Resolver proveedor de pago
         const resolved = await PaymentProviderResolver.resolve(country, { type: 'early_bird_kit' });
 
-        // Si se especifica proveedor preferido, usarlo (ej: lead en Chile quiere pagar con PayPal)
-        const useProvider = preferredProvider || resolved.provider;
+        // Usar el proveedor que realmente resolvió el resolver (respeta fallback a PayPal
+        // si no hay credenciales MP activas), pero permitir override a PayPal
+        let useProvider = resolved.provider;
+        if (preferredProvider === 'paypal') {
+            useProvider = 'paypal'; // El lead puede elegir PayPal aunque MP esté disponible
+        }
 
-        const baseUrl = process.env.BASE_URL || 'https://pianolink.cl';
+        const baseUrl = process.env.APP_URL || process.env.FRONTEND_URL || process.env.BASE_URL || 'https://pianolink.net';
         const successUrl = `${baseUrl}/success-waitlist?payment=success&email=${encodeURIComponent(email)}`;
         const cancelUrl = `${baseUrl}/success-waitlist?payment=cancelled&email=${encodeURIComponent(email)}`;
 
         let result;
 
-        if (useProvider === 'mercadopago' && PaymentProviderResolver.isMpCountry(country)) {
+        if (useProvider === 'mercadopago') {
             result = await _createMpEarlyBirdCheckout({
                 email, country, priceUSD, regularPriceUSD, resolved, successUrl, cancelUrl
             });
@@ -216,7 +224,7 @@ async function _createMpEarlyBirdCheckout({ email, country, priceUSD, regularPri
         external_reference: externalRef,
         auto_return: 'approved',
         notification_url: process.env.MP_WEBHOOK_URL_EARLY_BIRD 
-            || `${process.env.BASE_URL || 'https://pianolink.cl'}/api/webhooks/mercadopago-early-bird`
+            || `${process.env.APP_URL || process.env.FRONTEND_URL || process.env.BASE_URL || 'https://pianolink.net'}/api/webhooks/mercadopago-early-bird`
     };
 
     const result = await MpCountryRouter.createPreference(country, items, metadata, options);

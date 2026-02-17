@@ -847,7 +847,13 @@ function renderScripts(landing, variantName) {
                     if (successDiv) successDiv.style.display = 'block';
                     // COMPLETADO: Disparar evento Lead de Meta Pixel al submit exitoso
                     if (typeof fbq !== 'undefined') { fbq('track', 'Lead'); }
-                    ${redirectUrl ? `setTimeout(function() { window.location.href = '${redirectUrl}'; }, 2000);` : ''}
+                    ${redirectUrl ? `
+                    // Pasar email del formulario al redirect para que la página de destino lo use
+                    var redirectBase = '${redirectUrl}';
+                    var emailVal = data.email || '';
+                    var sep = redirectBase.indexOf('?') !== -1 ? '&' : '?';
+                    var fullRedirect = emailVal ? redirectBase + sep + 'email=' + encodeURIComponent(emailVal) : redirectBase;
+                    setTimeout(function() { window.location.href = fullRedirect; }, 2000);` : ''}
                 } else {
                     btn.disabled = false;
                     btn.textContent = '${esc(landing.content?.form?.submitText || 'Enviar')}';
