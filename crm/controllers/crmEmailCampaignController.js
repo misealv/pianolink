@@ -216,14 +216,13 @@ exports.send = async (req, res) => {
 /**
  * Programar envío
  * POST /api/crm/emails/:id/programar
+ * 
+ * Para broadcasts/secuencias: requiere { fechaProgramada }
+ * Para triggers (carrito abandonado, etc.): no requiere fecha, se activa por evento
  */
 exports.schedule = async (req, res) => {
     try {
         const { fechaProgramada } = req.body;
-
-        if (!fechaProgramada) {
-            return res.status(400).json({ success: false, error: 'Fecha requerida' });
-        }
 
         const campaign = await CrmEmailCampaign.findById(req.params.id);
 
@@ -238,11 +237,24 @@ exports.schedule = async (req, res) => {
             });
         }
 
+        // Triggers no necesitan fecha — se disparan por evento
+        const esTrigger = campaign.tipo === 'trigger' || campaign.modoEnvio === 'trigger';
+
+        if (!esTrigger && !fechaProgramada) {
+            return res.status(400).json({ success: false, error: 'Fecha requerida para campañas no-trigger' });
+        }
+
         campaign.estado = 'programado';
-        campaign.fechaProgramada = new Date(fechaProgramada);
+        if (fechaProgramada) {
+            campaign.fechaProgramada = new Date(fechaProgramada);
+        }
         await campaign.save();
 
-        res.json({ success: true, data: campaign });
+        const mensaje = esTrigger
+            ? `Trigger "${campaign.nombre}" activado — se disparará por evento "${campaign.triggerEvento}" con ${campaign.triggerDelayMinutos} min de delay`
+            : `Campaña "${campaign.nombre}" programada para ${campaign.fechaProgramada.toISOString()}`;
+
+        res.json({ success: true, data: campaign, message: mensaje });
     } catch (error) {
         console.error('[Email Campaign Controller] Error en schedule:', error);
         res.status(500).json({ success: false, error: 'Error al programar campaña' });
