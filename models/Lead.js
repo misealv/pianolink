@@ -60,9 +60,9 @@ const leadSchema = mongoose.Schema({
     },
     whatsapp: { 
         type: String, 
-        required: [true, 'El WhatsApp es requerido'],
+        required: false,
         trim: true,
-        match: [/^[\d\s\+\-\(\)]+$/, 'Por favor ingrese un número válido']
+        default: ''
     },
     
     // Trayectoria del profesor (campo de postulación)

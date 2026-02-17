@@ -49,7 +49,11 @@ class LeadService {
         } = data;
 
         // Validación básica
-        if (!name || !email || !whatsapp) {
+        if (!email) {
+            return { success: false, status: 400, message: 'Email es requerido' };
+        }
+        // Para leads manuales (admin), requerir nombre y whatsapp
+        if (isManual && (!name || !whatsapp)) {
             return { success: false, status: 400, message: 'Nombre, email y WhatsApp son requeridos' };
         }
 

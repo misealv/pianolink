@@ -436,7 +436,7 @@ class CrmLandingService {
                     try {
                         const LeadService = require('../../services/LeadService');
                         const result = await LeadService.createOrUpdate({
-                            name: formData.name || '',
+                            name: formData.name || formData.email.split('@')[0],
                             email: formData.email,
                             whatsapp: formData.phone || formData.whatsapp || '',
                             type: 'client',
@@ -461,7 +461,7 @@ class CrmLandingService {
                             }
                         }
                     } catch (leadErr) {
-                        console.error('[CRM Landing] Error creando lead desde landing form:', leadErr.message);
+                        console.error('[CRM Landing] Error creando lead desde landing form:', leadErr.message, leadErr.stack);
                     }
                 }
             }
