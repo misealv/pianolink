@@ -1871,6 +1871,7 @@
     let inboxCurrentFilter = 'all';
     let currentThreadId = null;      // thread abierto actualmente
     let currentReplyToId = null;     // ID del último mensaje inbound (para reply)
+    let _inboxThreadData = [];       // datos de threads para click seguro
 
     async function loadInboxBadge() {
         try {
@@ -1905,7 +1906,8 @@
             return;
         }
 
-        container.innerHTML = emails.map(e => {
+        _inboxThreadData = [];
+        container.innerHTML = emails.map((e, idx) => {
             const fromName = e.leadName || _inboxExtractName(e.from) || e.from;
             const fromEmail = _inboxExtractEmail(e.from);
             const preview = (e.textBody || '').substring(0, 120).replace(/\n/g, ' ');
@@ -1914,6 +1916,7 @@
             const msgCount = e._messageCount || 1;
             const threadId = e._threadId || e.threadId || e._id;
             const lastMsgId = e._id;
+            _inboxThreadData.push({ threadId, lastMsgId });
 
             const linkedBadge = e.leadRef
                 ? `<span style="background:var(--success);color:#fff;font-size:10px;padding:2px 6px;border-radius:8px;">Lead</span>`
@@ -1923,8 +1926,9 @@
                 : '';
             const dirIcon = e.direction === 'outbound' ? '↩️ ' : '';
 
-            return `<div onclick="openThread('${threadId}','${lastMsgId}')" style="padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;display:flex;align-items:flex-start;gap:12px;"
+            return `<div onclick="_clickThread(${idx})" style="padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;display:flex;align-items:flex-start;gap:12px;"
                 onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background=''">
+
                 <div style="width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0;background:${hasUnread ? 'var(--accent)' : 'transparent'}"></div>
                 <div style="flex:1;min-width:0;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
@@ -1968,6 +1972,12 @@
         document.querySelectorAll('[data-inbox-filter]').forEach(b => b.classList.remove('active'));
         if (btn) btn.classList.add('active');
         loadInbox();
+    }
+
+    // Manejador de click seguro (evita inyectar threadId con <> en HTML)
+    function _clickThread(idx) {
+        const t = _inboxThreadData[idx];
+        if (t) openThread(t.threadId, t.lastMsgId);
     }
 
     // === VISTA DE CONVERSACIÓN (Thread) ===

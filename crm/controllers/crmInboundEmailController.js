@@ -401,7 +401,7 @@ exports.reply = async (req, res) => {
             return res.status(503).json({ success: false, error: 'Servicio de email no configurado' });
         }
 
-        const htmlBody = text.split('\\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('');
+        const htmlBody = text.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('');
 
         const sendResult = await resendService.resend.emails.send({
             from: resendService.config.from,

@@ -97,7 +97,13 @@ crmInboundEmailSchema.statics.listPaginated = async function(page = 1, limit = 3
         { $sort: { createdAt: -1 } },
         {
             $group: {
-                _id: { $ifNull: ['$threadId', '$_id'] },
+                _id: {
+                    $cond: {
+                        if: { $and: [{ $ne: ['$threadId', null] }, { $ne: ['$threadId', ''] }] },
+                        then: '$threadId',
+                        else: { $toString: '$_id' }
+                    }
+                },
                 lastMessage: { $first: '$$ROOT' },
                 messageCount: { $sum: 1 },
                 hasUnread: { $max: { $cond: [{ $and: [{ $eq: ['$read', false] }, { $ne: ['$direction', 'outbound'] }] }, true, false] } }
