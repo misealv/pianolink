@@ -33,6 +33,33 @@ exports.list = async (req, res) => {
             CrmEmailCampaign.countDocuments(filter)
         ]);
 
+        // Enriquecer campañas tipo "secuencia" con métricas reales de CrmSequence
+        const seqCampaigns = campaigns.filter(c => c.tipo === 'secuencia' && c.ordenSecuencia);
+        if (seqCampaigns.length > 0) {
+            try {
+                const CrmSequence = require('../models/CrmSequence');
+                // Buscar la secuencia de lanzamiento activa
+                const sequence = await CrmSequence.findOne({ status: 'active', 'trigger.event': 'lead.created' }).lean();
+                if (sequence?.steps) {
+                    for (const campaign of seqCampaigns) {
+                        const step = sequence.steps.find(s => s.order === campaign.ordenSecuencia);
+                        if (step?.metrics) {
+                            campaign.metricas = {
+                                ...campaign.metricas,
+                                totalEnviados: step.metrics.sent || 0,
+                                totalAbiertos: step.metrics.opened || 0,
+                                totalClicks: step.metrics.clicked || 0,
+                                totalRebotes: step.metrics.bounced || 0,
+                                totalDesuscripciones: step.metrics.unsubscribed || 0
+                            };
+                        }
+                    }
+                }
+            } catch (seqErr) {
+                console.error('[Email Campaign Controller] Error enriqueciendo métricas:', seqErr.message);
+            }
+        }
+
         res.json({
             success: true,
             data: campaigns,
@@ -260,7 +287,26 @@ exports.stats = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Campaña no encontrada' });
         }
 
-        const metricas = campaign.metricas;
+        let metricas = { ...campaign.metricas };
+
+        // Para campañas tipo secuencia, leer métricas reales de CrmSequence
+        if (campaign.tipo === 'secuencia' && campaign.ordenSecuencia) {
+            try {
+                const CrmSequence = require('../models/CrmSequence');
+                const sequence = await CrmSequence.findOne({ status: 'active', 'trigger.event': 'lead.created' }).lean();
+                const step = sequence?.steps?.find(s => s.order === campaign.ordenSecuencia);
+                if (step?.metrics) {
+                    metricas.totalEnviados = step.metrics.sent || 0;
+                    metricas.totalAbiertos = step.metrics.opened || 0;
+                    metricas.totalClicks = step.metrics.clicked || 0;
+                    metricas.totalRebotes = step.metrics.bounced || 0;
+                    metricas.totalDesuscripciones = step.metrics.unsubscribed || 0;
+                }
+            } catch (seqErr) {
+                console.error('[Email Campaign Controller] Error leyendo métricas secuencia:', seqErr.message);
+            }
+        }
+
         const stats = {
             ...metricas,
             tasaApertura: metricas.totalEnviados 
