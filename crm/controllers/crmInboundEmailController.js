@@ -127,8 +127,11 @@ exports.receiveInbound = async (req, res) => {
             return;
         }
 
-        // DEBUG: ver estructura del payload para mapear campos correctamente
+        // DEBUG: ver estructura completa del payload
+        console.log(`[CRM Inbound] 🔍 Keys raíz body:`, Object.keys(body).join(', '));
         console.log(`[CRM Inbound] 🔍 Keys del payload data:`, Object.keys(data).join(', '));
+        // Loggear payload completo (truncado a 2000 chars para no saturar logs)
+        console.log(`[CRM Inbound] 🔍 Payload completo:`, JSON.stringify(body).substring(0, 2000));
 
         // Extraer datos del email
         const fromEmail = _extractEmail(data.from || '');
