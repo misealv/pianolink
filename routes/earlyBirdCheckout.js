@@ -218,6 +218,20 @@ router.post('/capture-paypal', async (req, res) => {
 
         console.log(`[EarlyBirdCheckout] ✅ Pago PayPal capturado para ${email}: ${orderId}${discount ? ` (descuento ${discount.discountPercent}%)` : ''}`);
 
+        // === Notificar al CRM para desuscribir de secuencias ===
+        try {
+            const EventService = require('../services/EventService');
+            const Lead = require('../models/Lead');
+            const leadDoc = await Lead.findOne({ email: email?.toLowerCase() });
+            EventService.emitSafe('payment.received', {
+                payment: { amount: finalPriceUSD, currency: 'USD', type: 'early_bird_kit', _id: payment._id },
+                leadId: leadDoc?._id || null,
+                userId: null
+            });
+        } catch (evtErr) {
+            console.error('[EarlyBirdCheckout] ⚠️ Error emitiendo payment.received:', evtErr.message);
+        }
+
         res.json({
             success: true,
             message: '¡Compra exitosa! Revisa tu email para los próximos pasos.',

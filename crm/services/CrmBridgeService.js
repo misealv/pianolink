@@ -397,6 +397,19 @@ class CrmBridgeService {
             }
             await crmLead.save();
 
+            // === Desuscribir de TODAS las secuencias activas (ya es cliente) ===
+            const activeEnrollments = (crmLead.activeSequences || []).filter(s => s.status === 'active');
+            if (activeEnrollments.length > 0) {
+                const CrmSequenceService = require('./CrmSequenceService');
+                for (const enrollment of activeEnrollments) {
+                    await CrmSequenceService.unenrollLead(
+                        enrollment.sequenceId.toString(),
+                        crmLead._id
+                    );
+                }
+                console.log(`[CRM Bridge] 🛑 Lead ${crmLead._id} desuscrito de ${activeEnrollments.length} secuencia(s) activa(s) por compra`);
+            }
+
             // Actualizar métricas de campaña
             const campaignId = crmLead.attribution?.firstTouch?.campaignId;
             if (campaignId) {

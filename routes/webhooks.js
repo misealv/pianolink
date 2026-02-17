@@ -462,6 +462,20 @@ router.post('/mercadopago-early-bird', async (req, res) => {
 
         console.log(`[Webhook EarlyBird] ✅ Pago registrado para ${leadEmail || 'desconocido'}: ${paymentId}`);
 
+        // === Notificar al CRM para desuscribir de secuencias ===
+        try {
+            const EventService = require('../services/EventService');
+            const Lead = require('../models/Lead');
+            const leadDoc = await Lead.findOne({ email: leadEmail?.toLowerCase() });
+            EventService.emitSafe('payment.received', {
+                payment: { amount: priceUSD, currency: 'USD', type: 'early_bird_kit', _id: null },
+                leadId: leadDoc?._id || null,
+                userId: null
+            });
+        } catch (evtErr) {
+            console.error('[Webhook EarlyBird] ⚠️ Error emitiendo payment.received:', evtErr.message);
+        }
+
         // === Crear usuario + Magic Link vía servicio unificado ===
         if (leadEmail) {
             try {
