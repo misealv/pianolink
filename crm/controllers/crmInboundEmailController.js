@@ -127,13 +127,17 @@ exports.receiveInbound = async (req, res) => {
             return;
         }
 
+        // DEBUG: ver estructura del payload para mapear campos correctamente
+        console.log(`[CRM Inbound] 🔍 Keys del payload data:`, Object.keys(data).join(', '));
+        console.log(`[CRM Inbound] 🔍 Campos body: text=${!!data.text}, html=${!!data.html}, body=${!!data.body}, text_body=${!!data.text_body}, html_body=${!!data.html_body}, plain_body=${!!data.plain_body}`);
+
         // Extraer datos del email
         const fromEmail = _extractEmail(data.from || '');
         const fromFull = data.from || '';
         const to = Array.isArray(data.to) ? data.to.join(', ') : (data.to || '');
         const subject = data.subject || '(sin asunto)';
-        const textBody = data.text || '';
-        const htmlBody = data.html || '';
+        const textBody = data.text || data.body || data.text_body || data.plain_body || '';
+        const htmlBody = data.html || data.html_body || '';
         const headers = data.headers || [];
 
         // Extraer headers relevantes
