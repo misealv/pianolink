@@ -111,6 +111,7 @@ class PostPaymentService {
 
                 const isGuardian = studentType === 'child' && beneficiaries.length > 0;
 
+                // Todos los compradores son role 'client' (para que admin pueda editarlos/eliminarlos)
                 const userData = {
                     name: firstName,
                     lastName,
@@ -118,7 +119,7 @@ class PostPaymentService {
                     password: tempPassword,
                     whatsapp: whatsapp || '',
                     country: country || 'CL',
-                    role: isGuardian ? 'client' : 'student',
+                    role: 'client',
                     kitPurchased: true,
                     kitPurchaseDate: new Date(),
                     magicLinkToken,
@@ -140,6 +141,10 @@ class PostPaymentService {
                             }))
                     };
                 } else {
+                    userData.clientData = {
+                        accountType: 'individual',
+                        managedStudents: []
+                    };
                     userData.classesRemaining = 1;
                     userData.classesCompleted = 0;
                     userData.studentData = {
@@ -158,7 +163,7 @@ class PostPaymentService {
                 user = await User.create(userData);
                 magicLinkUrl = `${frontendUrl}/acceso/${magicLinkToken}`;
 
-                console.log(`[PostPayment] ✅ Usuario ${isGuardian ? 'guardian' : 'student'} creado: ${user.email}`);
+                console.log(`[PostPayment] ✅ Cliente ${isGuardian ? 'guardian' : 'individual'} creado: ${user.email}`);
                 if (isGuardian) {
                     const students = userData.clientData.managedStudents;
                     students.forEach(s => console.log(`[PostPayment]    👶 ${s.name}`));

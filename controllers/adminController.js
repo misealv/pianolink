@@ -261,7 +261,9 @@ exports.updateClient = async (req, res) => {
         } = req.body;
         
         const client = await User.findById(id);
-        if (!client || client.role !== 'client') {
+        // Aceptar role 'client' o 'student' con kit comprado
+        const isClient = client && (client.role === 'client' || (client.role === 'student' && client.kitPurchased));
+        if (!isClient) {
             return res.status(404).json({ message: 'Cliente no encontrado' });
         }
         
@@ -318,7 +320,9 @@ exports.deleteClient = async (req, res) => {
         const { id } = req.params;
         
         const client = await User.findById(id);
-        if (!client || client.role !== 'client') {
+        // Aceptar role 'client' o 'student' con kit comprado
+        const isClient = client && (client.role === 'client' || (client.role === 'student' && client.kitPurchased));
+        if (!isClient) {
             return res.status(404).json({ message: 'Cliente no encontrado' });
         }
         
