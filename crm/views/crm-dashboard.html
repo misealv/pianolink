@@ -660,23 +660,41 @@
                 </div>
                 <div class="card-body">
                     <p style="color:var(--text-secondary);margin-bottom:16px;">
-                        Emails recibidos como respuesta a tus campañas. Se vinculan automáticamente al lead.
+                        Conversaciones con tus leads. Responde directamente desde aquí.
                     </p>
                     <div class="filters" style="margin-bottom:16px;">
                         <button class="filter-btn active" data-inbox-filter="all" onclick="filterInbox('all',this)">Todas</button>
                         <button class="filter-btn" data-inbox-filter="unread" onclick="filterInbox('unread',this)">No leídas</button>
                     </div>
+                    <!-- Lista de conversaciones -->
                     <div id="inboxList" style="display:flex;flex-direction:column;gap:0;">
                         <p style="text-align:center;color:var(--text-secondary);padding:40px;">Cargando respuestas...</p>
                     </div>
                     <div id="inboxPagination" style="display:flex;justify-content:center;gap:8px;margin-top:16px;"></div>
                 </div>
             </div>
-            <!-- Modal de detalle del email -->
-            <div id="inboxDetailModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;">
-                <div style="background:#fff;border-radius:12px;width:90%;max-width:700px;max-height:85vh;overflow-y:auto;padding:24px;position:relative;">
-                    <button onclick="closeInboxDetail()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-secondary);">✕</button>
-                    <div id="inboxDetailContent"></div>
+            <!-- Panel de conversación (tipo Gmail) -->
+            <div id="inboxThreadPanel" style="display:none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <button class="btn btn-outline btn-sm" onclick="closeThread()">← Volver</button>
+                            <h2 id="threadSubject" style="font-size:16px;margin:0;"></h2>
+                        </div>
+                    </div>
+                    <div class="card-body" id="threadMessages" style="max-height:60vh;overflow-y:auto;padding:0;">
+                    </div>
+                    <!-- Formulario de respuesta -->
+                    <div style="border-top:2px solid var(--border);padding:16px;">
+                        <div id="threadLeadInfo" style="margin-bottom:8px;"></div>
+                        <textarea id="replyText" rows="4" class="form-control" placeholder="Escribe tu respuesta..." style="font-size:14px;resize:vertical;"></textarea>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+                            <span id="replySending" style="font-size:12px;color:var(--text-muted);display:none;">Enviando...</span>
+                            <button class="btn btn-primary" id="btnSendReply" onclick="sendReply()">
+                                ↩️ Enviar respuesta
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1846,11 +1864,13 @@
     });
 
     // =========================================================================
-    // INBOX — RESPUESTAS DE LEADS
+    // INBOX — CONVERSACIONES CON LEADS (tipo Gmail)
     // =========================================================================
 
     let inboxCurrentPage = 1;
     let inboxCurrentFilter = 'all';
+    let currentThreadId = null;      // thread abierto actualmente
+    let currentReplyToId = null;     // ID del último mensaje inbound (para reply)
 
     async function loadInboxBadge() {
         try {
@@ -1862,7 +1882,7 @@
                     badge.style.display = 'inline';
                 }
             }
-        } catch(e) { /* silenciar — badge no crítico */ }
+        } catch(e) { /* silenciar */ }
     }
 
     async function loadInbox(page) {
@@ -1874,13 +1894,13 @@
         const params = `page=${inboxCurrentPage}&limit=25${inboxCurrentFilter === 'unread' ? '&unreadOnly=true' : ''}`;
         const res = await apiFetch(`/inbound?${params}`);
         if (!res?.success) {
-            container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--danger);">Error al cargar respuestas</p>';
+            container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--danger);">Error al cargar</p>';
             return;
         }
 
         const emails = res.data || [];
         if (emails.length === 0) {
-            container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-secondary);">No hay respuestas aún. Cuando un lead responda a tus campañas, aparecerá aquí.</p>';
+            container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-secondary);">No hay conversaciones aún. Cuando un lead responda a tus campañas, aparecerá aquí.</p>';
             document.getElementById('inboxPagination').innerHTML = '';
             return;
         }
@@ -1890,25 +1910,32 @@
             const fromEmail = _inboxExtractEmail(e.from);
             const preview = (e.textBody || '').substring(0, 120).replace(/\n/g, ' ');
             const date = _inboxFormatDate(e.createdAt);
-            const unreadClass = e.read ? '' : 'inbox-unread';
-            const linkedBadge = e.leadRef
-                ? `<span style="background:var(--success);color:#fff;font-size:10px;padding:2px 6px;border-radius:8px;">Lead vinculado</span>`
-                : `<span style="background:var(--text-muted);color:#fff;font-size:10px;padding:2px 6px;border-radius:8px;">Sin vincular</span>`;
+            const hasUnread = e._hasUnread;
+            const msgCount = e._messageCount || 1;
+            const threadId = e._threadId || e.threadId || e._id;
+            const lastMsgId = e._id;
 
-            return `<div class="inbox-row ${unreadClass}" onclick="openInboxDetail('${e._id}')" style="padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;display:flex;align-items:flex-start;gap:12px;"
+            const linkedBadge = e.leadRef
+                ? `<span style="background:var(--success);color:#fff;font-size:10px;padding:2px 6px;border-radius:8px;">Lead</span>`
+                : '';
+            const countBadge = msgCount > 1
+                ? `<span style="background:var(--info);color:#fff;font-size:10px;padding:2px 6px;border-radius:8px;">${msgCount}</span>`
+                : '';
+            const dirIcon = e.direction === 'outbound' ? '↩️ ' : '';
+
+            return `<div onclick="openThread('${threadId}','${lastMsgId}')" style="padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;display:flex;align-items:flex-start;gap:12px;"
                 onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background=''">
-                <div style="width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0;background:${e.read ? 'transparent' : 'var(--accent)'}"></div>
+                <div style="width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0;background:${hasUnread ? 'var(--accent)' : 'transparent'}"></div>
                 <div style="flex:1;min-width:0;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                        <span style="font-weight:${e.read ? '400' : '600'};font-size:14px;">${esc(fromName)}</span>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-weight:${hasUnread ? '600' : '400'};font-size:14px;">${esc(fromName)}</span>
+                            ${countBadge} ${linkedBadge}
+                        </div>
                         <span style="font-size:11px;color:var(--text-muted);flex-shrink:0;margin-left:8px;">${date}</span>
                     </div>
-                    <div style="font-size:13px;font-weight:${e.read ? '400' : '600'};margin-bottom:4px;">${esc(e.subject || '(sin asunto)')}</div>
+                    <div style="font-size:13px;font-weight:${hasUnread ? '600' : '400'};margin-bottom:4px;">${dirIcon}${esc(e.subject || '(sin asunto)')}</div>
                     <div style="font-size:12px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(preview || '(sin contenido)')}</div>
-                    <div style="margin-top:6px;display:flex;gap:6px;align-items:center;">
-                        ${linkedBadge}
-                        <span style="font-size:11px;color:var(--text-muted);">${esc(fromEmail)}</span>
-                    </div>
                 </div>
             </div>`;
         }).join('');
@@ -1925,7 +1952,7 @@
             document.getElementById('inboxPagination').innerHTML = '';
         }
 
-        // Actualizar badge
+        // Badge
         if (res.unreadCount !== undefined) {
             const badge = document.getElementById('inboxBadge');
             if (badge) {
@@ -1938,93 +1965,145 @@
     function filterInbox(filter, btn) {
         inboxCurrentFilter = filter;
         inboxCurrentPage = 1;
-        // Toggle active class
         document.querySelectorAll('[data-inbox-filter]').forEach(b => b.classList.remove('active'));
         if (btn) btn.classList.add('active');
         loadInbox();
     }
 
-    async function openInboxDetail(id) {
-        const modal = document.getElementById('inboxDetailModal');
-        const content = document.getElementById('inboxDetailContent');
-        if (!modal || !content) return;
+    // === VISTA DE CONVERSACIÓN (Thread) ===
 
-        content.innerHTML = '<p style="text-align:center;padding:40px;">Cargando...</p>';
-        modal.style.display = 'flex';
+    async function openThread(threadId, lastMsgId) {
+        currentThreadId = threadId;
+        currentReplyToId = lastMsgId;
 
-        const res = await apiFetch(`/inbound/${id}`);
-        if (!res?.success) {
-            content.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">Error al cargar email</p>';
+        // Ocultar lista, mostrar thread
+        document.querySelector('#section-inbox > .card').style.display = 'none';
+        const panel = document.getElementById('inboxThreadPanel');
+        panel.style.display = 'block';
+
+        const msgContainer = document.getElementById('threadMessages');
+        msgContainer.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando conversación...</p>';
+
+        const res = await apiFetch(`/inbound/thread/${encodeURIComponent(threadId)}`);
+        if (!res?.success || !res.data.length) {
+            // Fallback: cargar mensaje individual
+            const single = await apiFetch(`/inbound/${lastMsgId}`);
+            if (single?.success) {
+                renderThread([single.data]);
+            } else {
+                msgContainer.innerHTML = '<p style="color:var(--danger);padding:20px;text-align:center;">Error al cargar</p>';
+            }
             return;
         }
 
-        const e = res.data;
-        const fromName = e.leadName || _inboxExtractName(e.from) || e.from;
-        const fromEmail = _inboxExtractEmail(e.from);
-        const date = new Date(e.createdAt).toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short' });
+        renderThread(res.data);
+    }
 
-        // Lead vinculado
-        let leadInfo = '';
-        if (e.leadRef) {
-            const ref = e.leadRef.leadRef || {};
-            leadInfo = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-bottom:16px;">
-                <span style="font-size:12px;color:var(--success);font-weight:600;">✓ Lead vinculado</span><br>
-                <span style="font-size:13px;">${esc(ref.name || '')} — ${esc(ref.email || '')} (${ref.type === 'teacher' ? 'Profesor' : 'Cliente'})</span>
-            </div>`;
+    function renderThread(messages) {
+        const msgContainer = document.getElementById('threadMessages');
+        const subjectEl = document.getElementById('threadSubject');
+        const leadInfoEl = document.getElementById('threadLeadInfo');
+
+        // Subject del thread
+        const firstMsg = messages[0];
+        subjectEl.textContent = firstMsg?.subject || '(sin asunto)';
+
+        // Lead info
+        const lead = firstMsg?.leadRef;
+        if (lead) {
+            const ref = lead.leadRef || {};
+            leadInfoEl.innerHTML = `<span style="font-size:12px;color:var(--success);">✓ Lead: ${esc(ref.name || '')} — ${esc(ref.email || '')} (${ref.type === 'teacher' ? 'Profesor' : 'Cliente'})</span>`;
+        } else {
+            leadInfoEl.innerHTML = '';
         }
 
-        // Cuerpo del email (preferir text, con fallback a HTML)
-        const body = e.textBody
-            ? `<pre style="white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:14px;line-height:1.7;background:#f9fafb;padding:16px;border-radius:8px;border:1px solid var(--border);max-height:400px;overflow-y:auto;">${esc(e.textBody)}</pre>`
-            : (e.htmlBody
-                ? `<div style="background:#f9fafb;padding:16px;border-radius:8px;border:1px solid var(--border);max-height:400px;overflow-y:auto;font-size:14px;">${e.htmlBody}</div>`
-                : '<p style="color:var(--text-muted);font-style:italic;">(sin contenido)</p>'
-            );
+        // Encontrar el último inbound para el reply
+        const lastInbound = [...messages].reverse().find(m => m.direction !== 'outbound');
+        if (lastInbound) currentReplyToId = lastInbound._id;
 
-        content.innerHTML = `
-            <div style="margin-bottom:20px;">
-                <h2 style="font-size:18px;margin-bottom:12px;">${esc(e.subject || '(sin asunto)')}</h2>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                    <div>
-                        <span style="font-weight:600;font-size:14px;">${esc(fromName)}</span>
-                        <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">&lt;${esc(fromEmail)}&gt;</span>
+        // Renderizar mensajes
+        msgContainer.innerHTML = messages.map(msg => {
+            const isOutbound = msg.direction === 'outbound';
+            const senderName = isOutbound ? 'Tú (PianoLink)' : (msg.leadName || _inboxExtractName(msg.from) || msg.from);
+            const senderEmail = _inboxExtractEmail(msg.from);
+            const date = new Date(msg.createdAt).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' });
+
+            const bgColor = isOutbound ? '#f0f4ff' : '#fff';
+            const borderColor = isOutbound ? '#c3d4f7' : 'var(--border)';
+            const dirLabel = isOutbound
+                ? '<span style="font-size:10px;background:var(--accent);color:#fff;padding:2px 6px;border-radius:8px;margin-left:6px;">Enviado</span>'
+                : '<span style="font-size:10px;background:var(--success);color:#fff;padding:2px 6px;border-radius:8px;margin-left:6px;">Recibido</span>';
+
+            const body = msg.textBody
+                ? `<pre style="white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:14px;line-height:1.6;margin:0;">${esc(msg.textBody)}</pre>`
+                : (msg.htmlBody
+                    ? `<div style="font-size:14px;line-height:1.6;">${msg.htmlBody}</div>`
+                    : '<p style="color:var(--text-muted);font-style:italic;">(sin contenido)</p>'
+                );
+
+            return `<div style="padding:16px 20px;border-bottom:1px solid ${borderColor};background:${bgColor};">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <div style="display:flex;align-items:center;">
+                        <span style="font-weight:600;font-size:13px;">${esc(senderName)}</span>
+                        ${dirLabel}
+                        <span style="font-size:11px;color:var(--text-muted);margin-left:8px;">&lt;${esc(senderEmail)}&gt;</span>
                     </div>
-                    <span style="font-size:12px;color:var(--text-muted);">${date}</span>
+                    <span style="font-size:11px;color:var(--text-muted);">${date}</span>
                 </div>
-                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">
-                    Para: ${esc(e.to || 'hola@pianolink.net')}
-                </div>
-                ${leadInfo}
-            </div>
-            ${body}
-            <div style="margin-top:16px;display:flex;gap:8px;">
-                <button class="btn btn-sm btn-outline" onclick="toggleInboxRead('${e._id}')">
-                    ${e.read ? '📩 Marcar no leído' : '✓ Marcar leído'}
-                </button>
-                <a href="mailto:${esc(fromEmail)}?subject=Re: ${encodeURIComponent(e.subject || '')}" class="btn btn-sm btn-primary" style="text-decoration:none;">
-                    ↩️ Responder
-                </a>
-            </div>
-        `;
+                ${body}
+            </div>`;
+        }).join('');
 
-        // Refrescar lista para actualizar estado leído
-        loadInbox();
+        // Scroll al último mensaje
+        msgContainer.scrollTop = msgContainer.scrollHeight;
     }
 
-    function closeInboxDetail() {
-        const modal = document.getElementById('inboxDetailModal');
-        if (modal) modal.style.display = 'none';
+    function closeThread() {
+        currentThreadId = null;
+        currentReplyToId = null;
+        document.getElementById('inboxThreadPanel').style.display = 'none';
+        document.querySelector('#section-inbox > .card').style.display = '';
+        document.getElementById('replyText').value = '';
+        loadInbox();              // Refrescar para actualizar estado leído
+        loadInboxBadge();
     }
 
-    async function toggleInboxRead(id) {
-        await apiFetch(`/inbound/${id}/read`, { method: 'PATCH' });
-        closeInboxDetail();
-        loadInbox();
+    async function sendReply() {
+        if (!currentReplyToId) return;
+
+        const text = document.getElementById('replyText').value.trim();
+        if (!text) {
+            document.getElementById('replyText').focus();
+            return;
+        }
+
+        const btn = document.getElementById('btnSendReply');
+        const sending = document.getElementById('replySending');
+        btn.disabled = true;
+        sending.style.display = 'inline';
+
+        const res = await apiFetch(`/inbound/${currentReplyToId}/reply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        });
+
+        btn.disabled = false;
+        sending.style.display = 'none';
+
+        if (res?.success) {
+            document.getElementById('replyText').value = '';
+            // Recargar el thread para mostrar el mensaje enviado
+            openThread(currentThreadId, currentReplyToId);
+        } else {
+            alert('Error al enviar: ' + (res?.error || 'intenta de nuevo'));
+        }
     }
 
     async function markAllInboxRead() {
         await apiFetch('/inbound/mark-all-read', { method: 'PATCH' });
         loadInbox();
+        loadInboxBadge();
     }
 
     function _inboxExtractEmail(str) {

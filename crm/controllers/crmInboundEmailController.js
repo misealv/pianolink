@@ -36,6 +36,12 @@ function getCrmInteraction() {
     return _CrmInteraction;
 }
 
+let _CrmResendService = null;
+function getCrmResendService() {
+    if (!_CrmResendService) _CrmResendService = require('../services/CrmResendService');
+    return _CrmResendService;
+}
+
 // =========================================================================
 // WEBHOOK — Recibir email entrante de Resend
 // =========================================================================
@@ -155,12 +161,31 @@ exports.receiveInbound = async (req, res) => {
 
         // Guardar email entrante
         const CrmInboundEmail = getCrmInboundEmail();
+
+        // Calcular threadId: buscar thread existente por inReplyTo/references o crear uno nuevo
+        let threadId = '';
+        if (inReplyTo || references) {
+            // Buscar si algún mensaje previo tiene el messageId al que respondemos
+            const refIds = [inReplyTo, ...(references || '').split(/\s+/)].filter(Boolean);
+            const existing = await CrmInboundEmail.findOne({
+                $or: [
+                    { messageId: { $in: refIds } },
+                    { threadId: { $in: refIds } }
+                ]
+            }).lean();
+            threadId = existing?.threadId || inReplyTo || refIds[0] || '';
+        }
+        // Si no hay thread, usar el messageId como inicio de thread nuevo
+        if (!threadId) threadId = messageId || `thread_${Date.now()}`;
+
         const inbound = await CrmInboundEmail.create({
             from: fromFull,
             to,
             subject,
             textBody,
             htmlBody,
+            direction: 'inbound',
+            threadId,
             messageId,
             inReplyTo,
             references,
@@ -314,6 +339,122 @@ exports.unreadCount = async (req, res) => {
         res.json({ success: true, data: { count } });
     } catch (error) {
         res.status(500).json({ success: false, error: 'Error contando no leídos' });
+    }
+};
+
+/**
+ * GET /api/crm/inbound/thread/:threadId
+ * Obtiene toda la conversación (mensajes inbound + outbound) ordenados cronológicamente.
+ */
+exports.getThread = async (req, res) => {
+    try {
+        const CrmInboundEmail = getCrmInboundEmail();
+        const threadId = req.params.threadId;
+
+        const messages = await CrmInboundEmail.getThread(threadId);
+
+        // Marcar todos los inbound del thread como leídos
+        await CrmInboundEmail.updateMany(
+            { threadId, read: false, direction: 'inbound' },
+            { $set: { read: true, readAt: new Date(), readBy: req.user?._id || null } }
+        );
+
+        res.json({ success: true, data: messages });
+    } catch (error) {
+        console.error('[CRM Inbound] Error obteniendo thread:', error.message);
+        res.status(500).json({ success: false, error: 'Error al obtener conversación' });
+    }
+};
+
+/**
+ * POST /api/crm/inbound/:id/reply
+ * Envía una respuesta al email y la guarda en el thread.
+ * Body: { text }
+ */
+exports.reply = async (req, res) => {
+    try {
+        const CrmInboundEmail = getCrmInboundEmail();
+        const original = await CrmInboundEmail.findById(req.params.id).lean();
+        if (!original) {
+            return res.status(404).json({ success: false, error: 'Email original no encontrado' });
+        }
+
+        const { text } = req.body;
+        if (!text || !text.trim()) {
+            return res.status(400).json({ success: false, error: 'El texto de respuesta es requerido' });
+        }
+
+        // Extraer email del destinatario
+        const toEmail = _extractEmail(original.from);
+        if (!toEmail) {
+            return res.status(400).json({ success: false, error: 'No se pudo determinar el destinatario' });
+        }
+
+        // Construir subject con Re: si no lo tiene
+        const reSubject = (original.subject || '').startsWith('Re:')
+            ? original.subject
+            : `Re: ${original.subject || ''}`;
+
+        // Enviar vía Resend
+        const resendService = getCrmResendService();
+        if (!resendService.isConfigured()) {
+            return res.status(503).json({ success: false, error: 'Servicio de email no configurado' });
+        }
+
+        const htmlBody = text.split('\\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('');
+
+        const sendResult = await resendService.resend.emails.send({
+            from: resendService.config.from,
+            to: [toEmail],
+            subject: reSubject,
+            html: htmlBody,
+            text: text,
+            reply_to: resendService.config.replyTo,
+            headers: {
+                'In-Reply-To': original.messageId || '',
+                'References': [original.references, original.messageId].filter(Boolean).join(' ')
+            }
+        });
+
+        if (sendResult.error) {
+            console.error('[CRM Inbound] Error enviando reply:', sendResult.error);
+            return res.status(500).json({ success: false, error: 'Error al enviar email: ' + (sendResult.error.message || 'desconocido') });
+        }
+
+        // Guardar el email enviado en el thread
+        const threadId = original.threadId || original.messageId || `thread_${Date.now()}`;
+        const reply = await CrmInboundEmail.create({
+            from: resendService.config.from,
+            to: toEmail,
+            subject: reSubject,
+            textBody: text,
+            htmlBody,
+            direction: 'outbound',
+            threadId,
+            messageId: sendResult.data?.id ? `<${sendResult.data.id}@resend.dev>` : '',
+            inReplyTo: original.messageId || '',
+            references: [original.references, original.messageId].filter(Boolean).join(' '),
+            leadRef: original.leadRef,
+            leadName: original.leadName,
+            read: true,
+            readAt: new Date(),
+            resendEmailId: sendResult.data?.id || ''
+        });
+
+        // Si el original no tenía threadId, actualizarlo
+        if (!original.threadId) {
+            await CrmInboundEmail.updateOne(
+                { _id: original._id },
+                { $set: { threadId } }
+            );
+        }
+
+        console.log(`[CRM Inbound] ✅ Reply enviado a ${toEmail} | thread: ${threadId}`);
+
+        res.json({ success: true, data: reply });
+    } catch (error) {
+        console.error('[CRM Inbound] Error en reply:', error.message);
+        res.status(500).json({ success: false, error: 'Error al enviar respuesta' });
     }
 };
 
