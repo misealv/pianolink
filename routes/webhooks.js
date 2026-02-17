@@ -476,8 +476,8 @@ router.post('/mercadopago-early-bird', async (req, res) => {
                     country: country || 'CL',
                     paymentProvider: 'mercadopago',
                     paymentId: String(paymentId),
-                    amount: priceUSD / 100,
-                    currency: 'USD',
+                    amount: mpPayment.transaction_amount,
+                    currency: mpPayment.currency_id || 'CLP',
                     kitType: 'welcome_kit_v2',
                     source: 'early_bird_webhook'
                 });

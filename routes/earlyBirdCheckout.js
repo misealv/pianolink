@@ -334,7 +334,7 @@ router.post('/verify', async (req, res) => {
         // Buscar pago registrado por el webhook
         const existingPayment = await Payment.findOne({
             leadEmail: cleanEmail,
-            'metadata.source': 'waitlist_early_bird',
+            type: 'early_bird_kit',
             status: 'approved'
         }).sort({ createdAt: -1 });
 
@@ -360,11 +360,11 @@ router.post('/verify', async (req, res) => {
                 email: cleanEmail,
                 name: lead?.name,
                 whatsapp: lead?.whatsapp,
-                country: existingPayment.metadata?.countryCode || 'CL',
+                country: existingPayment.webhookData?.countryCode || 'CL',
                 paymentProvider: 'mercadopago',
                 paymentId: existingPayment.externalPaymentId,
-                amount: existingPayment.amount / 100,
-                currency: 'USD',
+                amount: existingPayment.webhookData?.transactionAmount || existingPayment.amount,
+                currency: existingPayment.webhookData?.localCurrency || 'CLP',
                 source: 'early_bird_verify'
             });
 
