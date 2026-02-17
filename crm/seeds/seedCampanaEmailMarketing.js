@@ -46,7 +46,7 @@ function emailTemplate(bodyHtml, footerNote = 'El 29 de marzo abre PianoLink. So
   </td></tr>
   <tr><td bgcolor="#0a0a0a" style="padding:24px 48px;" align="center">
     <p style="color:#888;font-size:12px;margin:0 0 8px;">${footerNote}</p>
-    <p style="margin:0;"><a href="{{unsubscribe_url}}" style="color:#666;font-size:11px;">Cancelar suscripción</a></p>
+    <p style="margin:0;"><a href="{{unsubscribe_url}}" style="color:#666;font-size:11px;">No quiero recibir más emails — darme de baja</a></p>
     <p style="color:#555;font-size:11px;margin:8px 0 0;">© 2026 PianoLink · hola@pianolink.net</p>
   </td></tr>
 </table>
@@ -90,9 +90,10 @@ const emails = [
         ordenSecuencia: 1,
         contenidoHtml: emailTemplate(`
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Hola {{nombre}},</p>
-    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Soy Miguel Antonio, el fundador de PianoLink. Y quiero agradecerte personalmente por haberte unido a la lista de espera.</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Soy Miguel Antonio, el fundador de PianoLink. Te escribo porque te registraste en pianolink.net para recibir información sobre el lanzamiento, y quiero agradecerte personalmente por haberte unido a la lista de espera.</p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Si estás leyendo esto es porque en algún rincón de ti vive un sueño: <strong>tocar piano.</strong> Quizás lo postergaste años. Quizás pensaste que ya era tarde. Conozco ese sentimiento porque yo lo viví a los 4 años, cuando le pedí un piano a mis papás para Navidad.</p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">PianoLink es un marketplace de clases de piano online 1 a 1 con profesores reales y tecnología MIDI — tu profesor ve y escucha exactamente cada nota que tocas. No es Zoom. No es una app. Es lo más parecido a tener un maestro sentado a tu lado.</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Nuestros profesores son músicos con formación académica y experiencia docente real. Están seleccionados por su capacidad de enseñar a adultos — desde principiantes que nunca han tocado una tecla hasta quienes dejaron las clases hace años y quieren retomar. Y tú eliges con quién aprender.</p>
     ${separator()}
     <p style="font-size:18px;color:#0a0a0a;line-height:1.6;margin:0 0 20px;font-weight:bold;">Por estar en la lista, tienes algo que nadie más tendrá:</p>
     <table width="100%" cellpadding="0" cellspacing="0" bgcolor="#0a0a0a" style="border-radius:8px;">
@@ -154,6 +155,7 @@ const emails = [
     </table>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Todo converge en un solo día. Y tú ya tienes tu lugar reservado en la lista.</p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Si tu sueño del piano lleva tiempo esperando… quizás esta fecha no sea una coincidencia. Quizás sea una señal.</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Construí PianoLink porque cuando era niño habría dado cualquier cosa por un profesor que me guiara nota por nota, incluso a distancia. Hoy eso es posible gracias a la tecnología MIDI: tu profesor ve en su pantalla cada tecla que presionas, en tiempo real. No necesitas saber nada de tecnología — el cable viene incluido en tu Kit y lo configuramos juntos en una videollamada de 20 minutos.</p>
     ${ctaButton('🎹 Asegurar mi Kit a $29')}
     ${firma()}
     <p style="font-size:14px;color:#999;margin:24px 0 0;font-style:italic;">P.D. En mi próximo email te cuento algo que descubrí sobre Zoom y las clases de música que cambia completamente la forma en que entiendes la diferencia de PianoLink. No es lo que esperarías.</p>
@@ -188,6 +190,7 @@ const emails = [
     <div style="margin-top:24px;"></div>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Es la diferencia entre una foto borrosa y una imagen en 4K. Con Zoom tu profesor intuye. Con PianoLink, <strong>ve y escucha todo</strong>.</p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Y si te preocupa que la tecnología sea complicada: no lo es. El cable MIDI viene incluido en tu Kit de Bienvenida — nosotros te lo enviamos. Y en una videollamada de 20 minutos lo configuramos todo juntos. No estás solo ni un segundo.</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">La mayoría de los profesores de música online dan clase por Zoom porque no conocen otra alternativa. No son malos profesores — es que la herramienta los limita. En PianoLink les damos los datos MIDI en tiempo real para que puedan enseñar de verdad: detectar si confundes un Do con un Re, si tu ritmo se desfasa medio segundo, o si tocas una nota demasiado fuerte. Todo queda claro en la pantalla del profesor.</p>
     ${ctaButton('🎹 Quiero mi Kit a $29')}
     ${firma()}
     <p style="font-size:14px;color:#999;margin:24px 0 0;font-style:italic;">P.D. A veces la única diferencia entre alguien que toca piano y alguien que siempre quiso hacerlo… es el momento en que dice "hoy". Te escribo pronto con algo que llevo pensando hace tiempo.</p>
@@ -214,6 +217,7 @@ const emails = [
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">¿En cuántos meses más seguirás diciéndote "algún día"?</p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">No te lo pregunto para presionarte. Te lo pregunto porque sé exactamente cómo se siente ese deseo. Esa vocecita que te dice: <em>"algún día voy a aprender."</em></p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Te digo algo: <strong>hoy puede ser ese día.</strong> Y me encantaría acompañarte.</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">El Kit de Bienvenida incluye asesoría personalizada, cable MIDI enviado a tu casa, setup técnico, tu primera clase real con profesor y 3 cupones de descuento — todo lo que necesitas para ponerte en marcha sin buscar nada por tu cuenta. Y con la garantía de 30 días, si no es lo que esperabas te devolvemos cada centavo: el riesgo es mío, no tuyo.</p>
     ${ctaButton('🎹 Quiero empezar — $29')}
     ${firma()}
     <p style="font-size:14px;color:#999;margin:24px 0 0;font-style:italic;">P.D. En el siguiente email te muestro exactamente qué recibes con los $29. Sin adornos, con honestidad total. Para que puedas tomar la decisión con toda la información sobre la mesa.</p>
@@ -262,7 +266,7 @@ const emails = [
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Para ponerlo en perspectiva: una sola clase particular presencial en Latinoamérica cuesta entre $20 y $40 USD. El Kit te da mucho más que una clase.</p>
     ${separator()}
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;"><strong>Y si no te gusta:</strong> Garantía de 30 días. Te devolvemos el 100% de tu dinero. Sin preguntas, sin letra pequeña. El cable MIDI es tuyo de todas formas. El peor escenario posible es quedarte con un cable y recuperar tu dinero completo.</p>
-    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">El riesgo es mío, no tuyo.</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">El riesgo es mío, no tuyo. Esos 30 días son suficientes para vivir la experiencia completa: recibir tu cable, configurarlo, tener tu primera clase real y decidir con calma si este camino es para ti.</p>
     ${ctaButton('🎹 Quiero mi Kit a $29')}
     ${firma()}
     <p style="font-size:14px;color:#999;margin:24px 0 0;font-style:italic;">P.D. Algo que quiero ser honesto contigo: PianoLink no es para todo el mundo. En mi siguiente email te cuento para quién sí funciona — y para quién no. Creo que te va a sorprender mi sinceridad.</p>
@@ -304,6 +308,8 @@ const emails = [
         </td>
       </tr>
     </table>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Fíjate que no dije nada de edad, de talento natural ni de experiencia musical previa. No necesitas nada de eso. Solo ganas y un teclado — el nivel musical completo lo ponemos nosotros con el profesor adecuado para ti.</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Cuando digo que PianoLink es para gente con un sueño postergado, hablo de personas reales: profesionales de 35 años que siempre quisieron y nunca encontraron cómo. Madres que ahora tienen un hueco de 30 minutos entre la rutina. Personas jubiladas que saben que aprender algo nuevo los mantiene activos. Gente como tú, que se unió a la lista porque esa chispa del piano dentro de ti no se apaga.</p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Si te reconoces en la columna de la derecha, este es tu momento. Si no, no pasa nada — te agradezco haber llegado hasta aquí.</p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Para los que se quedan: recuerda que tu precio madrugador de $29 solo dura hasta el 28 de marzo. Después sube a $44.</p>
     ${ctaButton('🎹 Sí, esto es para mí — $29')}
@@ -318,7 +324,7 @@ const emails = [
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     {
         nombre: 'Campaña Día 88 — Email 7: Escasez de cupos',
-        asunto: 'Quedan menos de {{cupos_restantes}} cupos de los 88',
+        asunto: 'Los 88 cupos se están llenando',
         previewText: 'El 29 de marzo el precio sube. Y al cupo 88, se cierra.',
         tipo: 'broadcast',
         ordenSecuencia: 7,
@@ -326,7 +332,7 @@ const emails = [
         contenidoHtml: emailTemplate(`
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Hola {{nombre}},</p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Soy Miguel Antonio, fundador de PianoLink — un marketplace de clases de piano online 1 a 1 con profesores reales y tecnología MIDI. Tu profesor ve en su pantalla cada nota que tocas, en tiempo real. No es Zoom. Es mucho mejor.</p>
-    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Te escribo porque quedan <strong>8 días</strong> para el lanzamiento y quiero que tengas toda la información:</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Te escribo porque te uniste a la lista de espera del lanzamiento. Quedan <strong>8 días</strong> y quiero que tengas toda la información:</p>
     ${separator()}
     <table width="100%" cellpadding="0" cellspacing="0" bgcolor="#0a0a0a" style="border-radius:8px;">
       <tr><td style="padding:28px;text-align:center;">
@@ -343,7 +349,14 @@ const emails = [
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 12px;"><strong>Lo que pasa cuando se llenen los 88 cupos:</strong></p>
     <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 8px;">→ El Kit de Bienvenida se cierra completamente</p>
     <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 20px;">→ Lista de espera indefinida, sin fecha de reapertura</p>
-    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">El Kit incluye: asesoría técnica + cable MIDI + setup por videollamada + primera clase real de 30 min + 3 cupones de 15% OFF + badge "Miembro Fundador" + garantía completa de 30 días.</p>
+<p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 8px;"><strong>El Kit incluye todo lo que necesitas para empezar:</strong></p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 4px;">→ Asesoría técnica personalizada (~20 min)</p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 4px;">→ Cable MIDI incluido — te lo enviamos a tu casa</p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 4px;">→ Setup técnico por videollamada (~20 min)</p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 4px;">→ Primera clase real de 30 min con profesor certificado</p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 4px;">→ 3 cupones de 15% OFF para tus primeras compras</p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 4px;">→ Badge “Miembro Fundador” permanente — solo 88 en el mundo</p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 20px;">→ Garantía total de 30 días — sin preguntas, sin letra chica</p>
     ${ctaButton('🎹 Asegurar mi Kit a $29')}
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">No te estoy apurando. Te estoy informando. Tú tomas la decisión cuando estés listo.</p>
     ${firma()}
@@ -365,10 +378,17 @@ const emails = [
         contenidoHtml: emailTemplate(`
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">{{nombre}},</p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">¿Todavía no te has dado el sí?</p>
-    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Soy Miguel Antonio, fundador de PianoLink. Clases de piano online 1 a 1 con profesor real y tecnología MIDI — ve cada nota que tocas en tiempo real. No es Zoom, es otra experiencia.</p>
-    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Te escribo porque <strong>pasado mañana, el 29 de marzo, el Kit de Bienvenida pasa de $29 a $44.</strong></p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Soy Miguel Antonio, fundador de PianoLink. Te escribo porque te registraste en pianolink.net y mostraste interés en aprender piano.</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">PianoLink es un marketplace de clases de piano online 1 a 1 con profesor real y tecnología MIDI — tu profesor ve en su pantalla cada nota que tocas, en tiempo real. No es Zoom, no son videos pregrabados. Es lo más parecido a tener un maestro sentado a tu lado, desde la comodidad de tu casa.</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Quiero avisarte que <strong>pasado mañana, el 29 de marzo, el Kit de Bienvenida pasa de $29 a $44.</strong></p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Son $15 reales que ahorras hoy. El precio madrugador de $29 lleva la fecha del Día Mundial del Piano. El de $44 es la mitad de 88, las teclas del piano.</p>
-    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">El Kit incluye todo lo que necesitas para empezar: asesoría + cable MIDI incluido + setup técnico + primera clase real + cupones de 15% OFF + garantía 30 días.</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 8px;"><strong>El Kit incluye todo lo que necesitas para tu primera clase real:</strong></p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 4px;">→ Asesoría técnica personalizada — te orientamos según tu teclado y nivel</p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 4px;">→ Cable MIDI incluido — te lo enviamos a tu casa</p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 4px;">→ Setup técnico por videollamada — configuramos todo juntos</p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 4px;">→ Primera clase real de 30 min con profesor certificado</p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 4px;">→ 3 cupones de 15% OFF en tus primeras compras</p>
+    <p style="font-size:15px;color:#333;line-height:1.8;margin:0 0 20px;">→ Garantía total de 30 días — si no te convence, te devuelvo cada centavo</p>
     ${ctaButton('🎹 Quiero mi Kit a $29 — antes de que suba')}
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Si ya compraste, ignora este email. Si no, este es el momento.</p>
     ${firma()}
@@ -408,7 +428,7 @@ const emails = [
   </td></tr>
   <tr><td bgcolor="#ffffff" style="padding:40px 48px;">
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Hola {{nombre}},</p>
-    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Soy Miguel Antonio. Y hoy es, posiblemente, el día más especial de mi vida después del nacimiento de mi hija Aurora.</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Soy Miguel Antonio. Te escribo porque te uniste a la lista de espera de PianoLink — y hoy es, posiblemente, el día más especial de mi vida después del nacimiento de mi hija Aurora.</p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">Hoy es el <strong>Día Mundial del Piano</strong>. Es el <strong>día 88 del año</strong> — y 88 son las teclas del piano. Y es mi cumpleaños.</p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">PianoLink es un marketplace de clases de piano online 1 a 1 donde un profesor real te enseña con tecnología MIDI — ve en su pantalla cada nota que tocas, en tiempo real. No es Zoom. No son videos. Es lo más parecido a tener un maestro sentado a tu lado.</p>
     <p style="font-size:16px;color:#333;line-height:1.8;margin:0 0 20px;">El Kit de Bienvenida a <strong>$44 USD</strong> (la mitad de 88 teclas) incluye todo:</p>
@@ -429,8 +449,7 @@ const emails = [
   </td></tr>
   <tr><td bgcolor="#0a0a0a" style="padding:24px 48px;text-align:center;">
     <p style="color:#888;font-size:13px;margin:0 0 12px;">Día 88 · Día Mundial del Piano · Lanzamiento PianoLink</p>
-    <a href="https://pianolink.net/welcome-kit" style="color:#c9a84c;font-size:14px;text-decoration:none;">Reservar ahora →</a>
-    <p style="margin:16px 0 0;"><a href="{{unsubscribe_url}}" style="color:#555;font-size:11px;">Cancelar suscripción</a></p>
+    <p style="margin:16px 0 0;"><a href="{{unsubscribe_url}}" style="color:#555;font-size:11px;">No quiero recibir más emails — darme de baja</a></p>
     <p style="color:#555;font-size:11px;margin:8px 0 0;">© 2026 PianoLink · hola@pianolink.net</p>
   </td></tr>
 </table>

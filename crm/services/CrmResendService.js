@@ -89,7 +89,11 @@ class CrmResendService {
                 to: [to],
                 reply_to: this.config.replyTo,
                 subject: subject,
-                html: finalHtml
+                html: finalHtml,
+                headers: {
+                    'List-Unsubscribe': `<${this._getUnsubscribeUrl(to)}>, <mailto:hola@pianolink.net?subject=unsubscribe>`,
+                    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+                }
             });
 
             console.log(`[CRM Resend] ✅ Email enviado a ${to}, ID: ${response.data?.id}`);

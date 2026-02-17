@@ -102,6 +102,10 @@ class EmailService {
                 subject: subject,
                 html: html,
                 text: text || this._stripHtml(html), // Fallback: generar texto desde HTML
+                headers: {
+                    'List-Unsubscribe': '<mailto:hola@pianolink.net?subject=unsubscribe>',
+                    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+                }
             });
             
             console.log(`[EMAIL] ✅ Email enviado exitosamente. ID: ${response.data?.id}`);
