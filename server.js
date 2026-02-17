@@ -222,6 +222,11 @@ app.get('/success-waitlist', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'success-waitlist.html'));
 });
 
+// Oferta madrugadores — página dedicada para CTAs de emails (sin countdown de minutos)
+app.get('/oferta-madrugadores', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'oferta-madrugadores.html'));
+});
+
 // Catálogo y perfiles de profesores (URLs limpias)
 app.get('/profesores', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'profesores.html'));

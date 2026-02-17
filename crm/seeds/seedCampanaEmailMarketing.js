@@ -57,7 +57,7 @@ function emailTemplate(bodyHtml, footerNote = 'El 29 de marzo abre PianoLink. So
 }
 
 // Botón CTA reutilizable
-function ctaButton(text, url = 'https://pianolink.net/welcome-kit') {
+function ctaButton(text, url = 'https://pianolink.net/oferta-madrugadores') {
     return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0;"><tr><td align="center">
       <a href="${url}" style="background:#c9a84c;color:#0a0a0a;text-decoration:none;padding:16px 36px;border-radius:4px;font-size:17px;font-weight:bold;display:inline-block;">${text}</a>
     </td></tr></table>`;
