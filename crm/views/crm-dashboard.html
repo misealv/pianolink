@@ -946,6 +946,68 @@
     </div>
 </div>
 
+<!-- Modal: Editar Lead -->
+<div class="modal" id="modalEditLead">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Editar Lead</h3>
+            <button class="modal-close" onclick="closeModal('modalEditLead')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="formEditLead">
+                <input type="hidden" id="editLeadId">
+                <div class="form-group">
+                    <label>Tipo de Lead *</label>
+                    <select class="form-control" id="editLeadType" required>
+                        <option value="client">👨‍🎓 Estudiante / Cliente</option>
+                        <option value="teacher">👨‍🏫 Profesor</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nombre Completo *</label>
+                    <input type="text" class="form-control" id="editLeadName" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" class="form-control" id="editLeadEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Teléfono / WhatsApp</label>
+                    <input type="tel" class="form-control" id="editLeadPhone">
+                </div>
+                <div class="form-group">
+                    <label>Estado</label>
+                    <select class="form-control" id="editLeadStatus">
+                        <option value="new">Nuevo</option>
+                        <option value="contacted">Contactado</option>
+                        <option value="qualified">Calificado</option>
+                        <option value="converted">Convertido</option>
+                        <option value="rejected">Rechazado</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Origen</label>
+                    <select class="form-control" id="editLeadSource">
+                        <option value="landing">Landing</option>
+                        <option value="manual">Manual</option>
+                        <option value="referral">Referido</option>
+                        <option value="social">Social</option>
+                        <option value="other">Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notas</label>
+                    <textarea class="form-control" id="editLeadNotes" rows="3"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modalEditLead')">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveLead()">Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Crear Landing -->
 <div class="modal" id="modalCreateLanding">
     <div class="modal-content">
@@ -1195,6 +1257,7 @@
             const stage = getStageLabel(lead.lifecycleStage);
             const date = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '--';
             
+            const leadId = ref._id || lead._id;
             return `<tr>
                 <td>
                     <div class="lead-name">${esc(name)}</div>
@@ -1206,8 +1269,9 @@
                 <td><span class="badge ${stage.css}">${stage.label}</span></td>
                 <td>${date}</td>
                 <td>
-                    <button class="btn-icon" title="Editar" onclick="editLead('${lead._id}')">✏️</button>
-                    <button class="btn-icon" title="Email" onclick="emailLead('${lead._id}')">✉️</button>
+                    <button class="btn-icon" title="Editar" onclick="editLead('${leadId}')">✏️</button>
+                    <button class="btn-icon" title="Email" onclick="emailLead('${leadId}')">✉️</button>
+                    <button class="btn-icon" title="Eliminar" onclick="deleteLead('${leadId}', '${esc(name)}')">🗑️</button>
                 </td>
             </tr>`;
         }).join('');
@@ -1408,13 +1472,12 @@
             type: document.getElementById('leadType').value,
             name: document.getElementById('leadName').value,
             email: document.getElementById('leadEmail').value,
-            phone: document.getElementById('leadPhone').value,
+            whatsapp: document.getElementById('leadPhone').value,
             source: document.getElementById('leadSource').value,
             notes: document.getElementById('leadNotes').value
         };
         if (!data.name || !data.email) { alert('Nombre y email son requeridos'); return; }
         
-        // Crear en el core primero
         const res = await fetch('/api/leads', {
             method: 'POST',
             headers: authHeaders(),
@@ -1423,6 +1486,7 @@
         if (res.ok) {
             alert('Lead creado exitosamente');
             closeModal('modalCreateLead');
+            document.getElementById('formCreateLead').reset();
             loadDashboard();
         } else {
             const err = await res.json().catch(() => ({}));
@@ -1470,8 +1534,81 @@
         return div.innerHTML;
     }
 
-    // Placeholder functions for actions
-    window.editLead = function(id) { alert('Editar lead: ' + id); };
+    // === EDITAR LEAD ===
+    window.editLead = async function(id) {
+        try {
+            const res = await fetch('/api/leads/' + id + '?populate=true', { headers: authHeaders() });
+            if (!res.ok) { alert('No se pudo cargar el lead'); return; }
+            const result = await res.json();
+            const lead = result.lead || result;
+            
+            document.getElementById('editLeadId').value = id;
+            document.getElementById('editLeadName').value = lead.name || '';
+            document.getElementById('editLeadEmail').value = lead.email || '';
+            document.getElementById('editLeadPhone').value = lead.whatsapp || '';
+            document.getElementById('editLeadType').value = lead.type || 'client';
+            document.getElementById('editLeadStatus').value = lead.status || 'new';
+            document.getElementById('editLeadSource').value = lead.source || 'manual';
+            document.getElementById('editLeadNotes').value = lead.notes || '';
+            document.getElementById('modalEditLead').classList.add('show');
+        } catch (e) {
+            alert('Error al cargar lead: ' + e.message);
+        }
+    };
+
+    // === GUARDAR EDICIÓN ===
+    window.saveLead = async function() {
+        const id = document.getElementById('editLeadId').value;
+        const data = {
+            type: document.getElementById('editLeadType').value,
+            name: document.getElementById('editLeadName').value,
+            email: document.getElementById('editLeadEmail').value,
+            whatsapp: document.getElementById('editLeadPhone').value,
+            status: document.getElementById('editLeadStatus').value,
+            source: document.getElementById('editLeadSource').value,
+            notes: document.getElementById('editLeadNotes').value
+        };
+        if (!data.name || !data.email) { alert('Nombre y email son requeridos'); return; }
+        
+        try {
+            const res = await fetch('/api/leads/' + id, {
+                method: 'PATCH',
+                headers: authHeaders(),
+                body: JSON.stringify(data)
+            });
+            const result = await res.json().catch(() => ({}));
+            if (res.ok && result.success !== false) {
+                alert('Lead actualizado');
+                closeModal('modalEditLead');
+                loadDashboard();
+            } else {
+                alert('Error: ' + (result.message || 'No se pudo actualizar'));
+            }
+        } catch (e) {
+            alert('Error al guardar: ' + e.message);
+        }
+    };
+
+    // === ELIMINAR LEAD ===
+    window.deleteLead = async function(id, name) {
+        if (!confirm('¿Eliminar a "' + name + '"?\n\nEsta acción no se puede deshacer.')) return;
+        try {
+            const res = await fetch('/api/leads/' + id, {
+                method: 'DELETE',
+                headers: authHeaders()
+            });
+            const result = await res.json().catch(() => ({}));
+            if (res.ok && result.success !== false) {
+                alert('Lead eliminado');
+                loadDashboard();
+            } else {
+                alert('Error: ' + (result.message || 'No se pudo eliminar'));
+            }
+        } catch (e) {
+            alert('Error al eliminar: ' + e.message);
+        }
+    };
+
     window.emailLead = function(id) { alert('Enviar email a lead: ' + id); };
     window.editCampaign = function(id) { alert('Editar campaña: ' + id); };
     window.editSequence = function(id) { alert('Editar secuencia: ' + id); };

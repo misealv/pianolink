@@ -300,29 +300,32 @@ class LeadService {
 
     /**
      * Edita datos generales de un lead
+     * Solo nombre y email son obligatorios; el resto es opcional
      */
     static async update(id, data) {
-        const { name, email, whatsapp } = data;
-        if (!name || !email || !whatsapp) {
-            return { success: false, status: 400, message: 'Nombre, email y WhatsApp requeridos' };
+        const { name, email } = data;
+        if (!name || !email) {
+            return { success: false, status: 400, message: 'Nombre y email son requeridos' };
         }
 
         // Verificar email duplicado en otro lead
-        if (email) {
-            const dup = await Lead.findOne({ email: email.toLowerCase(), _id: { $ne: id } });
-            if (dup) return { success: false, status: 400, message: 'Ya existe otro lead con ese email' };
-        }
+        const dup = await Lead.findOne({ email: email.toLowerCase(), _id: { $ne: id } });
+        if (dup) return { success: false, status: 400, message: 'Ya existe otro lead con ese email' };
 
         const updateData = {
             name: name.trim(),
-            email: email.toLowerCase().trim(),
-            whatsapp: whatsapp.trim(),
-            background: data.background ? data.background.trim() : ''
+            email: email.toLowerCase().trim()
         };
 
+        // Campos opcionales
+        if (data.whatsapp !== undefined) updateData.whatsapp = data.whatsapp.trim();
+        if (data.background !== undefined) updateData.background = data.background.trim();
         if (data.country) updateData.country = data.country.trim();
         if (data.timezone) updateData.timezone = data.timezone.trim();
         if (data.status !== undefined) updateData.status = data.status;
+        if (data.type !== undefined) updateData.type = data.type;
+        if (data.notes !== undefined) updateData.notes = data.notes;
+        if (data.source !== undefined) updateData.source = data.source;
         if (data.utmSource !== undefined) {
             updateData.utmSource = data.utmSource;
             updateData.source = SOURCE_MAP[data.utmSource] || 'other';

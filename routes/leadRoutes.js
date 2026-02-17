@@ -8,6 +8,7 @@
  *   GET    /api/leads/export             — Exportar todos
  *   GET    /api/leads/follow-ups/due     — Seguimientos de hoy
  *   GET    /api/leads/follow-ups/overdue — Leads atrasados
+ *   GET    /api/leads/:id               — Obtener lead por ID
  *   PATCH  /api/leads/:id/notes          — Actualizar notas
  *   PATCH  /api/leads/:id/status         — Cambiar estado
  *   PATCH  /api/leads/:id               — Editar datos
@@ -94,6 +95,19 @@ router.get('/funnel/:type', async (req, res) => {
         res.json({ success: true, metrics });
     } catch (error) {
         console.error('[Lead] Error funnel:', error);
+        res.status(500).json({ success: false, message: 'Error interno' });
+    }
+});
+
+// ==================== OBTENER POR ID ====================
+
+router.get('/:id', async (req, res) => {
+    try {
+        const lead = await LeadService.getById(req.params.id);
+        if (!lead) return res.status(404).json({ success: false, message: 'Lead no encontrado' });
+        res.json({ success: true, lead });
+    } catch (error) {
+        console.error('[Lead] Error getById:', error);
         res.status(500).json({ success: false, message: 'Error interno' });
     }
 });
