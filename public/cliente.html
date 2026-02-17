@@ -2198,7 +2198,8 @@
                 <!-- Próxima Clase -->
                 ${nextClassHTML}
 
-                <!-- Stats -->
+                <!-- Stats y Actions — solo después de completar onboarding -->
+                ${isOnboardingComplete ? `
                 <section class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-number">${user.summary.totalClassesRemaining}</div>
@@ -2216,7 +2217,6 @@
                     ` : ''}
                 </section>
 
-                <!-- Actions -->
                 <section class="actions">
                     <a href="/profesores.html" class="btn btn-primary">
                         🎹 Explorar Profesores
@@ -2225,6 +2225,7 @@
                         💬 Soporte WhatsApp
                     </a>
                 </section>
+                ` : ''}
 
                 <!-- Students (if guardian) -->
                 ${isGuardian ? `
