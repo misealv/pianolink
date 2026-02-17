@@ -114,10 +114,11 @@ exports.receiveInbound = async (req, res) => {
 
         console.log(`[CRM Inbound] 📨 Evento recibido: ${eventType || 'sin tipo'} | firma: ${signatureVerified ? '✅' : '⚠️ no verificada'}`);
 
-        // Eventos de tracking (no son emails entrantes, pero los logueamos)
+        // Eventos de tracking → guardar como CrmInteraction + scoring/promoción automática
         const trackingEvents = ['email.sent', 'email.delivered', 'email.opened', 'email.clicked', 'email.bounced', 'email.complained'];
         if (eventType && trackingEvents.includes(eventType)) {
             console.log(`[CRM Inbound] 📊 Evento tracking: ${eventType} | to: ${data.to || '?'} | subject: ${data.subject || '?'}`);
+            await _processTrackingEvent(eventType, data);
             return;
         }
 
@@ -126,12 +127,6 @@ exports.receiveInbound = async (req, res) => {
             console.log(`[CRM Inbound] Evento no reconocido ignorado: ${eventType}`);
             return;
         }
-
-        // DEBUG: ver estructura completa del payload
-        console.log(`[CRM Inbound] 🔍 Keys raíz body:`, Object.keys(body).join(', '));
-        console.log(`[CRM Inbound] 🔍 Keys del payload data:`, Object.keys(data).join(', '));
-        // Loggear payload completo (truncado a 2000 chars para no saturar logs)
-        console.log(`[CRM Inbound] 🔍 Payload completo:`, JSON.stringify(body).substring(0, 2000));
 
         // Extraer datos del email
         const fromEmail = _extractEmail(data.from || '');
@@ -251,6 +246,9 @@ exports.receiveInbound = async (req, res) => {
                     notes: `Respuesta de email recibida: "${subject.substring(0, 80)}"`
                 }
             });
+
+            // Promoción automática: responder email = interés alto
+            await _promoteLeadOnEngagement(leadRef, 'email_reply');
         }
 
         console.log(`[CRM Inbound] ✅ Email guardado: id=${inbound._id}${leadRef ? ` (lead vinculado)` : ' (sin lead)'}`);
@@ -504,6 +502,171 @@ exports.reply = async (req, res) => {
 
 // =========================================================================
 // HELPERS
+// =========================================================================
+
+// =========================================================================
+// HELPERS — Tracking & Promoción automática de leads
+// =========================================================================
+
+/**
+ * Procesa eventos de tracking de Resend (opened, clicked, etc.)
+ * Guarda como CrmInteraction y actualiza score/segment del lead.
+ */
+async function _processTrackingEvent(eventType, data) {
+    try {
+        // Extraer email del destinatario
+        const toRaw = Array.isArray(data.to) ? data.to[0] : (data.to || '');
+        const recipientEmail = _extractEmail(toRaw);
+        if (!recipientEmail) return;
+
+        // Buscar lead vinculado
+        const Lead = getLead();
+        const CrmLead = getCrmLead();
+        const coreLead = await Lead.findOne({ email: recipientEmail }).lean();
+        if (!coreLead) return;
+        const crmLead = await CrmLead.findOne({ leadRef: coreLead._id });
+        if (!crmLead) return;
+
+        // Mapear evento Resend → tipo de interacción CRM
+        const typeMap = {
+            'email.sent': 'email_sent',
+            'email.delivered': 'email_sent',
+            'email.opened': 'email_open',
+            'email.clicked': 'email_click',
+            'email.bounced': 'email_bounce',
+            'email.complained': 'email_unsubscribe'
+        };
+        const interactionType = typeMap[eventType];
+        if (!interactionType) return;
+
+        // Guardar interacción
+        const CrmInteraction = getCrmInteraction();
+        await CrmInteraction.create({
+            leadRef: crmLead._id,
+            type: interactionType,
+            channel: 'email',
+            metadata: {
+                emailSubject: data.subject || '',
+                notes: `Evento: ${eventType}`
+            }
+        });
+
+        // Scoring y promoción automática
+        const scoreMap = {
+            'email.delivered': 1,
+            'email.opened': 5,
+            'email.clicked': 10,
+            'email.bounced': -5,
+            'email.complained': -10
+        };
+        const points = scoreMap[eventType];
+        if (points) {
+            const CrmLeadService = require('../services/CrmLeadService');
+            await CrmLeadService.incrementScore(crmLead._id, points, eventType.replace('email.', 'email_'));
+        }
+
+        // Promoción de segment/lifecycle según engagement
+        if (['email.opened', 'email.clicked'].includes(eventType)) {
+            await _promoteLeadOnEngagement(crmLead._id, interactionType);
+        }
+
+        // Bounce/complaint → marcar preferencias de email
+        if (eventType === 'email.bounced') {
+            await CrmLead.findByIdAndUpdate(crmLead._id, {
+                'emailPreferences.bounced': true,
+                'emailPreferences.bouncedAt': new Date()
+            });
+            console.log(`[CRM Tracking] ⚠️ Lead ${recipientEmail} marcado como bounced`);
+        }
+        if (eventType === 'email.complained') {
+            await CrmLead.findByIdAndUpdate(crmLead._id, {
+                'emailPreferences.unsubscribed': true,
+                'emailPreferences.unsubscribedAt': new Date()
+            });
+            console.log(`[CRM Tracking] ⚠️ Lead ${recipientEmail} marcado como unsubscribed (complaint)`);
+        }
+
+        console.log(`[CRM Tracking] ✅ ${eventType} → ${recipientEmail} (score +${points || 0})`);
+
+    } catch (err) {
+        console.warn(`[CRM Tracking] ⚠️ Error procesando ${eventType}: ${err.message}`);
+    }
+}
+
+/**
+ * Promoción automática de segment y lifecycleStage basada en engagement acumulado.
+ * Reglas:
+ *   - ≥1 email_click → cold→warm
+ *   - ≥3 email_open  → cold→warm
+ *   - ≥1 email_reply → warm (si cold), subscriber/lead→mql
+ *   - ≥2 email_reply → hot, mql→sql
+ *   - Conversión (payment) → customer (manejado por CrmBridgeService)
+ */
+async function _promoteLeadOnEngagement(crmLeadId, triggerType) {
+    try {
+        const CrmLead = getCrmLead();
+        const CrmInteraction = getCrmInteraction();
+
+        const crmLead = await CrmLead.findById(crmLeadId);
+        if (!crmLead) return;
+
+        // No degradar nunca a customer/evangelist
+        if (['customer', 'evangelist'].includes(crmLead.segment)) return;
+
+        // Contar interacciones de engagement
+        const counts = await CrmInteraction.aggregate([
+            { $match: { leadRef: crmLead._id, type: { $in: ['email_open', 'email_click', 'email_reply'] } } },
+            { $group: { _id: '$type', count: { $sum: 1 } } }
+        ]);
+        const c = {};
+        counts.forEach(i => { c[i._id] = i.count; });
+
+        const opens = c.email_open || 0;
+        const clicks = c.email_click || 0;
+        const replies = c.email_reply || 0;
+
+        let newSegment = crmLead.segment;
+        let newLifecycle = crmLead.lifecycleStage;
+
+        // Reglas de promoción de segment (nunca degradar)
+        const segmentOrder = ['cold', 'warm', 'hot'];
+        const currentSegIdx = segmentOrder.indexOf(crmLead.segment);
+
+        if (replies >= 2 && currentSegIdx < 2) {
+            newSegment = 'hot';
+        } else if ((replies >= 1 || clicks >= 1 || opens >= 3) && currentSegIdx < 1) {
+            newSegment = 'warm';
+        }
+
+        // Reglas de promoción de lifecycle (nunca degradar)
+        const lifecycleOrder = ['subscriber', 'lead', 'mql', 'sql', 'opportunity', 'customer', 'evangelist'];
+        const currentLcIdx = lifecycleOrder.indexOf(crmLead.lifecycleStage);
+
+        if (replies >= 2 && currentLcIdx < 3) {
+            newLifecycle = 'sql'; // Respondió 2+ veces = Sales Qualified
+        } else if (replies >= 1 && currentLcIdx < 2) {
+            newLifecycle = 'mql'; // Respondió 1 vez = Marketing Qualified
+        } else if ((clicks >= 1 || opens >= 3) && currentLcIdx < 1) {
+            newLifecycle = 'lead'; // Engagement pasivo = al menos Lead
+        }
+
+        // Aplicar cambios si hubo promoción
+        const updates = {};
+        if (newSegment !== crmLead.segment) updates.segment = newSegment;
+        if (newLifecycle !== crmLead.lifecycleStage) updates.lifecycleStage = newLifecycle;
+
+        if (Object.keys(updates).length > 0) {
+            await CrmLead.findByIdAndUpdate(crmLeadId, updates);
+            console.log(`[CRM Promoción] 🚀 Lead ${crmLeadId}: segment=${crmLead.segment}→${newSegment}, lifecycle=${crmLead.lifecycleStage}→${newLifecycle} (trigger: ${triggerType})`);
+        }
+
+    } catch (err) {
+        console.warn(`[CRM Promoción] ⚠️ Error en promoción automática: ${err.message}`);
+    }
+}
+
+// =========================================================================
+// HELPERS — Extracción de datos
 // =========================================================================
 
 /**
