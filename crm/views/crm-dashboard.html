@@ -629,6 +629,7 @@
                                 <tr>
                                     <th>Campaña</th>
                                     <th>Tipo</th>
+                                    <th>Día</th>
                                     <th>Estado</th>
                                     <th>Enviados</th>
                                     <th>Abiertos</th>
@@ -1354,7 +1355,7 @@
         const tbody = document.getElementById('emailsTable');
         if (!tbody) return;
         if (campaigns.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">
                 No hay campañas de email.<br><br>
                 <button class="btn btn-primary" onclick="showCreateEmailModal()">+ Crear Campaña</button>
             </td></tr>`;
@@ -1369,12 +1370,22 @@
             }[c.estado] || 'badge-draft';
             const fechaProg = c.fechaProgramada ? new Date(c.fechaProgramada).toLocaleDateString('es-CL') : '—';
             const m = c.metricas || {};
+            // Calcular columna Día
+            let diaLabel = '—';
+            if (c.tipo === 'secuencia' && c.ordenSecuencia) {
+                const delays = { 1: 'Inmediato', 2: 'Día +2', 3: 'Día +4', 4: 'Día +7', 5: 'Día +10', 6: 'Día +14' };
+                diaLabel = delays[c.ordenSecuencia] || `#${c.ordenSecuencia}`;
+            } else if (c.tipo === 'broadcast' && c.fechaProgramada) {
+                const d = new Date(c.fechaProgramada);
+                diaLabel = `${d.getDate()} ${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]}`;
+            }
             return `<tr>
                 <td>
                     <div class="lead-name">${esc(c.nombre)}</div>
                     <div class="lead-email">${esc(c.asunto)}</div>
                 </td>
                 <td><span class="badge">${c.tipo}</span></td>
+                <td><span style="font-size:13px;font-weight:600;color:var(--accent);">${diaLabel}</span></td>
                 <td><span class="badge ${estadoBadge}">${c.estado}</span></td>
                 <td>${m.totalEnviados || 0}</td>
                 <td>${m.totalAbiertos || 0}</td>
@@ -1474,6 +1485,20 @@
                             </select>
                         </div>
                     </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+                        <div class="form-group" style="margin:0;">
+                            <label>Orden en secuencia</label>
+                            <input type="number" class="form-control" id="editEmailOrden" min="1" max="99" placeholder="1, 2, 3...">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>Fecha programada</label>
+                            <input type="datetime-local" class="form-control" id="editEmailFecha">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>Preview Text</label>
+                            <input type="text" class="form-control" id="editEmailPreview" placeholder="Texto de preview en inbox">
+                        </div>
+                    </div>
                     <div class="form-group" style="flex:1;display:flex;flex-direction:column;margin:0;">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                             <label style="margin:0;font-weight:600;">Contenido del Email</label>
@@ -1503,6 +1528,16 @@
         document.getElementById('editEmailNombre').value = c.nombre || '';
         document.getElementById('editEmailAsunto').value = c.asunto || '';
         document.getElementById('editEmailTipo').value = c.tipo || 'secuencia';
+        document.getElementById('editEmailOrden').value = c.ordenSecuencia || '';
+        document.getElementById('editEmailPreview').value = c.previewText || '';
+        // Fecha programada → formato datetime-local
+        if (c.fechaProgramada) {
+            const fp = new Date(c.fechaProgramada);
+            const pad = n => String(n).padStart(2, '0');
+            document.getElementById('editEmailFecha').value = `${fp.getFullYear()}-${pad(fp.getMonth()+1)}-${pad(fp.getDate())}T${pad(fp.getHours())}:${pad(fp.getMinutes())}`;
+        } else {
+            document.getElementById('editEmailFecha').value = '';
+        }
         document.getElementById('editEmailHtml').value = c.contenidoHtml || '';
         document.getElementById('editEmailTitle').textContent = 'Editar: ' + (c.nombre || 'Campaña');
         // Resetear a modo código
@@ -1552,10 +1587,14 @@
     // Guardar edición de email
     window.saveEmail = async function() {
         const id = document.getElementById('editEmailId').value;
+        const fechaVal = document.getElementById('editEmailFecha').value;
         const data = {
             nombre: document.getElementById('editEmailNombre').value,
             asunto: document.getElementById('editEmailAsunto').value,
             tipo: document.getElementById('editEmailTipo').value,
+            ordenSecuencia: parseInt(document.getElementById('editEmailOrden').value) || undefined,
+            previewText: document.getElementById('editEmailPreview').value,
+            fechaProgramada: fechaVal ? new Date(fechaVal).toISOString() : undefined,
             contenidoHtml: document.getElementById('editEmailHtml').value
         };
         const res = await apiFetch('/emails/' + id, {

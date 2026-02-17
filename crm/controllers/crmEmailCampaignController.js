@@ -122,7 +122,7 @@ exports.update = async (req, res) => {
             });
         }
 
-        const allowedFields = ['nombre', 'asunto', 'previewText', 'contenidoHtml', 'tipo', 'ordenSecuencia', 'targeting', 'notas'];
+        const allowedFields = ['nombre', 'asunto', 'previewText', 'contenidoHtml', 'tipo', 'ordenSecuencia', 'fechaProgramada', 'targeting', 'notas'];
         allowedFields.forEach(field => {
             if (req.body[field] !== undefined) {
                 campaign[field] = req.body[field];
