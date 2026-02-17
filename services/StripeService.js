@@ -867,7 +867,7 @@ class StripeService {
 
     /**
      * Manejar compra del Kit de Bienvenida
-     * Crea usuario si no existe o actualiza kitPurchased
+     * Usa PostPaymentService para crear usuario + magic link + email
      */
     static async handleKitPurchase(session, metadata) {
         const { customerName, customerEmail, studentCount, studentNames } = metadata;
@@ -887,82 +887,27 @@ class StripeService {
         console.log(`[StripeService] 👨‍👩‍👧‍👦 Estudiantes: ${numStudents}`, parsedStudentNames);
 
         try {
-            // Verificar si el usuario ya existe
-            let user = await User.findOne({ email });
-            let isNewUser = false;
+            // Determinar tipo de estudiante y beneficiarios
+            const isGuardian = numStudents > 1 || (parsedStudentNames.length > 0 && parsedStudentNames[0] !== name);
+            const beneficiaries = parsedStudentNames.map(sName => ({ name: sName, age: null }));
 
-            if (!user) {
-                // Crear nuevo usuario
-                const [firstName, ...lastNameParts] = name.split(' ');
-                const lastName = lastNameParts.join(' ') || '';
-                const tempPassword = Math.random().toString(36).slice(-8);
+            // Usar servicio unificado para crear usuario + magic link + email
+            const PostPaymentService = require('./PostPaymentService');
+            const result = await PostPaymentService.processSuccessfulPayment({
+                email,
+                name,
+                country: session.customer_details?.address?.country || 'CL',
+                studentType: isGuardian ? 'child' : 'self',
+                beneficiaries,
+                paymentProvider: 'stripe',
+                paymentId: session.id,
+                amount: session.amount_total / 100, // Stripe usa centavos
+                currency: (session.currency || 'usd').toUpperCase(),
+                kitType: 'welcome_kit_v2',
+                source: 'stripe_webhook'
+            });
 
-                // Si hay múltiples estudiantes, crear como guardian/apoderado
-                const isGuardian = numStudents > 1 || (parsedStudentNames.length > 0 && parsedStudentNames[0] !== name);
-                
-                const userData = {
-                    name: firstName,
-                    lastName: lastName,
-                    email: email,
-                    password: tempPassword,
-                    role: isGuardian ? 'client' : 'student',
-                    kitPurchased: true,
-                    kitPurchaseDate: new Date(),
-                    stripeSessionId: session.id
-                };
-                
-                // Si es guardian, agregar estudiantes como managedStudents
-                if (isGuardian && parsedStudentNames.length > 0) {
-                    userData.clientData = {
-                        accountType: 'guardian',
-                        managedStudents: parsedStudentNames.map(studentName => ({
-                            name: studentName,
-                            classesRemaining: 1, // 1 clase de prueba por estudiante
-                            classesUsed: 0
-                        }))
-                    };
-                }
-
-                user = await User.create(userData);
-
-                isNewUser = true;
-                console.log(`[StripeService] ✅ Usuario creado: ${user.email} (${isGuardian ? 'guardian' : 'student'})`);
-            } else {
-                // Usuario ya existe, actualizar flag de kit
-                user.kitPurchased = true;
-                user.kitPurchaseDate = new Date();
-                user.stripeSessionId = session.id;
-                
-                // Si es guardian y hay nuevos estudiantes, agregarlos
-                if (numStudents > 1 && parsedStudentNames.length > 0) {
-                    if (!user.clientData) {
-                        user.clientData = { accountType: 'guardian', managedStudents: [] };
-                    }
-                    if (!user.clientData.managedStudents) {
-                        user.clientData.managedStudents = [];
-                    }
-                    
-                    // Agregar nuevos estudiantes si no existen
-                    for (const studentName of parsedStudentNames) {
-                        const exists = user.clientData.managedStudents.some(
-                            s => s.name.toLowerCase() === studentName.toLowerCase()
-                        );
-                        if (!exists) {
-                            user.clientData.managedStudents.push({
-                                name: studentName,
-                                classesRemaining: 1,
-                                classesUsed: 0
-                            });
-                        }
-                    }
-                    user.markModified('clientData');
-                }
-                
-                await user.save();
-                console.log(`[StripeService] ✅ Usuario actualizado: ${user.email}`);
-            }
-
-            // Registrar pago
+            // Registrar pago (esto es específico de Stripe)
             await Payment.create({
                 provider: 'stripe',
                 externalPaymentId: session.payment_intent,
@@ -976,8 +921,8 @@ class StripeService {
                 },
                 metadata: {
                     type: 'kit_purchase',
-                    userId: user._id.toString(),
-                    isNewUser,
+                    userId: result.user?.id?.toString(),
+                    isNewUser: result.isNewUser,
                     studentCount: numStudents,
                     studentNames: parsedStudentNames
                 },
@@ -988,9 +933,9 @@ class StripeService {
 
             return { 
                 success: true, 
-                userId: user._id,
-                isNewUser,
-                email: user.email
+                userId: result.user?.id,
+                isNewUser: result.isNewUser,
+                email: result.user?.email
             };
 
         } catch (error) {

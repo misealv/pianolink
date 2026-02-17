@@ -509,43 +509,33 @@ router.post('/verify-kit-payment-stripe', async (req, res) => {
             const email = session.customer_email || session.metadata.customerEmail;
             const name = session.metadata.customerName;
 
-            // Verificar si el usuario ya existe
-            let user = await User.findOne({ email });
+            // Delegado a PostPaymentService
+            const PostPaymentService = require('../services/PostPaymentService');
+            const result = await PostPaymentService.processSuccessfulPayment({
+                email,
+                name,
+                studentType: 'self',
+                beneficiaries: [],
+                paymentProvider: 'stripe',
+                paymentId: sessionId,
+                amount: session.amount_total,
+                currency: session.currency?.toUpperCase() || 'USD',
+                kitType: 'welcome_kit',
+                source: 'platform'
+            });
 
-            if (!user) {
-                // Crear nuevo usuario
-                const [firstName, ...lastNameParts] = name.split(' ');
-                const lastName = lastNameParts.join(' ') || firstName;
-
-                user = await User.create({
-                    name: firstName,
-                    lastName: lastName,
-                    email: email,
-                    password: Math.random().toString(36).slice(-8), // Password temporal
-                    role: 'student',
-                    kitPurchased: true,
-                    kitPurchaseDate: new Date(),
-                    stripeSessionId: sessionId
-                });
-
-                console.log(`[Kit-Stripe] Usuario creado: ${user.email}`);
-            } else {
-                // Usuario ya existe, actualizar flag de kit
-                user.kitPurchased = true;
-                user.kitPurchaseDate = new Date();
-                user.stripeSessionId = sessionId;
-                await user.save();
-                console.log(`[Kit-Stripe] Usuario actualizado: ${user.email}`);
-            }
+            const user = result.user;
+            console.log(`[Kit-Stripe] ${result.isNewUser ? 'Usuario creado' : 'Usuario actualizado'}: ${user.email}`);
 
             res.json({
                 success: true,
                 user: {
                     id: user._id,
                     email: user.email,
-                    name: `${user.name} ${user.lastName || ''}`.trim(),
+                    name: user.name,
                     kitPurchased: true
-                }
+                },
+                magicLinkUrl: result.magicLinkUrl || null
             });
         } else {
             res.status(400).json({ 
@@ -590,43 +580,34 @@ router.post('/verify-kit-payment', async (req, res) => {
         const order = await response.json();
 
         if (order.status === 'COMPLETED') {
-            // Verificar si el usuario ya existe
-            let user = await User.findOne({ email });
+            // Delegado a PostPaymentService
+            const PostPaymentService = require('../services/PostPaymentService');
+            const amount = order.purchase_units?.[0]?.amount;
+            const result = await PostPaymentService.processSuccessfulPayment({
+                email,
+                name,
+                studentType: 'self',
+                beneficiaries: [],
+                paymentProvider: 'paypal',
+                paymentId: orderId,
+                amount: amount ? Math.round(parseFloat(amount.value) * 100) : 0,
+                currency: amount?.currency_code || 'USD',
+                kitType: 'welcome_kit',
+                source: 'platform'
+            });
 
-            if (!user) {
-                // Crear nuevo usuario
-                const [firstName, ...lastNameParts] = name.split(' ');
-                const lastName = lastNameParts.join(' ') || firstName;
-
-                user = await User.create({
-                    name: firstName,
-                    lastName: lastName,
-                    email: email,
-                    password: Math.random().toString(36).slice(-8), // Password temporal
-                    role: 'student',
-                    kitPurchased: true,
-                    kitPurchaseDate: new Date(),
-                    paypalOrderId: orderId
-                });
-
-                // TODO: Enviar email con instrucciones y password temporal
-                console.log(`[Kit] Usuario creado: ${user.email}`);
-            } else {
-                // Usuario ya existe, actualizar flag de kit
-                user.kitPurchased = true;
-                user.kitPurchaseDate = new Date();
-                user.paypalOrderId = orderId;
-                await user.save();
-            }
+            const user = result.user;
+            console.log(`[Kit-PayPal] ${result.isNewUser ? 'Usuario creado' : 'Usuario actualizado'}: ${user.email}`);
 
             res.json({
                 success: true,
                 user: {
                     id: user._id,
                     email: user.email,
-                    name: `${user.name} ${user.lastName}`,
+                    name: user.name,
                     kitPurchased: true
-                }
+                },
+                magicLinkUrl: result.magicLinkUrl || null
             });
         } else {
             res.status(400).json({ 

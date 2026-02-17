@@ -976,172 +976,32 @@ router.post('/verify', async (req, res) => {
         const payerName = checkoutData.name || captureData.payer?.name?.given_name;
         const studentType = checkoutData.studentType || 'self'; // 'self' o 'child'
         
-        // Crear o actualizar usuario
-        let user = await User.findOne({ email: payerEmail?.toLowerCase() });
-        let student = null;
-        let generatedMagicLinkToken = null; // Para guardar el token y usarlo en la respuesta
+        // Obtener beneficiarios
+        const allBeneficiaries = checkoutData.beneficiaries || 
+            (checkoutData.beneficiaryName ? [{ name: checkoutData.beneficiaryName, age: checkoutData.beneficiaryAge }] : []);
         
-        // Generar magic link token
-        const crypto = require('crypto');
-        const magicLinkToken = crypto.randomBytes(32).toString('hex');
-        const magicLinkExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
-        generatedMagicLinkToken = magicLinkToken; // Guardar para la respuesta
+        // === Crear/actualizar usuario vía PostPaymentService ===
+        const PostPaymentService = require('../services/PostPaymentService');
+        const postPayResult = await PostPaymentService.processSuccessfulPayment({
+            email: payerEmail,
+            name: payerName,
+            whatsapp: checkoutData.whatsapp,
+            country: welcomeKit.shipping?.address?.country,
+            studentType,
+            beneficiaries: allBeneficiaries,
+            paymentProvider: 'paypal',
+            paymentId: orderId,
+            amount: welcomeKit.payment?.amount,
+            currency: welcomeKit.payment?.currency || 'USD',
+            kitType: welcomeKit.kitType,
+            source: 'kit_verify_paypal'
+        });
         
-        if (!user && payerEmail) {
-            // Password temporal aleatorio (no se usa, solo para cumplir schema)
-            const tempPassword = crypto.randomBytes(16).toString('hex');
-            
-            if (studentType === 'self') {
-                // El comprador es el estudiante
-                user = await User.create({
-                    name: payerName || 'Estudiante',
-                    email: payerEmail.toLowerCase(),
-                    password: tempPassword,
-                    whatsapp: checkoutData.whatsapp || '',
-                    country: welcomeKit.shipping?.address?.country || 'N/A',
-                    role: 'student',
-                    classesRemaining: 1,  // 1 clase incluida en el kit
-                    classesCompleted: 0,
-                    studentData: {
-                        source: 'platform',
-                        level: 'beginner',
-                        age: checkoutData.beneficiaryAge || null
-                    },
-                    kitPurchased: true,
-                    kitPurchaseDate: new Date(),
-                    paypalOrderId: orderId,
-                    // Magic Link
-                    magicLinkToken: magicLinkToken,
-                    magicLinkExpires: magicLinkExpires,
-                    mustChangePassword: true
-                });
-                
-                student = user; // El usuario es el estudiante
-                console.log(`[WelcomeKit] 🎹 Estudiante creado: ${user.email}`);
-                
-            } else {
-                // El comprador es un apoderado (guardian)
-                // Obtener beneficiarios
-                const allBeneficiaries = checkoutData.beneficiaries || 
-                    (checkoutData.beneficiaryName ? [{ name: checkoutData.beneficiaryName, age: checkoutData.beneficiaryAge }] : []);
-                
-                // Crear array de estudiantes embebidos (SIMPLE - sin cuentas separadas)
-                const managedStudents = allBeneficiaries
-                    .filter(b => b.name)
-                    .map(b => ({
-                        name: b.name,
-                        age: b.age || null,
-                        classesRemaining: 1,  // 1 clase incluida en el kit
-                        classesUsed: 0
-                    }));
-                
-                user = await User.create({
-                    name: payerName || 'Apoderado',
-                    email: payerEmail.toLowerCase(),
-                    password: tempPassword,
-                    whatsapp: checkoutData.whatsapp || '',
-                    country: welcomeKit.shipping?.address?.country || 'N/A',
-                    role: 'client',
-                    clientData: {
-                        accountType: 'guardian',
-                        managedStudents: managedStudents
-                    },
-                    kitPurchased: true,
-                    kitPurchaseDate: new Date(),
-                    paypalOrderId: orderId,
-                    // Magic Link
-                    magicLinkToken: magicLinkToken,
-                    magicLinkExpires: magicLinkExpires,
-                    mustChangePassword: true
-                });
-                
-                console.log(`[WelcomeKit] 👤 Apoderado creado: ${user.email} con ${managedStudents.length} estudiante(s)`);
-                managedStudents.forEach(s => console.log(`[WelcomeKit] 👶 Estudiante: ${s.name}`));
-            }
-            
-            // Generar URL del magic link
-            const baseUrl = process.env.FRONTEND_URL || 'https://pianolink.onrender.com';
-            const magicLinkUrl = `${baseUrl}/acceso/${magicLinkToken}`;
-            
-            // Enviar email de bienvenida CON MAGIC LINK
-            try {
-                const adminData = await _getAdminEmailData();
-                const emailHtml = generateWelcomeKitEmail({
-                    clientName: user.name,
-                    clientEmail: user.email,
-                    magicLinkUrl: magicLinkUrl, // ← Magic Link en vez de password
-                    students: user.clientData?.managedStudents || [],
-                    kitType: welcomeKit.kitType,
-                    totalPaid: welcomeKit.payment?.amount,
-                    currency: welcomeKit.payment?.currency || 'USD',
-                    orderId: orderId,
-                    ...adminData
-                });
-                
-                await EmailService.sendSafe({
-                    to: user.email,
-                    subject: '🎹 ¡Bienvenido a PianoLink! Tu kit está listo',
-                    html: emailHtml
-                });
-                console.log(`[WelcomeKit] 📧 Email de bienvenida con magic link enviado a: ${user.email}`);
-            } catch (emailError) {
-                console.error('[WelcomeKit] ⚠️ Error enviando email:', emailError.message);
-            }
-            
-        } else if (user) {
-            // Usuario existente - actualizar
-            user.kitPurchased = true;
-            user.kitPurchaseDate = new Date();
-            
-            // Si es guardian y hay beneficiarios nuevos
-            const allBeneficiaries = checkoutData.beneficiaries || 
-                (checkoutData.beneficiaryName ? [{ name: checkoutData.beneficiaryName, age: checkoutData.beneficiaryAge }] : []);
-            
-            if (studentType === 'child' && allBeneficiaries.length > 0) {
-                user.clientData = user.clientData || { accountType: 'guardian', managedStudents: [] };
-                user.clientData.accountType = 'guardian';
-                user.clientData.managedStudents = user.clientData.managedStudents || [];
-                
-                // Agregar nuevos estudiantes como subdocumentos (SIMPLE)
-                allBeneficiaries.forEach(b => {
-                    if (b.name) {
-                        user.clientData.managedStudents.push({
-                            name: b.name,
-                            age: b.age || null,
-                            classesRemaining: 1,
-                            classesUsed: 0
-                        });
-                        console.log(`[WelcomeKit] 👶 Estudiante agregado: ${b.name}`);
-                    }
-                });
-            }
-            
-            await user.save();
-            
-            // Enviar email de bienvenida (usuario existente)
-            try {
-                const adminData = await _getAdminEmailData();
-                const emailHtml = generateWelcomeKitEmail({
-                    clientName: user.name,
-                    clientEmail: user.email,
-                    students: user.clientData?.managedStudents || [],
-                    kitType: welcomeKit.kitType,
-                    totalPaid: welcomeKit.payment?.amount,
-                    currency: welcomeKit.payment?.currency || 'USD',
-                    orderId: orderId,
-                    ...adminData
-                });
-                
-                await EmailService.sendSafe({
-                    to: user.email,
-                    subject: '🎹 ¡Bienvenido a PianoLink! Tu kit está listo',
-                    html: emailHtml
-                });
-                console.log(`[WelcomeKit] 📧 Email de bienvenida enviado a: ${user.email}`);
-            } catch (emailError) {
-                console.error('[WelcomeKit] ⚠️ Error enviando email:', emailError.message);
-            }
-        }
+        const user = postPayResult.success ? await User.findOne({ email: payerEmail?.toLowerCase() }) : null;
+        const student = user?.role === 'student' ? user : null;
+        const generatedMagicLinkToken = postPayResult.isNewUser && postPayResult.magicLinkUrl
+            ? postPayResult.magicLinkUrl.split('/acceso/')[1]
+            : null;
         
         // Vincular usuario al WelcomeKit
         if (user) {
@@ -1429,157 +1289,31 @@ router.post('/verify-mercadopago', async (req, res) => {
         
         const studentType = checkoutData.studentType || (leadData?.clientType === 'guardian' ? 'child' : 'self');
         
-        // 5. Crear o actualizar usuario (mismo flujo que PayPal)
-        let user = await User.findOne({ email: payerEmail?.toLowerCase() });
-        let student = null;
-        let generatedMagicLinkToken = null;
+        // 5. Crear o actualizar usuario via PostPaymentService
+        const PostPaymentService = require('../services/PostPaymentService');
+        const postPaymentResult = await PostPaymentService.processSuccessfulPayment({
+            email: payerEmail,
+            name: payerName,
+            whatsapp: checkoutData.whatsapp,
+            country: welcomeKit.shipping?.address?.country || 'CL',
+            studentType,
+            beneficiaries: checkoutData.beneficiaries || 
+                (checkoutData.beneficiaryName ? [{ name: checkoutData.beneficiaryName, age: checkoutData.beneficiaryAge }] : []),
+            paymentProvider: 'mercadopago',
+            paymentId: mpPayment?.id || 'MP-' + Date.now(),
+            amount: welcomeKit.payment?.amount,
+            currency: welcomeKit.payment?.currency || 'CLP',
+            kitType: welcomeKit.kitType,
+            source: 'platform'
+        });
         
-        const crypto = require('crypto');
-        const magicLinkToken = crypto.randomBytes(32).toString('hex');
-        const magicLinkExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-        generatedMagicLinkToken = magicLinkToken;
+        const user = postPaymentResult.user;
+        const student = studentType === 'self' ? user : null;
+        const generatedMagicLinkToken = postPaymentResult.magicLinkUrl 
+            ? postPaymentResult.magicLinkUrl.split('/acceso/')[1] 
+            : null;
         
-        if (!user && payerEmail) {
-            const tempPassword = crypto.randomBytes(16).toString('hex');
-            
-            if (studentType === 'self') {
-                user = await User.create({
-                    name: payerName,
-                    email: payerEmail.toLowerCase(),
-                    password: tempPassword,
-                    whatsapp: checkoutData.whatsapp || '',
-                    country: welcomeKit.shipping?.address?.country || 'CL',
-                    role: 'student',
-                    classesRemaining: 1,
-                    classesCompleted: 0,
-                    studentData: {
-                        source: 'platform',
-                        level: 'beginner',
-                        age: checkoutData.beneficiaryAge || null
-                    },
-                    kitPurchased: true,
-                    kitPurchaseDate: new Date(),
-                    magicLinkToken: magicLinkToken,
-                    magicLinkExpires: magicLinkExpires,
-                    mustChangePassword: true
-                });
-                student = user;
-                console.log(`[WelcomeKit-MP] 🎹 Estudiante creado: ${user.email}`);
-                
-            } else {
-                const allBeneficiaries = checkoutData.beneficiaries || 
-                    (checkoutData.beneficiaryName ? [{ name: checkoutData.beneficiaryName, age: checkoutData.beneficiaryAge }] : []);
-                
-                const managedStudents = allBeneficiaries
-                    .filter(b => b.name)
-                    .map(b => ({
-                        name: b.name,
-                        age: b.age || null,
-                        classesRemaining: 1,
-                        classesUsed: 0
-                    }));
-                
-                user = await User.create({
-                    name: payerName,
-                    email: payerEmail.toLowerCase(),
-                    password: tempPassword,
-                    whatsapp: checkoutData.whatsapp || '',
-                    country: welcomeKit.shipping?.address?.country || 'CL',
-                    role: 'client',
-                    clientData: {
-                        accountType: 'guardian',
-                        managedStudents: managedStudents
-                    },
-                    kitPurchased: true,
-                    kitPurchaseDate: new Date(),
-                    magicLinkToken: magicLinkToken,
-                    magicLinkExpires: magicLinkExpires,
-                    mustChangePassword: true
-                });
-                console.log(`[WelcomeKit-MP] 👤 Apoderado creado: ${user.email} con ${managedStudents.length} estudiante(s)`);
-            }
-            
-            // Enviar email de bienvenida con Magic Link
-            try {
-                const frontendUrl = process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev';
-                const magicLinkUrl = `${frontendUrl}/acceso/${magicLinkToken}`;
-                const adminData = await _getAdminEmailData();
-                
-                const emailHtml = generateWelcomeKitEmail({
-                    clientName: user.name,
-                    clientEmail: user.email,
-                    magicLinkUrl: magicLinkUrl,
-                    students: user.clientData?.managedStudents || [],
-                    kitType: welcomeKit.kitType,
-                    totalPaid: welcomeKit.payment?.amount,
-                    currency: welcomeKit.payment?.currency || 'CLP',
-                    orderId: mpPayment?.id || 'MP-' + Date.now(),
-                    ...adminData
-                });
-                
-                await EmailService.sendSafe({
-                    to: user.email,
-                    subject: '🎹 ¡Bienvenido a PianoLink! Tu kit está listo',
-                    html: emailHtml
-                });
-                console.log(`[WelcomeKit-MP] 📧 Email con magic link enviado a: ${user.email}`);
-            } catch (emailError) {
-                console.error('[WelcomeKit-MP] ⚠️ Error enviando email:', emailError.message);
-            }
-            
-        } else if (user) {
-            generatedMagicLinkToken = null; // Usuario ya existe, no necesita magic link nuevo
-            user.kitPurchased = true;
-            user.kitPurchaseDate = new Date();
-            
-            const allBeneficiaries = checkoutData.beneficiaries || 
-                (checkoutData.beneficiaryName ? [{ name: checkoutData.beneficiaryName, age: checkoutData.beneficiaryAge }] : []);
-            
-            if (studentType === 'child' && allBeneficiaries.length > 0) {
-                user.clientData = user.clientData || { accountType: 'guardian', managedStudents: [] };
-                user.clientData.accountType = 'guardian';
-                user.clientData.managedStudents = user.clientData.managedStudents || [];
-                
-                allBeneficiaries.forEach(b => {
-                    if (b.name) {
-                        user.clientData.managedStudents.push({
-                            name: b.name,
-                            age: b.age || null,
-                            classesRemaining: 1,
-                            classesUsed: 0
-                        });
-                    }
-                });
-            }
-            
-            await user.save();
-            console.log(`[WelcomeKit-MP] 👤 Usuario existente actualizado: ${user.email}`);
-            
-            // Enviar email de confirmación de compra (usuario existente)
-            try {
-                const adminData = await _getAdminEmailData();
-                const emailHtml = generateWelcomeKitEmail({
-                    clientName: user.name,
-                    clientEmail: user.email,
-                    magicLinkUrl: null, // Ya tiene cuenta
-                    students: user.clientData?.managedStudents || [],
-                    kitType: welcomeKit.kitType,
-                    totalPaid: welcomeKit.payment?.amount,
-                    currency: welcomeKit.payment?.currency || 'CLP',
-                    orderId: mpPayment?.id || 'MP-' + Date.now(),
-                    ...adminData
-                });
-                
-                await EmailService.sendSafe({
-                    to: user.email,
-                    subject: '🎹 ¡Compra confirmada! Tu kit de PianoLink está listo',
-                    html: emailHtml
-                });
-                console.log(`[WelcomeKit-MP] 📧 Email de confirmación enviado a: ${user.email}`);
-            } catch (emailError) {
-                console.error('[WelcomeKit-MP] ⚠️ Error enviando email:', emailError.message);
-            }
-        }
+        console.log(`[WelcomeKit-MP] ${postPaymentResult.isNewUser ? '🆕 Usuario creado' : '👤 Usuario existente'}: ${user?.email}`);
         
         // 6. Vincular usuario al WelcomeKit
         if (user) {
