@@ -365,8 +365,8 @@ app.get('/', (req, res) => {
       return res.sendFile(path.join(__dirname, 'public', 'index.html'));
   }
   
-  // B) Si entra limpio (localhost:3000) -> Mostrar Landing Día 88 (estudiantes)
-  res.sendFile(path.join(__dirname, 'public', 'comenzar.html'));
+  // B) Redirigir a la landing de waitlist (página principal del lanzamiento)
+  res.redirect('/l/waitlist');
 });
 
 
