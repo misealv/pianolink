@@ -54,10 +54,21 @@ class CrmLeadService {
             crmLead = await CrmLead.create(crmLeadData);
 
             // Registrar interacción de captura
+            // Mapear channel de atribución a channel válido de CrmInteraction
+            const interactionChannelMap = {
+                'referral': 'web', 'organic': 'web', 'direct': 'web',
+                'meta_ads': 'ads', 'google_ads': 'ads', 'social': 'web',
+                'email': 'email', 'whatsapp': 'whatsapp', 'other': 'web'
+            };
+            const interactionChannel = interactionChannelMap[enrichmentData.channel] || enrichmentData.channel || 'web';
+            // Validar contra enum permitido
+            const validChannels = ['web', 'email', 'whatsapp', 'phone', 'in_app', 'ads', 'system'];
+            const safeChannel = validChannels.includes(interactionChannel) ? interactionChannel : 'web';
+
             await CrmInteraction.create({
                 leadRef: crmLead._id,
                 type: 'form_submit',
-                channel: enrichmentData.channel || 'web',
+                channel: safeChannel,
                 metadata: {
                     pageUrl: enrichmentData.landingPage || '',
                     campaignId: enrichmentData.campaignId || null,
