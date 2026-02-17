@@ -38,7 +38,7 @@ function getCrmInteraction() {
 
 let _CrmResendService = null;
 function getCrmResendService() {
-    if (!_CrmResendService) _CrmResendService = require('../services/CrmResendService');
+    if (!_CrmResendService) _CrmResendService = require('../services/CrmResendService').getInstance();
     return _CrmResendService;
 }
 
