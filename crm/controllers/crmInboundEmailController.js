@@ -129,19 +129,39 @@ exports.receiveInbound = async (req, res) => {
 
         // DEBUG: ver estructura del payload para mapear campos correctamente
         console.log(`[CRM Inbound] 🔍 Keys del payload data:`, Object.keys(data).join(', '));
-        console.log(`[CRM Inbound] 🔍 Campos body: text=${!!data.text}, html=${!!data.html}, body=${!!data.body}, text_body=${!!data.text_body}, html_body=${!!data.html_body}, plain_body=${!!data.plain_body}`);
 
         // Extraer datos del email
         const fromEmail = _extractEmail(data.from || '');
         const fromFull = data.from || '';
         const to = Array.isArray(data.to) ? data.to.join(', ') : (data.to || '');
         const subject = data.subject || '(sin asunto)';
-        const textBody = data.text || data.body || data.text_body || data.plain_body || '';
-        const htmlBody = data.html || data.html_body || '';
         const headers = data.headers || [];
 
-        // Extraer headers relevantes
-        const messageId = _findHeader(headers, 'message-id');
+        // Resend inbound webhook NO incluye el body en el payload.
+        // Necesitamos obtenerlo vía API usando el email_id.
+        let textBody = data.text || data.body || '';
+        let htmlBody = data.html || data.html_body || '';
+        const resendEmailId = data.email_id || data.id || '';
+
+        if (!textBody && !htmlBody && resendEmailId) {
+            try {
+                const resendService = getCrmResendService();
+                if (resendService.isConfigured()) {
+                    console.log(`[CRM Inbound] 📥 Obteniendo body del email vía API: ${resendEmailId}`);
+                    const emailDetail = await resendService.resend.emails.get(resendEmailId);
+                    if (emailDetail?.data) {
+                        textBody = emailDetail.data.text || '';
+                        htmlBody = emailDetail.data.html || emailDetail.data.body || '';
+                        console.log(`[CRM Inbound] ✅ Body obtenido: text=${textBody.length} chars, html=${htmlBody.length} chars`);
+                    }
+                }
+            } catch (fetchErr) {
+                console.warn(`[CRM Inbound] ⚠️ No se pudo obtener body vía API: ${fetchErr.message}`);
+            }
+        }
+
+        // Extraer headers relevantes (pueden venir en data directamente o en data.headers)
+        const messageId = data.message_id || _findHeader(headers, 'message-id');
         const inReplyTo = _findHeader(headers, 'in-reply-to');
         const references = _findHeader(headers, 'references');
 
@@ -196,6 +216,7 @@ exports.receiveInbound = async (req, res) => {
             leadRef,
             leadName: leadName || _extractName(fromFull),
             resendEventId: body.id || '',
+            resendEmailId: resendEmailId,
             rawHeaders: headers
         });
 
