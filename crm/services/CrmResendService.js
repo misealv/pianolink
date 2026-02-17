@@ -224,7 +224,7 @@ class CrmResendService {
       <li>🏅 Badge exclusivo de "Miembro Fundador"</li>
     </ul>
 
-    <p style="font-size:16px;color:#333;line-height:1.8;margin:20px 0;">El 29 de marzo a las 9:00 AM recibirás un email con el link directo para reservar tu Kit de Bienvenida a <strong>$44 USD</strong> (precio normal $90).</p>
+    <p style="font-size:16px;color:#333;line-height:1.8;margin:20px 0;">El 29 de marzo a las 9:00 AM recibirás un email con el link directo para reservar tu Kit de Bienvenida a <strong>$44 USD</strong> (precio normal $90). Incluye cable MIDI — se envía después de la entrevista.</p>
 
     <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:2px solid #c9a84c;padding-top:24px;margin-top:24px;"></td></tr></table>
 

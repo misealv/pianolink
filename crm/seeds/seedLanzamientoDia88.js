@@ -60,7 +60,7 @@ async function seedWaitlistLanding() {
                 {
                     icon: '💰',
                     title: 'Precio Especial: $44',
-                    description: 'Kit de Bienvenida con 50% de descuento. Incluye asesoría técnica, setup y tu primera clase. Precio normal: $90 USD.'
+                    description: 'Kit de Bienvenida con 50% de descuento. Incluye asesoría técnica, setup, tu primera clase y cable MIDI incluido. Precio normal: $90 USD.'
                 },
                 {
                     icon: '🎁',
@@ -87,7 +87,7 @@ async function seedWaitlistLanding() {
                 },
                 {
                     question: '¿Qué incluye el Kit de Bienvenida?',
-                    answer: 'Asesoría técnica personalizada, videollamada de setup para configurar tu equipo, y tu primera clase real de 30 minutos con profesor certificado.'
+                    answer: 'Asesoría técnica personalizada, videollamada de setup para configurar tu equipo, tu primera clase real de 30 minutos con profesor certificado, y cable MIDI incluido (se envía después de la entrevista).'
                 },
                 {
                     question: '¿Por qué solo 88 cupos?',
@@ -240,6 +240,7 @@ async function seedEmailCampaigns() {
           <p style="color:#888;font-size:14px;text-align:left;margin:0 0 6px;">✓ Asesoría técnica personalizada</p>
           <p style="color:#888;font-size:14px;text-align:left;margin:0 0 6px;">✓ Setup de tu teclado por videollamada</p>
           <p style="color:#888;font-size:14px;text-align:left;margin:0 0 6px;">✓ Primera clase real de 30 min</p>
+          <p style="color:#888;font-size:14px;text-align:left;margin:0 0 6px;">✓ Cable MIDI incluido (se envía tras la entrevista)</p>
           <p style="color:#888;font-size:14px;text-align:left;margin:0 0 20px;">✓ Garantía de devolución 30 días</p>
         </td></tr></table>
         <a href="https://pianolink.net" style="background:#c9a84c;color:#0a0a0a;text-decoration:none;padding:14px 32px;border-radius:4px;font-size:16px;font-weight:bold;display:inline-block;">Ver todo sobre el Kit →</a>
@@ -301,6 +302,7 @@ async function seedEmailCampaigns() {
     <p style="font-size:15px;color:#333;margin:0 0 8px;">✓ &nbsp;Asesoría técnica personalizada</p>
     <p style="font-size:15px;color:#333;margin:0 0 8px;">✓ &nbsp;Videollamada de setup — configuramos todo juntos</p>
     <p style="font-size:15px;color:#333;margin:0 0 8px;">✓ &nbsp;Primera clase real de 30 min con profesor certificado</p>
+    <p style="font-size:15px;color:#333;margin:0 0 8px;">✓ &nbsp;Cable MIDI incluido (se envía después de la entrevista)</p>
     <p style="font-size:15px;color:#333;margin:0 0 8px;">✓ &nbsp;<strong>15% OFF en tus primeras 3 compras</strong> (exclusivo lista)</p>
     <p style="font-size:15px;color:#333;margin:0 0 8px;">✓ &nbsp;Badge "Miembro Fundador" permanente</p>
     <p style="font-size:15px;color:#333;margin:0 0 24px;">✓ &nbsp;Garantía de devolución completa a 30 días</p>
