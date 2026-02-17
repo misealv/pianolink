@@ -247,6 +247,10 @@ exports.receiveInbound = async (req, res) => {
                 }
             });
 
+            // Scoring: responder email = +15 puntos
+            const CrmLeadService = require('../services/CrmLeadService');
+            await CrmLeadService.incrementScore(leadRef, 15, 'email_reply');
+
             // Promoción automática: responder email = interés alto
             await _promoteLeadOnEngagement(leadRef, 'email_reply');
         }
