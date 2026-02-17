@@ -932,7 +932,14 @@
             document.getElementById('student-section').style.display = 'none';
             document.getElementById('offer-section').style.display = 'none';
             document.getElementById('purchase-success').style.display = 'block';
+
             if (leadEmail) {
+                // Si es PayPal, primero capturar el pago
+                const payProvider = params.get('provider');
+                const paypalToken = params.get('token'); // PayPal añade ?token=ORDER_ID
+                if (payProvider === 'paypal' && paypalToken) {
+                    await capturePayPalPayment(paypalToken, leadEmail);
+                }
                 await verifyEarlyBirdPayment(leadEmail);
             }
             return;
@@ -1190,6 +1197,25 @@
             activeBtn.innerHTML = originalText;
             btnMp.disabled = false;
             btnPaypal.disabled = false;
+        }
+    }
+
+    // === Capturar pago PayPal (requerido antes de verify) ===
+    async function capturePayPalPayment(orderId, email) {
+        try {
+            const res = await fetch('/api/early-bird/capture-paypal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, email })
+            });
+            const data = await res.json();
+            if (data.success) {
+                console.log('PayPal capturado:', data.captureId);
+            } else {
+                console.warn('PayPal capture warning:', data.error);
+            }
+        } catch (err) {
+            console.error('Error capturando PayPal:', err);
         }
     }
 

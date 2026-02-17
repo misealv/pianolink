@@ -111,8 +111,8 @@ router.post('/checkout', async (req, res) => {
         }
 
         const baseUrl = process.env.APP_URL || process.env.FRONTEND_URL || process.env.BASE_URL || 'https://pianolink.net';
-        const successUrl = `${baseUrl}/success-waitlist?payment=success&email=${encodeURIComponent(email)}`;
-        const cancelUrl = `${baseUrl}/success-waitlist?payment=cancelled&email=${encodeURIComponent(email)}`;
+        const successUrl = `${baseUrl}/oferta-madrugadores?payment=success&email=${encodeURIComponent(email)}&provider=${useProvider}`;
+        const cancelUrl = `${baseUrl}/oferta-madrugadores?payment=cancelled&email=${encodeURIComponent(email)}`;
 
         let result;
 
@@ -218,15 +218,67 @@ router.post('/capture-paypal', async (req, res) => {
 
         console.log(`[EarlyBirdCheckout] ✅ Pago PayPal capturado para ${email}: ${orderId}${discount ? ` (descuento ${discount.discountPercent}%)` : ''}`);
 
+        // === Crear User + Magic Link + WelcomeKit ===
+        let postResult = null;
+        if (email) {
+            try {
+                const PostPaymentService = require('../services/PostPaymentService');
+                const LeadModel = require('../models/Lead');
+                const lead = await LeadModel.findOne({ email: email.toLowerCase() }).lean();
+
+                postResult = await PostPaymentService.processSuccessfulPayment({
+                    email,
+                    name: lead?.name,
+                    whatsapp: lead?.whatsapp,
+                    country: lead?.country || 'CL',
+                    paymentProvider: 'paypal',
+                    paymentId: capture.captureId || orderId,
+                    amount: finalPriceUSD / 100,
+                    currency: 'USD',
+                    kitType: 'welcome_kit_v2',
+                    source: 'early_bird_paypal'
+                });
+
+                // Crear WelcomeKit para onboarding
+                const WelcomeKit = require('../models/WelcomeKit');
+                const existingKit = await WelcomeKit.findOne({ 'payment.externalOrderId': capture.captureId || orderId });
+                if (!existingKit) {
+                    await WelcomeKit.create({
+                        clientId: postResult.user?.id || null,
+                        clientName: lead?.name || email.split('@')[0],
+                        clientEmail: email.toLowerCase(),
+                        clientWhatsapp: lead?.whatsapp || '',
+                        kitType: 'setup_only',
+                        products: [],
+                        payment: {
+                            provider: 'paypal',
+                            externalOrderId: capture.captureId || orderId,
+                            amount: finalPriceUSD / 100,
+                            currency: 'USD',
+                            paidAt: new Date()
+                        },
+                        shipping: {
+                            status: 'not_required',
+                            address: { country: lead?.country || 'CL' }
+                        },
+                        overallStatus: 'entrevista_pendiente'
+                    });
+                    console.log(`[EarlyBirdCheckout] 📦 WelcomeKit creado para onboarding: ${email}`);
+                }
+            } catch (userErr) {
+                console.error('[EarlyBirdCheckout] ⚠️ Error en PostPaymentService PayPal:', userErr.message);
+            }
+        }
+
         // === Notificar al CRM para desuscribir de secuencias ===
         try {
             const EventService = require('../services/EventService');
-            const Lead = require('../models/Lead');
-            const leadDoc = await Lead.findOne({ email: email?.toLowerCase() });
+            const LeadModel2 = require('../models/Lead');
+            const leadDoc = await LeadModel2.findOne({ email: email?.toLowerCase() });
             EventService.emitSafe('payment.received', {
                 payment: { amount: finalPriceUSD, currency: 'USD', type: 'early_bird_kit', _id: payment._id },
                 leadId: leadDoc?._id || null,
-                userId: null
+                userId: postResult?.user?.id || null
             });
         } catch (evtErr) {
             console.error('[EarlyBirdCheckout] ⚠️ Error emitiendo payment.received:', evtErr.message);
@@ -366,20 +418,23 @@ router.post('/verify', async (req, res) => {
         let user = await User.findOne({ email: cleanEmail });
 
         if (!user) {
-            // Race condition: webhook registró pago pero no creó usuario aún
+            // Race condition: webhook/capture registró pago pero no creó usuario aún
             const PostPaymentService = require('../services/PostPaymentService');
             const Lead = require('../models/Lead');
             const lead = await Lead.findOne({ email: cleanEmail }).lean();
+
+            const payProvider = existingPayment.provider || 'mercadopago';
+            const payCurrency = payProvider === 'paypal' ? 'USD' : (existingPayment.webhookData?.localCurrency || 'CLP');
 
             const result = await PostPaymentService.processSuccessfulPayment({
                 email: cleanEmail,
                 name: lead?.name,
                 whatsapp: lead?.whatsapp,
-                country: existingPayment.webhookData?.countryCode || 'CL',
-                paymentProvider: 'mercadopago',
+                country: existingPayment.webhookData?.countryCode || lead?.country || 'CL',
+                paymentProvider: payProvider,
                 paymentId: existingPayment.externalPaymentId,
                 amount: existingPayment.webhookData?.transactionAmount || existingPayment.amount,
-                currency: existingPayment.webhookData?.localCurrency || 'CLP',
+                currency: payCurrency,
                 source: 'early_bird_verify'
             });
 
@@ -392,6 +447,8 @@ router.post('/verify', async (req, res) => {
         });
         if (!existingKit && user) {
             try {
+                const verifyProvider = existingPayment.provider || 'mercadopago';
+                const verifyCurrency = verifyProvider === 'paypal' ? 'USD' : (existingPayment.webhookData?.localCurrency || 'CLP');
                 await WelcomeKit.create({
                     clientId: user._id,
                     clientName: user.name,
@@ -400,10 +457,10 @@ router.post('/verify', async (req, res) => {
                     kitType: 'setup_only',
                     products: [],
                     payment: {
-                        provider: 'mercadopago',
+                        provider: verifyProvider,
                         externalOrderId: existingPayment.externalPaymentId,
                         amount: existingPayment.webhookData?.transactionAmount || existingPayment.amount,
-                        currency: existingPayment.webhookData?.localCurrency || 'CLP',
+                        currency: verifyCurrency,
                         paidAt: existingPayment.createdAt || new Date()
                     },
                     shipping: {
