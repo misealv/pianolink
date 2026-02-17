@@ -303,6 +303,180 @@
             color: var(--danger);
         }
 
+        /* Cupones de Descuento */
+        .coupons-section {
+            margin-bottom: 32px;
+        }
+
+        .coupons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 14px;
+        }
+
+        .coupon-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .coupon-card:hover {
+            border-color: var(--accent);
+        }
+
+        .coupon-card.used,
+        .coupon-card.expired {
+            opacity: 0.5;
+        }
+
+        .coupon-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent);
+        }
+
+        .coupon-card.used::before { background: var(--text-muted); }
+        .coupon-card.expired::before { background: var(--danger); }
+
+        .coupon-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .coupon-code {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--accent);
+            letter-spacing: 2px;
+            cursor: pointer;
+            padding: 4px 10px;
+            background: rgba(255, 118, 77, 0.1);
+            border-radius: 6px;
+            border: 1px dashed rgba(255, 118, 77, 0.3);
+            transition: background 0.2s;
+        }
+
+        .coupon-code:hover {
+            background: rgba(255, 118, 77, 0.2);
+        }
+
+        .coupon-card.used .coupon-code,
+        .coupon-card.expired .coupon-code {
+            color: var(--text-muted);
+            background: rgba(136, 136, 136, 0.1);
+            border-color: rgba(136, 136, 136, 0.2);
+        }
+
+        .coupon-discount {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--success);
+        }
+
+        .coupon-card.used .coupon-discount,
+        .coupon-card.expired .coupon-discount {
+            color: var(--text-muted);
+        }
+
+        .coupon-desc {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .coupon-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .coupon-uses {
+            color: var(--text-muted);
+        }
+
+        .coupon-uses strong {
+            color: var(--text);
+        }
+
+        .coupon-expiry {
+            color: var(--text-muted);
+        }
+
+        .coupon-status-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .coupon-status-tag.active {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        .coupon-status-tag.used {
+            background: rgba(136, 136, 136, 0.15);
+            color: var(--text-muted);
+        }
+
+        .coupon-status-tag.expired {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .coupon-progress {
+            margin-top: 10px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .coupon-progress-bar {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        .coupon-card.used .coupon-progress-bar { background: var(--text-muted); }
+
+        .coupon-copied {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 999;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
         /* Billing History */
         .billing-table {
             width: 100%;
@@ -2251,6 +2425,9 @@
 
 
 
+                <!-- Cupones de Descuento -->
+                <div id="couponsSection"></div>
+
                 <!-- Payment Status -->
                 <section class="payment-status">
                     <div class="status-header">
@@ -2306,6 +2483,9 @@
                 </section>
             `;
 
+            // Cargar cupones de descuento
+            loadCoupons();
+
             // Si el kit está en estado de agendar entrevista, cargar slots disponibles
             if (myKit && ['entrevista_pendiente', 'pending', 'paid'].includes(myKit.overallStatus)) {
                 setTimeout(() => loadInterviewSlots(myKit._id), 100);
@@ -2314,6 +2494,123 @@
             if (myKit && myKit.overallStatus === 'setup_pending') {
                 setTimeout(() => loadSetupSlots(myKit._id), 100);
             }
+        }
+
+        // ============================================
+        // CUPONES DE DESCUENTO
+        // ============================================
+
+        async function loadCoupons() {
+            try {
+                const res = await fetch('/api/client/coupons', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data.success || !data.coupons?.length) return;
+                renderCoupons(data.coupons);
+            } catch (e) {
+                console.error('[Cupones] Error:', e);
+            }
+        }
+
+        function renderCoupons(coupons) {
+            const container = document.getElementById('couponsSection');
+            if (!container) return;
+
+            // Separar activos de usados/expirados
+            const activos = coupons.filter(c => c.status === 'active');
+            const otros = coupons.filter(c => c.status !== 'active');
+            const sorted = [...activos, ...otros];
+
+            container.innerHTML = `
+                <section class="coupons-section">
+                    <h2 class="section-title">🎟️ Tus Cupones de Descuento</h2>
+                    <div class="coupons-grid">
+                        ${sorted.map(c => {
+                            const discountText = c.discountType === 'percentage'
+                                ? `${c.discountValue}%`
+                                : `$${(c.discountValue / 100).toFixed(0)}`;
+
+                            const statusLabel = {
+                                active: 'Activo',
+                                used: 'Agotado',
+                                expired: 'Expirado',
+                                inactive: 'Inactivo'
+                            }[c.status] || c.status;
+
+                            const sourceLabel = {
+                                waitlist: 'Oferta madrugadora',
+                                admin: 'Promoción',
+                                referral: 'Referido',
+                                promotion: 'Promoción',
+                                compensation: 'Compensación'
+                            }[c.source] || 'Cupón';
+
+                            const applicableLabels = (c.applicableTo || []).map(a => ({
+                                class_payment: 'Clases',
+                                kit_purchase: 'Kit',
+                                membership: 'Membresía',
+                                early_bird_kit: 'Kit Early Bird'
+                            })[a] || a);
+                            const applicableText = applicableLabels.length > 0
+                                ? `Válido para: ${applicableLabels.join(', ')}`
+                                : 'Válido para cualquier compra';
+
+                            const usedCount = c.usesUsed || 0;
+                            const totalUses = c.maxUses || 1;
+                            const progressPct = Math.round((usedCount / totalUses) * 100);
+
+                            const expiryText = c.expiresAt
+                                ? `Vence: ${new Date(c.expiresAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                                : 'Sin vencimiento';
+
+                            return `
+                                <div class="coupon-card ${c.status}">
+                                    <div class="coupon-top">
+                                        <span class="coupon-code" onclick="copyCoupon('${c.code}')" title="Click para copiar">${c.code}</span>
+                                        <span class="coupon-discount">${discountText}</span>
+                                    </div>
+                                    <div class="coupon-desc">
+                                        <strong>${sourceLabel}</strong> — ${applicableText}
+                                    </div>
+                                    <div class="coupon-meta">
+                                        <span class="coupon-uses">Usado <strong>${usedCount}</strong> de <strong>${totalUses}</strong></span>
+                                        <span class="coupon-status-tag ${c.status}">${statusLabel}</span>
+                                    </div>
+                                    <div class="coupon-progress">
+                                        <div class="coupon-progress-bar" style="width:${progressPct}%"></div>
+                                    </div>
+                                    <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">${expiryText}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    ${activos.length > 0 ? `
+                    <p style="margin-top:12px;font-size:13px;color:var(--text-muted)">
+                        💡 Tus descuentos se aplican automáticamente en cada compra. También puedes copiar el código haciendo click.
+                    </p>` : ''}
+                </section>
+            `;
+        }
+
+        function copyCoupon(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                const toast = document.createElement('div');
+                toast.className = 'coupon-copied';
+                toast.textContent = `✅ Código ${code} copiado`;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
+            }).catch(() => {
+                // Fallback para navegadores sin clipboard API
+                const input = document.createElement('input');
+                input.value = code;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                input.remove();
+                alert('Código copiado: ' + code);
+            });
         }
 
         function getInitials(name) {

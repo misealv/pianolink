@@ -8,6 +8,7 @@ const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const WelcomeKit = require('../models/WelcomeKit');
+const Coupon = require('../models/Coupon');
 
 /**
  * GET /api/client/me
@@ -249,6 +250,62 @@ router.get('/orders', protect, async (req, res) => {
     } catch (error) {
         console.error('[CLIENT] Error obteniendo pedidos:', error);
         res.status(500).json({ message: 'Error interno del servidor' });
+    }
+});
+
+/**
+ * GET /api/client/coupons
+ * Obtener cupones activos del cliente
+ */
+router.get('/coupons', protect, async (req, res) => {
+    try {
+        const email = req.user.email?.toLowerCase();
+        const userId = req.user._id;
+
+        // Buscar cupones asignados por email o userId
+        const coupons = await Coupon.find({
+            $or: [
+                { assignedToEmail: email },
+                { assignedToUserId: userId }
+            ]
+        })
+        .sort({ createdAt: -1 })
+        .lean();
+
+        // Formatear para el frontend
+        const formatted = coupons.map(c => {
+            const isExpired = c.expiresAt && new Date(c.expiresAt) < new Date();
+            const isUsedUp = c.usesRemaining <= 0;
+            let status = 'active';
+            if (isExpired) status = 'expired';
+            else if (isUsedUp) status = 'used';
+            else if (!c.isActive) status = 'inactive';
+
+            return {
+                id: c._id,
+                code: c.code,
+                discountType: c.discountType,
+                discountValue: c.discountValue,
+                description: c.description,
+                applicableTo: c.applicableTo,
+                maxUses: c.maxUses,
+                usesRemaining: c.usesRemaining,
+                usesUsed: c.maxUses - c.usesRemaining,
+                source: c.source,
+                status,
+                expiresAt: c.expiresAt,
+                createdAt: c.createdAt
+            };
+        });
+
+        res.json({
+            success: true,
+            coupons: formatted,
+            total: formatted.length
+        });
+    } catch (error) {
+        console.error('[CLIENT] Error obteniendo cupones:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 });
 
