@@ -114,15 +114,15 @@ exports.update = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Campaña no encontrada' });
         }
 
-        // Solo permitir edición en borrador
-        if (campaign.estado !== 'borrador') {
+        // Solo permitir edición en borrador o programado (si solo cambian estado)
+        if (campaign.estado === 'enviado' || campaign.estado === 'enviando') {
             return res.status(400).json({ 
                 success: false, 
-                error: 'Solo se pueden editar campañas en borrador' 
+                error: 'No se pueden editar campañas enviadas o en envío' 
             });
         }
 
-        const allowedFields = ['nombre', 'asunto', 'previewText', 'contenidoHtml', 'tipo', 'ordenSecuencia', 'fechaProgramada', 'targeting', 'notas'];
+        const allowedFields = ['nombre', 'asunto', 'previewText', 'contenidoHtml', 'tipo', 'ordenSecuencia', 'fechaProgramada', 'estado', 'targeting', 'notas'];
         allowedFields.forEach(field => {
             if (req.body[field] !== undefined) {
                 campaign[field] = req.body[field];

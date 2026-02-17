@@ -1485,7 +1485,15 @@
                             </select>
                         </div>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+                        <div class="form-group" style="margin:0;">
+                            <label>Estado</label>
+                            <select class="form-control" id="editEmailEstado">
+                                <option value="borrador">Borrador</option>
+                                <option value="programado">Programado</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
+                        </div>
                         <div class="form-group" style="margin:0;">
                             <label>Orden en secuencia</label>
                             <input type="number" class="form-control" id="editEmailOrden" min="1" max="99" placeholder="1, 2, 3...">
@@ -1528,6 +1536,7 @@
         document.getElementById('editEmailNombre').value = c.nombre || '';
         document.getElementById('editEmailAsunto').value = c.asunto || '';
         document.getElementById('editEmailTipo').value = c.tipo || 'secuencia';
+        document.getElementById('editEmailEstado').value = c.estado || 'borrador';
         document.getElementById('editEmailOrden').value = c.ordenSecuencia || '';
         document.getElementById('editEmailPreview').value = c.previewText || '';
         // Fecha programada → formato datetime-local
@@ -1592,6 +1601,7 @@
             nombre: document.getElementById('editEmailNombre').value,
             asunto: document.getElementById('editEmailAsunto').value,
             tipo: document.getElementById('editEmailTipo').value,
+            estado: document.getElementById('editEmailEstado').value,
             ordenSecuencia: parseInt(document.getElementById('editEmailOrden').value) || undefined,
             previewText: document.getElementById('editEmailPreview').value,
             fechaProgramada: fechaVal ? new Date(fechaVal).toISOString() : undefined,
