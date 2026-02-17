@@ -2138,6 +2138,15 @@
         return d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' });
     }
 
+    // Exponer funciones de inbox al scope global (necesario para onclick en HTML)
+    window._clickThread = _clickThread;
+    window.openThread = openThread;
+    window.closeThread = closeThread;
+    window.sendReply = sendReply;
+    window.loadInbox = loadInbox;
+    window.filterInbox = filterInbox;
+    window.markAllInboxRead = markAllInboxRead;
+
 })();
 </script>
 </body>
