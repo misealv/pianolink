@@ -348,6 +348,7 @@ router.post('/verify', async (req, res) => {
 
         // Buscar usuario (ya creado por webhook o PostPaymentService)
         const User = require('../models/User');
+        const WelcomeKit = require('../models/WelcomeKit');
         let user = await User.findOne({ email: cleanEmail });
 
         if (!user) {
@@ -368,20 +369,44 @@ router.post('/verify', async (req, res) => {
                 source: 'early_bird_verify'
             });
 
-            return res.json({
-                success: true,
-                status: 'verified',
-                user: result.user ? { email: result.user.email, name: result.user.name } : null,
-                magicLinkUrl: result.magicLinkUrl,
-                message: result.magicLinkUrl
-                    ? 'Cuenta creada. Revisa tu email para activarla.'
-                    : 'Pago confirmado.'
-            });
+            user = result.user ? await User.findById(result.user.id) : null;
+        }
+
+        // === Crear WelcomeKit si no existe (fallback por si el webhook no lo creó) ===
+        const existingKit = await WelcomeKit.findOne({ 
+            'payment.externalOrderId': existingPayment.externalPaymentId 
+        });
+        if (!existingKit && user) {
+            try {
+                await WelcomeKit.create({
+                    clientId: user._id,
+                    clientName: user.name,
+                    clientEmail: cleanEmail,
+                    clientWhatsapp: user.whatsapp || '',
+                    kitType: 'setup_only',
+                    products: [],
+                    payment: {
+                        provider: 'mercadopago',
+                        externalOrderId: existingPayment.externalPaymentId,
+                        amount: existingPayment.webhookData?.transactionAmount || existingPayment.amount,
+                        currency: existingPayment.webhookData?.localCurrency || 'CLP',
+                        paidAt: existingPayment.createdAt || new Date()
+                    },
+                    shipping: {
+                        status: 'not_required',
+                        address: { country: existingPayment.webhookData?.countryCode || 'CL' }
+                    },
+                    overallStatus: 'entrevista_pendiente'
+                });
+                console.log(`[EarlyBird Verify] 📦 WelcomeKit creado para onboarding: ${cleanEmail}`);
+            } catch (kitErr) {
+                console.error('[EarlyBird Verify] ⚠️ Error creando WelcomeKit:', kitErr.message);
+            }
         }
 
         // Usuario existe — devolver datos
         const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'https://pianolink.net';
-        const magicLinkUrl = user.magicLinkToken && user.magicLinkExpires > new Date()
+        const magicLinkUrl = user?.magicLinkToken && user?.magicLinkExpires > new Date()
             ? `${frontendUrl}/acceso/${user.magicLinkToken}`
             : null;
 

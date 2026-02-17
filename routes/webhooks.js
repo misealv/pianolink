@@ -469,7 +469,7 @@ router.post('/mercadopago-early-bird', async (req, res) => {
                 const Lead = require('../models/Lead');
                 const lead = await Lead.findOne({ email: leadEmail.toLowerCase() }).lean();
 
-                await PostPaymentService.processSuccessfulPayment({
+                const postResult = await PostPaymentService.processSuccessfulPayment({
                     email: leadEmail,
                     name: lead?.name,
                     whatsapp: lead?.whatsapp,
@@ -481,6 +481,33 @@ router.post('/mercadopago-early-bird', async (req, res) => {
                     kitType: 'welcome_kit_v2',
                     source: 'early_bird_webhook'
                 });
+
+                // === Crear WelcomeKit para que aparezca en el módulo de onboarding del admin ===
+                const WelcomeKit = require('../models/WelcomeKit');
+                const existingKit = await WelcomeKit.findOne({ 'payment.externalOrderId': String(paymentId) });
+                if (!existingKit) {
+                    await WelcomeKit.create({
+                        clientId: postResult.user?.id || null,
+                        clientName: lead?.name || leadEmail.split('@')[0],
+                        clientEmail: leadEmail.toLowerCase(),
+                        clientWhatsapp: lead?.whatsapp || '',
+                        kitType: 'setup_only',
+                        products: [],
+                        payment: {
+                            provider: 'mercadopago',
+                            externalOrderId: String(paymentId),
+                            amount: mpPayment.transaction_amount,
+                            currency: mpPayment.currency_id || 'CLP',
+                            paidAt: new Date()
+                        },
+                        shipping: {
+                            status: 'not_required',
+                            address: { country: country || 'CL' }
+                        },
+                        overallStatus: 'entrevista_pendiente'
+                    });
+                    console.log(`[Webhook EarlyBird] 📦 WelcomeKit creado para onboarding: ${leadEmail}`);
+                }
             } catch (userErr) {
                 console.error('[Webhook EarlyBird] ⚠️ Error en PostPaymentService:', userErr.message);
             }
