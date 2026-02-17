@@ -216,6 +216,18 @@ class PostPaymentService {
                 adminData
             });
 
+            // === Marcar Lead core como convertido ===
+            try {
+                const Lead = require('../models/Lead');
+                const lead = await Lead.findOne({ email: cleanEmail });
+                if (lead && lead.status !== 'converted') {
+                    await lead.convertToUser(user._id);
+                    console.log(`[PostPayment] 🔄 Lead ${cleanEmail} marcado como convertido (status: converted)`);
+                }
+            } catch (leadErr) {
+                console.error('[PostPayment] ⚠️ Error actualizando Lead:', leadErr.message);
+            }
+
             return {
                 success: true,
                 user: {
