@@ -149,12 +149,18 @@ exports.update = async (req, res) => {
             });
         }
 
-        const allowedFields = ['nombre', 'asunto', 'previewText', 'contenidoHtml', 'tipo', 'ordenSecuencia', 'fechaProgramada', 'estado', 'targeting', 'notas'];
+        const allowedFields = ['nombre', 'asunto', 'previewText', 'contenidoHtml', 'tipo', 'ordenSecuencia', 'fechaProgramada', 'estado', 'targeting', 'notas', 'modoEnvio', 'triggerEvento', 'triggerDelayMinutos', 'diasDespuesRegistro', 'fechaLimiteEntrada', 'contenidoHtmlActivos', 'umbralEngagement'];
         allowedFields.forEach(field => {
             if (req.body[field] !== undefined) {
                 campaign[field] = req.body[field];
             }
         });
+
+        // Triggers no necesitan fechaProgramada — limpiarla si se cambió a trigger
+        const esTrigger = campaign.tipo === 'trigger' || campaign.modoEnvio === 'trigger';
+        if (esTrigger && !campaign.fechaProgramada) {
+            campaign.fechaProgramada = null;
+        }
 
         await campaign.save();
         res.json({ success: true, data: campaign });

@@ -1533,10 +1533,11 @@
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label>Tipo</label>
-                            <select class="form-control" id="editEmailTipo">
+                            <select class="form-control" id="editEmailTipo" onchange="toggleTriggerFields()">
                                 <option value="secuencia">Secuencia</option>
                                 <option value="broadcast">Broadcast</option>
                                 <option value="transaccional">Transaccional</option>
+                                <option value="trigger">🔔 Trigger (automático)</option>
                             </select>
                         </div>
                     </div>
@@ -1553,9 +1554,16 @@
                             <label>Orden en secuencia</label>
                             <input type="number" class="form-control" id="editEmailOrden" min="1" max="99" placeholder="1, 2, 3...">
                         </div>
-                        <div class="form-group" style="margin:0;">
+                        <div class="form-group" style="margin:0;" id="wrapFechaProgramada">
                             <label>Fecha programada</label>
                             <input type="datetime-local" class="form-control" id="editEmailFecha">
+                        </div>
+                        <div class="form-group" style="margin:0;display:none;" id="wrapTriggerInfo">
+                            <label>Trigger</label>
+                            <div style="padding:8px 12px;background:var(--bg-primary);border-radius:6px;font-size:12px;color:var(--text-secondary);">
+                                ⚡ Se dispara automáticamente por evento.<br>
+                                <span id="triggerInfoDetalle"></span>
+                            </div>
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label>Preview Text</label>
@@ -1591,6 +1599,17 @@
         document.getElementById('editEmailNombre').value = c.nombre || '';
         document.getElementById('editEmailAsunto').value = c.asunto || '';
         document.getElementById('editEmailTipo').value = c.tipo || 'secuencia';
+        // Guardar datos trigger para no perderlos al guardar
+        window._editEmailTriggerData = {
+            modoEnvio: c.modoEnvio || null,
+            triggerEvento: c.triggerEvento || null,
+            triggerDelayMinutos: c.triggerDelayMinutos || 60,
+            diasDespuesRegistro: c.diasDespuesRegistro || null,
+            fechaLimiteEntrada: c.fechaLimiteEntrada || null,
+            contenidoHtmlActivos: c.contenidoHtmlActivos || null,
+            umbralEngagement: c.umbralEngagement || 4
+        };
+        toggleTriggerFields();
         document.getElementById('editEmailEstado').value = c.estado || 'borrador';
         document.getElementById('editEmailOrden').value = c.ordenSecuencia || '';
         document.getElementById('editEmailPreview').value = c.previewText || '';
@@ -1648,20 +1667,39 @@
         }
     };
 
+    // Alternar campos según tipo (trigger vs otros)
+    window.toggleTriggerFields = function() {
+        const tipo = document.getElementById('editEmailTipo').value;
+        const esTrigger = tipo === 'trigger';
+        document.getElementById('wrapFechaProgramada').style.display = esTrigger ? 'none' : '';
+        document.getElementById('wrapTriggerInfo').style.display = esTrigger ? '' : 'none';
+        if (esTrigger && window._editEmailTriggerData) {
+            const t = window._editEmailTriggerData;
+            document.getElementById('triggerInfoDetalle').innerHTML =
+                'Evento: <b>' + (t.triggerEvento || '—') + '</b> · Delay: <b>' + (t.triggerDelayMinutos || 60) + ' min</b>';
+        }
+    };
+
     // Guardar edición de email
     window.saveEmail = async function() {
         const id = document.getElementById('editEmailId').value;
+        const tipo = document.getElementById('editEmailTipo').value;
         const fechaVal = document.getElementById('editEmailFecha').value;
+        const esTrigger = tipo === 'trigger';
         const data = {
             nombre: document.getElementById('editEmailNombre').value,
             asunto: document.getElementById('editEmailAsunto').value,
-            tipo: document.getElementById('editEmailTipo').value,
+            tipo: tipo,
             estado: document.getElementById('editEmailEstado').value,
             ordenSecuencia: parseInt(document.getElementById('editEmailOrden').value) || undefined,
             previewText: document.getElementById('editEmailPreview').value,
-            fechaProgramada: fechaVal ? new Date(fechaVal).toISOString() : undefined,
+            fechaProgramada: esTrigger ? undefined : (fechaVal ? new Date(fechaVal).toISOString() : undefined),
             contenidoHtml: document.getElementById('editEmailHtml').value
         };
+        // Preservar campos trigger cuando el tipo es trigger
+        if (esTrigger && window._editEmailTriggerData) {
+            Object.assign(data, window._editEmailTriggerData);
+        }
         const res = await apiFetch('/emails/' + id, {
             method: 'PUT',
             body: JSON.stringify(data)
