@@ -365,8 +365,8 @@ app.get('/', (req, res) => {
       return res.sendFile(path.join(__dirname, 'public', 'index.html'));
   }
   
-  // B) Redirigir a la landing de waitlist (página principal del lanzamiento)
-  res.redirect('/l/waitlist');
+  // B) Servir la landing principal de la historia de Miguel Antonio
+  res.sendFile(path.join(__dirname, 'public', 'comenzar.html'));
 });
 
 

@@ -1429,8 +1429,8 @@
                 <h1>El sueño de tocar piano que siempre <span>postergaste</span></h1>
                 <p class="hero-subtitle">Soy Miguel Antonio. A los 4 años pedí un piano para Navidad. Ese sueño nunca me abandonó. Hoy creé PianoLink para ayudarte a cumplir el tuyo. Clases 1-a-1 con profesores certificados, desde tu casa.</p>
                 <div class="hero-cta">
-                    <a href="/welcome-kit" class="btn-primary">
-                        <span>🎹 Reservar mi cupo Día 88</span>
+                    <a href="#reservar" class="btn-primary">
+                        <span>🎹 Reservar mi lugar gratis</span>
                     </a>
                     <a href="#como-funciona" class="btn-secondary">
                         <span>Ver cómo funciona ↓</span>
@@ -1600,8 +1600,8 @@
                         </li>
                     </ul>
                     
-                    <a href="/welcome-kit" class="btn-primary">
-                        <span>🎹 Reservar mi cupo Día 88</span>
+                    <a href="#reservar" class="btn-primary">
+                        <span>🎹 Reservar mi lugar gratis</span>
                         <span>→</span>
                     </a>
                 </div>
@@ -1795,10 +1795,10 @@
                             <span class="savings">Precio único, todo incluido</span>
                         </div>
                         <p style="font-size: 0.9rem; color: rgba(255,255,255,0.8); margin: -5px 0 15px; text-align: center; line-height: 1.5;">
-                            💡 <strong>Nota:</strong> Si necesitas comprar cable MIDI u otros accesorios, te recomendaremos dónde hacerlo. Eso corre por tu cuenta, pero te guiamos en cada paso.
+                            🎧 <strong>Cable MIDI incluido</strong> — Se envía después de la asesoría técnica (entrevista) a la dirección que nos indiques.
                         </p>
-                        <a href="/welcome-kit" class="btn-primary kit-cta">
-                            <span>🎹 Reservar mi cupo Día 88</span>
+                        <a href="#reservar" class="btn-primary kit-cta">
+                            <span>🎹 Reservar mi lugar gratis</span>
                         </a>
                         <div class="kit-guarantee">
                             <span>🛡️</span>
@@ -2021,16 +2021,34 @@
         </div>
     </section>
     
-    <!-- Final CTA -->
-    <section class="final-cta-section">
+    <!-- Formulario Waitlist -->
+    <section class="final-cta-section" id="reservar">
         <div class="final-cta-content">
             <h2>¿Listo para empezar <span>tu viaje musical?</span></h2>
-            <p>A los 10 años, recibir mi teclado fue una de las alegrías más grandes de mi vida. Hoy, quiero que sientas esa misma emoción. Tu momento es ahora.</p>
+            <p>A los 10 años, recibir mi teclado fue una de las alegrías más grandes de mi vida. Hoy, quiero que sientas esa misma emoción. Reserva tu lugar — solo toma 15 segundos.</p>
             
-            <div class="final-cta-buttons">
-                <a href="/welcome-kit" class="btn-primary">
-                    <span>🎹 Reservar mi cupo Día 88</span>
-                </a>
+            <div class="waitlist-form-wrapper" style="max-width: 440px; margin: 0 auto; text-align: left;">
+                <form id="waitlist-form" novalidate style="display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <label for="wl-name" style="display: block; font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 6px;">¿Cómo te llamas?</label>
+                        <input type="text" id="wl-name" name="name" required placeholder="Tu nombre" style="width: 100%; padding: 14px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff; font-size: 16px; outline: none; transition: border-color 0.3s;">
+                        <div class="wl-error" id="err-name" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: none;"></div>
+                    </div>
+                    <div>
+                        <label for="wl-email" style="display: block; font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 6px;">¿A qué email te enviamos el link?</label>
+                        <input type="email" id="wl-email" name="email" required placeholder="tu@email.com" style="width: 100%; padding: 14px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff; font-size: 16px; outline: none; transition: border-color 0.3s;">
+                        <div class="wl-error" id="err-email" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: none;"></div>
+                    </div>
+                    <input type="hidden" name="_utmSource" value="landing">
+                    <input type="hidden" name="_utmMedium" value="comenzar">
+                    <input type="hidden" name="_utmCampaign" value="dia88">
+                    <button type="submit" id="wl-submit" style="width: 100%; padding: 18px 32px; border-radius: 100px; border: none; background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%); color: #0a0a23; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(212,175,55,0.4);">🎹 Reservar mi lugar gratis</button>
+                </form>
+                <div id="wl-success" style="display: none; text-align: center; padding: 32px 0;">
+                    <div style="font-size: 48px; margin-bottom: 12px;">✅</div>
+                    <p style="font-size: 18px; color: #fff; font-weight: 600;">¡Listo! Te avisamos el 29 de marzo.</p>
+                    <p style="font-size: 14px; color: rgba(255,255,255,0.6); margin-top: 8px;">Revisa tu email para la confirmación.</p>
+                </div>
             </div>
             
             <div class="urgency-badge">
@@ -2054,8 +2072,8 @@
     
     <!-- Sticky CTA Mobile -->
     <div class="sticky-cta">
-        <a href="/welcome-kit" class="btn-primary">
-            <span>🎹 Reservar mi cupo Día 88</span>
+        <a href="#reservar" class="btn-primary">
+            <span>🎹 Reservar mi lugar gratis</span>
         </a>
     </div>
     
@@ -2160,7 +2178,7 @@
             });
         }
         
-        document.querySelectorAll('a[href="/welcome-kit"], a[href="#kit"]').forEach(link => {
+        document.querySelectorAll('a[href="#reservar"], a[href="#kit"]').forEach(link => {
             link.addEventListener('click', () => {
                 if (typeof fbq !== 'undefined') {
                     fbq('track', 'InitiateCheckout');
@@ -2185,6 +2203,108 @@
                 }
             })
             .catch(() => console.log('Usando precio por defecto'));
+
+        // ===========================================
+        // Formulario Waitlist
+        // ===========================================
+        (function() {
+            var form = document.getElementById('waitlist-form');
+            var successDiv = document.getElementById('wl-success');
+            if (!form) return;
+
+            // Tracking: form start (una sola vez)
+            var formStarted = false;
+            form.addEventListener('focusin', function() {
+                if (formStarted) return;
+                formStarted = true;
+                fetch('/api/crm/landings/public/waitlist/form-start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                }).catch(function() {});
+            });
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                // Validación
+                var valid = true;
+                var nameInput = document.getElementById('wl-name');
+                var emailInput = document.getElementById('wl-email');
+                var errName = document.getElementById('err-name');
+                var errEmail = document.getElementById('err-email');
+
+                errName.style.display = 'none';
+                errEmail.style.display = 'none';
+                nameInput.style.borderColor = 'rgba(255,255,255,0.2)';
+                emailInput.style.borderColor = 'rgba(255,255,255,0.2)';
+
+                if (!nameInput.value.trim()) {
+                    valid = false;
+                    nameInput.style.borderColor = '#ef4444';
+                    errName.textContent = 'Campo requerido';
+                    errName.style.display = 'block';
+                }
+
+                if (!emailInput.value.trim()) {
+                    valid = false;
+                    emailInput.style.borderColor = '#ef4444';
+                    errEmail.textContent = 'Campo requerido';
+                    errEmail.style.display = 'block';
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value)) {
+                    valid = false;
+                    emailInput.style.borderColor = '#ef4444';
+                    errEmail.textContent = 'Email inválido';
+                    errEmail.style.display = 'block';
+                }
+
+                if (!valid) return;
+
+                // Recoger datos
+                var data = {};
+                new FormData(form).forEach(function(val, key) { data[key] = val; });
+
+                // Deshabilitar botón
+                var btn = document.getElementById('wl-submit');
+                btn.disabled = true;
+                btn.textContent = 'Enviando...';
+
+                fetch('/api/crm/landings/public/waitlist/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res.success) {
+                        form.style.display = 'none';
+                        successDiv.style.display = 'block';
+                        // Disparar evento Lead
+                        if (typeof fbq !== 'undefined') { fbq('track', 'Lead'); }
+                        if (typeof gtag !== 'undefined') {
+                            gtag('event', 'generate_lead', {
+                                currency: 'USD',
+                                value: 0
+                            });
+                        }
+                        // Redirigir a success-waitlist con email
+                        var emailVal = data.email || '';
+                        var redirect = '/success-waitlist';
+                        if (emailVal) redirect += '?email=' + encodeURIComponent(emailVal);
+                        setTimeout(function() { window.location.href = redirect; }, 2000);
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = '🎹 Reservar mi lugar gratis';
+                        alert(res.error || 'Error al enviar. Intenta de nuevo.');
+                    }
+                })
+                .catch(function() {
+                    btn.disabled = false;
+                    btn.textContent = '🎹 Reservar mi lugar gratis';
+                    alert('Error de conexión. Intenta de nuevo.');
+                });
+            });
+        })();
     </script>
 </body>
 </html>
