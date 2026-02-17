@@ -163,6 +163,34 @@ exports.update = async (req, res) => {
         }
 
         await campaign.save();
+
+        // Sync automático: si es secuencia, actualizar el step correspondiente en CrmSequence
+        if (campaign.tipo === 'secuencia' && campaign.ordenSecuencia) {
+            try {
+                const CrmSequence = require('../models/CrmSequence');
+                const stepIndex = campaign.ordenSecuencia - 1;
+                const updatePath = {
+                    [`steps.${stepIndex}.email.subject`]: campaign.asunto,
+                    [`steps.${stepIndex}.email.bodyHtml`]: campaign.contenidoHtml,
+                    [`steps.${stepIndex}.email.previewText`]: campaign.previewText || ''
+                };
+                // Actualizar delay si diasDespuesRegistro cambió
+                if (campaign.diasDespuesRegistro != null) {
+                    updatePath[`steps.${stepIndex}.delayHours`] = campaign.diasDespuesRegistro * 24;
+                }
+                const syncResult = await CrmSequence.updateMany(
+                    { status: 'active', [`steps.${stepIndex}`]: { $exists: true } },
+                    { $set: updatePath }
+                );
+                if (syncResult.modifiedCount > 0) {
+                    console.log(`[Email Campaign] Sync → CrmSequence step ${stepIndex} actualizado (${campaign.nombre})`);
+                }
+            } catch (syncErr) {
+                // No bloquear la respuesta por error de sync
+                console.error('[Email Campaign] Error sync → CrmSequence:', syncErr.message);
+            }
+        }
+
         res.json({ success: true, data: campaign });
     } catch (error) {
         console.error('[Email Campaign Controller] Error en update:', error);
