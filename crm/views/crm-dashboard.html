@@ -1384,6 +1384,7 @@
                     <button class="btn-icon" onclick="previewEmail('${c._id}')" title="Preview">👁</button>
                     <button class="btn-icon" onclick="editEmail('${c._id}')" title="Editar">✏️</button>
                     ${c.estado === 'borrador' ? `<button class="btn-icon" onclick="sendEmail('${c._id}')" title="Enviar">📤</button>` : ''}
+                    ${c.estado === 'borrador' ? `<button class="btn-icon" onclick="deleteEmail('${c._id}', '${esc(c.nombre).replace(/'/g, "\\'")}')" title="Eliminar" style="color:#e74c3c;">🗑️</button>` : ''}
                 </td>
             </tr>`;
         }).join('');
@@ -1423,7 +1424,21 @@
         iframe.srcdoc = html;
     };
 
-    // Editar: modal con editor de asunto y HTML
+    // Eliminar email campaign
+    window.deleteEmail = async function(id, nombre) {
+        if (!confirm(`¿Eliminar la campaña "${nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
+        const res = await apiFetch('/emails/' + id, { method: 'DELETE' });
+        if (res?.success) {
+            loadEmailCampaigns();
+        } else {
+            alert('Error al eliminar: ' + (res?.error || 'Solo se pueden eliminar borradores'));
+        }
+    };
+
+    // Estado del editor visual/código
+    let emailEditorMode = 'code'; // 'code' | 'visual'
+
+    // Editar: modal con editor de asunto y HTML (toggle Visual / Código)
     window.editEmail = async function(id) {
         const res = await apiFetch('/emails/' + id);
         if (!res?.success) { alert('Error al cargar campaña'); return; }
@@ -1434,35 +1449,48 @@
             modal = document.createElement('div');
             modal.id = 'modalEditEmail';
             modal.className = 'modal';
-            modal.innerHTML = `<div class="modal-content" style="max-width:800px;max-height:90vh;">
-                <div class="modal-header">
+            modal.innerHTML = `<div class="modal-content" style="max-width:900px;height:92vh;display:flex;flex-direction:column;">
+                <div class="modal-header" style="flex-shrink:0;">
                     <h3 id="editEmailTitle">Editar Campaña</h3>
                     <button class="modal-close" onclick="closeModal('modalEditEmail')">&times;</button>
                 </div>
-                <div class="modal-body" style="overflow-y:auto;">
+                <div class="modal-body" style="overflow-y:auto;flex:1;">
                     <input type="hidden" id="editEmailId">
-                    <div class="form-group">
-                        <label>Nombre</label>
-                        <input type="text" class="form-control" id="editEmailNombre">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+                        <div class="form-group" style="margin:0;">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" id="editEmailNombre">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>Asunto</label>
+                            <input type="text" class="form-control" id="editEmailAsunto">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>Tipo</label>
+                            <select class="form-control" id="editEmailTipo">
+                                <option value="secuencia">Secuencia</option>
+                                <option value="broadcast">Broadcast</option>
+                                <option value="transaccional">Transaccional</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Asunto</label>
-                        <input type="text" class="form-control" id="editEmailAsunto">
-                    </div>
-                    <div class="form-group">
-                        <label>Tipo</label>
-                        <select class="form-control" id="editEmailTipo">
-                            <option value="secuencia">Secuencia</option>
-                            <option value="broadcast">Broadcast</option>
-                            <option value="transaccional">Transaccional</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>HTML del Email</label>
-                        <textarea class="form-control" id="editEmailHtml" rows="15" style="font-family:monospace;font-size:12px;"></textarea>
+                    <div class="form-group" style="flex:1;display:flex;flex-direction:column;margin:0;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                            <label style="margin:0;font-weight:600;">Contenido del Email</label>
+                            <div style="display:flex;gap:4px;background:var(--bg-primary);border-radius:6px;padding:3px;">
+                                <button id="btnModeVisual" class="btn" onclick="switchEditorMode('visual')" style="padding:4px 14px;font-size:12px;border-radius:4px;">👁 Visual</button>
+                                <button id="btnModeCode" class="btn btn-primary" onclick="switchEditorMode('code')" style="padding:4px 14px;font-size:12px;border-radius:4px;">⟨/⟩ HTML</button>
+                            </div>
+                        </div>
+                        <div id="editorCodeWrap" style="flex:1;display:flex;">
+                            <textarea class="form-control" id="editEmailHtml" style="font-family:'Fira Code',Consolas,monospace;font-size:12px;line-height:1.5;flex:1;min-height:350px;resize:vertical;tab-size:2;white-space:pre;overflow-wrap:normal;overflow-x:auto;"></textarea>
+                        </div>
+                        <div id="editorVisualWrap" style="flex:1;display:none;border:1px solid var(--border);border-radius:6px;overflow:hidden;min-height:350px;background:#fff;">
+                            <iframe id="visualPreviewIframe" style="width:100%;height:100%;min-height:350px;border:none;"></iframe>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer" style="flex-shrink:0;">
                     <button class="btn btn-outline" onclick="closeModal('modalEditEmail')">Cancelar</button>
                     <button class="btn btn-primary" onclick="saveEmail()">💾 Guardar</button>
                 </div>
@@ -1470,13 +1498,55 @@
             document.body.appendChild(modal);
         }
 
+        emailEditorMode = 'code';
         document.getElementById('editEmailId').value = c._id;
         document.getElementById('editEmailNombre').value = c.nombre || '';
         document.getElementById('editEmailAsunto').value = c.asunto || '';
         document.getElementById('editEmailTipo').value = c.tipo || 'secuencia';
         document.getElementById('editEmailHtml').value = c.contenidoHtml || '';
         document.getElementById('editEmailTitle').textContent = 'Editar: ' + (c.nombre || 'Campaña');
+        // Resetear a modo código
+        document.getElementById('editorCodeWrap').style.display = 'flex';
+        document.getElementById('editorVisualWrap').style.display = 'none';
+        document.getElementById('btnModeCode').classList.add('btn-primary');
+        document.getElementById('btnModeVisual').classList.remove('btn-primary');
         modal.classList.add('show');
+    };
+
+    // Alternar entre modo Visual y modo HTML
+    window.switchEditorMode = function(mode) {
+        emailEditorMode = mode;
+        const codeWrap = document.getElementById('editorCodeWrap');
+        const visualWrap = document.getElementById('editorVisualWrap');
+        const btnCode = document.getElementById('btnModeCode');
+        const btnVisual = document.getElementById('btnModeVisual');
+        const textarea = document.getElementById('editEmailHtml');
+        const iframe = document.getElementById('visualPreviewIframe');
+
+        if (mode === 'visual') {
+            // Cambiar a visual: renderizar HTML en iframe
+            codeWrap.style.display = 'none';
+            visualWrap.style.display = 'block';
+            btnVisual.classList.add('btn-primary');
+            btnCode.classList.remove('btn-primary');
+            // Inyectar el HTML actual en el iframe
+            const htmlContent = textarea.value;
+            iframe.srcdoc = htmlContent || '<p style="padding:40px;color:#999;text-align:center;">Sin contenido HTML</p>';
+            // Ajustar altura del iframe al contenido
+            iframe.onload = function() {
+                try {
+                    const h = iframe.contentDocument.body.scrollHeight;
+                    iframe.style.height = Math.max(350, h + 40) + 'px';
+                    visualWrap.style.minHeight = Math.max(350, h + 40) + 'px';
+                } catch(e) {}
+            };
+        } else {
+            // Cambiar a código: mostrar textarea
+            codeWrap.style.display = 'flex';
+            visualWrap.style.display = 'none';
+            btnCode.classList.add('btn-primary');
+            btnVisual.classList.remove('btn-primary');
+        }
     };
 
     // Guardar edición de email
