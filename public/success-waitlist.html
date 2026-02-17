@@ -355,7 +355,22 @@
         <div class="purchase-success" id="purchase-success">
             <div style="font-size:56px; margin-bottom:12px;">🎉</div>
             <h3>¡Compra exitosa!</h3>
-            <p>Tu Welcome Kit está en camino. Revisa tu email para los detalles y próximos pasos.</p>
+            <p id="success-message">Tu Welcome Kit está en camino. Revisa tu email para los detalles y próximos pasos.</p>
+            
+            <!-- Magic Link (se muestra tras verificación) -->
+            <div id="magic-link-section" style="display:none; margin-top:20px;">
+                <a id="magic-link-btn" href="#" style="display:inline-block; padding:14px 32px; background:linear-gradient(135deg, #d4af37, #f0d060); color:#0a0a0f; border-radius:12px; text-decoration:none; font-weight:700; font-size:16px;">
+                    🔑 Activar mi cuenta
+                </a>
+                <p style="margin-top:10px; font-size:13px; color:#888;">
+                    También te enviamos este enlace por email. Válido por 7 días.
+                </p>
+            </div>
+
+            <!-- Verificando... -->
+            <div id="verify-loading" style="display:none; margin-top:16px;">
+                <span style="color:#888;">⏳ Verificando tu pago...</span>
+            </div>
         </div>
 
         <!-- Oferta expirada -->
@@ -385,10 +400,14 @@
         leadEmail = params.get('email') || '';
         leadCountry = (params.get('country') || '').toUpperCase();
 
-        // Si vuelve de un pago exitoso, mostrar confirmación
+        // Si vuelve de un pago exitoso, verificar y mostrar confirmación
         const paymentStatus = params.get('payment');
         if (paymentStatus === 'success') {
             document.getElementById('purchase-success').style.display = 'block';
+            // Verificar pago y obtener magic link
+            if (leadEmail) {
+                await verifyEarlyBirdPayment(leadEmail);
+            }
             return; // No mostrar oferta
         }
 
@@ -543,6 +562,60 @@
             btnMp.disabled = false;
             btnPaypal.disabled = false;
         }
+    }
+
+    // === Verificar pago Early Bird ===
+    async function verifyEarlyBirdPayment(email) {
+        const loadingEl = document.getElementById('verify-loading');
+        loadingEl.style.display = 'block';
+
+        // Reintentar hasta 3 veces (el webhook puede tardar)
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const res = await fetch('/api/early-bird/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+
+                if (data.success && data.status === 'verified') {
+                    loadingEl.style.display = 'none';
+
+                    // Mostrar magic link si existe
+                    if (data.magicLinkUrl) {
+                        document.getElementById('magic-link-btn').href = data.magicLinkUrl;
+                        document.getElementById('magic-link-section').style.display = 'block';
+                        document.getElementById('success-message').textContent = 
+                            '¡Tu cuenta ha sido creada! Usa el botón para activarla y establecer tu contraseña.';
+                    } else {
+                        document.getElementById('success-message').textContent = 
+                            data.message || '¡Pago confirmado! Ya tienes cuenta — inicia sesión para continuar.';
+                    }
+                    return;
+                }
+
+                if (data.status === 'pending' && attempt < 3) {
+                    // Esperar antes de reintentar
+                    await new Promise(r => setTimeout(r, 3000));
+                    continue;
+                }
+
+                // Último intento o no pending
+                loadingEl.style.display = 'none';
+                document.getElementById('success-message').textContent = 
+                    data.message || 'Tu pago está siendo procesado. Recibirás un email de confirmación pronto.';
+                return;
+
+            } catch (err) {
+                console.error('Error verificando:', err);
+                if (attempt < 3) {
+                    await new Promise(r => setTimeout(r, 3000));
+                }
+            }
+        }
+
+        loadingEl.style.display = 'none';
     }
 
     // === Cookies helper ===

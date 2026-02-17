@@ -462,25 +462,96 @@ router.post('/mercadopago-early-bird', async (req, res) => {
 
         console.log(`[Webhook EarlyBird] ✅ Pago registrado para ${leadEmail || 'desconocido'}: ${paymentId}`);
 
-        // Enviar email de confirmación (best-effort)
-        try {
-            if (leadEmail) {
+        // === Crear usuario + Magic Link (misma lógica que verify-mercadopago) ===
+        if (leadEmail) {
+            try {
+                const User = require('../models/User');
+                const crypto = require('crypto');
                 const EmailService = require('../services/EmailService');
-                await EmailService.sendEmail({
-                    to: leadEmail,
-                    subject: '🎹 ¡Tu Welcome Kit está confirmado! — PianoLink',
-                    html: `
-                        <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-                            <h2 style="color: #8b5cf6;">¡Gracias por tu compra! 🎹</h2>
-                            <p>Tu Welcome Kit de PianoLink ha sido confirmado.</p>
-                            <p>Te contactaremos pronto con los detalles de envío y próximos pasos.</p>
-                            <p style="color: #888; font-size: 12px; margin-top: 20px;">— Equipo PianoLink</p>
-                        </div>
-                    `
-                });
+                const { generateWelcomeKitEmail } = require('../templates/welcomeKitEmail');
+                const Lead = require('../models/Lead');
+
+                let user = await User.findOne({ email: leadEmail.toLowerCase() });
+
+                if (!user) {
+                    // Buscar datos del Lead para enriquecer el usuario
+                    const lead = await Lead.findOne({ email: leadEmail.toLowerCase() }).lean();
+                    const userName = lead?.name || leadEmail.split('@')[0];
+                    const userWhatsapp = lead?.whatsapp || '';
+
+                    // Generar magic link
+                    const magicLinkToken = crypto.randomBytes(32).toString('hex');
+                    const magicLinkExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
+                    const tempPassword = crypto.randomBytes(16).toString('hex');
+
+                    user = await User.create({
+                        name: userName,
+                        email: leadEmail.toLowerCase(),
+                        password: tempPassword,
+                        whatsapp: userWhatsapp,
+                        country: country || 'CL',
+                        role: 'student',
+                        classesRemaining: 1,
+                        classesCompleted: 0,
+                        studentData: {
+                            source: 'early_bird',
+                            level: 'beginner'
+                        },
+                        kitPurchased: true,
+                        kitPurchaseDate: new Date(),
+                        magicLinkToken,
+                        magicLinkExpires,
+                        mustChangePassword: true
+                    });
+
+                    console.log(`[Webhook EarlyBird] 👤 Usuario creado: ${user.email}`);
+
+                    // Enviar email de bienvenida con Magic Link
+                    const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'https://pianolink.net';
+                    const magicLinkUrl = `${frontendUrl}/acceso/${magicLinkToken}`;
+
+                    const emailHtml = generateWelcomeKitEmail({
+                        clientName: userName,
+                        clientEmail: user.email,
+                        magicLinkUrl,
+                        students: [],
+                        kitType: 'welcome_kit_v2',
+                        totalPaid: priceUSD / 100,
+                        currency: 'USD',
+                        orderId: String(paymentId)
+                    });
+
+                    await EmailService.sendSafe({
+                        to: user.email,
+                        subject: '🎹 ¡Bienvenido a PianoLink! Activa tu cuenta',
+                        html: emailHtml
+                    });
+                    console.log(`[Webhook EarlyBird] 📧 Email con magic link enviado a: ${user.email}`);
+
+                } else {
+                    // Usuario ya existe — solo actualizar flag de kit
+                    user.kitPurchased = true;
+                    user.kitPurchaseDate = new Date();
+                    await user.save();
+                    console.log(`[Webhook EarlyBird] 👤 Usuario existente actualizado: ${user.email}`);
+
+                    // Enviar email de confirmación (sin magic link)
+                    await EmailService.sendSafe({
+                        to: user.email,
+                        subject: '🎹 ¡Tu Welcome Kit está confirmado! — PianoLink',
+                        html: `
+                            <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
+                                <h2 style="color: #8b5cf6;">¡Gracias por tu compra! 🎹</h2>
+                                <p>Tu Welcome Kit de PianoLink ha sido confirmado.</p>
+                                <p>Ya tienes cuenta — <a href="${process.env.FRONTEND_URL || 'https://pianolink.net'}/login">inicia sesión aquí</a>.</p>
+                                <p style="color: #888; font-size: 12px; margin-top: 20px;">— Equipo PianoLink</p>
+                            </div>
+                        `
+                    });
+                }
+            } catch (userErr) {
+                console.error('[Webhook EarlyBird] ⚠️ Error creando usuario:', userErr.message, userErr.stack);
             }
-        } catch (emailErr) {
-            console.error('[Webhook EarlyBird] Error enviando email:', emailErr.message);
         }
 
     } catch (error) {

@@ -315,4 +315,128 @@ async function _createPayPalEarlyBirdCheckout({ email, country, priceUSD, regula
     };
 }
 
+/**
+ * POST /api/early-bird/verify
+ * Verifica el pago Early Bird y devuelve datos del usuario + magic link.
+ * Llamado por success-waitlist.html cuando payment=success.
+ */
+router.post('/verify', async (req, res) => {
+    try {
+        const { email, paymentId, externalReference } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ success: false, error: 'Email requerido' });
+        }
+
+        const cleanEmail = email.toLowerCase().trim();
+        console.log(`[EarlyBird Verify] Verificando pago para: ${cleanEmail}`);
+
+        // Buscar pago registrado por el webhook
+        const existingPayment = await Payment.findOne({
+            leadEmail: cleanEmail,
+            'metadata.source': 'waitlist_early_bird',
+            status: 'approved'
+        }).sort({ createdAt: -1 });
+
+        if (!existingPayment) {
+            // El webhook puede no haber llegado aún — responder con pending
+            return res.json({
+                success: true,
+                status: 'pending',
+                message: 'Pago en proceso de verificación. Recibirás un email de confirmación.'
+            });
+        }
+
+        // Buscar usuario creado por el webhook
+        const User = require('../models/User');
+        const user = await User.findOne({ email: cleanEmail });
+
+        if (!user) {
+            // Webhook registró el pago pero aún no creó el usuario (race condition)
+            // Crear ahora
+            const crypto = require('crypto');
+            const Lead = require('../models/Lead');
+            const { generateWelcomeKitEmail } = require('../templates/welcomeKitEmail');
+            const EmailService = require('../services/EmailService');
+
+            const lead = await Lead.findOne({ email: cleanEmail }).lean();
+            const userName = lead?.name || cleanEmail.split('@')[0];
+
+            const magicLinkToken = crypto.randomBytes(32).toString('hex');
+            const magicLinkExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            const tempPassword = crypto.randomBytes(16).toString('hex');
+
+            const newUser = await User.create({
+                name: userName,
+                email: cleanEmail,
+                password: tempPassword,
+                whatsapp: lead?.whatsapp || '',
+                country: existingPayment.metadata?.countryCode || 'CL',
+                role: 'student',
+                classesRemaining: 1,
+                classesCompleted: 0,
+                studentData: { source: 'early_bird', level: 'beginner' },
+                kitPurchased: true,
+                kitPurchaseDate: new Date(),
+                magicLinkToken,
+                magicLinkExpires,
+                mustChangePassword: true
+            });
+
+            const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'https://pianolink.net';
+            const magicLinkUrl = `${frontendUrl}/acceso/${magicLinkToken}`;
+
+            // Enviar email
+            try {
+                const emailHtml = generateWelcomeKitEmail({
+                    clientName: userName,
+                    clientEmail: cleanEmail,
+                    magicLinkUrl,
+                    students: [],
+                    kitType: 'welcome_kit_v2',
+                    totalPaid: existingPayment.amount / 100,
+                    currency: 'USD',
+                    orderId: existingPayment.externalPaymentId
+                });
+
+                await EmailService.sendSafe({
+                    to: cleanEmail,
+                    subject: '🎹 ¡Bienvenido a PianoLink! Activa tu cuenta',
+                    html: emailHtml
+                });
+            } catch (emailErr) {
+                console.error('[EarlyBird Verify] Error email:', emailErr.message);
+            }
+
+            return res.json({
+                success: true,
+                status: 'verified',
+                user: { email: newUser.email, name: newUser.name },
+                magicLinkUrl,
+                message: 'Cuenta creada. Revisa tu email para activarla.'
+            });
+        }
+
+        // Usuario ya existe — devolver datos
+        const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'https://pianolink.net';
+        const magicLinkUrl = user.magicLinkToken && user.magicLinkExpires > new Date()
+            ? `${frontendUrl}/acceso/${user.magicLinkToken}`
+            : null;
+
+        return res.json({
+            success: true,
+            status: 'verified',
+            user: { email: user.email, name: user.name },
+            magicLinkUrl,
+            message: magicLinkUrl
+                ? 'Revisa tu email para activar tu cuenta.'
+                : 'Ya tienes cuenta activa.'
+        });
+
+    } catch (error) {
+        console.error('[EarlyBird Verify] Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
