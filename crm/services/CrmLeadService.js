@@ -51,7 +51,20 @@ class CrmLeadService {
                 }
             };
 
-            crmLead = await CrmLead.create(crmLeadData);
+            // Crear con manejo de race condition (E11000)
+            try {
+                crmLead = await CrmLead.create(crmLeadData);
+            } catch (createErr) {
+                if (createErr.code === 11000) {
+                    // Race condition — otro proceso ya creó este CrmLead
+                    console.log('[CRM] findOrCreateFromCoreLead: race condition detectada, buscando existente...');
+                    crmLead = await CrmLead.findOne({ leadRef: coreLeadId });
+                    if (crmLead) {
+                        return { success: true, data: crmLead, created: false };
+                    }
+                }
+                throw createErr;
+            }
 
             // Registrar interacción de captura
             // Mapear channel de atribución a channel válido de CrmInteraction

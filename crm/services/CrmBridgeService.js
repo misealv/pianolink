@@ -487,6 +487,12 @@ class CrmBridgeService {
             const SequenceService = getCrmSequenceService();
             if (!SequenceModel || !SequenceService) return;
 
+            // Popular leadRef si es solo un ObjectId (necesario para filtros de audiencia)
+            if (crmLead.leadRef && !crmLead.leadRef.email) {
+                const populated = await CrmLead.findById(crmLead._id).populate('leadRef', 'name email type');
+                if (populated) crmLead = populated;
+            }
+
             // Buscar secuencias activas con este trigger
             const matchingSequences = await SequenceModel.getActiveByTrigger(eventName);
             if (!matchingSequences || matchingSequences.length === 0) return;

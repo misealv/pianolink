@@ -466,6 +466,7 @@ class CrmLandingService {
                             const bridgeResult = await CrmLeadService.findOrCreateFromCoreLead(result.lead._id, enrichment);
                             if (bridgeResult.success) {
                                 crmLead = bridgeResult.data;
+                                needsAutoEnroll = true;
                             }
                         }
                     } catch (leadErr) {
