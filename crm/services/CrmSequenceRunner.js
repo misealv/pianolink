@@ -497,16 +497,23 @@ class CrmSequenceRunner {
      */
     static _buildVariables(lead) {
         const leadData = lead.leadRef || {};
+        const firstName = (leadData.name || 'Usuario').split(' ')[0];
         return {
+            // Variables con prefijo lead.
             'lead.name': leadData.name || 'Usuario',
-            'lead.firstName': (leadData.name || 'Usuario').split(' ')[0],
+            'lead.firstName': firstName,
             'lead.email': leadData.email || '',
             'lead.phone': leadData.phone || '',
             'lead.type': leadData.type || '',
             'lead.score': String(lead.score || 0),
             'lead.segment': lead.segment || 'cold',
             'lead.locale': lead.locale || 'es',
-            'lead.tags': (lead.tags || []).join(', ')
+            'lead.tags': (lead.tags || []).join(', '),
+            // Aliases directos para uso en templates
+            'nombre': firstName,
+            'name': leadData.name || 'Usuario',
+            'email': leadData.email || '',
+            'firstName': firstName
         };
     }
 
