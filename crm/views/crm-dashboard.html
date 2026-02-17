@@ -1392,6 +1392,7 @@
                 <td>${m.totalClicks || 0}</td>
                 <td>${fechaProg}</td>
                 <td>
+                    ${c.tipo === 'secuencia' ? `<button class="btn-icon" onclick="viewEmailLeads('${c._id}', '${esc(c.nombre).replace(/'/g, "\\'")}')" title="Ver leads">👥</button>` : ''}
                     <button class="btn-icon" onclick="previewEmail('${c._id}')" title="Preview">👁</button>
                     <button class="btn-icon" onclick="editEmail('${c._id}')" title="Editar">✏️</button>
                     ${c.estado === 'borrador' ? `<button class="btn-icon" onclick="sendEmail('${c._id}')" title="Enviar">📤</button>` : ''}
@@ -1444,6 +1445,60 @@
         } else {
             alert('Error al eliminar: ' + (res?.error || 'Solo se pueden eliminar borradores'));
         }
+    };
+
+    // Ver leads que recibieron/abrieron/clickearon un email de secuencia
+    window.viewEmailLeads = async function(id, nombre) {
+        const res = await apiFetch('/emails/' + id + '/leads');
+        if (!res?.success) { alert('Error al cargar leads'); return; }
+        const leads = res.data || [];
+
+        let modal = document.getElementById('modalEmailLeads');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modalEmailLeads';
+            modal.className = 'modal';
+            modal.innerHTML = `<div class="modal-content" style="max-width:750px;">
+                <div class="modal-header">
+                    <h3 id="emailLeadsTitle">Leads</h3>
+                    <button class="modal-close" onclick="closeModal('modalEmailLeads')">&times;</button>
+                </div>
+                <div class="modal-body" style="padding:0;">
+                    <div id="emailLeadsBody" style="max-height:60vh;overflow-y:auto;"></div>
+                </div>
+            </div>`;
+            document.body.appendChild(modal);
+        }
+
+        document.getElementById('emailLeadsTitle').textContent = nombre;
+
+        if (leads.length === 0) {
+            document.getElementById('emailLeadsBody').innerHTML = '<p style="padding:40px;text-align:center;color:var(--text-secondary);">Sin datos de leads aún</p>';
+        } else {
+            document.getElementById('emailLeadsBody').innerHTML = `
+                <table style="width:100%;">
+                    <thead>
+                        <tr><th>Nombre</th><th>Email</th><th>Enviado</th><th>Abierto</th><th>Click</th></tr>
+                    </thead>
+                    <tbody>
+                        ${leads.map(l => {
+                            const sentIcon = l.sent ? '✅' : '—';
+                            const openIcon = l.opened ? '✅' : '—';
+                            const clickIcon = l.clicked ? '✅' : '—';
+                            const openTime = l.openedAt ? new Date(l.openedAt).toLocaleString('es-CL', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+                            const clickTime = l.clickedAt ? new Date(l.clickedAt).toLocaleString('es-CL', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+                            return `<tr>
+                                <td><strong>${esc(l.name)}</strong></td>
+                                <td class="lead-email">${esc(l.email)}</td>
+                                <td style="text-align:center">${sentIcon}</td>
+                                <td style="text-align:center" title="${openTime}">${openIcon}</td>
+                                <td style="text-align:center" title="${clickTime}">${clickIcon}</td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>`;
+        }
+        modal.classList.add('show');
     };
 
     // Estado del editor visual/código

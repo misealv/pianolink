@@ -383,3 +383,78 @@ exports.sendTest = async (req, res) => {
         res.status(500).json({ success: false, error: 'Error al enviar prueba' });
     }
 };
+
+/**
+ * Obtener leads con detalle de interacciones para una campaña de secuencia
+ * GET /api/crm/emails/:id/leads
+ */
+exports.leads = async (req, res) => {
+    try {
+        const campaign = await CrmEmailCampaign.findById(req.params.id).lean();
+        if (!campaign) {
+            return res.status(404).json({ success: false, error: 'Campaña no encontrada' });
+        }
+
+        if (campaign.tipo !== 'secuencia' || !campaign.ordenSecuencia) {
+            return res.json({ success: true, data: [], message: 'Solo disponible para campañas de secuencia' });
+        }
+
+        const CrmSequence = require('../models/CrmSequence');
+        const CrmInteraction = require('../models/CrmInteraction');
+        const CrmLead = require('../models/CrmLead');
+
+        // Buscar secuencia activa
+        const sequence = await CrmSequence.findOne({ status: 'active', 'trigger.event': 'lead.created' }).lean();
+        if (!sequence) {
+            return res.json({ success: true, data: [] });
+        }
+
+        const seqId = sequence._id.toString();
+        const stepNum = campaign.ordenSecuencia;
+
+        // Buscar todas las interacciones de este step (sent, open, click)
+        const interactions = await CrmInteraction.find({
+            'metadata.emailSequenceId': sequence._id,
+            'metadata.emailStepNumber': stepNum,
+            type: { $in: ['email_sent', 'email_open', 'email_click'] }
+        }).lean();
+
+        // Agrupar por leadRef
+        const leadMap = {};
+        for (const inter of interactions) {
+            const lid = inter.leadRef?.toString();
+            if (!lid) continue;
+            if (!leadMap[lid]) leadMap[lid] = { crmLeadId: lid, sent: false, opened: false, clicked: false, openedAt: null, clickedAt: null, sentAt: null };
+            if (inter.type === 'email_sent') { leadMap[lid].sent = true; leadMap[lid].sentAt = inter.timestamp; }
+            if (inter.type === 'email_open') { leadMap[lid].opened = true; leadMap[lid].openedAt = inter.timestamp; }
+            if (inter.type === 'email_click') { leadMap[lid].clicked = true; leadMap[lid].clickedAt = inter.timestamp; }
+        }
+
+        // Poblar datos del lead (nombre, email)
+        const crmLeadIds = Object.keys(leadMap);
+        const crmLeads = await CrmLead.find({ _id: { $in: crmLeadIds } }).populate('leadRef', 'name email type').lean();
+        const crmLeadMap = {};
+        for (const cl of crmLeads) crmLeadMap[cl._id.toString()] = cl;
+
+        const result = crmLeadIds.map(lid => {
+            const info = leadMap[lid];
+            const cl = crmLeadMap[lid];
+            return {
+                name: cl?.leadRef?.name || 'Sin nombre',
+                email: cl?.leadRef?.email || '',
+                type: cl?.leadRef?.type || '',
+                sent: info.sent,
+                opened: info.opened,
+                clicked: info.clicked,
+                sentAt: info.sentAt,
+                openedAt: info.openedAt,
+                clickedAt: info.clickedAt
+            };
+        });
+
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('[Email Campaign Controller] Error en leads:', error);
+        res.status(500).json({ success: false, error: 'Error al obtener leads' });
+    }
+};

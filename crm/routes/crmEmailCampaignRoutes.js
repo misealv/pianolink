@@ -37,6 +37,7 @@ router.post('/:id/enviar', ctrl.send);
 router.post('/:id/programar', ctrl.schedule);
 router.get('/:id/preview', ctrl.preview);
 router.get('/:id/stats', ctrl.stats);
+router.get('/:id/leads', ctrl.leads);
 router.post('/:id/duplicar', ctrl.duplicate);
 router.post('/:id/test', ctrl.sendTest);
 
