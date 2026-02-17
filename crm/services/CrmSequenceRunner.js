@@ -14,16 +14,8 @@
 const CrmSequence = require('../models/CrmSequence');
 const CrmLead = require('../models/CrmLead');
 const CrmInteraction = require('../models/CrmInteraction');
-const EmailService = require('../../services/EmailService');
-
-// Singleton del servicio de email
-let emailService = null;
-function getEmailService() {
-    if (!emailService) {
-        emailService = new EmailService();
-    }
-    return emailService;
-}
+// EmailService exporta una instancia singleton, no la clase
+const emailService = require('../../services/EmailService');
 
 /**
  * URL base del servidor para construir enlaces de tracking.
@@ -353,8 +345,7 @@ class CrmSequenceRunner {
             html = injectTrackingPixel(html, trackingId);
 
             // Enviar via EmailService
-            const emailSvc = getEmailService();
-            await emailSvc.send({
+            await emailService.send({
                 to: leadData.email,
                 subject,
                 html
