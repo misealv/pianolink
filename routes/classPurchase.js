@@ -4,6 +4,7 @@ const User = require('../models/User');
 const StudentEnrollment = require('../models/StudentEnrollment');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { protect } = require('../middleware/authMiddleware');
+const DiscountService = require('../services/DiscountService');
 
 const PLATFORM_COMMISSION = 0.20; // 20% para PianoLink
 
@@ -47,6 +48,18 @@ router.post('/create-checkout', protect, async (req, res) => {
         const pricePerClass = studentPrice * (1 - discount / 100);
         const calculatedTotal = pricePerClass * classes;
 
+        // Buscar descuento automático (cupón waitlist)
+        const couponDiscount = await DiscountService.getApplicableDiscount({
+            email: req.user.email,
+            userId: req.user._id,
+            purchaseType: 'class_payment',
+            amountCents: DiscountService.dollarsToCents(calculatedTotal)
+        });
+
+        const finalTotal = couponDiscount
+            ? DiscountService.centsToDollars(couponDiscount.finalAmountCents)
+            : calculatedTotal;
+
         // Verificar que el total coincida (tolerancia de $1 por redondeo)
         if (Math.abs(calculatedTotal - total) > 1) {
             return res.status(400).json({
@@ -62,6 +75,10 @@ router.post('/create-checkout', protect, async (req, res) => {
         });
 
         // Crear sesión de Stripe Checkout
+        const descriptionParts = [];
+        if (discount > 0) descriptionParts.push(`${discount}% descuento paquete`);
+        if (couponDiscount) descriptionParts.push(`${couponDiscount.discountPercent}% cupón ${couponDiscount.couponCode}`);
+
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             mode: 'payment',
@@ -71,12 +88,12 @@ router.post('/create-checkout', protect, async (req, res) => {
                     currency: 'usd',
                     product_data: {
                         name: `${classes} ${classes === 1 ? 'Clase' : 'Clases'} de Piano con ${teacher.name}`,
-                        description: discount > 0 
-                            ? `Paquete de ${classes} clases (${discount}% descuento)`
+                        description: descriptionParts.length > 0
+                            ? `Paquete de ${classes} clases (${descriptionParts.join(' + ')})`
                             : `Clase individual de piano`,
                         images: [teacher.teacherData?.profile?.photo || 'https://pianolink.com/images/piano-class.jpg']
                     },
-                    unit_amount: Math.round(calculatedTotal * 100) // Stripe usa centavos
+                    unit_amount: Math.round(finalTotal * 100) // Stripe usa centavos
                 },
                 quantity: 1
             }],
@@ -89,19 +106,35 @@ router.post('/create-checkout', protect, async (req, res) => {
                 validDays: (validDays || 30).toString(),
                 teacherRate: teacherRate.toString(),
                 pricePerClass: pricePerClass.toFixed(2),
-                enrollmentId: enrollment?._id?.toString() || 'new'
+                enrollmentId: enrollment?._id?.toString() || 'new',
+                couponCode: couponDiscount?.couponCode || '',
+                couponId: couponDiscount?.couponId?.toString() || '',
+                couponDiscountPercent: couponDiscount?.discountPercent?.toString() || '0',
+                originalTotal: calculatedTotal.toFixed(2)
             },
             success_url: `${process.env.APP_URL || 'http://localhost:3000'}/compra-exitosa.html?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.APP_URL || 'http://localhost:3000'}/comprar-clases.html?profesor=${teacherSlug}&canceled=true`
         });
 
-        console.log(`[ClassPurchase] Checkout creado: ${session.id} - ${classes} clases con ${teacher.name}`);
+        console.log(`[ClassPurchase] Checkout creado: ${session.id} - ${classes} clases con ${teacher.name}${couponDiscount ? ` (cupón ${couponDiscount.couponCode})` : ''}`);
 
-        res.json({
+        const response = {
             success: true,
             sessionId: session.id,
             sessionUrl: session.url
-        });
+        };
+
+        if (couponDiscount) {
+            response.discount = {
+                code: couponDiscount.couponCode,
+                percent: couponDiscount.discountPercent,
+                originalTotal: calculatedTotal,
+                finalTotal,
+                savedUSD: calculatedTotal - finalTotal
+            };
+        }
+
+        res.json(response);
 
     } catch (error) {
         console.error('[ClassPurchase] Error:', error);

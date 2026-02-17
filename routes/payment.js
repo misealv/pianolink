@@ -10,6 +10,7 @@ const User = require('../models/User');
 const GlobalConfig = require('../models/GlobalConfig');
 const { protect } = require('../middleware/authMiddleware');
 const StripeService = require('../services/StripeService');
+const DiscountService = require('../services/DiscountService');
 
 // Obtener access token de PayPal
 async function getPayPalAccessToken() {
@@ -53,6 +54,17 @@ router.post('/create-kit-payment', async (req, res) => {
             ? 'https://api-m.paypal.com'
             : 'https://api-m.sandbox.paypal.com';
 
+        // Buscar descuento automático (cupón waitlist)
+        const basePriceCents = 1500; // $15.00 en centavos
+        const couponDiscount = await DiscountService.getApplicableDiscount({
+            email,
+            purchaseType: 'kit_purchase',
+            amountCents: basePriceCents
+        });
+
+        const finalPriceCents = couponDiscount ? couponDiscount.finalAmountCents : basePriceCents;
+        const finalPriceStr = (finalPriceCents / 100).toFixed(2);
+
         // Crear orden de pago único
         const orderData = {
             intent: 'CAPTURE',
@@ -62,20 +74,22 @@ router.post('/create-kit-payment', async (req, res) => {
                 custom_id: email, // Para identificar al usuario
                 amount: {
                     currency_code: 'USD',
-                    value: '15.00',
+                    value: finalPriceStr,
                     breakdown: {
                         item_total: {
                             currency_code: 'USD',
-                            value: '15.00'
+                            value: finalPriceStr
                         }
                     }
                 },
                 items: [{
                     name: 'Kit de Bienvenida PianoLink',
-                    description: 'Cable MIDI + Sesión setup + Clase prueba 30min',
+                    description: couponDiscount
+                        ? `Cable MIDI + Sesión setup + Clase prueba 30min (${couponDiscount.discountPercent}% dto cupón ${couponDiscount.couponCode})`
+                        : 'Cable MIDI + Sesión setup + Clase prueba 30min',
                     unit_amount: {
                         currency_code: 'USD',
-                        value: '15.00'
+                        value: finalPriceStr
                     },
                     quantity: '1',
                     category: 'DIGITAL_GOODS'
@@ -199,6 +213,22 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
         }
         
         const totalPrice = servicePrice + cablePrice;
+
+        // Buscar descuento automático (cupón waitlist)
+        // Para MP, aplicamos el % sobre totalPrice (ya convertido a moneda local si aplica)
+        const couponDiscount = await DiscountService.getApplicableDiscount({
+            email,
+            purchaseType: 'kit_purchase',
+            // Convertir a centavos USD aproximados para validación
+            amountCents: currency === 'CLP' ? Math.round(totalPrice / 9.5) : Math.round(totalPrice * 100)
+        });
+
+        let finalTotalPrice = totalPrice;
+        if (couponDiscount && couponDiscount.discountPercent) {
+            // Aplicar porcentaje directamente sobre moneda local
+            const discountAmount = Math.round(totalPrice * couponDiscount.discountPercent / 100);
+            finalTotalPrice = totalPrice - discountAmount;
+        }
         
         // Nombre y descripción del producto (isV2 ya está definido arriba)
         let productName, productDescription;
@@ -219,7 +249,7 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
         console.log('[MercadoPago Kit] includesCable:', includesCable);
         console.log('[MercadoPago Kit] Precio servicio:', servicePrice, currency);
         console.log('[MercadoPago Kit] Precio cable:', cablePrice, currency);
-        console.log('[MercadoPago Kit] TOTAL:', totalPrice, currency);
+        console.log('[MercadoPago Kit] TOTAL:', finalTotalPrice, currency, couponDiscount ? `(cupón ${couponDiscount.couponCode} -${couponDiscount.discountPercent}%)` : '');
 
         // Mapeo de monedas para MercadoPago
         const mpCurrency = currency === 'CLP' ? 'CLP' : 
@@ -242,7 +272,7 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
                 category_id: 'services',
                 quantity: 1,
                 currency_id: mpCurrency,
-                unit_price: totalPrice
+                unit_price: finalTotalPrice
             }],
             payer: {
                 email: email,
@@ -362,15 +392,26 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
         // Sumar estudiantes adicionales
         totalPrice += extraStudentsPrice;
         
+        // Buscar descuento automático (cupón waitlist)
+        const couponDiscountStripe = await DiscountService.getApplicableDiscount({
+            email,
+            purchaseType: 'kit_purchase',
+            amountCents: Math.round(totalPrice * 100)
+        });
+
+        const finalTotalPriceStripe = couponDiscountStripe
+            ? DiscountService.centsToDollars(couponDiscountStripe.finalAmountCents)
+            : totalPrice;
+
         const currency = 'usd';
-        const priceInCents = Math.round(totalPrice * 100);
+        const priceInCents = Math.round(finalTotalPriceStripe * 100);
         
         console.log('[Stripe Kit] kitType:', kitType);
         console.log('[Stripe Kit] isV2:', isV2);
         console.log('[Stripe Kit] Precio servicio: $' + setupPrice);
         console.log('[Stripe Kit] Precio cable: $' + cablePrice);
         console.log('[Stripe Kit] Estudiantes adicionales: $' + extraStudentsPrice);
-        console.log('[Stripe Kit] TOTAL: $' + totalPrice);
+        console.log('[Stripe Kit] TOTAL: $' + finalTotalPriceStripe + (couponDiscountStripe ? ` (cupón ${couponDiscountStripe.couponCode} -${couponDiscountStripe.discountPercent}%)` : ''));
         
         let productName, productDescription;
         
@@ -422,6 +463,10 @@ router.post('/create-kit-payment-stripe', async (req, res) => {
                 studentCount: numStudents.toString(),
                 studentNames: JSON.stringify(studentNames || []),
                 totalPrice: totalPrice.toString(),
+                finalPrice: finalTotalPriceStripe.toString(),
+                couponCode: couponDiscountStripe?.couponCode || '',
+                couponId: couponDiscountStripe?.couponId?.toString() || '',
+                couponDiscountPercent: couponDiscountStripe?.discountPercent?.toString() || '0',
                 currency: 'USD'
             },
             success_url: `${process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev'}/welcome-kit/success?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,

@@ -19,6 +19,7 @@ const PaymentProviderResolver = require('../services/PaymentProviderResolver');
 const PayPalService = require('../services/PayPalService');
 const GeoIPService = require('../services/GeoIPService');
 const MpCountryRouter = require('../services/MpCountryRouter');
+const DiscountService = require('../services/DiscountService');
 
 // Tasas de cambio aproximadas USD → moneda local (mismas que membershipCheckout)
 const USD_RATES = {
@@ -84,6 +85,15 @@ router.post('/checkout', async (req, res) => {
         const priceUSD = earlyBird.welcomeKitPriceUSD || 2900; // centavos
         const regularPriceUSD = earlyBird.welcomeKitRegularPriceUSD || 4400;
 
+        // Buscar descuento automático (cupón waitlist)
+        const discount = await DiscountService.getApplicableDiscount({
+            email,
+            purchaseType: 'early_bird_kit',
+            amountCents: priceUSD
+        });
+
+        const finalPriceUSD = discount ? discount.finalAmountCents : priceUSD;
+
         // Resolver país
         let country = (bodyCountry || '').toUpperCase();
         if (!country || country === 'DEFAULT') {
@@ -108,12 +118,25 @@ router.post('/checkout', async (req, res) => {
 
         if (useProvider === 'mercadopago') {
             result = await _createMpEarlyBirdCheckout({
-                email, country, priceUSD, regularPriceUSD, resolved, successUrl, cancelUrl
+                email, country, priceUSD: finalPriceUSD, regularPriceUSD, resolved, successUrl, cancelUrl,
+                discount
             });
         } else {
             result = await _createPayPalEarlyBirdCheckout({
-                email, country, priceUSD, regularPriceUSD, successUrl, cancelUrl
+                email, country, priceUSD: finalPriceUSD, regularPriceUSD, successUrl, cancelUrl,
+                discount
             });
+        }
+
+        // Incluir info de descuento en la respuesta para el frontend
+        if (discount) {
+            result.discount = {
+                code: discount.couponCode,
+                percent: discount.discountPercent,
+                originalPriceUSD: priceUSD / 100,
+                finalPriceUSD: finalPriceUSD / 100,
+                savedUSD: discount.discountCents / 100
+            };
         }
 
         res.json(result);
@@ -149,17 +172,31 @@ router.post('/capture-paypal', async (req, res) => {
         const priceUSD = earlyBird?.welcomeKitPriceUSD || 2900;
         const regularPriceUSD = earlyBird?.welcomeKitRegularPriceUSD || 4400;
 
+        // Verificar si hay descuento aplicable
+        const discount = await DiscountService.getApplicableDiscount({
+            email,
+            purchaseType: 'early_bird_kit',
+            amountCents: priceUSD
+        });
+
+        const finalPriceUSD = discount ? discount.finalAmountCents : priceUSD;
+
         // Registrar pago en BD
-        await Payment.create({
+        const payment = await Payment.create({
             type: 'early_bird_kit',
             provider: 'paypal',
             externalPaymentId: capture.captureId || orderId,
-            amount: priceUSD,
+            amount: finalPriceUSD,
             currency: 'USD',
             status: 'approved',
             leadEmail: email || '',
             signatureValid: true,
             apiVerified: true,
+            // Campos de descuento
+            originalAmount: discount ? priceUSD : null,
+            discountCode: discount?.couponCode || null,
+            discountPercent: discount?.discountPercent || 0,
+            couponId: discount?.couponId || null,
             webhookData: {
                 source: 'waitlist_early_bird',
                 orderId,
@@ -172,7 +209,14 @@ router.post('/capture-paypal', async (req, res) => {
             }
         });
 
-        console.log(`[EarlyBirdCheckout] ✅ Pago PayPal capturado para ${email}: ${orderId}`);
+        // Registrar uso del cupón si se aplicó descuento
+        if (discount) {
+            await DiscountService.recordUsage(
+                discount.couponId, payment._id, 'early_bird_kit', priceUSD, finalPriceUSD
+            );
+        }
+
+        console.log(`[EarlyBirdCheckout] ✅ Pago PayPal capturado para ${email}: ${orderId}${discount ? ` (descuento ${discount.discountPercent}%)` : ''}`);
 
         res.json({
             success: true,

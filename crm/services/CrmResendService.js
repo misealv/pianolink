@@ -20,12 +20,24 @@ class CrmResendService {
         this.resend = null;
         this.config = {
             apiKey: process.env.RESEND_API_KEY,
-            from: process.env.EMAIL_FROM || 'Miguel Antonio <hola@pianolink.pro>',
-            replyTo: process.env.EMAIL_REPLY_TO || 'hola@pianolink.pro',
+            from: this._buildFromAddress(),
+            replyTo: process.env.EMAIL_REPLY_TO || 'hola@pianolink.net',
             batchSize: 50,
             batchDelay: 1500, // ms entre batches (rate limit de Resend)
         };
         this._initialize();
+    }
+
+    /**
+     * Construye el campo from con formato "Nombre <email>"
+     * Si EMAIL_FROM ya contiene '<', se usa tal cual.
+     * Si no, se combina con EMAIL_FROM_NAME.
+     */
+    _buildFromAddress() {
+        const raw = process.env.EMAIL_FROM || 'hola@pianolink.net';
+        if (raw.includes('<')) return raw; // Ya tiene formato "Name <email>"
+        const name = process.env.EMAIL_FROM_NAME || 'PianoLink';
+        return `${name} <${raw}>`;
     }
 
     _initialize() {

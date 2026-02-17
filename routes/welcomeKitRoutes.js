@@ -28,6 +28,7 @@ const { generateInterviewConfirmationEmail } = require('../templates/interviewCo
 const { generateWelcomeKitEmail } = require('../templates/welcomeKitEmail');
 const moment = require('moment-timezone');
 require('moment/locale/es'); // Cargar locale español para moment
+const DiscountService = require('../services/DiscountService');
 moment.locale('es');
 
 // Helper: Obtener datos del admin para inyectar en emails
@@ -667,7 +668,18 @@ router.post('/checkout', async (req, res) => {
         // 3. Total
         const totalPrice = servicePrice + productsTotal;
         
-        console.log(`[WelcomeKit] 💰 Precio: Servicio $${servicePriceUnit} x ${studentCount} = $${servicePrice} + Productos $${productsTotal} = Total $${totalPrice}`);
+        // 4. Buscar descuento automático (cupón waitlist)
+        const couponDiscount = await DiscountService.getApplicableDiscount({
+            email,
+            purchaseType: 'kit_purchase',
+            amountCents: DiscountService.dollarsToCents(totalPrice)
+        });
+
+        const finalTotalPrice = couponDiscount
+            ? DiscountService.centsToDollars(couponDiscount.finalAmountCents)
+            : totalPrice;
+        
+        console.log(`[WelcomeKit] 💰 Precio: Servicio $${servicePriceUnit} x ${studentCount} = $${servicePrice} + Productos $${productsTotal} = Total $${totalPrice}${couponDiscount ? ` → $${finalTotalPrice} (cupón ${couponDiscount.couponCode} -${couponDiscount.discountPercent}%)` : ''}`);
         
         // Crear orden en PayPal
         const accessToken = await getPayPalAccessToken();
@@ -719,11 +731,11 @@ router.post('/checkout', async (req, res) => {
             custom_id: email,
             amount: {
                 currency_code: currency,
-                value: totalPrice.toFixed(2),
+                value: finalTotalPrice.toFixed(2),
                 breakdown: {
                     item_total: {
                         currency_code: currency,
-                        value: totalPrice.toFixed(2)
+                        value: finalTotalPrice.toFixed(2)
                     }
                 }
             },
@@ -799,7 +811,7 @@ router.post('/checkout', async (req, res) => {
             payment: {
                 provider: 'paypal',
                 externalOrderId: order.id,
-                amount: totalPrice,
+                amount: finalTotalPrice,
                 currency: currency,
                 status: 'completed'
             },
@@ -851,20 +863,40 @@ router.post('/checkout', async (req, res) => {
         const approveLink = order.links?.find(link => link.rel === 'approve')?.href;
         
         const kitTypeLabel = hasPhysicalProducts ? 'Kit+Productos' : 'Solo Servicio';
-        console.log(`[WelcomeKit] 🛒 Checkout iniciado: ${email} → ${country} (${kitTypeLabel}: ${currency} ${totalPrice})`);
+        console.log(`[WelcomeKit] 🛒 Checkout iniciado: ${email} → ${country} (${kitTypeLabel}: ${currency} ${finalTotalPrice}${couponDiscount ? ` cupón ${couponDiscount.couponCode}` : ''})`);
         
-        res.json({
+        const checkoutResponse = {
             success: true,
             orderId: order.id,
             welcomeKitId: welcomeKit._id,
             approveLink,
-            price: totalPrice,
+            price: finalTotalPrice,
             currency,
             kitType: kitTypeValue,
             servicePrice,
             productsTotal,
             productCount: selectedProducts.length
-        });
+        };
+
+        if (couponDiscount) {
+            checkoutResponse.discount = {
+                code: couponDiscount.couponCode,
+                percent: couponDiscount.discountPercent,
+                originalPrice: totalPrice,
+                finalPrice: finalTotalPrice,
+                savedUSD: totalPrice - finalTotalPrice
+            };
+            // Guardar referencia del cupón en el welcomeKit para registrar uso post-pago
+            welcomeKit.couponData = {
+                couponId: couponDiscount.couponId,
+                couponCode: couponDiscount.couponCode,
+                discountPercent: couponDiscount.discountPercent,
+                originalAmount: totalPrice
+            };
+            await welcomeKit.save();
+        }
+
+        res.json(checkoutResponse);
         
     } catch (error) {
         console.error('[WelcomeKit] Error en checkout:', error);

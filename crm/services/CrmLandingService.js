@@ -477,6 +477,18 @@ class CrmLandingService {
                     console.error('[CRM Landing] Error enviando email de confirmación:', emailErr.message);
                     // No fallar el proceso si el email falla
                 }
+
+                // Crear cupón automático de waitlist (15% x 3 compras)
+                try {
+                    const DiscountService = require('../../services/DiscountService');
+                    const result = await DiscountService.createWaitlistCoupon(formData.email);
+                    if (result.created) {
+                        console.log(`[CRM Landing] 🎁 Cupón waitlist creado: ${result.coupon.code} → ${formData.email}`);
+                    }
+                } catch (couponErr) {
+                    console.error('[CRM Landing] Error creando cupón waitlist:', couponErr.message);
+                    // No fallar el proceso si el cupón falla
+                }
             }
 
             console.log(`[CRM Landing] 📝 Form submit en /l/${slug} — email: ${formData.email || 'N/A'}${trackingData.abVariant ? ` (variante ${trackingData.abVariant})` : ''}`);

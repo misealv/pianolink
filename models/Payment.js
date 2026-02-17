@@ -36,10 +36,29 @@ const paymentSchema = new mongoose.Schema({
         default: ''
     },
 
+    // === DESCUENTO / CUPÓN APLICADO ===
+    discountCode: {
+        type: String,
+        default: null
+    },
+    discountPercent: {
+        type: Number,
+        default: 0
+    },
+    originalAmount: {
+        type: Number,
+        default: null  // centavos — monto antes del descuento
+    },
+    couponId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Coupon',
+        default: null
+    },
+
     // Proveedor de pago
     provider: {
         type: String,
-        enum: ['mercadopago', 'paypal', 'manual'],
+        enum: ['mercadopago', 'paypal', 'manual', 'stripe'],
         required: true
     },
 

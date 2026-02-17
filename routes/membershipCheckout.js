@@ -17,6 +17,7 @@ const PlanPermissionService = require('../services/PlanPermissionService');
 const GlobalConfig = require('../models/GlobalConfig');
 const User = require('../models/User');
 const MpCredentials = require('../models/MpCredentials');
+const DiscountService = require('../services/DiscountService');
 
 // Intentar importar MercadoPago SDK si disponible
 let MercadoPagoConfig, Preference;
@@ -79,7 +80,27 @@ router.post('/checkout/premium', protect, teacherOrAdmin, async (req, res) => {
         const planConfig = config?.memberships?.teacherPlans?.premium;
         const priceUSD = planConfig?.price || 1900; // centavos
 
-        const result = await _createCheckout(teacher, 'premium', priceUSD, req.body.returnUrl);
+        // Buscar descuento automático
+        const discount = await DiscountService.getApplicableDiscount({
+            email: teacher.email,
+            userId: teacher._id,
+            purchaseType: 'membership',
+            amountCents: priceUSD
+        });
+
+        const finalPriceUSD = discount ? discount.finalAmountCents : priceUSD;
+        const result = await _createCheckout(teacher, 'premium', finalPriceUSD, req.body.returnUrl, discount);
+
+        if (discount) {
+            result.discount = {
+                code: discount.couponCode,
+                percent: discount.discountPercent,
+                originalPriceUSD: priceUSD / 100,
+                finalPriceUSD: finalPriceUSD / 100,
+                savedUSD: discount.discountCents / 100
+            };
+        }
+
         res.json(result);
     } catch (error) {
         console.error('[MembershipCheckout] Error checkout premium:', error);
@@ -112,7 +133,27 @@ router.post('/checkout/founder', protect, teacherOrAdmin, async (req, res) => {
         const planConfig = config?.memberships?.teacherPlans?.founder;
         const priceUSD = planConfig?.price || 1000; // centavos
 
-        const result = await _createCheckout(teacher, 'founder', priceUSD, req.body.returnUrl);
+        // Buscar descuento automático
+        const discount = await DiscountService.getApplicableDiscount({
+            email: teacher.email,
+            userId: teacher._id,
+            purchaseType: 'membership',
+            amountCents: priceUSD
+        });
+
+        const finalPriceUSD = discount ? discount.finalAmountCents : priceUSD;
+        const result = await _createCheckout(teacher, 'founder', finalPriceUSD, req.body.returnUrl, discount);
+
+        if (discount) {
+            result.discount = {
+                code: discount.couponCode,
+                percent: discount.discountPercent,
+                originalPriceUSD: priceUSD / 100,
+                finalPriceUSD: finalPriceUSD / 100,
+                savedUSD: discount.discountCents / 100
+            };
+        }
+
         res.json(result);
     } catch (error) {
         console.error('[MembershipCheckout] Error checkout founder:', error);
@@ -207,7 +248,7 @@ router.get('/status', protect, teacherOrAdmin, async (req, res) => {
 /**
  * Crea checkout para membresía según proveedor resuelto.
  */
-async function _createCheckout(teacher, plan, priceUSD, returnUrl) {
+async function _createCheckout(teacher, plan, priceUSD, returnUrl, discount = null) {
     const resolved = await PaymentProviderResolver.resolveForMembership(teacher);
     const baseUrl = process.env.BASE_URL || 'https://pianolink.cl';
     const successUrl = returnUrl || `${baseUrl}/dashboard.html?membership=success&plan=${plan}`;
