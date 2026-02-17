@@ -265,7 +265,7 @@ class CrmResendService {
      */
     async _getSuscriptoresParaCampaign(targeting = {}) {
         try {
-            // Buscar leads con email válido y no desuscrito
+            // Buscar leads con email válido, no desuscrito, y no convertido
             const filter = {
                 'emailPreferences.unsubscribed': { $ne: true },
                 'emailPreferences.bounced': { $ne: true }
@@ -277,6 +277,9 @@ class CrmResendService {
             }
             if (targeting.segmentos && targeting.segmentos.length > 0) {
                 filter.segment = { $in: targeting.segmentos };
+            } else {
+                // Si no hay targeting explícito, excluir customers (ya compraron)
+                filter.segment = { $nin: ['customer'] };
             }
 
             const crmLeads = await CrmLead.find(filter)
