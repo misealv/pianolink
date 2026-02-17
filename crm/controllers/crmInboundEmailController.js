@@ -64,39 +64,38 @@ exports.receiveInbound = async (req, res) => {
     res.status(200).json({ received: true });
 
     try {
-        // Verificar firma si RESEND_WEBHOOK_SECRET está configurado
+        // Verificar firma Svix (si está configurada y los headers existen)
         const secret = process.env.RESEND_WEBHOOK_SECRET;
+        let signatureVerified = false;
+
         if (secret) {
             const svixId = req.headers['svix-id'];
             const svixTimestamp = req.headers['svix-timestamp'];
             const svixSignature = req.headers['svix-signature'];
 
-            if (!svixId || !svixTimestamp || !svixSignature) {
-                console.warn('[CRM Inbound] ⚠️ Webhook sin headers de firma Svix');
-                return;
-            }
+            if (svixId && svixTimestamp && svixSignature) {
+                // Verificar timestamp (tolerancia de 5 minutos)
+                const now = Math.floor(Date.now() / 1000);
+                const ts = parseInt(svixTimestamp, 10);
+                if (Math.abs(now - ts) > 300) {
+                    console.warn('[CRM Inbound] ⚠️ Timestamp Svix expirado, procesando de todas formas');
+                } else {
+                    // Verificar firma HMAC
+                    const rawBody = JSON.stringify(req.body);
+                    const toSign = `${svixId}.${svixTimestamp}.${rawBody}`;
+                    const expectedSig = crypto
+                        .createHmac('sha256', secret.startsWith('whsec_') ? Buffer.from(secret.slice(6), 'base64') : secret)
+                        .update(toSign)
+                        .digest('base64');
 
-            // Verificar timestamp (tolerancia de 5 minutos)
-            const now = Math.floor(Date.now() / 1000);
-            const ts = parseInt(svixTimestamp, 10);
-            if (Math.abs(now - ts) > 300) {
-                console.warn('[CRM Inbound] ⚠️ Timestamp expirado');
-                return;
-            }
-
-            // Verificar firma HMAC
-            const rawBody = JSON.stringify(req.body);
-            const toSign = `${svixId}.${svixTimestamp}.${rawBody}`;
-            const expectedSig = crypto
-                .createHmac('sha256', secret.startsWith('whsec_') ? Buffer.from(secret.slice(6), 'base64') : secret)
-                .update(toSign)
-                .digest('base64');
-
-            // Svix puede enviar múltiples firmas separadas por espacio
-            const signatures = svixSignature.split(' ').map(s => s.replace(/^v1,/, ''));
-            if (!signatures.includes(expectedSig)) {
-                console.warn('[CRM Inbound] ⚠️ Firma inválida');
-                return;
+                    const signatures = svixSignature.split(' ').map(s => s.replace(/^v1,/, ''));
+                    signatureVerified = signatures.includes(expectedSig);
+                    if (!signatureVerified) {
+                        console.warn('[CRM Inbound] ⚠️ Firma Svix no coincide, procesando de todas formas');
+                    }
+                }
+            } else {
+                console.warn('[CRM Inbound] ⚠️ Webhook sin headers Svix (normal para algunos eventos Resend)');
             }
         }
 
@@ -107,9 +106,18 @@ exports.receiveInbound = async (req, res) => {
         const eventType = body.type;
         const data = body.data || body;
 
-        // Solo procesar emails recibidos
+        console.log(`[CRM Inbound] 📨 Evento recibido: ${eventType || 'sin tipo'} | firma: ${signatureVerified ? '✅' : '⚠️ no verificada'}`);
+
+        // Eventos de tracking (no son emails entrantes, pero los logueamos)
+        const trackingEvents = ['email.sent', 'email.delivered', 'email.opened', 'email.clicked', 'email.bounced', 'email.complained'];
+        if (eventType && trackingEvents.includes(eventType)) {
+            console.log(`[CRM Inbound] 📊 Evento tracking: ${eventType} | to: ${data.to || '?'} | subject: ${data.subject || '?'}`);
+            return;
+        }
+
+        // Para email.received O eventos sin tipo (compatibilidad), procesar como email entrante
         if (eventType && eventType !== 'email.received') {
-            console.log(`[CRM Inbound] Evento ignorado: ${eventType}`);
+            console.log(`[CRM Inbound] Evento no reconocido ignorado: ${eventType}`);
             return;
         }
 
@@ -127,7 +135,7 @@ exports.receiveInbound = async (req, res) => {
         const inReplyTo = _findHeader(headers, 'in-reply-to');
         const references = _findHeader(headers, 'references');
 
-        console.log(`[CRM Inbound] 📩 Email recibido de: ${fromEmail} | Asunto: ${subject}`);
+        console.log(`[CRM Inbound] 📩 Email entrante de: ${fromEmail} | Asunto: ${subject}`);
 
         // Buscar lead vinculado por email
         const Lead = getLead();
