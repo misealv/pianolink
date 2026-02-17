@@ -140,26 +140,26 @@ exports.receiveInbound = async (req, res) => {
         const subject = data.subject || '(sin asunto)';
         const headers = data.headers || [];
 
-        // Resend inbound webhook NO incluye el body en el payload.
-        // Necesitamos obtenerlo vía API usando el email_id.
-        let textBody = data.text || data.body || '';
-        let htmlBody = data.html || data.html_body || '';
+        // Resend inbound webhook NO incluye el body en el payload (diseño oficial).
+        // Se usa el endpoint /emails/receiving/:id para obtener html/text.
+        let textBody = '';
+        let htmlBody = '';
         const resendEmailId = data.email_id || data.id || '';
 
-        if (!textBody && !htmlBody && resendEmailId) {
+        if (resendEmailId) {
             try {
                 const resendService = getCrmResendService();
                 if (resendService.isConfigured()) {
-                    console.log(`[CRM Inbound] 📥 Obteniendo body del email vía API: ${resendEmailId}`);
-                    const emailDetail = await resendService.resend.emails.get(resendEmailId);
+                    console.log(`[CRM Inbound] 📥 Obteniendo body vía receiving API: ${resendEmailId}`);
+                    const emailDetail = await resendService.resend.emails.receiving.get(resendEmailId);
                     if (emailDetail?.data) {
                         textBody = emailDetail.data.text || '';
-                        htmlBody = emailDetail.data.html || emailDetail.data.body || '';
+                        htmlBody = emailDetail.data.html || '';
                         console.log(`[CRM Inbound] ✅ Body obtenido: text=${textBody.length} chars, html=${htmlBody.length} chars`);
                     }
                 }
             } catch (fetchErr) {
-                console.warn(`[CRM Inbound] ⚠️ No se pudo obtener body vía API: ${fetchErr.message}`);
+                console.warn(`[CRM Inbound] ⚠️ No se pudo obtener body vía receiving API: ${fetchErr.message}`);
             }
         }
 

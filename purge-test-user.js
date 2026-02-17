@@ -19,6 +19,7 @@ const OnboardingSlot = require('./models/OnboardingSlot');
 const CrmLead = require('./crm/models/CrmLead');
 const CrmInteraction = require('./crm/models/CrmInteraction');
 const CrmConversion = require('./crm/models/CrmConversion');
+const CrmInboundEmail = require('./crm/models/CrmInboundEmail');
 
 async function purge(email) {
   console.log(`\n🔍 Buscando registros para: ${email}\n`);
@@ -55,9 +56,21 @@ async function purge(email) {
     const r2 = await CrmConversion.deleteMany({ leadRef: crmLeadId });
     results.push(`  CrmConversion: ${r2.deletedCount} borrados`);
 
+    const r7 = await CrmInboundEmail.deleteMany({ leadRef: crmLeadId });
+    results.push(`  CrmInboundEmail (por leadRef): ${r7.deletedCount} borrados`);
+
     await CrmLead.deleteOne({ _id: crmLeadId });
     results.push(`  CrmLead: 1 borrado`);
   }
+
+  // Emails del inbox que coincidan por dirección (sin leadRef vinculado)
+  const r8 = await CrmInboundEmail.deleteMany({
+    $or: [
+      { from: { $regex: email, $options: 'i' } },
+      { to: { $regex: email, $options: 'i' } }
+    ]
+  });
+  results.push(`  CrmInboundEmail (por email): ${r8.deletedCount} borrados`);
 
   // Payments (por email y por userId)
   const paymentQuery = { $or: [{ leadEmail: email }] };
