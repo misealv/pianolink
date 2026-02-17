@@ -265,6 +265,32 @@ class EmailService {
             return false;
         }
     }
+
+    /**
+     * Envía invitación de Profesor Fundador
+     * @param {Object} data - { teacherName, recipientEmail, inviteUrl }
+     * @returns {Promise<Object>} - Resultado del envío con id del mensaje
+     */
+    async sendFounderInvitation(data) {
+        try {
+            const generateEmail = require('../templates/emails/founderInvitation');
+            const html = generateEmail({
+                teacherName: data.teacherName,
+                inviteUrl: data.inviteUrl,
+                recipientEmail: data.recipientEmail
+            });
+
+            const firstName = data.teacherName.split(' ')[0];
+            return await this.send({
+                to: data.recipientEmail,
+                subject: `🎹 ${firstName}, te invitamos a ser Profesor Fundador de PianoLink`,
+                html
+            });
+        } catch (error) {
+            console.error('[EMAIL] Error enviando invitación fundador:', error.message);
+            throw error;
+        }
+    }
 }
 
 // Singleton: una única instancia compartida

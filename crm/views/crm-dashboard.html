@@ -298,6 +298,11 @@
         <li><a class="nav-link" data-section="attribution"><span class="icon">📈</span> Atribución</a></li>
     </ul>
 
+    <p class="sidebar-section">Captación</p>
+    <ul class="sidebar-nav">
+        <li><a class="nav-link" data-section="founder-invites"><span class="icon">✉️</span> Invitaciones Fundador</a></li>
+    </ul>
+
     <div class="sidebar-footer">
         <a href="/admin.html">← Volver al Admin</a>
         <a href="#" id="btnLogout">Cerrar Sesión</a>
@@ -807,6 +812,84 @@
             </div>
         </section>
 
+        <!-- ==================== INVITACIONES FUNDADOR ==================== -->
+        <section class="section" id="section-founder-invites">
+            <div class="content-inner" style="padding:24px;">
+                <!-- Stats -->
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
+                    <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:var(--shadow); text-align:center;">
+                        <div style="font-size:28px; font-weight:700; color:var(--accent);" id="fi-stat-eligible">0</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Elegibles</div>
+                    </div>
+                    <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:var(--shadow); text-align:center;">
+                        <div style="font-size:28px; font-weight:700; color:var(--info);" id="fi-stat-sent">0</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Enviadas</div>
+                    </div>
+                    <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:var(--shadow); text-align:center;">
+                        <div style="font-size:28px; font-weight:700; color:var(--warning);" id="fi-stat-opened">0</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Abiertas</div>
+                    </div>
+                    <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:var(--shadow); text-align:center;">
+                        <div style="font-size:28px; font-weight:700; color:var(--success);" id="fi-stat-registered">0</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Registrados</div>
+                    </div>
+                </div>
+
+                <!-- Acciones -->
+                <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
+                    <button onclick="fiSendBatch()" id="fi-send-batch-btn" style="background:var(--accent); color:#fff; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;">🚀 Enviar a pendientes</button>
+                    <button onclick="fiPreviewEmail()" style="background:#fff; color:var(--text-primary); border:1px solid var(--border); padding:10px 20px; border-radius:8px; cursor:pointer; font-size:13px;">👁️ Preview Email</button>
+                    <button onclick="fiPreviewLanding()" style="background:#fff; color:var(--text-primary); border:1px solid var(--border); padding:10px 20px; border-radius:8px; cursor:pointer; font-size:13px;">🌐 Ver Landing</button>
+                    <button onclick="loadFounderInvites()" style="background:#fff; color:var(--text-primary); border:1px solid var(--border); padding:10px 20px; border-radius:8px; cursor:pointer; font-size:13px;">🔄 Actualizar</button>
+                </div>
+
+                <!-- Tabla Leads -->
+                <div style="background:#fff; border-radius:12px; box-shadow:var(--shadow); margin-bottom:24px; overflow:hidden;">
+                    <div style="padding:16px 20px; border-bottom:1px solid var(--border); font-weight:600;">📋 Leads de Profesores</div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead>
+                                <tr style="background:#f8f9fa; text-align:left;">
+                                    <th style="padding:10px 16px; width:40px;"><input type="checkbox" id="fi-select-all" onchange="fiToggleSelectAll()"></th>
+                                    <th style="padding:10px 16px;">Nombre</th>
+                                    <th style="padding:10px 16px;">Email</th>
+                                    <th style="padding:10px 16px;">País</th>
+                                    <th style="padding:10px 16px;">Estado Lead</th>
+                                    <th style="padding:10px 16px;">Invitación</th>
+                                    <th style="padding:10px 16px;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fi-leads-table-body">
+                                <tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-secondary);">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tabla Invitaciones -->
+                <div style="background:#fff; border-radius:12px; box-shadow:var(--shadow); overflow:hidden;">
+                    <div style="padding:16px 20px; border-bottom:1px solid var(--border); font-weight:600;">📬 Historial de Invitaciones</div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead>
+                                <tr style="background:#f8f9fa; text-align:left;">
+                                    <th style="padding:10px 16px;">Destinatario</th>
+                                    <th style="padding:10px 16px;">Email</th>
+                                    <th style="padding:10px 16px;">Estado</th>
+                                    <th style="padding:10px 16px;">Enviada</th>
+                                    <th style="padding:10px 16px;">Abierta</th>
+                                    <th style="padding:10px 16px;">Registrado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fi-invites-table-body">
+                                <tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-secondary);">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </div>
 </div>
 
@@ -1013,6 +1096,7 @@
             case 'emails': loadEmailCampaigns(); break;
             case 'inbox': loadInbox(); break;
             case 'pixel': loadPixelConfig(); break;
+            case 'founder-invites': loadFounderInvites(); break;
         }
     }
 
@@ -2146,6 +2230,159 @@
     window.loadInbox = loadInbox;
     window.filterInbox = filterInbox;
     window.markAllInboxRead = markAllInboxRead;
+
+    // ==================== INVITACIONES FUNDADOR ====================
+    const FI_API = '/api/founder-invite';
+
+    async function loadFounderInvites() {
+        try {
+            const [leadsRes, invitesRes] = await Promise.all([
+                fetch(`${FI_API}/eligible-leads`, { headers: authHeaders() }),
+                fetch(`${FI_API}/list`, { headers: authHeaders() })
+            ]);
+            const leadsData = await leadsRes.json();
+            const invitesData = await invitesRes.json();
+
+            if (leadsData.success) fiRenderLeadsTable(leadsData.leads);
+            if (invitesData.success) fiRenderInvitesTable(invitesData.invites);
+            if (leadsData.success && invitesData.success) {
+                fiUpdateStats(leadsData.leads || [], invitesData.invites || []);
+            }
+        } catch (e) { console.error('[CRM] Founder invites:', e); }
+    }
+
+    function fiUpdateStats(leads, invites) {
+        const eligible = leads.filter(l => !l.hasAccount).length;
+        const sent = invites.filter(i => ['sent','opened'].includes(i.status)).length;
+        const opened = invites.filter(i => i.status === 'opened' || i.openedAt).length;
+        const registered = invites.filter(i => i.status === 'registered').length;
+        const s = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+        s('fi-stat-eligible', eligible);
+        s('fi-stat-sent', sent);
+        s('fi-stat-opened', opened);
+        s('fi-stat-registered', registered);
+    }
+
+    function fiRenderLeadsTable(leads) {
+        const tbody = document.getElementById('fi-leads-table-body');
+        if (!leads.length) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-secondary);">No hay leads pendientes</td></tr>';
+            return;
+        }
+        const badgeStyle = (bg) => `background:${bg}; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px;`;
+        const statusBadge = { 'new': ['#3b82f6','Nuevo'], 'contacted': ['#f59e0b','Contactado'], 'qualified': ['#8b5cf6','Calificado'], 'converted': ['#10b981','Convertido'] };
+        tbody.innerHTML = leads.map(l => {
+            const [sBg, sLabel] = statusBadge[l.status] || ['#6b7280', l.status];
+            let invBadge = '<span style="color:#888; font-size:12px;">Sin enviar</span>';
+            if (l.hasAccount) {
+                invBadge = `<span style="${badgeStyle('#10b981')}">✅ Tiene cuenta</span>`;
+            } else if (l.invite) {
+                const invMap = { pending:['#6b7280','⏳ Pendiente'], sent:['#3b82f6','📧 Enviada'], opened:['#f59e0b','👁️ Abierta'], registered:['#10b981','✅ Registrado'] };
+                const [iBg, iLabel] = invMap[l.invite.status] || ['#6b7280', l.invite.status];
+                invBadge = `<span style="${badgeStyle(iBg)}">${iLabel}</span>`;
+            }
+            const canSend = !l.hasAccount && (!l.invite || l.invite.status === 'pending');
+            return `<tr>
+                <td style="padding:10px 16px;"><input type="checkbox" class="fi-lead-check" value="${l._id}" ${l.hasAccount ? 'disabled' : ''}></td>
+                <td style="padding:10px 16px;"><strong>${l.name}</strong></td>
+                <td style="padding:10px 16px; font-size:12px;">${l.email}</td>
+                <td style="padding:10px 16px;">${l.country || '—'}</td>
+                <td style="padding:10px 16px;"><span style="${badgeStyle(sBg)}">${sLabel}</span></td>
+                <td style="padding:10px 16px;">${invBadge}</td>
+                <td style="padding:10px 16px;">
+                    ${canSend ? `<button onclick="fiSendToLead('${l._id}','${l.name.replace(/'/g, "\\'")}')"
+                        style="background:var(--accent); color:#fff; padding:4px 14px; border:none; border-radius:6px; cursor:pointer; font-size:12px;">📧 Enviar</button>` : ''}
+                    ${l.invite?.token ? `<button onclick="window.open('/founder-invite/${l.invite.token}','_blank')"
+                        style="background:transparent; color:var(--accent); padding:4px 8px; border:1px solid var(--accent); border-radius:6px; cursor:pointer; font-size:12px;">🔗</button>` : ''}
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function fiRenderInvitesTable(invites) {
+        const tbody = document.getElementById('fi-invites-table-body');
+        if (!invites.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-secondary);">No hay invitaciones enviadas aún</td></tr>';
+            return;
+        }
+        const colors = { pending:'#6b7280', sent:'#3b82f6', opened:'#f59e0b', registered:'#10b981', expired:'#ef4444' };
+        const labels = { pending:'Pendiente', sent:'Enviada', opened:'Abierta', registered:'Registrado', expired:'Expirada' };
+        const fmt = (d) => d ? new Date(d).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+        tbody.innerHTML = invites.map(i => `<tr>
+            <td style="padding:10px 16px;"><strong>${i.recipientName}</strong></td>
+            <td style="padding:10px 16px; font-size:12px;">${i.recipientEmail}</td>
+            <td style="padding:10px 16px;"><span style="background:${colors[i.status]||'#6b7280'}; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px;">${labels[i.status]||i.status}</span></td>
+            <td style="padding:10px 16px; font-size:12px;">${fmt(i.sentAt)}</td>
+            <td style="padding:10px 16px; font-size:12px;">${fmt(i.openedAt)}</td>
+            <td style="padding:10px 16px; font-size:12px;">${i.registeredUserId ? '✅ ' + (i.registeredUserId.name||'') : '—'}</td>
+        </tr>`).join('');
+    }
+
+    async function fiSendToLead(leadId, leadName) {
+        if (!confirm(`¿Enviar invitación Fundador a ${leadName}?`)) return;
+        try {
+            const res = await fetch(`${FI_API}/send`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({ leadId })
+            });
+            const data = await res.json();
+            if (data.success) { alert(`✅ Invitación enviada a ${leadName}`); loadFounderInvites(); }
+            else alert(`❌ ${data.message}`);
+        } catch(e) { alert('❌ Error de conexión'); }
+    }
+
+    async function fiSendBatch() {
+        const selected = Array.from(document.querySelectorAll('.fi-lead-check:checked')).map(c => c.value);
+        let body;
+        if (selected.length) {
+            if (!confirm(`¿Enviar invitación a ${selected.length} lead(s)?`)) return;
+            body = { leadIds: selected };
+        } else {
+            if (!confirm('¿Enviar invitaciones a TODOS los leads pendientes sin cuenta ni invitación?')) return;
+            body = { filter: 'pending' };
+        }
+        const btn = document.getElementById('fi-send-batch-btn');
+        btn.disabled = true; btn.textContent = '⏳ Enviando...';
+        try {
+            const res = await fetch(`${FI_API}/send-batch`, {
+                method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(`✅ Enviados: ${data.sent?.length||0} | Omitidos: ${data.skipped?.length||0} | Fallidos: ${data.failed?.length||0}`);
+                loadFounderInvites();
+            } else alert(`❌ ${data.message}`);
+        } catch(e) { alert('❌ Error de conexión'); }
+        finally { btn.disabled = false; btn.textContent = '🚀 Enviar a pendientes'; }
+    }
+
+    function fiToggleSelectAll() {
+        const checked = document.getElementById('fi-select-all').checked;
+        document.querySelectorAll('.fi-lead-check:not(:disabled)').forEach(c => c.checked = checked);
+    }
+
+    function fiPreviewEmail() {
+        const token = getToken();
+        window.open(`${FI_API}/preview-email?name=Profesor+Demo&email=demo@example.com&token=${token}`, '_blank');
+    }
+
+    async function fiPreviewLanding() {
+        try {
+            const res = await fetch(`${FI_API}/preview-landing?name=Profesor+Demo`, { headers: authHeaders() });
+            const data = await res.json();
+            if (data.success) window.open(data.previewUrl, '_blank');
+            else alert('Error generando preview');
+        } catch(e) { alert('Error de conexión'); }
+    }
+
+    // Exponer funciones de founder invites al scope global
+    window.loadFounderInvites = loadFounderInvites;
+    window.fiSendToLead = fiSendToLead;
+    window.fiSendBatch = fiSendBatch;
+    window.fiToggleSelectAll = fiToggleSelectAll;
+    window.fiPreviewEmail = fiPreviewEmail;
+    window.fiPreviewLanding = fiPreviewLanding;
 
 })();
 </script>

@@ -336,11 +336,28 @@ class LeadService {
     }
 
     /**
-     * Elimina un lead
+     * Elimina un lead y su CrmLead asociado (cascada)
      */
     static async delete(id) {
         const lead = await Lead.findByIdAndDelete(id);
         if (!lead) return { success: false, status: 404, message: 'Lead no encontrado' };
+
+        // Limpiar CrmLead, interacciones y conversiones asociadas
+        try {
+            const CrmLead = require('../crm/models/CrmLead');
+            const CrmInteraction = require('../crm/models/CrmInteraction');
+            const CrmConversion = require('../crm/models/CrmConversion');
+
+            const crmLead = await CrmLead.findOneAndDelete({ leadRef: id });
+            if (crmLead) {
+                await CrmInteraction.deleteMany({ leadRef: crmLead._id });
+                await CrmConversion.deleteMany({ leadRef: crmLead._id });
+                console.log(`[LeadService] 🗑️ CrmLead y datos asociados eliminados`);
+            }
+        } catch (e) {
+            // CRM no disponible — no bloquear el borrado del lead
+            console.warn(`[LeadService] ⚠️ No se pudo limpiar CRM para lead ${id}:`, e.message);
+        }
 
         console.log(`[LeadService] 🗑️ Lead eliminado: ${lead.email}`);
         return { success: true, message: 'Lead eliminado correctamente' };
