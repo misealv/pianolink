@@ -2255,8 +2255,8 @@
                 <section class="payment-status">
                     <div class="status-header">
                         <h2 class="section-title" style="margin:0">💳 Estado de cuenta</h2>
-                        <span class="status-badge ${subscription.status === 'active' ? 'active' : 'pending'}">
-                            ${subscription.status === 'active' ? '✓ Al día' : '⚠ Sin clases'}
+                        <span class="status-badge ${subscription.status === 'active' ? 'active' : subscription.status === 'onboarding' ? 'active' : 'pending'}">
+                            ${subscription.status === 'active' ? '✓ Al día' : subscription.status === 'onboarding' ? '🎓 En onboarding' : '⚠ Sin clases'}
                         </span>
                     </div>
                     <p style="color: var(--text-muted); font-size: 14px;">

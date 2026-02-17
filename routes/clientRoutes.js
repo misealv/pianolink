@@ -103,26 +103,46 @@ router.get('/subscription', protect, async (req, res) => {
         // Determinar estado de pago basado en clases restantes
         let totalClassesRemaining = 0;
         
-        if (user.role === 'student') {
-            // El usuario es estudiante directo
-            totalClassesRemaining = user.classesRemaining || 0;
-        } else if (user.clientData?.managedStudents?.length > 0) {
-            // El usuario es guardian/client con estudiantes gestionados
+        if (user.clientData?.managedStudents?.length > 0) {
+            // Guardian con estudiantes gestionados
             user.clientData.managedStudents.forEach(student => {
                 totalClassesRemaining += student.classesRemaining || 0;
             });
+        } else {
+            // Cliente individual o estudiante directo
+            totalClassesRemaining = user.classesRemaining || 0;
         }
 
+        // Verificar si está en onboarding (tiene kit pero aún no completa)
+        const WelcomeKit = require('../models/WelcomeKit');
+        const activeKit = await WelcomeKit.findOne({
+            $or: [{ clientId: user._id }, { clientEmail: user.email }],
+            kitType: 'setup_only',
+            overallStatus: { $ne: 'completed' }
+        }).lean();
+
+        const isOnboarding = !!activeKit;
         const paymentStatus = totalClassesRemaining > 0 ? 'active' : 'needs_payment';
 
+        // Mensaje contextual según estado
+        let message;
+        if (isOnboarding) {
+            message = totalClassesRemaining > 0
+                ? `Tienes ${totalClassesRemaining} clase de prueba incluida en tu Kit. Se activará en el paso 4 del onboarding.`
+                : 'Tu clase de prueba se activará al completar el onboarding.';
+        } else {
+            message = paymentStatus === 'active'
+                ? `Tienes ${totalClassesRemaining} clase(s) disponible(s)`
+                : 'No tienes clases disponibles. ¡Compra más clases!';
+        }
+
         res.json({
-            status: paymentStatus,
+            status: isOnboarding ? 'onboarding' : paymentStatus,
             classesRemaining: totalClassesRemaining,
             kitPurchased: user.kitPurchased || false,
             kitPurchaseDate: user.kitPurchaseDate || null,
-            message: paymentStatus === 'active' 
-                ? `Tienes ${totalClassesRemaining} clase(s) disponible(s)`
-                : 'No tienes clases disponibles. ¡Compra más clases!'
+            isOnboarding,
+            message
         });
     } catch (error) {
         console.error('[CLIENT] Error obteniendo suscripción:', error);
