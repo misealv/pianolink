@@ -567,6 +567,53 @@ class CrmSequenceRunner {
             default: return false;
         }
     }
+
+    // =========================================================================
+    // PROCESAMIENTO INMEDIATO (para paso 0 sin delay)
+    // =========================================================================
+
+    /**
+     * Procesa inmediatamente los pasos pendientes de un lead específico.
+     * Se usa después de auto-enrollar para enviar el Email 1 sin esperar el cron.
+     * Solo procesa pasos con delayHours === 0 (inmediatos).
+     * @param {string} crmLeadId - ID del CrmLead
+     */
+    static async processLeadImmediate(crmLeadId) {
+        try {
+            const lead = await CrmLead.findById(crmLeadId)
+                .populate('leadRef', 'name email phone type');
+
+            if (!lead || !lead.activeSequences || lead.activeSequences.length === 0) return;
+
+            // Buscar secuencias activas de este lead
+            const activeEnrollments = lead.activeSequences.filter(e => e.status === 'active');
+            if (activeEnrollments.length === 0) return;
+
+            const seqIds = activeEnrollments.map(e => e.sequenceId);
+            const sequences = await CrmSequence.find({ _id: { $in: seqIds }, status: 'active' }).lean();
+            const seqMap = {};
+            for (const s of sequences) seqMap[s._id.toString()] = s;
+
+            for (const enrollment of activeEnrollments) {
+                const seq = seqMap[enrollment.sequenceId?.toString()];
+                if (!seq) continue;
+
+                const stepIndex = enrollment.currentStep || 0;
+                const step = seq.steps?.[stepIndex];
+                if (!step) continue;
+
+                // Solo procesar si es step 0 con delay 0 (inmediato)
+                if (stepIndex === 0 && (step.delayHours || 0) === 0) {
+                    const result = await CrmSequenceRunner._processLeadStep(lead, enrollment, seq);
+                    if (result === 'sent') {
+                        console.log(`[SequenceRunner] ⚡ Email inmediato enviado a ${lead.leadRef?.email || lead._id} (secuencia: ${seq.name})`);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(`[SequenceRunner] Error en processLeadImmediate(${crmLeadId}):`, error.message);
+        }
+    }
 }
 
 module.exports = CrmSequenceRunner;

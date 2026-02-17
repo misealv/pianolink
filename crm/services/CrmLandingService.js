@@ -406,6 +406,7 @@ class CrmLandingService {
 
             // Intentar encontrar Lead existente por email o crear nuevo via core LeadService
             let crmLead = null;
+            let needsAutoEnroll = false;
             if (formData.email) {
                 const Lead = require('../../models/Lead');
                 const CrmLeadService = require('./CrmLeadService');
@@ -426,7 +427,14 @@ class CrmLandingService {
                         const bridgeResult = await CrmLeadService.findOrCreateFromCoreLead(coreLead._id, enrichment);
                         if (bridgeResult.success) {
                             crmLead = bridgeResult.data;
+                            needsAutoEnroll = true;
                             console.log(`[CRM Landing] 🔗 CrmLead creado para lead existente: ${coreLead.email}`);
+                        }
+                    } else {
+                        // CrmLead ya existe — verificar si tiene secuencias activas
+                        const hasActiveSeqs = (crmLead.activeSequences || []).some(e => e.status === 'active');
+                        if (!hasActiveSeqs) {
+                            needsAutoEnroll = true;
                         }
                     }
                 }
@@ -489,22 +497,10 @@ class CrmLandingService {
             // Incrementar métricas (global + variante si aplica)
             await CrmLanding.incrementMetric(landing._id, 'formSubmissions', 1, trackingData.abVariant || null);
 
-            // COMPLETADO: Enviar email transaccional de confirmación para waitlist
+            // Crear cupón automático de waitlist (15% x 3 compras)
+            // NOTA: El email de bienvenida se envía vía secuencia CRM (Email 1 inmediato),
+            // NO como email transaccional aquí. Así se trackea correctamente.
             if (slug === 'waitlist' && formData.email) {
-                try {
-                    const { getInstance: getResendService } = require('./CrmResendService');
-                    const resendService = getResendService();
-                    await resendService.sendWaitlistConfirmation(
-                        formData.email,
-                        formData.name || 'amigo/a'
-                    );
-                    console.log(`[CRM Landing] 📧 Email de confirmación enviado a ${formData.email}`);
-                } catch (emailErr) {
-                    console.error('[CRM Landing] Error enviando email de confirmación:', emailErr.message);
-                    // No fallar el proceso si el email falla
-                }
-
-                // Crear cupón automático de waitlist (15% x 3 compras)
                 try {
                     const DiscountService = require('../../services/DiscountService');
                     const result = await DiscountService.createWaitlistCoupon(formData.email);
@@ -514,6 +510,24 @@ class CrmLandingService {
                 } catch (couponErr) {
                     console.error('[CRM Landing] Error creando cupón waitlist:', couponErr.message);
                     // No fallar el proceso si el cupón falla
+                }
+            }
+
+            // Auto-enrollar en secuencias si el CrmLead no tiene secuencias activas
+            // Esto cubre el caso de leads que ya existían pero no fueron enrollados
+            if (needsAutoEnroll && crmLead?._id) {
+                try {
+                    const CrmBridgeService = require('./CrmBridgeService');
+                    // Poblar leadRef si no está
+                    if (!crmLead.leadRef || typeof crmLead.leadRef !== 'object') {
+                        const Lead = require('../../models/Lead');
+                        const populatedLead = await CrmLead.findById(crmLead._id).populate('leadRef');
+                        if (populatedLead) crmLead = populatedLead;
+                    }
+                    await CrmBridgeService._tryAutoEnroll('lead.created', crmLead);
+                    console.log(`[CRM Landing] 🔄 Auto-enroll ejecutado para ${formData.email}`);
+                } catch (enrollErr) {
+                    console.error('[CRM Landing] Error en auto-enroll:', enrollErr.message);
                 }
             }
 

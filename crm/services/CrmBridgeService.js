@@ -532,6 +532,16 @@ class CrmBridgeService {
                     const result = await SequenceService.enrollLead(seq._id.toString(), crmLead._id.toString());
                     if (result.success) {
                         console.log(`[CRM Bridge] Auto-enroll: lead ${crmLead._id} → secuencia "${seq.name}"`);
+
+                        // Enviar Email 1 inmediatamente si tiene delayHours: 0
+                        // (no esperar al cron de 10 min)
+                        try {
+                            const CrmSequenceRunner = require('./CrmSequenceRunner');
+                            await CrmSequenceRunner.processLeadImmediate(crmLead._id.toString());
+                        } catch (runnerError) {
+                            console.error(`[CRM Bridge] Error en envío inmediato:`, runnerError.message);
+                            // No falla — el cron lo enviará en el próximo ciclo
+                        }
                     }
                 } catch (seqError) {
                     console.error(`[CRM Bridge] Error auto-enrolling en secuencia ${seq._id}:`, seqError.message);
