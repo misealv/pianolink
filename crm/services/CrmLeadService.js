@@ -304,6 +304,36 @@ class CrmLeadService {
             const touchCount = crmLead.attribution.touchpoints.length;
             if (touchCount > 1) { score += Math.min((touchCount - 1) * 3, 9); reasons.push('multi_touch'); }
 
+            // Lifecycle stage bonus
+            const lifecycleBonus = {
+                subscriber: 5, lead: 10, qualified: 20,
+                opportunity: 30, customer: 40, evangelist: 50
+            };
+            if (crmLead.lifecycleStage && lifecycleBonus[crmLead.lifecycleStage]) {
+                score += lifecycleBonus[crmLead.lifecycleStage];
+                reasons.push('lifecycle_' + crmLead.lifecycleStage);
+            }
+
+            // Pipeline stage bonus (estudiantes)
+            const studentPipelineBonus = {
+                contacted: 5, demo_scheduled: 10, demo_completed: 15,
+                trial_class: 20, enrolled: 30
+            };
+            if (crmLead.pipelineStudent && studentPipelineBonus[crmLead.pipelineStudent]) {
+                score += studentPipelineBonus[crmLead.pipelineStudent];
+                reasons.push('pipeline_student_' + crmLead.pipelineStudent);
+            }
+
+            // Pipeline stage bonus (profesores)
+            const teacherPipelineBonus = {
+                contacted: 5, application_review: 10, interview: 15,
+                onboarding: 20, active: 30
+            };
+            if (crmLead.pipelineTeacher && teacherPipelineBonus[crmLead.pipelineTeacher]) {
+                score += teacherPipelineBonus[crmLead.pipelineTeacher];
+                reasons.push('pipeline_teacher_' + crmLead.pipelineTeacher);
+            }
+
             score = Math.min(score, 100);
             const reason = reasons.join(', ') || 'recalculated';
 
