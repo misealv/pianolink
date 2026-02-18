@@ -296,6 +296,12 @@
     <ul class="sidebar-nav">
         <li><a class="nav-link" data-section="funnel"><span class="icon">🔻</span> Embudo</a></li>
         <li><a class="nav-link" data-section="attribution"><span class="icon">📈</span> Atribución</a></li>
+        <li><a class="nav-link" data-section="report"><span class="icon">📊</span> Reporte CRM</a></li>
+    </ul>
+
+    <p class="sidebar-section">Seguimiento</p>
+    <ul class="sidebar-nav">
+        <li><a class="nav-link" data-section="tasks"><span class="icon">✅</span> Tareas <span class="badge" id="tasksBadge" style="display:none;">0</span></a></li>
     </ul>
 
     <p class="sidebar-section">Captación</p>
@@ -424,11 +430,15 @@
                         <button class="filter-btn" data-type="client">👨‍🎓 Clientes</button>
                         <span style="margin-left:auto;"></span>
                         <select class="filter-select" id="filterStatus">
-                            <option value="">Todos los estados</option>
-                            <option value="new">Nuevos</option>
+                            <option value="">Todas las etapas</option>
+                            <option value="lead">Nuevos</option>
                             <option value="contacted">Contactados</option>
-                            <option value="opportunity">Clase de Prueba</option>
-                            <option value="converted">Convertidos</option>
+                            <option value="demo_scheduled">Demo Agendada</option>
+                            <option value="demo_completed">Demo Completada</option>
+                            <option value="trial_class">Clase Prueba</option>
+                            <option value="enrolled">Inscritos</option>
+                            <option value="active">Activos (Prof)</option>
+                            <option value="lost">Perdidos</option>
                         </select>
                         <input type="text" class="filter-search" id="filterSearch" placeholder="Buscar por nombre o email...">
                     </div>
@@ -440,13 +450,14 @@
                                     <th>Tipo</th>
                                     <th>Origen</th>
                                     <th>Score</th>
-                                    <th>Estado</th>
+                                    <th>Etapa</th>
+                                    <th>Seguimiento</th>
                                     <th>Fecha</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="leadsTableAll">
-                                <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando leads...</td></tr>
+                                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando leads...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -464,10 +475,14 @@
                 <div class="card-body">
                     <div class="filters">
                         <select class="filter-select" id="filterStatusProf">
-                            <option value="">Todos los estados</option>
-                            <option value="new">Nuevos</option>
+                            <option value="">Todas las etapas</option>
+                            <option value="lead">Nuevos</option>
                             <option value="contacted">Contactados</option>
-                            <option value="converted">Convertidos</option>
+                            <option value="application_review">En Revisión</option>
+                            <option value="interview">Entrevista</option>
+                            <option value="onboarding">Onboarding</option>
+                            <option value="active">Activos</option>
+                            <option value="rejected">Rechazados</option>
                         </select>
                         <input type="text" class="filter-search" id="filterSearchProf" placeholder="Buscar...">
                     </div>
@@ -476,15 +491,17 @@
                             <thead>
                                 <tr>
                                     <th>Profesor</th>
+                                    <th>Tipo</th>
                                     <th>Origen</th>
                                     <th>Score</th>
-                                    <th>Estado</th>
+                                    <th>Etapa</th>
+                                    <th>Seguimiento</th>
                                     <th>Fecha</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="leadsTableProfesores">
-                                <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
+                                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -502,11 +519,14 @@
                 <div class="card-body">
                     <div class="filters">
                         <select class="filter-select" id="filterStatusClient">
-                            <option value="">Todos los estados</option>
-                            <option value="new">Nuevos</option>
+                            <option value="">Todas las etapas</option>
+                            <option value="lead">Nuevos</option>
                             <option value="contacted">Contactados</option>
-                            <option value="opportunity">Clase de Prueba</option>
-                            <option value="converted">Convertidos</option>
+                            <option value="demo_scheduled">Demo Agendada</option>
+                            <option value="demo_completed">Demo Completada</option>
+                            <option value="trial_class">Clase Prueba</option>
+                            <option value="enrolled">Inscritos</option>
+                            <option value="lost">Perdidos</option>
                         </select>
                         <input type="text" class="filter-search" id="filterSearchClient" placeholder="Buscar...">
                     </div>
@@ -515,15 +535,17 @@
                             <thead>
                                 <tr>
                                     <th>Cliente</th>
+                                    <th>Tipo</th>
                                     <th>Origen</th>
                                     <th>Score</th>
-                                    <th>Estado</th>
+                                    <th>Etapa</th>
+                                    <th>Seguimiento</th>
                                     <th>Fecha</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="leadsTableClientes">
-                                <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
+                                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -812,6 +834,151 @@
             </div>
         </section>
 
+        <!-- ==================== TAREAS Y SEGUIMIENTO ==================== -->
+        <section class="section" id="section-tasks">
+            <div class="kpi-grid" style="margin-bottom:24px;">
+                <div class="kpi-card">
+                    <div class="kpi-icon orange">⚠️</div>
+                    <div>
+                        <h3 id="kpiOverdueTasks">--</h3>
+                        <p>Tareas Vencidas</p>
+                        <small>Requieren atención</small>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon blue">📋</div>
+                    <div>
+                        <h3 id="kpiPendingTasks">--</h3>
+                        <p>Tareas Pendientes</p>
+                        <small>Para hoy</small>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon purple">🚨</div>
+                    <div>
+                        <h3 id="kpiNoFollowUp">--</h3>
+                        <p>Sin Seguimiento</p>
+                        <small>7+ días sin actividad</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>⚠️ Leads con Tareas Pendientes/Vencidas</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Lead</th>
+                                        <th>Tipo</th>
+                                        <th>Tarea</th>
+                                        <th>Vence</th>
+                                        <th>Prioridad</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pendingTasksTable">
+                                    <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>🚨 Leads Sin Seguimiento</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Lead</th>
+                                        <th>Tipo</th>
+                                        <th>Última actividad</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="noFollowUpTable">
+                                    <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== REPORTE CRM ==================== -->
+        <section class="section" id="section-report">
+            <div class="kpi-grid" style="margin-bottom:24px;">
+                <div class="kpi-card">
+                    <div class="kpi-icon green">📈</div>
+                    <div>
+                        <h3 id="kpiConversionRate">--%</h3>
+                        <p>Tasa Conversión</p>
+                        <small>Global</small>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon blue">⏱️</div>
+                    <div>
+                        <h3 id="kpiAvgDays">--</h3>
+                        <p>Días Prom. Conversión</p>
+                        <small>De lead a cliente</small>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon green">✅</div>
+                    <div>
+                        <h3 id="kpiTotalConverted">--</h3>
+                        <p>Total Convertidos</p>
+                        <small>Histórico</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>👨‍🎓 Pipeline Estudiantes</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="funnel-container" id="studentPipelineFunnel">
+                            <p style="color:var(--text-secondary);">Cargando...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>👨‍🏫 Pipeline Profesores</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="funnel-container" id="teacherPipelineFunnel">
+                            <p style="color:var(--text-secondary);">Cargando...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>🔥 Distribución por Segmento</h2>
+                </div>
+                <div class="card-body">
+                    <div id="segmentDistChart">
+                        <p style="color:var(--text-secondary);">Cargando...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ==================== INVITACIONES FUNDADOR ==================== -->
         <section class="section" id="section-founder-invites">
             <div class="content-inner" style="padding:24px;">
@@ -957,6 +1124,7 @@
         <div class="modal-body">
             <form id="formEditLead">
                 <input type="hidden" id="editLeadId">
+                <input type="hidden" id="editCrmLeadId">
                 <div class="form-group">
                     <label>Tipo de Lead *</label>
                     <select class="form-control" id="editLeadType" required>
@@ -977,13 +1145,13 @@
                     <input type="tel" class="form-control" id="editLeadPhone">
                 </div>
                 <div class="form-group">
-                    <label>Estado</label>
+                    <label>Estado (Lifecycle)</label>
                     <select class="form-control" id="editLeadStatus">
-                        <option value="new">Nuevo</option>
-                        <option value="contacted">Contactado</option>
-                        <option value="qualified">Calificado</option>
-                        <option value="converted">Convertido</option>
-                        <option value="rejected">Rechazado</option>
+                        <option value="lead">Nuevo</option>
+                        <option value="mql">Contactado</option>
+                        <option value="sql">Calificado</option>
+                        <option value="opportunity">Clase Prueba</option>
+                        <option value="customer">Convertido</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1010,6 +1178,93 @@
 </div>
 
 <!-- Modal: Crear Landing -->
+<!-- Modal: Avanzar Pipeline -->
+<div class="modal" id="modalPipeline">
+    <div class="modal-content" style="max-width:500px;">
+        <div class="modal-header">
+            <h3>📋 Avanzar Pipeline</h3>
+            <button class="modal-close" onclick="closeModal('modalPipeline')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="pipelineCrmLeadId">
+            <input type="hidden" id="pipelineLeadType">
+            <div class="form-group">
+                <label>Nueva Etapa *</label>
+                <select class="form-control" id="pipelineStage"></select>
+            </div>
+            <div class="form-group" id="lostReasonGroup" style="display:none;">
+                <label>Razón de pérdida *</label>
+                <select class="form-control" id="lostReason">
+                    <option value="no_response">Sin respuesta</option>
+                    <option value="price_too_high">Precio alto</option>
+                    <option value="chose_competitor">Eligió competencia</option>
+                    <option value="not_ready">No está listo</option>
+                    <option value="bad_experience">Mala experiencia</option>
+                    <option value="schedule_conflict">Conflicto de horario</option>
+                    <option value="other">Otro</option>
+                </select>
+            </div>
+            <div class="form-group" id="lostDetailsGroup" style="display:none;">
+                <label>Detalles</label>
+                <textarea class="form-control" id="lostDetails" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modalPipeline')">Cancelar</button>
+            <button class="btn btn-primary" onclick="savePipelineAdvance()">Avanzar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Agregar Tarea -->
+<div class="modal" id="modalAddTask">
+    <div class="modal-content" style="max-width:500px;">
+        <div class="modal-header">
+            <h3>📌 Nueva Tarea</h3>
+            <button class="modal-close" onclick="closeModal('modalAddTask')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="taskCrmLeadId">
+            <div class="form-group">
+                <label>Título *</label>
+                <input type="text" class="form-control" id="taskTitle" placeholder="Ej: Llamar para confirmar demo" required>
+            </div>
+            <div class="form-group">
+                <label>Tipo</label>
+                <select class="form-control" id="taskType">
+                    <option value="call">📞 Llamada</option>
+                    <option value="email">📧 Email</option>
+                    <option value="whatsapp">💬 WhatsApp</option>
+                    <option value="meeting">🤝 Reunión</option>
+                    <option value="follow_up" selected>📋 Seguimiento</option>
+                    <option value="review">📝 Revisión</option>
+                    <option value="other">📎 Otro</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Fecha Límite *</label>
+                <input type="date" class="form-control" id="taskDueDate" required>
+            </div>
+            <div class="form-group">
+                <label>Prioridad</label>
+                <select class="form-control" id="taskPriority">
+                    <option value="low">Baja</option>
+                    <option value="medium" selected>Media</option>
+                    <option value="high">Alta</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Notas</label>
+                <textarea class="form-control" id="taskNotes" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modalAddTask')">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveTask()">Crear Tarea</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal" id="modalCreateLanding">
     <div class="modal-content">
         <div class="modal-header">
@@ -1194,6 +1449,8 @@
             case 'inbox': loadInbox(); break;
             case 'pixel': loadPixelConfig(); break;
             case 'founder-invites': loadFounderInvites(); break;
+            case 'tasks': loadTasksSection(); break;
+            case 'report': loadReportSection(); break;
         }
     }
 
@@ -1279,7 +1536,7 @@
         const tbody = document.getElementById(tableId);
         if (!tbody) return;
         if (leads.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);">Sin leads en esta categoría</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">Sin leads en esta categoría</td></tr>';
             return;
         }
         tbody.innerHTML = leads.map(lead => {
@@ -1289,8 +1546,17 @@
             const type = ref.type === 'teacher' ? '<span class="badge badge-profesor">Profesor</span>' : '<span class="badge badge-cliente">Cliente</span>';
             const origin = lead.attribution?.firstTouch?.channel || 'Directo';
             const score = lead.score || 0;
-            const stage = getStageLabel(lead.lifecycleStage);
+            
+            // Mostrar etapa del pipeline según tipo
+            const pipelineStage = ref.type === 'teacher' 
+                ? getPipelineLabel(lead.pipelineTeacher, 'teacher')
+                : getPipelineLabel(lead.pipelineStudent, 'student');
+            // Fallback a lifecycle si no hay pipeline
+            const stage = (lead.pipelineTeacher || lead.pipelineStudent) ? pipelineStage : getStageLabel(lead.lifecycleStage);
+            
             const date = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '--';
+            const followUp = lead.nextFollowUp ? new Date(lead.nextFollowUp).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '--';
+            const isOverdue = lead.nextFollowUp && new Date(lead.nextFollowUp) < new Date();
             
             const leadId = ref._id || lead._id;
             return `<tr>
@@ -1302,14 +1568,43 @@
                 <td>${esc(origin)}</td>
                 <td><strong>${score}</strong></td>
                 <td><span class="badge ${stage.css}">${stage.label}</span></td>
+                <td style="${isOverdue ? 'color:var(--danger);font-weight:600;' : ''}">${followUp}</td>
                 <td>${date}</td>
                 <td>
-                    <button class="btn-icon" title="Editar" onclick="editLead('${leadId}')">✏️</button>
-                    <button class="btn-icon" title="Email" onclick="emailLead('${leadId}')">✉️</button>
+                    <button class="btn-icon" title="Editar" onclick="editLead('${leadId}', '${lead._id}')">✏️</button>
+                    <button class="btn-icon" title="Pipeline" onclick="showPipelineModal('${lead._id}', '${ref.type}')">📋</button>
+                    <button class="btn-icon" title="Tarea" onclick="showAddTaskModal('${lead._id}')">📌</button>
                     <button class="btn-icon" title="Eliminar" onclick="deleteLead('${leadId}', '${esc(name)}')">🗑️</button>
                 </td>
             </tr>`;
         }).join('');
+    }
+
+    // Etiquetas para pipeline de estudiantes
+    function getPipelineLabel(stage, type) {
+        if (type === 'student' || type === 'client') {
+            const map = {
+                lead: { label: 'Nuevo', css: 'badge-nuevo' },
+                contacted: { label: 'Contactado', css: 'badge-contactado' },
+                demo_scheduled: { label: 'Demo Agendada', css: 'badge-contactado' },
+                demo_completed: { label: 'Demo Completada', css: 'badge-prueba' },
+                trial_class: { label: 'Clase Prueba', css: 'badge-prueba' },
+                enrolled: { label: 'Inscrito ✓', css: 'badge-convertido' },
+                lost: { label: 'Perdido', css: 'badge-draft' }
+            };
+            return map[stage] || { label: stage || 'Nuevo', css: 'badge-nuevo' };
+        } else {
+            const map = {
+                lead: { label: 'Nuevo', css: 'badge-nuevo' },
+                contacted: { label: 'Contactado', css: 'badge-contactado' },
+                application_review: { label: 'En Revisión', css: 'badge-contactado' },
+                interview: { label: 'Entrevista', css: 'badge-prueba' },
+                onboarding: { label: 'Onboarding', css: 'badge-prueba' },
+                active: { label: 'Activo ✓', css: 'badge-convertido' },
+                rejected: { label: 'Rechazado', css: 'badge-draft' }
+            };
+            return map[stage] || { label: stage || 'Nuevo', css: 'badge-nuevo' };
+        }
     }
 
     function getStageLabel(stage) {
@@ -1570,19 +1865,23 @@
     }
 
     // === EDITAR LEAD ===
-    window.editLead = async function(id) {
+    window.editLead = async function(id, crmLeadId) {
         try {
             const res = await fetch('/api/leads/' + id + '?populate=true', { headers: authHeaders() });
             if (!res.ok) { alert('No se pudo cargar el lead'); return; }
             const result = await res.json();
             const lead = result.lead || result;
+
+            // Buscar CrmLead en datos locales para obtener lifecycleStage
+            const crmLead = allLeads.find(l => l._id === crmLeadId);
             
             document.getElementById('editLeadId').value = id;
+            document.getElementById('editCrmLeadId').value = crmLeadId || '';
             document.getElementById('editLeadName').value = lead.name || '';
             document.getElementById('editLeadEmail').value = lead.email || '';
             document.getElementById('editLeadPhone').value = lead.whatsapp || '';
             document.getElementById('editLeadType').value = lead.type || 'client';
-            document.getElementById('editLeadStatus').value = lead.status || 'new';
+            document.getElementById('editLeadStatus').value = crmLead?.lifecycleStage || 'lead';
             document.getElementById('editLeadSource').value = lead.source || 'manual';
             document.getElementById('editLeadNotes').value = lead.notes || '';
             document.getElementById('modalEditLead').classList.add('show');
@@ -1594,31 +1893,47 @@
     // === GUARDAR EDICIÓN ===
     window.saveLead = async function() {
         const id = document.getElementById('editLeadId').value;
+        const crmLeadId = document.getElementById('editCrmLeadId').value;
+        const lifecycleStage = document.getElementById('editLeadStatus').value;
         const data = {
             type: document.getElementById('editLeadType').value,
             name: document.getElementById('editLeadName').value,
             email: document.getElementById('editLeadEmail').value,
             whatsapp: document.getElementById('editLeadPhone').value,
-            status: document.getElementById('editLeadStatus').value,
             source: document.getElementById('editLeadSource').value,
             notes: document.getElementById('editLeadNotes').value
         };
         if (!data.name || !data.email) { alert('Nombre y email son requeridos'); return; }
         
         try {
+            // 1. Actualizar datos base del lead (core)
             const res = await fetch('/api/leads/' + id, {
                 method: 'PATCH',
                 headers: authHeaders(),
                 body: JSON.stringify(data)
             });
             const result = await res.json().catch(() => ({}));
-            if (res.ok && result.success !== false) {
-                alert('Lead actualizado');
-                closeModal('modalEditLead');
-                loadDashboard();
-            } else {
+            if (!res.ok || result.success === false) {
                 alert('Error: ' + (result.message || 'No se pudo actualizar'));
+                return;
             }
+
+            // 2. Actualizar lifecycleStage en CrmLead
+            if (crmLeadId && lifecycleStage) {
+                await apiFetch('/leads/' + crmLeadId + '/lifecycle', {
+                    method: 'PUT',
+                    body: JSON.stringify({ stage: lifecycleStage })
+                });
+            }
+
+            // 3. Recalcular score del CrmLead
+            if (crmLeadId) {
+                await apiFetch('/leads/' + crmLeadId + '/score/recalculate', { method: 'POST' });
+            }
+
+            alert('Lead actualizado');
+            closeModal('modalEditLead');
+            loadDashboard();
         } catch (e) {
             alert('Error al guardar: ' + e.message);
         }
@@ -2081,6 +2396,324 @@
         alert('Snippet copiado al portapapeles');
     };
 
+        document.execCommand('copy');
+        alert('Snippet copiado al portapapeles');
+    };
+
+    // =========================================================================
+    // PIPELINE — Modal y avance de etapa
+    // =========================================================================
+
+    window.showPipelineModal = function(crmLeadId, leadType) {
+        document.getElementById('pipelineCrmLeadId').value = crmLeadId;
+        document.getElementById('pipelineLeadType').value = leadType || 'client';
+        
+        const select = document.getElementById('pipelineStage');
+        let stages;
+        if (leadType === 'teacher') {
+            stages = [
+                { value: 'lead', label: 'Nuevo' },
+                { value: 'contacted', label: 'Contactado' },
+                { value: 'application_review', label: 'En Revisión' },
+                { value: 'interview', label: 'Entrevista' },
+                { value: 'onboarding', label: 'Onboarding' },
+                { value: 'active', label: 'Activo ✓' },
+                { value: 'rejected', label: '❌ Rechazado' }
+            ];
+        } else {
+            stages = [
+                { value: 'lead', label: 'Nuevo' },
+                { value: 'contacted', label: 'Contactado' },
+                { value: 'demo_scheduled', label: 'Demo Agendada' },
+                { value: 'demo_completed', label: 'Demo Completada' },
+                { value: 'trial_class', label: 'Clase de Prueba' },
+                { value: 'enrolled', label: 'Inscrito ✓' },
+                { value: 'lost', label: '❌ Perdido' }
+            ];
+        }
+        select.innerHTML = stages.map(s => `<option value="${s.value}">${s.label}</option>`).join('');
+        
+        // Mostrar/ocultar razón de pérdida
+        select.onchange = function() {
+            const isLost = this.value === 'lost' || this.value === 'rejected';
+            document.getElementById('lostReasonGroup').style.display = isLost ? '' : 'none';
+            document.getElementById('lostDetailsGroup').style.display = isLost ? '' : 'none';
+        };
+        
+        document.getElementById('lostReasonGroup').style.display = 'none';
+        document.getElementById('lostDetailsGroup').style.display = 'none';
+        document.getElementById('modalPipeline').classList.add('show');
+    };
+
+    window.savePipelineAdvance = async function() {
+        const crmLeadId = document.getElementById('pipelineCrmLeadId').value;
+        const stage = document.getElementById('pipelineStage').value;
+        
+        try {
+            if (stage === 'lost' || stage === 'rejected') {
+                const reason = document.getElementById('lostReason').value;
+                const details = document.getElementById('lostDetails').value;
+                await apiFetch('/leads/' + crmLeadId + '/pipeline/lost', {
+                    method: 'POST',
+                    body: JSON.stringify({ reason, details })
+                });
+            } else {
+                await apiFetch('/leads/' + crmLeadId + '/pipeline/advance', {
+                    method: 'POST',
+                    body: JSON.stringify({ stage })
+                });
+            }
+            
+            alert('Pipeline actualizado');
+            closeModal('modalPipeline');
+            loadDashboard();
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    };
+
+    // =========================================================================
+    // TAREAS — Modal, crear, completar
+    // =========================================================================
+
+    window.showAddTaskModal = function(crmLeadId) {
+        document.getElementById('taskCrmLeadId').value = crmLeadId;
+        // Setear fecha por defecto a mañana
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('taskDueDate').value = tomorrow.toISOString().split('T')[0];
+        document.getElementById('taskTitle').value = '';
+        document.getElementById('taskNotes').value = '';
+        document.getElementById('modalAddTask').classList.add('show');
+    };
+
+    window.saveTask = async function() {
+        const crmLeadId = document.getElementById('taskCrmLeadId').value;
+        const data = {
+            title: document.getElementById('taskTitle').value,
+            type: document.getElementById('taskType').value,
+            dueDate: document.getElementById('taskDueDate').value,
+            priority: document.getElementById('taskPriority').value,
+            notes: document.getElementById('taskNotes').value
+        };
+        if (!data.title || !data.dueDate) { alert('Título y fecha son requeridos'); return; }
+
+        try {
+            const res = await apiFetch('/leads/' + crmLeadId + '/tasks', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            if (res?.success) {
+                alert('Tarea creada');
+                closeModal('modalAddTask');
+                loadDashboard();
+            } else {
+                alert('Error: ' + (res?.message || 'No se pudo crear'));
+            }
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    };
+
+    window.completeTask = async function(crmLeadId, taskId) {
+        if (!confirm('¿Marcar tarea como completada?')) return;
+        try {
+            await apiFetch('/leads/' + crmLeadId + '/tasks/' + taskId + '/complete', { method: 'POST' });
+            loadTasksSection();
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    };
+
+    // =========================================================================
+    // SECCIÓN: TAREAS Y SEGUIMIENTO
+    // =========================================================================
+
+    async function loadTasksSection() {
+        const [pendingRes, noFollowRes] = await Promise.all([
+            apiFetch('/leads/tasks/pending?limit=50'),
+            apiFetch('/leads/tasks/no-followup?days=7')
+        ]);
+
+        // KPIs
+        let overdue = 0, pending = 0;
+        const pendingLeads = pendingRes?.data || [];
+        pendingLeads.forEach(lead => {
+            (lead.tasks || []).forEach(t => {
+                if (t.status === 'overdue') overdue++;
+                if (t.status === 'pending') pending++;
+            });
+        });
+        const noFollowLeads = noFollowRes?.data || [];
+
+        setText('kpiOverdueTasks', overdue);
+        setText('kpiPendingTasks', pending);
+        setText('kpiNoFollowUp', noFollowLeads.length);
+
+        // Badge en sidebar
+        const badge = document.getElementById('tasksBadge');
+        if (badge && (overdue + pending) > 0) {
+            badge.textContent = overdue + pending;
+            badge.style.display = 'inline';
+        }
+
+        // Tabla de tareas pendientes
+        const tbody = document.getElementById('pendingTasksTable');
+        if (tbody) {
+            if (pendingLeads.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-secondary);">🎉 Sin tareas pendientes</td></tr>';
+            } else {
+                let rows = '';
+                pendingLeads.forEach(lead => {
+                    const ref = lead.leadRef || {};
+                    const pendingTasksArr = (lead.tasks || []).filter(t => t.status === 'pending' || t.status === 'overdue');
+                    pendingTasksArr.forEach(task => {
+                        const isOverdue = task.status === 'overdue';
+                        const type = ref.type === 'teacher' ? '<span class="badge badge-profesor">Prof</span>' : '<span class="badge badge-cliente">Est</span>';
+                        const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '--';
+                        const priorityBadge = task.priority === 'high' ? '<span style="color:var(--danger);font-weight:600;">Alta</span>' : task.priority === 'medium' ? 'Media' : 'Baja';
+                        rows += `<tr style="${isOverdue ? 'background:#fff5f5;' : ''}">
+                            <td><div class="lead-name">${esc(ref.name || 'Sin nombre')}</div></td>
+                            <td>${type}</td>
+                            <td>${esc(task.title)}</td>
+                            <td style="${isOverdue ? 'color:var(--danger);font-weight:600;' : ''}">${dueDate} ${isOverdue ? '⚠️' : ''}</td>
+                            <td>${priorityBadge}</td>
+                            <td>
+                                <button class="btn-icon" title="Completar" onclick="completeTask('${lead._id}', '${task._id}')">✅</button>
+                            </td>
+                        </tr>`;
+                    });
+                });
+                tbody.innerHTML = rows;
+            }
+        }
+
+        // Tabla de leads sin seguimiento
+        const tbody2 = document.getElementById('noFollowUpTable');
+        if (tbody2) {
+            if (noFollowLeads.length === 0) {
+                tbody2.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-secondary);">Todos los leads tienen seguimiento ✓</td></tr>';
+            } else {
+                tbody2.innerHTML = noFollowLeads.map(lead => {
+                    const ref = lead.leadRef || {};
+                    const type = ref.type === 'teacher' ? '<span class="badge badge-profesor">Prof</span>' : '<span class="badge badge-cliente">Est</span>';
+                    const lastActivity = lead.updatedAt ? new Date(lead.updatedAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '--';
+                    return `<tr>
+                        <td><div class="lead-name">${esc(ref.name || 'Sin nombre')}</div></td>
+                        <td>${type}</td>
+                        <td>${lastActivity}</td>
+                        <td>
+                            <button class="btn-icon" title="Agregar Tarea" onclick="showAddTaskModal('${lead._id}')">📌</button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+    }
+
+    // =========================================================================
+    // SECCIÓN: REPORTE CRM
+    // =========================================================================
+
+    async function loadReportSection() {
+        const res = await apiFetch('/leads/analytics/report');
+        if (!res?.success) return;
+        const d = res.data;
+
+        // KPIs de conversión
+        setText('kpiConversionRate', d.conversion.conversionRate + '%');
+        setText('kpiAvgDays', d.conversion.avgDaysToConvert);
+        setText('kpiTotalConverted', d.conversion.totalConverted);
+
+        // Pipeline Estudiantes
+        renderPipelineFunnel('studentPipelineFunnel', d.studentPipeline, [
+            { key: 'lead', label: 'Nuevos', color: '#6c5ce7' },
+            { key: 'contacted', label: 'Contactados', color: '#74b9ff' },
+            { key: 'demo_scheduled', label: 'Demo Agendada', color: '#a29bfe' },
+            { key: 'demo_completed', label: 'Demo OK', color: '#fdcb6e' },
+            { key: 'trial_class', label: 'Clase Prueba', color: '#55efc4' },
+            { key: 'enrolled', label: 'Inscritos', color: '#00b894' },
+            { key: 'lost', label: 'Perdidos', color: '#d63031' }
+        ]);
+
+        // Pipeline Profesores
+        renderPipelineFunnel('teacherPipelineFunnel', d.teacherPipeline, [
+            { key: 'lead', label: 'Nuevos', color: '#6c5ce7' },
+            { key: 'contacted', label: 'Contactados', color: '#74b9ff' },
+            { key: 'application_review', label: 'En Revisión', color: '#a29bfe' },
+            { key: 'interview', label: 'Entrevista', color: '#fdcb6e' },
+            { key: 'onboarding', label: 'Onboarding', color: '#55efc4' },
+            { key: 'active', label: 'Activos', color: '#00b894' },
+            { key: 'rejected', label: 'Rechazados', color: '#d63031' }
+        ]);
+
+        // Segmentos
+        const segContainer = document.getElementById('segmentDistChart');
+        if (segContainer && d.segmentDistribution) {
+            const segLabels = { cold: '❄️ Fríos', warm: '🌡️ Tibios', hot: '🔥 Calientes', customer: '✅ Clientes', churned: '📉 Perdidos' };
+            const segColors = { cold: '#74b9ff', warm: '#fdcb6e', hot: '#e17055', customer: '#00b894', churned: '#b2bec3' };
+            const total = d.segmentDistribution.reduce((s, c) => s + c.count, 0) || 1;
+            segContainer.innerHTML = d.segmentDistribution.map(s => {
+                const width = Math.max((s.count / total) * 100, 5);
+                return `<div class="funnel-stage">
+                    <span class="funnel-label">${segLabels[s._id] || s._id}</span>
+                    <div class="funnel-bar" style="width:${width}%;background:${segColors[s._id] || '#6c5ce7'}">${s.count}</div>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    function renderPipelineFunnel(containerId, data, stages) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        const dataMap = {};
+        (data || []).forEach(d => { dataMap[d._id] = d.count; });
+        const maxCount = Math.max(...stages.map(s => dataMap[s.key] || 0), 1);
+        
+        container.innerHTML = stages.map(s => {
+            const count = dataMap[s.key] || 0;
+            const width = Math.max((count / maxCount) * 100, 5);
+            return `<div class="funnel-stage">
+                <span class="funnel-label">${s.label}</span>
+                <div class="funnel-bar" style="width:${width}%;background:${s.color}">${count}</div>
+            </div>`;
+        }).join('');
+    }
+
+    // =========================================================================
+    // FILTROS FUNCIONALES
+    // =========================================================================
+
+    function applyLeadFilters(tableId, typeFilter) {
+        let filtered = typeFilter ? allLeads.filter(l => l.leadRef?.type === typeFilter) : allLeads;
+        
+        // Filtro por etapa de pipeline
+        const statusSelect = typeFilter === 'teacher' ? 'filterStatusProf' : typeFilter === 'client' ? 'filterStatusClient' : 'filterStatus';
+        const statusEl = document.getElementById(statusSelect);
+        const statusValue = statusEl?.value;
+        if (statusValue) {
+            filtered = filtered.filter(l => {
+                const ps = l.pipelineStudent || l.pipelineTeacher || l.lifecycleStage;
+                return ps === statusValue;
+            });
+        }
+
+        // Filtro por búsqueda
+        const searchId = typeFilter === 'teacher' ? 'filterSearchProf' : typeFilter === 'client' ? 'filterSearchClient' : 'filterSearch';
+        const searchEl = document.getElementById(searchId);
+        const searchValue = (searchEl?.value || '').toLowerCase().trim();
+        if (searchValue) {
+            filtered = filtered.filter(l => {
+                const ref = l.leadRef || {};
+                return (ref.name || '').toLowerCase().includes(searchValue) || 
+                       (ref.email || '').toLowerCase().includes(searchValue);
+            });
+        }
+
+        renderLeadsTable(filtered, tableId);
+    }
+
     // === INIT ===
     document.addEventListener('DOMContentLoaded', () => {
         // Siempre inicializar navegación del sidebar (independiente de auth)
@@ -2108,6 +2741,28 @@
             });
         });
 
+        // Filtros por pipeline stage
+        ['filterStatus', 'filterStatusProf', 'filterStatusClient'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', () => {
+                const map = { filterStatus: [null, 'leadsTableAll'], filterStatusProf: ['teacher', 'leadsTableProfesores'], filterStatusClient: ['client', 'leadsTableClientes'] };
+                const [type, table] = map[id];
+                applyLeadFilters(table, type);
+            });
+        });
+
+        // Filtros por búsqueda (con debounce)
+        ['filterSearch', 'filterSearchProf', 'filterSearchClient'].forEach(id => {
+            let timer;
+            document.getElementById(id)?.addEventListener('input', () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    const map = { filterSearch: [null, 'leadsTableAll'], filterSearchProf: ['teacher', 'leadsTableProfesores'], filterSearchClient: ['client', 'leadsTableClientes'] };
+                    const [type, table] = map[id];
+                    applyLeadFilters(table, type);
+                }, 300);
+            });
+        });
+
         // Verificar auth y cargar datos
         if (!getToken()) {
             showAuthError();
@@ -2115,8 +2770,15 @@
         }
         loadDashboard();
 
-        // Cargar badge de no leídos al iniciar
+        // Cargar badges al iniciar
         loadInboxBadge();
+        // Badge de tareas (silencioso)
+        apiFetch('/leads/tasks/pending?limit=100').then(res => {
+            let count = 0;
+            (res?.data || []).forEach(l => { count += (l.tasks || []).filter(t => t.status === 'pending' || t.status === 'overdue').length; });
+            const b = document.getElementById('tasksBadge');
+            if (b && count > 0) { b.textContent = count; b.style.display = 'inline'; }
+        }).catch(() => {});
     });
 
     // =========================================================================

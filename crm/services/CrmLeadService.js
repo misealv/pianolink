@@ -37,6 +37,9 @@ class CrmLeadService {
                 currency: enrichmentData.currency || 'USD',
                 lifecycleStage: 'lead',
                 segment: 'cold',
+                // Inicializar pipeline según tipo de lead
+                pipelineStudent: coreLead.type === 'client' ? 'lead' : null,
+                pipelineTeacher: coreLead.type === 'teacher' ? 'lead' : null,
                 tags: enrichmentData.tags || [],
                 attribution: {
                     firstTouch: CrmLeadService._buildAttribution(enrichmentData),
@@ -218,8 +221,18 @@ class CrmLeadService {
     static async update(crmLeadId, updateData) {
         try {
             // Campos que no se pueden actualizar directamente
-            const protectedFields = ['leadRef', '_id', 'scoreHistory', 'attribution'];
+            const protectedFields = ['leadRef', '_id', 'scoreHistory', 'attribution', 'tasks'];
             protectedFields.forEach(f => delete updateData[f]);
+
+            // Si se actualiza el lead core también (nombre, email, etc.)
+            const coreFields = {};
+            const coreAllowed = ['name', 'email', 'whatsapp', 'type', 'source', 'notes', 'background', 'country', 'timezone'];
+            coreAllowed.forEach(f => {
+                if (updateData[f] !== undefined) {
+                    coreFields[f] = updateData[f];
+                    delete updateData[f];
+                }
+            });
 
             const lead = await CrmLead.findByIdAndUpdate(
                 crmLeadId,
@@ -229,6 +242,11 @@ class CrmLeadService {
 
             if (!lead) {
                 return { success: false, message: 'CrmLead no encontrado', status: 404 };
+            }
+
+            // Propagar cambios al Lead core si hay campos del core
+            if (Object.keys(coreFields).length > 0 && lead.leadRef?._id) {
+                await Lead.findByIdAndUpdate(lead.leadRef._id, { $set: coreFields });
             }
 
             return { success: true, data: lead };
@@ -393,6 +411,185 @@ class CrmLeadService {
     }
 
     // =========================================================================
+    // PIPELINE
+    // =========================================================================
+
+    /**
+     * Avanza un lead a la siguiente etapa del pipeline
+     * Registra interacción y recalcula score automáticamente
+     */
+    static async advancePipeline(crmLeadId, newStage, metadata = {}) {
+        try {
+            const crmLead = await CrmLead.findById(crmLeadId).populate('leadRef', 'type name');
+            if (!crmLead) return { success: false, message: 'CrmLead no encontrado', status: 404 };
+
+            const leadType = crmLead.leadRef?.type;
+            const previousStage = crmLead.pipelineStudent || crmLead.pipelineTeacher || 'lead';
+
+            // Validar y avanzar según tipo
+            await crmLead.advancePipeline(newStage);
+
+            // Registrar interacción
+            await CrmInteraction.create({
+                leadRef: crmLeadId,
+                type: 'status_changed',
+                channel: 'system',
+                metadata: { 
+                    notes: `Pipeline ${leadType}: ${previousStage} → ${newStage}`,
+                    ...metadata
+                }
+            });
+
+            // Bonus de score por avance de pipeline
+            const pipelineScoreMap = {
+                // Estudiantes
+                contacted: 5, demo_scheduled: 10, demo_completed: 15,
+                trial_class: 20, enrolled: 25,
+                // Profesores
+                application_review: 5, interview: 10, onboarding: 15, active: 25
+            };
+            const bonus = pipelineScoreMap[newStage] || 0;
+            if (bonus > 0) {
+                const newScore = Math.min(crmLead.score + bonus, 100);
+                await crmLead.updateScore(newScore, `pipeline_advance:${newStage}`);
+            }
+
+            return { success: true, data: crmLead, previousStage };
+        } catch (error) {
+            console.error('[CRM] Error en advancePipeline:', error);
+            return { success: false, message: error.message, status: 500 };
+        }
+    }
+
+    /**
+     * Marca un lead como perdido/rechazado
+     */
+    static async markLost(crmLeadId, reason, details = '') {
+        try {
+            const crmLead = await CrmLead.findById(crmLeadId);
+            if (!crmLead) return { success: false, message: 'CrmLead no encontrado', status: 404 };
+
+            await crmLead.markLost(reason, details);
+
+            await CrmInteraction.create({
+                leadRef: crmLeadId,
+                type: 'status_changed',
+                channel: 'system',
+                metadata: { notes: `Lead perdido: ${reason} - ${details}` }
+            });
+
+            return { success: true, data: crmLead };
+        } catch (error) {
+            console.error('[CRM] Error en markLost:', error);
+            return { success: false, message: error.message, status: 500 };
+        }
+    }
+
+    /**
+     * Obtiene distribución del pipeline por tipo de lead
+     */
+    static async getPipelineDistribution(leadType) {
+        try {
+            let data;
+            if (leadType === 'client' || leadType === 'student') {
+                data = await CrmLead.getStudentPipelineDistribution();
+            } else {
+                data = await CrmLead.getTeacherPipelineDistribution();
+            }
+            return { success: true, data };
+        } catch (error) {
+            console.error('[CRM] Error en getPipelineDistribution:', error);
+            return { success: false, message: error.message, status: 500 };
+        }
+    }
+
+    // =========================================================================
+    // TAREAS Y SEGUIMIENTO
+    // =========================================================================
+
+    /**
+     * Agrega una tarea a un lead
+     */
+    static async addTask(crmLeadId, taskData) {
+        try {
+            const crmLead = await CrmLead.findById(crmLeadId);
+            if (!crmLead) return { success: false, message: 'CrmLead no encontrado', status: 404 };
+
+            await crmLead.addTask(taskData);
+
+            // Registrar interacción
+            await CrmInteraction.create({
+                leadRef: crmLeadId,
+                type: 'note_added',
+                channel: 'system',
+                metadata: { notes: `Tarea creada: ${taskData.title}` }
+            });
+
+            return { success: true, data: crmLead.tasks };
+        } catch (error) {
+            console.error('[CRM] Error en addTask:', error);
+            return { success: false, message: error.message, status: 500 };
+        }
+    }
+
+    /**
+     * Completa una tarea de un lead
+     */
+    static async completeTask(crmLeadId, taskId) {
+        try {
+            const crmLead = await CrmLead.findById(crmLeadId);
+            if (!crmLead) return { success: false, message: 'CrmLead no encontrado', status: 404 };
+
+            await crmLead.completeTask(taskId);
+
+            return { success: true, data: crmLead.tasks };
+        } catch (error) {
+            console.error('[CRM] Error en completeTask:', error);
+            return { success: false, message: error.message, status: 500 };
+        }
+    }
+
+    /**
+     * Obtiene leads con tareas pendientes
+     */
+    static async getLeadsWithPendingTasks(limit = 50) {
+        try {
+            const leads = await CrmLead.getLeadsWithPendingTasks(limit);
+            return { success: true, data: leads };
+        } catch (error) {
+            console.error('[CRM] Error en getLeadsWithPendingTasks:', error);
+            return { success: false, message: error.message, status: 500 };
+        }
+    }
+
+    /**
+     * Obtiene leads sin seguimiento activo (sin tareas pendientes)
+     */
+    static async getLeadsWithoutFollowUp(days = 7) {
+        try {
+            const leads = await CrmLead.getLeadsWithoutFollowUp(days);
+            return { success: true, data: leads };
+        } catch (error) {
+            console.error('[CRM] Error en getLeadsWithoutFollowUp:', error);
+            return { success: false, message: error.message, status: 500 };
+        }
+    }
+
+    /**
+     * Obtiene las tareas de un lead específico
+     */
+    static async getLeadTasks(crmLeadId) {
+        try {
+            const lead = await CrmLead.findById(crmLeadId).select('tasks nextFollowUp').lean();
+            if (!lead) return { success: false, message: 'CrmLead no encontrado', status: 404 };
+            return { success: true, data: { tasks: lead.tasks || [], nextFollowUp: lead.nextFollowUp } };
+        } catch (error) {
+            console.error('[CRM] Error en getLeadTasks:', error);
+            return { success: false, message: error.message, status: 500 };
+        }
+    }
+
+    // =========================================================================
     // ANALYTICS
     // =========================================================================
 
@@ -474,6 +671,76 @@ class CrmLeadService {
         }
     }
 
+    /**
+     * Dashboard de reportes consolidado:
+     * - Tasa de conversión por pipeline
+     * - Tiempo promedio de conversión
+     * - Leads sin seguimiento
+     * - Tareas vencidas
+     */
+    static async getDashboardReport() {
+        try {
+            const [
+                totalLeads,
+                studentPipeline,
+                teacherPipeline,
+                segmentDist,
+                overdueTasks,
+                noFollowUp,
+                conversionStats
+            ] = await Promise.all([
+                CrmLead.countDocuments({}),
+                CrmLead.getStudentPipelineDistribution(),
+                CrmLead.getTeacherPipelineDistribution(),
+                CrmLead.getSegmentDistribution(),
+                CrmLead.countDocuments({ 'tasks.status': 'overdue' }),
+                CrmLead.countDocuments({
+                    nextFollowUp: null,
+                    segment: { $nin: ['customer', 'churned'] },
+                    updatedAt: { $lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+                }),
+                CrmLead.aggregate([
+                    { $match: { convertedAt: { $ne: null } } },
+                    { $project: {
+                        conversionDays: {
+                            $divide: [
+                                { $subtract: ['$convertedAt', '$createdAt'] },
+                                1000 * 60 * 60 * 24
+                            ]
+                        }
+                    }},
+                    { $group: {
+                        _id: null,
+                        avgDays: { $avg: '$conversionDays' },
+                        count: { $sum: 1 }
+                    }}
+                ])
+            ]);
+
+            const convData = conversionStats[0] || { avgDays: 0, count: 0 };
+
+            return {
+                success: true,
+                data: {
+                    totalLeads,
+                    studentPipeline,
+                    teacherPipeline,
+                    segmentDistribution: segmentDist,
+                    overdueTasks,
+                    leadsWithoutFollowUp: noFollowUp,
+                    conversion: {
+                        totalConverted: convData.count,
+                        avgDaysToConvert: Math.round(convData.avgDays || 0),
+                        conversionRate: totalLeads > 0 ? ((convData.count / totalLeads) * 100).toFixed(1) : '0.0'
+                    }
+                }
+            };
+        } catch (error) {
+            console.error('[CRM] Error en getDashboardReport:', error);
+            return { success: false, message: error.message, status: 500 };
+        }
+    }
+
     // =========================================================================
     // MIGRACIÓN
     // =========================================================================
@@ -504,6 +771,9 @@ class CrmLeadService {
                         currency: 'USD',
                         lifecycleStage: lead.status === 'converted' ? 'customer' : 'lead',
                         segment: lead.status === 'converted' ? 'customer' : 'cold',
+                        // Inicializar pipeline según tipo
+                        pipelineStudent: lead.type === 'client' ? (lead.status === 'converted' ? 'enrolled' : 'lead') : null,
+                        pipelineTeacher: lead.type === 'teacher' ? (lead.status === 'converted' ? 'active' : 'lead') : null,
                         attribution: {
                             firstTouch: { channel: 'organic', timestamp: lead.createdAt || new Date() },
                             lastTouch: { channel: 'organic', timestamp: lead.createdAt || new Date() },

@@ -125,6 +125,111 @@ exports.getTimeline = async (req, res) => {
     }
 };
 
+// === PIPELINE ===
+
+exports.advancePipeline = async (req, res) => {
+    try {
+        const { stage, metadata } = req.body;
+        if (!stage) return res.status(400).json({ success: false, message: 'Se requiere campo stage' });
+        const result = await CrmLeadService.advancePipeline(req.params.id, stage, metadata || {});
+        res.status(result.success ? 200 : result.status || 500).json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en advancePipeline:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
+exports.markLost = async (req, res) => {
+    try {
+        const { reason, details } = req.body;
+        if (!reason) return res.status(400).json({ success: false, message: 'Se requiere campo reason' });
+        const result = await CrmLeadService.markLost(req.params.id, reason, details || '');
+        res.status(result.success ? 200 : result.status || 500).json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en markLost:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
+exports.getPipelineDistribution = async (req, res) => {
+    try {
+        const leadType = req.query.type || 'client';
+        const result = await CrmLeadService.getPipelineDistribution(leadType);
+        res.json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en getPipelineDistribution:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
+// === TAREAS ===
+
+exports.getLeadTasks = async (req, res) => {
+    try {
+        const result = await CrmLeadService.getLeadTasks(req.params.id);
+        res.status(result.success ? 200 : result.status || 500).json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en getLeadTasks:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
+exports.addTask = async (req, res) => {
+    try {
+        const { title, type, dueDate, priority, notes } = req.body;
+        if (!title || !dueDate) {
+            return res.status(400).json({ success: false, message: 'Se requieren title y dueDate' });
+        }
+        const result = await CrmLeadService.addTask(req.params.id, { title, type, dueDate: new Date(dueDate), priority, notes });
+        res.status(result.success ? 200 : result.status || 500).json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en addTask:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
+exports.completeTask = async (req, res) => {
+    try {
+        const result = await CrmLeadService.completeTask(req.params.id, req.params.taskId);
+        res.status(result.success ? 200 : result.status || 500).json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en completeTask:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
+exports.getLeadsWithPendingTasks = async (req, res) => {
+    try {
+        const limit = Number(req.query.limit) || 50;
+        const result = await CrmLeadService.getLeadsWithPendingTasks(limit);
+        res.json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en getLeadsWithPendingTasks:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
+exports.getLeadsWithoutFollowUp = async (req, res) => {
+    try {
+        const days = Number(req.query.days) || 7;
+        const result = await CrmLeadService.getLeadsWithoutFollowUp(days);
+        res.json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en getLeadsWithoutFollowUp:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
+exports.getDashboardReport = async (req, res) => {
+    try {
+        const result = await CrmLeadService.getDashboardReport();
+        res.json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en getDashboardReport:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
 // === ANALYTICS ===
 
 exports.getSegmentDistribution = async (req, res) => {
