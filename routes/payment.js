@@ -184,18 +184,12 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
         let servicePrice, cablePrice, currency;
         
         if (isV2) {
-            // Kit V2: usar totalUSD del frontend si viene (ya incluye hijos extra)
-            // Si no, calcularlo desde config
-            if (totalUSD && typeof totalUSD === 'number') {
-                servicePrice = totalUSD;
-                console.log('[MercadoPago Kit] Usando totalUSD del frontend:', totalUSD);
-            } else {
-                const basePrice = config?.welcomeKitV2?.priceUSD || 44;
-                const extraChildPrice = config?.welcomeKitV2?.extraChildPriceUSD || 15;
-                const extraChildren = Math.max(0, (childrenCount || 1) - 1);
-                servicePrice = basePrice + (extraChildren * extraChildPrice);
-                console.log('[MercadoPago Kit] Calculando precio:', basePrice, '+', extraChildren, 'x', extraChildPrice, '=', servicePrice);
-            }
+            // Kit V2: SIEMPRE recalcular desde GlobalConfig (no confiar en frontend)
+            const basePrice = config?.welcomeKitV2?.priceUSD || 44;
+            const extraChildPrice = config?.welcomeKitV2?.extraChildPriceUSD || 15;
+            const extraChildren = Math.max(0, (childrenCount || 1) - 1);
+            servicePrice = basePrice + (extraChildren * extraChildPrice);
+            console.log('[MercadoPago Kit] Precio server-side:', basePrice, '+', extraChildren, 'x', extraChildPrice, '=', servicePrice, '(frontend envió:', totalUSD, ')');
             cablePrice = 0;
             currency = 'USD';
         } else {
@@ -367,18 +361,17 @@ router.post('/create-kit-payment-paypal', async (req, res) => {
             ? 'https://api-m.paypal.com'
             : 'https://api-m.sandbox.paypal.com';
 
-        // Calcular precio
+        // Calcular precio SIEMPRE desde GlobalConfig (no confiar en frontend)
         const config = await GlobalConfig.findOne({ isDefault: true });
         const isV2 = kitType === 'welcome_kit_v2' || totalUSD;
         let finalPrice;
 
-        if (isV2 && totalUSD && typeof totalUSD === 'number') {
-            finalPrice = totalUSD;
-        } else if (isV2) {
+        if (isV2) {
             const basePrice = config?.welcomeKitV2?.priceUSD || 44;
             const extraChildPrice = config?.welcomeKitV2?.extraChildPriceUSD || 15;
             const extraChildren = Math.max(0, (childrenCount || 1) - 1);
             finalPrice = basePrice + (extraChildren * extraChildPrice);
+            console.log('[PayPal Kit V2] Precio server-side:', basePrice, '+', extraChildren, 'x', extraChildPrice, '=', finalPrice, '(frontend envió:', totalUSD, ')');
         } else {
             finalPrice = 15; // Kit legacy
         }
