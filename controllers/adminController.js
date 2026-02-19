@@ -1189,6 +1189,7 @@ exports.createTeacherApplication = async (req, res) => {
         res.status(201).json({
             success: true,
             data: application,
+            applicationId: application._id,
             inviteUrl,
             inviteCode
         });
