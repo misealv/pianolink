@@ -1239,6 +1239,130 @@
     to { transform: rotate(360deg); }
 }
 
+/* ==================== MODAL DETALLE CLASE ==================== */
+.class-detail-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+.class-detail-overlay.active {
+    display: flex;
+}
+.class-detail-modal {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 90%;
+    max-width: 420px;
+    animation: fadeUp 0.3s ease;
+}
+.class-detail-modal h3 {
+    margin: 0 0 18px;
+    font-size: 18px;
+    color: #fff;
+    font-weight: 700;
+}
+.class-detail-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.class-detail-info .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+.class-detail-info .detail-row .label {
+    color: var(--text-muted);
+}
+.class-detail-info .detail-row .value {
+    color: #fff;
+    font-weight: 600;
+}
+.class-detail-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.class-detail-actions button {
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+.btn-enter-room {
+    background: var(--accent);
+    color: #000;
+}
+.btn-enter-room:hover {
+    filter: brightness(1.15);
+}
+.btn-cancel-class {
+    background: rgba(239,68,68,0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239,68,68,0.3) !important;
+}
+.btn-cancel-class:hover {
+    background: rgba(239,68,68,0.25);
+}
+.btn-close-detail {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-muted);
+    border: 1px solid var(--border) !important;
+}
+.btn-close-detail:hover {
+    color: #fff;
+}
+.cancel-reason-wrap {
+    margin-top: 10px;
+    display: none;
+}
+.cancel-reason-wrap.active {
+    display: block;
+}
+.cancel-reason-wrap textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: #fff;
+    padding: 10px;
+    font-size: 13px;
+    resize: none;
+    min-height: 70px;
+    margin-bottom: 10px;
+}
+.cancel-reason-wrap textarea:focus {
+    outline: none;
+    border-color: #ef4444;
+}
+.cancel-reason-wrap .btn-confirm-cancel {
+    width: 100%;
+    padding: 10px;
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 13px;
+}
+.cancel-reason-wrap .btn-confirm-cancel:hover {
+    background: #dc2626;
+}
+
 /* Responsive para pantallas pequeñas */
 @media (max-width: 1200px) {
     .weekly-grid {
@@ -1537,6 +1661,23 @@
         <div id="adminMessagesSection" class="admin-msg-box" style="display:none;">
             <div class="admin-msg-title">📨 Mensajes de la Administración</div>
             <div id="messagesList" style="max-height: 150px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- ==================== MODAL DETALLE CLASE ==================== -->
+        <div class="class-detail-overlay" id="classDetailOverlay" onclick="if(event.target===this)closeClassDetail()">
+            <div class="class-detail-modal">
+                <h3 id="classDetailTitle">📋 Detalle de clase</h3>
+                <div class="class-detail-info" id="classDetailInfo"></div>
+                <div class="class-detail-actions">
+                    <button class="btn-enter-room" id="btnEnterRoom" onclick="enterRoomFromDetail()">🎹 Entrar a la sala</button>
+                    <button class="btn-cancel-class" id="btnCancelClass" onclick="showCancelReason()">✕ Cancelar esta clase</button>
+                    <div class="cancel-reason-wrap" id="cancelReasonWrap">
+                        <textarea id="cancelReasonInput" placeholder="Motivo de cancelación (opcional)..."></textarea>
+                        <button class="btn-confirm-cancel" id="btnConfirmCancel" onclick="confirmCancelClass()">Confirmar cancelación — se reembolsa al alumno</button>
+                    </div>
+                    <button class="btn-close-detail" onclick="closeClassDetail()">Cerrar</button>
+                </div>
+            </div>
         </div>
 
         <!-- ==================== CALENDARIO SEMANAL ==================== -->
@@ -2931,8 +3072,20 @@
                     const isTrial = booking.classType === 'trial';
                     const studentName = booking.studentId?.name || booking.studentName || 'Alumno';
                     
+                    const endTime = new Date(booking.scheduledEnd || new Date(startTime.getTime() + 60*60*1000));
+                    const endStr = endTime.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                    const bkgData = encodeURIComponent(JSON.stringify({
+                        id: booking._id,
+                        student: studentName,
+                        time: timeStr,
+                        endTime: endStr,
+                        date: startTime.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }),
+                        type: isTrial ? 'Clase de prueba' : 'Clase regular',
+                        status: booking.status
+                    }));
+
                     html += `
-                        <div class="class-card ${isTrial ? 'trial' : ''}" onclick="openClassRoom('${booking._id}')">
+                        <div class="class-card ${isTrial ? 'trial' : ''}" onclick="openClassDetail('${bkgData}')">
                             <div class="class-time">${timeStr}</div>
                             <div class="class-student">${studentName}</div>
                             <div class="class-type">
@@ -2955,6 +3108,87 @@
         container.innerHTML = html;
     }
     
+    // ==================== DETALLE DE CLASE + CANCELACIÓN ====================
+    let currentClassDetail = null;
+
+    function openClassDetail(encodedData) {
+        const data = JSON.parse(decodeURIComponent(encodedData));
+        currentClassDetail = data;
+        
+        const info = document.getElementById('classDetailInfo');
+        info.innerHTML = `
+            <div class="detail-row"><span class="label">Estudiante</span><span class="value">${data.student}</span></div>
+            <div class="detail-row"><span class="label">Fecha</span><span class="value">${data.date}</span></div>
+            <div class="detail-row"><span class="label">Horario</span><span class="value">${data.time} — ${data.endTime}</span></div>
+            <div class="detail-row"><span class="label">Tipo</span><span class="value">${data.type}</span></div>
+            <div class="detail-row"><span class="label">Estado</span><span class="value">${data.status}</span></div>
+        `;
+        
+        // Reset cancel form
+        document.getElementById('cancelReasonWrap').classList.remove('active');
+        document.getElementById('cancelReasonInput').value = '';
+        document.getElementById('btnCancelClass').style.display = '';
+        document.getElementById('btnConfirmCancel').disabled = false;
+        document.getElementById('btnConfirmCancel').textContent = 'Confirmar cancelación — se reembolsa al alumno';
+        
+        document.getElementById('classDetailOverlay').classList.add('active');
+    }
+
+    function closeClassDetail() {
+        document.getElementById('classDetailOverlay').classList.remove('active');
+        currentClassDetail = null;
+    }
+
+    function enterRoomFromDetail() {
+        if (!currentClassDetail) return;
+        window.open(`/c/${user.slug}?booking=${currentClassDetail.id}`, '_blank');
+        closeClassDetail();
+    }
+
+    function showCancelReason() {
+        document.getElementById('cancelReasonWrap').classList.add('active');
+        document.getElementById('btnCancelClass').style.display = 'none';
+        document.getElementById('cancelReasonInput').focus();
+    }
+
+    async function confirmCancelClass() {
+        if (!currentClassDetail) return;
+        
+        const reason = document.getElementById('cancelReasonInput').value.trim();
+        const btn = document.getElementById('btnConfirmCancel');
+        btn.disabled = true;
+        btn.textContent = '⏳ Cancelando...';
+        
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/bookings/${currentClassDetail.id}/teacher`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason })
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok && data.success) {
+                alert('✅ Clase cancelada. Se reembolsó la clase al alumno.');
+                closeClassDetail();
+                loadWeeklyCalendar(); // Recargar calendario
+            } else {
+                alert('❌ ' + (data.message || 'Error al cancelar la clase'));
+                btn.disabled = false;
+                btn.textContent = 'Confirmar cancelación — se reembolsa al alumno';
+            }
+        } catch (error) {
+            console.error('Error cancelando clase:', error);
+            alert('❌ Error de conexión. Intenta de nuevo.');
+            btn.disabled = false;
+            btn.textContent = 'Confirmar cancelación — se reembolsa al alumno';
+        }
+    }
+
     function openClassRoom(bookingId) {
         // Abrir la sala de clases con el booking específico
         window.open(`/c/${user.slug}?booking=${bookingId}`, '_blank');
