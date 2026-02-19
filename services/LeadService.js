@@ -435,7 +435,7 @@ class LeadService {
     }
 
     /**
-     * Programa una demo con integración a Google Calendar
+     * Programa una demo con integración a Google Calendar + email de confirmación
      */
     static async scheduleDemo(id, { demoDate, duration = 60 }) {
         const lead = await Lead.findById(id);
@@ -475,6 +475,31 @@ class LeadService {
 
         await lead.scheduleDemo(new Date(demoDate), calendarEventId, meetingLink);
         console.log(`[LeadService] 📅 Demo: ${lead.email} → ${demoDate}`);
+
+        // Enviar email de confirmación de entrevista (no bloqueante)
+        try {
+            const generateInterviewEmail = require('../templates/emails/interviewScheduled');
+            const d = new Date(demoDate);
+            const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            const dateFormatted = `${days[d.getDay()]} ${d.getDate()} de ${months[d.getMonth()]} a las ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+            
+            const html = generateInterviewEmail({
+                name: lead.name,
+                dateFormatted,
+                duration,
+                meetingLink: meetingLink || ''
+            });
+
+            await emailService.send({
+                to: lead.email,
+                subject: `📅 Tu entrevista con PianoLink — ${dateFormatted}`,
+                html
+            });
+            console.log(`[LeadService] 📧 Email de entrevista enviado a ${lead.email}`);
+        } catch (emailErr) {
+            console.error('[LeadService] ⚠️ Error enviando email de entrevista:', emailErr.message);
+        }
 
         return { success: true, lead, meetingLink: meetingLink || 'No disponible' };
     }

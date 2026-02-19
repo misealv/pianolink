@@ -25,8 +25,8 @@ class CalendarService {
         this.calendar = null;
         this.isConfigured = false;
         
-        // Intentar inicializar si hay credenciales
-        this.initialize();
+        // Almacenar promesa para await en createEvent
+        this._initPromise = this.initialize();
     }
     
     /**
@@ -164,6 +164,11 @@ Equipo PianoLink
      * @returns {Promise<Object>} Evento creado
      */
     async createEvent(eventData) {
+        // Esperar a que la inicialización termine antes de verificar isConfigured
+        if (this._initPromise) {
+            await this._initPromise;
+        }
+        
         if (!this.isConfigured) {
             console.warn('[Calendar] ⚠️ Google Calendar no configurado - evento no creado');
             return { id: null, link: null };
@@ -257,6 +262,7 @@ Equipo PianoLink
      * @returns {Promise<Object>} Evento actualizado
      */
     async updateEvent(eventId, updates) {
+        if (this._initPromise) await this._initPromise;
         if (!this.isConfigured) {
             console.warn('[Calendar] ⚠️ Google Calendar no configurado');
             return null;
@@ -298,6 +304,7 @@ Equipo PianoLink
      * @returns {Promise<boolean>} Éxito
      */
     async cancelEvent(eventId) {
+        if (this._initPromise) await this._initPromise;
         if (!this.isConfigured) {
             console.warn('[Calendar] ⚠️ Google Calendar no configurado');
             return false;
@@ -395,6 +402,7 @@ Equipo PianoLink
      * @returns {Promise<Object>} Resultado del test
      */
     async testConnection() {
+        if (this._initPromise) await this._initPromise;
         if (!this.isConfigured) {
             throw new Error('Calendar no está configurado');
         }
