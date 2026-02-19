@@ -1234,8 +1234,7 @@ exports.sendTeacherInvitationEmail = async (req, res) => {
             personalMessage: req.body?.personalMessage || ''
         });
 
-        const emailService = new EmailService();
-        const result = await emailService.send({
+        const result = await EmailService.send({
             to: application.email,
             subject: '🎹 Tu invitación a PianoLink — Crea tu cuenta de profesor',
             html
