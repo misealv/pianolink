@@ -111,43 +111,35 @@ class CalendarService {
         const fecha = this.formatSpanishDate(demoDate);
         const whatsapp = '+56959089770';
         
-        return `🎹 ¡Bienvenido/a a tu Demo Personalizada de PianoLink!
+        return `🎹 Entrevista PianoLink
 
 Hola ${leadName},
 
-Nos alegra mucho que hayas decidido conocer PianoLink. Estamos emocionados de mostrarte cómo nuestra plataforma puede transformar tus clases de piano en una experiencia inolvidable.
+Gracias por tu interés en ser profesor en PianoLink. Te invito a una breve entrevista para conocernos, resolver tus dudas y mostrarte cómo funciona la plataforma.
 
-📅 Tu demo está programada para:
-${fecha}
+📅 Fecha: ${fecha}
 ⏱️ Duración: ${duration} minutos
+📍 Lugar: Google Meet (el link está en esta invitación de Calendar)
 
-🎯 ¿Qué necesitas para el demo?
+📋 ¿Qué veremos en la entrevista?
 
-Para que puedas vivir la experiencia completa, asegúrate de tener:
+1. Conversaremos sobre tu experiencia como profesor de piano
+2. Te mostraré cómo funciona PianoLink (tecnología MIDI, agenda, pagos)
+3. Resolveremos todas tus dudas
+4. Si te interesa, activamos tu cuenta en el momento
 
-✅ Cable MIDI conectado al piano y computador
-✅ Navegador Chrome o Edge actualizado
-✅ Conexión a internet estable
-✅ Un lugar tranquilo y sin interrupciones
-✅ Tu piano digital encendido y listo
+💡 Tips para la reunión:
 
-🔗 Link de la Sala:
-${this.getPianoLinkRoomUrl()}
+• Conéctate desde un lugar tranquilo con buena conexión
+• Usa Chrome o Edge para mejor experiencia
+• Si tienes un piano con MIDI, tenlo cerca (opcional para el demo)
 
-👉 Ingresa 5 minutos antes para verificar tu setup
+📱 Si necesitas reagendar, escríbeme al WhatsApp: ${whatsapp}
 
-💡 Consejos Importantes:
+¡Nos vemos pronto!
 
-• PianoLink funciona mejor en Chrome/Edge (no uses Safari)
-• Asegúrate de permitir el acceso a tu dispositivo MIDI cuando el navegador lo solicite
-• Si tienes problemas técnicos, contáctanos de inmediato
-
-📱 Soporte Técnico (WhatsApp):
-${whatsapp}
-
-¡Nos vemos pronto! 🎵
-
-Equipo PianoLink
+Miguel Antonio
+Fundador, PianoLink
 `;
     }
     

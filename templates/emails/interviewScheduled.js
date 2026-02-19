@@ -50,8 +50,8 @@ module.exports = function generateInterviewScheduledEmail(data) {
                             <div style="width: 60px; height: 3px; background: linear-gradient(90deg, #00B8CC, #7700CC); margin-bottom: 24px; border-radius: 2px;"></div>
 
                             <p style="color: #4a5568; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
-                                Tu entrevista con PianoLink ha sido confirmada. Nos reuniremos para conocernos, 
-                                responder tus dudas y hacer una breve demo de la plataforma.
+                                Soy Miguel Antonio, fundador de PianoLink. Tu entrevista ha sido confirmada. 
+                                Nos reuniremos por Google Meet para conocernos, resolver tus dudas y mostrarte cómo funciona la plataforma.
                             </p>
 
                             <!-- Detalles de la entrevista -->
@@ -71,9 +71,15 @@ module.exports = function generateInterviewScheduledEmail(data) {
                                                     <strong style="color: #1a1a2e; font-size: 16px;">${duration} minutos</strong>
                                                 </td>
                                             </tr>
+                                            <tr>
+                                                <td style="padding: 0 0 12px;">
+                                                    <span style="color: #718096; font-size: 13px;">📍 Lugar</span><br>
+                                                    <strong style="color: #1a1a2e; font-size: 16px;">Google Meet</strong>
+                                                </td>
+                                            </tr>
                                             ${meetingLink ? `<tr>
                                                 <td style="padding: 0;">
-                                                    <span style="color: #718096; font-size: 13px;">🔗 Sala de demostración</span><br>
+                                                    <span style="color: #718096; font-size: 13px;">🔗 Link de la reunión</span><br>
                                                     <a href="${meetingLink}" style="color: #00B8CC; font-size: 14px; text-decoration: none; font-weight: 600;">${meetingLink}</a>
                                                 </td>
                                             </tr>` : ''}
@@ -82,41 +88,53 @@ module.exports = function generateInterviewScheduledEmail(data) {
                                 </tr>
                             </table>
 
-                            <!-- Qué preparar -->
+                            <!-- Qué veremos -->
                             <h3 style="color: #1a1a2e; font-size: 16px; font-weight: 600; margin: 28px 0 16px;">
-                                ¿Qué necesitas tener listo?
+                                ¿Qué veremos en la entrevista?
                             </h3>
 
                             <table role="presentation" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
                                 <tr>
                                     <td style="padding: 6px 0; color: #4a5568; font-size: 14px;">
-                                        ✅ Piano digital con cable MIDI USB conectado
+                                        1️⃣ Conversaremos sobre tu experiencia como profesor
                                     </td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 6px 0; color: #4a5568; font-size: 14px;">
-                                        ✅ Chrome o Edge actualizado
+                                        2️⃣ Te mostraré cómo funciona PianoLink (MIDI, agenda, pagos)
                                     </td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 6px 0; color: #4a5568; font-size: 14px;">
-                                        ✅ Cámara y micrófono funcionando
+                                        3️⃣ Resolveremos tus dudas
                                     </td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 6px 0; color: #4a5568; font-size: 14px;">
-                                        ✅ Conexión a internet estable
+                                        4️⃣ Si te interesa, activamos tu cuenta en el momento
                                     </td>
                                 </tr>
                             </table>
 
-                            <p style="color: #4a5568; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
-                                También deberías haber recibido una invitación de Google Calendar. 
+                            <p style="color: #4a5568; font-size: 14px; line-height: 1.6; margin: 0 0 8px;">
+                                También deberías haber recibido una <strong>invitación de Google Calendar</strong> con el link de Meet.
                                 Si no la ves, revisa tu carpeta de spam.
+                            </p>
+                            <p style="color: #4a5568; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
+                                Si necesitas reagendar, responde a este correo o escríbeme al WhatsApp: <strong>+56 9 5908 9770</strong>
                             </p>
 
                             <!-- CTA -->
-                            <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                            ${meetingLink ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                                <tr>
+                                    <td style="border-radius: 12px; background: linear-gradient(135deg, #00B8CC 0%, #7700CC 100%);">
+                                        <a href="${meetingLink}" 
+                                           style="display: inline-block; padding: 14px 32px; color: #ffffff; font-size: 15px; font-weight: 700; text-decoration: none; letter-spacing: 0.5px;">
+                                            Unirme a Google Meet →
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>` : `<table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
                                 <tr>
                                     <td style="border-radius: 12px; background: linear-gradient(135deg, #00B8CC 0%, #7700CC 100%);">
                                         <a href="https://pianolink-v4.fly.dev/landing.html" 
@@ -125,7 +143,7 @@ module.exports = function generateInterviewScheduledEmail(data) {
                                         </a>
                                     </td>
                                 </tr>
-                            </table>
+                            </table>`}
                         </td>
                     </tr>
 
