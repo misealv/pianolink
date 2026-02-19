@@ -1151,7 +1151,22 @@ exports.createTeacherApplication = async (req, res) => {
         // Verificar que no exista ya un User con ese email
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {
-            return res.status(400).json({ error: 'Ya existe un usuario registrado con ese email' });
+            // Si ya es profesor registrado con teacherData, informar
+            if (existingUser.role === 'teacher' && existingUser.teacherData?.subscriptionStatus && existingUser.teacherData.subscriptionStatus !== 'trial') {
+                return res.status(400).json({ error: 'Este profesor ya está registrado y activo en la plataforma' });
+            }
+            // Verificar si existe una invitación previa para poder reenviar
+            const existingApp = await TeacherApplication.findByEmail(email);
+            if (existingApp) {
+                return res.status(409).json({
+                    error: 'Ya existe una invitación para este email (el usuario tiene cuenta creada)',
+                    existingCode: existingApp.inviteCode,
+                    applicationId: existingApp._id,
+                    status: existingApp.status
+                });
+            }
+            // Usuario existe pero sin invitación — permitir crear invitación igualmente
+            console.log(`[TeacherApp] ⚠️ User ya existe para ${email}, pero sin invitación activa. Creando invitación...`);
         }
 
         // Verificar que no exista invitación activa para ese email
