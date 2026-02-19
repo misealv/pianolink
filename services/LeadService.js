@@ -9,6 +9,8 @@
  */
 const Lead = require('../models/Lead');
 const eventService = require('./EventService');
+const emailService = require('./EmailService');
+const generateLeadConfirmationEmail = require('../templates/emails/leadConfirmation');
 const { detectCountryFromPhone } = require('../utils/timezoneHelper');
 
 // CalendarService lazy load (googleapis ~60MB)
@@ -175,6 +177,22 @@ class LeadService {
             source: lead.source,
             isManual
         });
+
+        // Enviar email de confirmación al profesor (solo desde landing, no manual)
+        if (!isManual && leadData.type === 'teacher') {
+            try {
+                const html = generateLeadConfirmationEmail({ name: lead.name });
+                await emailService.send({
+                    to: lead.email,
+                    subject: '🎹 Tu postulación a PianoLink fue recibida',
+                    html
+                });
+                console.log(`[LeadService] 📧 Email confirmación enviado: ${lead.email}`);
+            } catch (emailErr) {
+                // No bloquear el flujo si falla el email
+                console.error(`[LeadService] ⚠️ Error enviando email confirmación a ${lead.email}:`, emailErr.message);
+            }
+        }
 
         return {
             success: true,
