@@ -111,7 +111,7 @@ class CrmLeadService {
     static async getById(crmLeadId) {
         try {
             const lead = await CrmLead.findById(crmLeadId)
-                .populate('leadRef', 'name email phone type status availability country')
+                .populate('leadRef', 'name email phone type status availability country background')
                 .lean();
 
             if (!lead) {
@@ -131,7 +131,7 @@ class CrmLeadService {
     static async getByLeadRef(leadRefId) {
         try {
             const lead = await CrmLead.findOne({ leadRef: leadRefId })
-                .populate('leadRef', 'name email phone type status availability country')
+                .populate('leadRef', 'name email phone type status availability country background')
                 .lean();
 
             if (!lead) {
@@ -191,7 +191,7 @@ class CrmLeadService {
 
             const [leads, total] = await Promise.all([
                 CrmLead.find(query)
-                    .populate('leadRef', 'name email phone type status createdAt availability country')
+                    .populate('leadRef', 'name email phone type status createdAt availability country background')
                     .sort(sort)
                     .skip(skip)
                     .limit(Number(limit))
@@ -238,7 +238,7 @@ class CrmLeadService {
                 crmLeadId,
                 { $set: updateData },
                 { new: true, runValidators: true }
-            ).populate('leadRef', 'name email phone type status availability country');
+            ).populate('leadRef', 'name email phone type status availability country background');
 
             if (!lead) {
                 return { success: false, message: 'CrmLead no encontrado', status: 404 };

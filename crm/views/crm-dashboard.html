@@ -1220,13 +1220,17 @@
                         <option value="other">Otro</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Notas</label>
-                    <textarea class="form-control" id="editLeadNotes" rows="3"></textarea>
+                <div class="form-group" id="editLeadBgGroup" style="display:none;">
+                    <label>📝 Sobre mí (lo que escribió el profesor)</label>
+                    <div id="editLeadBackground" style="padding:12px 14px; background:var(--bg-primary); border-radius:8px; font-size:13px; color:var(--text-primary); line-height:1.6; white-space:pre-wrap; max-height:180px; overflow-y:auto; border:1px solid var(--border);"></div>
                 </div>
                 <div class="form-group" id="editLeadAvailGroup" style="display:none;">
-                    <label>Disponibilidad para entrevista</label>
+                    <label>🕐 Disponibilidad para entrevista</label>
                     <div id="editLeadAvailDisplay" style="padding:8px 12px; background:var(--bg-primary); border-radius:8px; font-size:13px; color:var(--text-secondary);"></div>
+                </div>
+                <div class="form-group">
+                    <label>Notas internas</label>
+                    <textarea class="form-control" id="editLeadNotes" rows="3" placeholder="Notas privadas del admin..."></textarea>
                 </div>
             </form>
         </div>
@@ -1655,6 +1659,7 @@
                 <td>
                     <div class="lead-name">${esc(name)}</div>
                     <div class="lead-email">${esc(email)}</div>
+                    ${ref.background ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(ref.background)}">${esc(ref.background.substring(0, 80))}${ref.background.length > 80 ? '…' : ''}</div>` : ''}
                 </td>
                 <td>${type}</td>
                 <td>${esc(origin)}</td>
@@ -1978,6 +1983,15 @@
             document.getElementById('editLeadStatus').value = crmLead?.lifecycleStage || 'lead';
             document.getElementById('editLeadSource').value = lead.source || 'manual';
             document.getElementById('editLeadNotes').value = lead.notes || '';
+
+            // Mostrar background (Sobre mí) si es profesor y tiene texto
+            const bgGroup = document.getElementById('editLeadBgGroup');
+            if (lead.background && lead.background.trim()) {
+                document.getElementById('editLeadBackground').textContent = lead.background;
+                bgGroup.style.display = 'block';
+            } else {
+                bgGroup.style.display = 'none';
+            }
 
             // Mostrar disponibilidad si es profesor
             const availGroup = document.getElementById('editLeadAvailGroup');
