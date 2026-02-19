@@ -302,10 +302,9 @@ async function _createMpCheckout(teacher, plan, priceUSD, resolved, successUrl, 
         throw new Error('SDK MercadoPago no disponible');
     }
 
-    // Tasas de cambio aproximadas USD → moneda local
+    // Tasa de cambio aproximada USD → CLP (solo Chile usa MP)
     const USD_RATES = {
-        CLP: 950, MXN: 17.5, ARS: 900, COP: 4200,
-        BRL: 5.0, PEN: 3.75, UYU: 40
+        CLP: 950
     };
 
     const currency = resolved.currency || 'CLP';

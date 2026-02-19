@@ -6,24 +6,18 @@
  * Todos los checkouts (clases, membresías, kits, early bird) deben pasar por aquí.
  * 
  * Regla:
- *   - País ∈ {CL, MX, AR, CO, BR, PE, UY} → MercadoPago (moneda local)
+ *   - País = CL → MercadoPago (CLP)
  *   - Resto del mundo → PayPal (USD)
  */
 
 const MpCredentials = require('../models/MpCredentials');
 
-// Países soportados por MercadoPago
-const MP_COUNTRIES = ['CL', 'MX', 'AR', 'CO', 'BR', 'PE', 'UY'];
+// Países soportados por MercadoPago (solo Chile por ahora)
+const MP_COUNTRIES = ['CL'];
 
 // Mapeo país → moneda
 const COUNTRY_CURRENCY = {
-    CL: 'CLP',
-    MX: 'MXN',
-    AR: 'ARS',
-    CO: 'COP',
-    BR: 'BRL',
-    PE: 'PEN',
-    UY: 'UYU'
+    CL: 'CLP'
 };
 
 class PaymentProviderResolver {
