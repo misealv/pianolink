@@ -3,7 +3,10 @@
 // Importamos el modelo User para poder buscar en la base de datos
 const User = require('../models/User');
 const Feedback = require('../models/Feedback'); 
-const Message = require('../models/Message');   
+const Message = require('../models/Message');
+const TeacherApplication = require('../models/TeacherApplication');
+const EmailService = require('../services/EmailService');
+const generateTeacherInvitationEmail = require('../templates/emails/teacherInvitation');   
 // Función para cambiar el estado de "Profesor Fundador"
 exports.toggleFounderStatus = async (req, res) => {
     try {
@@ -1108,5 +1111,306 @@ exports.testMpCredentials = async (req, res) => {
     } catch (error) {
         console.error('[Admin] Error testeando MpCredentials:', error);
         res.status(500).json({ error: 'Error al verificar credenciales' });
+    }
+};
+
+// ============================================================
+// TEACHER APPLICATIONS — Invitaciones para registro de profesores
+// ============================================================
+
+/**
+ * GET /admin/teacher-applications
+ * Lista todas las aplicaciones/invitaciones de profesores
+ */
+exports.getTeacherApplications = async (req, res) => {
+    try {
+        const apps = await TeacherApplication.find()
+            .sort({ createdAt: -1 })
+            .populate('registeredUserId', 'name email slug')
+            .lean();
+        res.json({ success: true, data: apps });
+    } catch (error) {
+        console.error('[Admin] Error listando teacher applications:', error);
+        res.status(500).json({ error: 'Error al listar invitaciones' });
+    }
+};
+
+/**
+ * POST /admin/teacher-applications
+ * Genera una invitación para un profesor candidato
+ * Body: { name, email, whatsapp?, country?, specialties?, background?, interviewNotes?, crmLeadId?, leadId? }
+ */
+exports.createTeacherApplication = async (req, res) => {
+    try {
+        const { name, email, whatsapp, country, specialties, yearsExperience, background, interviewNotes, crmLeadId, leadId } = req.body;
+
+        if (!name || !email) {
+            return res.status(400).json({ error: 'Nombre y email son requeridos' });
+        }
+
+        // Verificar que no exista ya un User con ese email
+        const existingUser = await User.findOne({ email: email.toLowerCase() });
+        if (existingUser) {
+            return res.status(400).json({ error: 'Ya existe un usuario registrado con ese email' });
+        }
+
+        // Verificar que no exista invitación activa para ese email
+        const existingApp = await TeacherApplication.findByEmail(email);
+        if (existingApp) {
+            return res.status(400).json({
+                error: 'Ya existe una invitación activa para ese email',
+                existingCode: existingApp.inviteCode
+            });
+        }
+
+        // Generar código único
+        const inviteCode = TeacherApplication.generateCode(name);
+
+        const application = await TeacherApplication.create({
+            name: name.trim(),
+            email: email.toLowerCase().trim(),
+            whatsapp: whatsapp || '',
+            country: country || '',
+            specialties: specialties || [],
+            yearsExperience: yearsExperience || null,
+            background: background || '',
+            interviewNotes: interviewNotes || '',
+            inviteCode,
+            crmLeadId: crmLeadId || null,
+            leadId: leadId || null,
+            approvedBy: req.user?._id || null
+        });
+
+        const frontendUrl = process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev';
+        const inviteUrl = `${frontendUrl}/teacher-register.html?code=${inviteCode}`;
+
+        console.log(`[TeacherApp] ✅ Invitación creada: ${email} → ${inviteCode}`);
+
+        res.status(201).json({
+            success: true,
+            data: application,
+            inviteUrl,
+            inviteCode
+        });
+    } catch (error) {
+        console.error('[Admin] Error creando teacher application:', error);
+        res.status(500).json({ error: 'Error al crear invitación' });
+    }
+};
+
+/**
+ * POST /admin/teacher-applications/:id/send-email
+ * Envía (o reenvía) el email de invitación al profesor
+ * Body opcional: { personalMessage }
+ */
+exports.sendTeacherInvitationEmail = async (req, res) => {
+    try {
+        const application = await TeacherApplication.findById(req.params.id);
+        if (!application) {
+            return res.status(404).json({ error: 'Invitación no encontrada' });
+        }
+
+        if (application.status === 'registered') {
+            return res.status(400).json({ error: 'Este profesor ya se registró' });
+        }
+        if (application.status === 'revoked') {
+            return res.status(400).json({ error: 'Esta invitación fue revocada' });
+        }
+
+        const frontendUrl = process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev';
+        const inviteUrl = `${frontendUrl}/teacher-register.html?code=${application.inviteCode}`;
+
+        // Calcular días restantes
+        const msLeft = application.expiresAt - Date.now();
+        const daysLeft = Math.max(1, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+
+        const html = generateTeacherInvitationEmail({
+            teacherName: application.name,
+            inviteUrl,
+            expiresInDays: daysLeft,
+            personalMessage: req.body?.personalMessage || ''
+        });
+
+        const emailService = new EmailService();
+        const result = await emailService.send({
+            to: application.email,
+            subject: '🎹 Tu invitación a PianoLink — Crea tu cuenta de profesor',
+            html
+        });
+
+        if (result.success) {
+            await application.markSent();
+            console.log(`[TeacherApp] 📧 Email enviado: ${application.email} (reenvío #${application.emailResendCount})`);
+            res.json({ success: true, message: 'Email enviado correctamente', emailId: result.id });
+        } else {
+            res.status(500).json({ error: 'Error al enviar email', details: result.error });
+        }
+    } catch (error) {
+        console.error('[Admin] Error enviando email invitación:', error);
+        res.status(500).json({ error: 'Error al enviar email' });
+    }
+};
+
+/**
+ * DELETE /admin/teacher-applications/:id
+ * Revoca una invitación
+ */
+exports.revokeTeacherApplication = async (req, res) => {
+    try {
+        const application = await TeacherApplication.findById(req.params.id);
+        if (!application) {
+            return res.status(404).json({ error: 'Invitación no encontrada' });
+        }
+        if (application.status === 'registered') {
+            return res.status(400).json({ error: 'No se puede revocar: el profesor ya se registró' });
+        }
+        await application.revoke();
+        console.log(`[TeacherApp] ❌ Invitación revocada: ${application.email}`);
+        res.json({ success: true, message: 'Invitación revocada' });
+    } catch (error) {
+        console.error('[Admin] Error revocando invitación:', error);
+        res.status(500).json({ error: 'Error al revocar invitación' });
+    }
+};
+
+/**
+ * GET /admin/teacher-applications/validate/:code (PÚBLICO — sin auth)
+ * Valida un código de invitación para la página de registro
+ */
+exports.validateTeacherInviteCode = async (req, res) => {
+    try {
+        const application = await TeacherApplication.findValidByCode(req.params.code);
+        if (!application) {
+            return res.status(404).json({ valid: false, error: 'Código inválido o expirado' });
+        }
+        res.json({
+            valid: true,
+            name: application.name,
+            email: application.email,
+            country: application.country,
+            specialties: application.specialties
+        });
+    } catch (error) {
+        console.error('[TeacherApp] Error validando código:', error);
+        res.status(500).json({ valid: false, error: 'Error al validar código' });
+    }
+};
+
+/**
+ * POST /admin/teacher-applications/register/:code (PÚBLICO — sin auth)
+ * Registra un profesor usando un código de invitación válido
+ * Body: { password, slug, whatsapp?, country? }
+ */
+exports.registerTeacherWithCode = async (req, res) => {
+    try {
+        const { password, slug, whatsapp, country } = req.body;
+        const { code } = req.params;
+
+        if (!password || password.length < 6) {
+            return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+        }
+        if (!slug || slug.length < 3) {
+            return res.status(400).json({ error: 'El slug debe tener al menos 3 caracteres' });
+        }
+
+        // Validar código
+        const application = await TeacherApplication.findValidByCode(code);
+        if (!application) {
+            return res.status(404).json({ error: 'Código de invitación inválido o expirado' });
+        }
+
+        // Verificar que no exista usuario con ese email
+        const existingUser = await User.findOne({ email: application.email });
+        if (existingUser) {
+            // Si ya existe, marcar la app como registrada
+            await application.markRegistered(existingUser._id);
+            return res.status(400).json({ error: 'Ya existe una cuenta con este email. Puedes iniciar sesión directamente.' });
+        }
+
+        // Verificar slug único
+        const slugNormalized = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+        const existingSlug = await User.findOne({ slug: slugNormalized });
+        if (existingSlug) {
+            return res.status(400).json({ error: 'Ese slug ya está en uso. Elige otro.' });
+        }
+
+        // Crear usuario profesor
+        const user = await User.create({
+            name: application.name,
+            email: application.email,
+            password,
+            role: 'teacher',
+            slug: slugNormalized,
+            whatsapp: whatsapp || application.whatsapp || '',
+            country: country || application.country || '',
+            branding: {
+                primaryColor: '#00B8CC',
+                backgroundColor: '#1a1a2e'
+            },
+            'teacherData.profile.specialties': application.specialties || [],
+            'teacherData.profile.experience': application.background || ''
+        });
+
+        // Marcar invitación como usada
+        await application.markRegistered(user._id);
+
+        // Avanzar CRM lead si existe
+        if (application.crmLeadId) {
+            try {
+                const CrmLead = require('../crm/models/CrmLead');
+                const crmLead = await CrmLead.findById(application.crmLeadId);
+                if (crmLead) {
+                    await crmLead.advancePipeline('active');
+                }
+            } catch (e) {
+                console.warn('[TeacherApp] No se pudo avanzar CRM:', e.message);
+            }
+        }
+
+        // Actualizar Lead core si existe
+        if (application.leadId) {
+            try {
+                const Lead = require('../models/Lead');
+                await Lead.findByIdAndUpdate(application.leadId, {
+                    status: 'converted',
+                    convertedToUserId: user._id,
+                    convertedAt: new Date()
+                });
+            } catch (e) {
+                console.warn('[TeacherApp] No se pudo actualizar Lead:', e.message);
+            }
+        }
+
+        // Emitir evento para email de bienvenida
+        try {
+            const EventService = require('../services/EventService');
+            EventService.emit('teacher.created', { user });
+        } catch (e) {
+            // EventService puede no estar disponible en este contexto
+        }
+
+        console.log(`[TeacherApp] 🎉 Profesor registrado: ${user.email} (slug: ${user.slug}, código: ${code})`);
+
+        // Generar token JWT
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+        res.status(201).json({
+            success: true,
+            token,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                slug: user.slug
+            }
+        });
+    } catch (error) {
+        console.error('[TeacherApp] Error registrando profesor:', error);
+        if (error.code === 11000) {
+            return res.status(400).json({ error: 'Email o slug duplicado' });
+        }
+        res.status(500).json({ error: 'Error al registrar profesor' });
     }
 };

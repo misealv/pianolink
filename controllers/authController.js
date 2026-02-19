@@ -74,8 +74,18 @@ exports.loginUser = async (req, res) => {
 // 2. REGISTRO
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password, slug, isFoundingMember, country, whatsapp } = req.body;
+    const { name, email, password, slug, isFoundingMember, country, whatsapp, inviteCode } = req.body;
     
+    // Registro solo por invitación — validar código
+    if (!inviteCode) {
+      return res.status(403).json({ message: 'El registro es solo por invitación. Si fuiste invitado, usa el link de tu email.' });
+    }
+    const TeacherApplication = require('../models/TeacherApplication');
+    const validApp = await TeacherApplication.findValidByCode(inviteCode);
+    if (!validApp) {
+      return res.status(403).json({ message: 'Código de invitación inválido o expirado. Contacta al equipo de PianoLink.' });
+    }
+
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'El correo ya está registrado' });
 

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Piano Link | Registro de Profesor</title>
+    <meta name="description" content="Completa tu registro como profesor en PianoLink.">
+    
+    <link rel="icon" type="image/png" href="/logoclaropianolink.jpg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ivory': '#FDFCFB',
+                        'silk': '#F7F6F4',
+                        'pearl': '#F0EFED',
+                        'midnight': '#1A2332',
+                        'charcoal': '#2C3440',
+                        'brand-cyan': '#00B8CC',
+                        'brand-purple': '#7700CC',
+                    },
+                    fontFamily: {
+                        'serif': ['Cormorant Garamond', 'Georgia', 'serif'],
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #FDFCFB;
+            font-family: 'Inter', sans-serif;
+        }
+        .font-serif {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #00B8CC 0%, #7700CC 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .gradient-btn {
+            background: linear-gradient(135deg, #00B8CC 0%, #7700CC 100%);
+            transition: all 0.3s ease;
+        }
+        .gradient-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 30px rgba(0, 184, 204, 0.3), 0 8px 30px rgba(119, 0, 204, 0.2);
+        }
+        .gradient-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .shadow-soft {
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04), 0 8px 40px rgba(0, 0, 0, 0.06);
+        }
+        .input-field {
+            transition: all 0.3s ease;
+            border: 2px solid #e2e8f0;
+        }
+        .input-field:focus {
+            border-color: #00B8CC;
+            box-shadow: 0 0 0 3px rgba(0, 184, 204, 0.1);
+            outline: none;
+        }
+        .input-field.readonly {
+            background-color: #f8fafc;
+            color: #64748b;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.6s ease forwards;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .spinner {
+            animation: spin 1s linear infinite;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header minimalista -->
+    <header class="w-full py-6 px-6">
+        <div class="max-w-2xl mx-auto flex items-center justify-center">
+            <a href="/" class="flex items-center gap-3">
+                <img src="/logoclaropianolink.jpg" alt="PianoLink" class="w-10 h-10 rounded-full">
+                <span class="font-serif text-2xl font-bold text-midnight">Piano<span class="gradient-text">Link</span></span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Estado: Cargando -->
+    <main id="loading-state" class="flex-1 flex items-center justify-center px-6">
+        <div class="text-center">
+            <div class="spinner mx-auto mb-4" style="border-color: rgba(0,184,204,0.3); border-top-color: #00B8CC; width: 40px; height: 40px;"></div>
+            <p class="text-charcoal/60">Validando invitación...</p>
+        </div>
+    </main>
+
+    <!-- Estado: Código inválido -->
+    <main id="invalid-state" class="flex-1 flex items-center justify-center px-6 hidden">
+        <div class="text-center max-w-md animate-fade-in">
+            <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </div>
+            <h2 class="font-serif text-3xl font-bold text-midnight mb-3">Invitación no válida</h2>
+            <p class="text-charcoal/60 mb-6" id="invalid-message">El código de invitación no es válido o ha expirado.</p>
+            <a href="/" class="inline-block gradient-btn text-white font-semibold px-8 py-3 rounded-xl">
+                Ir al inicio
+            </a>
+        </div>
+    </main>
+
+    <!-- Estado: Formulario de registro -->
+    <main id="register-state" class="flex-1 flex items-center justify-center px-6 py-12 hidden">
+        <div class="w-full max-w-lg animate-fade-in">
+            <!-- Encabezado -->
+            <div class="text-center mb-10">
+                <div class="w-20 h-20 bg-gradient-to-br from-brand-cyan/10 to-brand-purple/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span class="text-4xl">🎹</span>
+                </div>
+                <h1 class="font-serif text-4xl font-bold text-midnight mb-2">Bienvenido/a, <span class="gradient-text" id="teacher-name-header"></span></h1>
+                <p class="text-charcoal/60 text-lg">Completa tu registro para comenzar a enseñar en PianoLink</p>
+            </div>
+
+            <!-- Formulario -->
+            <form id="registerForm" class="bg-white rounded-2xl shadow-soft p-8 lg:p-10 space-y-6">
+                
+                <!-- Datos pre-llenados (solo lectura) -->
+                <div class="bg-silk/60 rounded-xl p-5 space-y-4">
+                    <p class="text-xs font-semibold text-charcoal/50 uppercase tracking-wider mb-2">Datos de tu invitación</p>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-charcoal/70 mb-1">Nombre</label>
+                        <input type="text" id="field-name" class="input-field readonly w-full px-4 py-3 rounded-xl" readonly>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-charcoal/70 mb-1">Email</label>
+                        <input type="email" id="field-email" class="input-field readonly w-full px-4 py-3 rounded-xl" readonly>
+                    </div>
+                    
+                    <div id="field-country-wrapper" class="hidden">
+                        <label class="block text-sm font-medium text-charcoal/70 mb-1">País</label>
+                        <input type="text" id="field-country-display" class="input-field readonly w-full px-4 py-3 rounded-xl" readonly>
+                    </div>
+                    
+                    <div id="field-specialties-wrapper" class="hidden">
+                        <label class="block text-sm font-medium text-charcoal/70 mb-1">Especialidades</label>
+                        <div id="field-specialties" class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+
+                <!-- Campos editables -->
+                <div class="space-y-5">
+                    <!-- Slug (URL pública) -->
+                    <div>
+                        <label for="field-slug" class="block text-sm font-medium text-charcoal mb-1">
+                            Tu URL pública <span class="text-red-400">*</span>
+                        </label>
+                        <div class="flex items-center gap-0">
+                            <span class="bg-pearl text-charcoal/50 text-sm px-4 py-3 rounded-l-xl border-2 border-r-0 border-slate-200">pianolink.app/</span>
+                            <input type="text" id="field-slug" name="slug" 
+                                   class="input-field w-full px-4 py-3 rounded-r-xl rounded-l-none" 
+                                   placeholder="tu-nombre" required minlength="3" maxlength="40"
+                                   pattern="[a-z0-9\-]+"
+                                   title="Solo letras minúsculas, números y guiones">
+                        </div>
+                        <p class="text-xs text-charcoal/40 mt-1">Solo letras minúsculas, números y guiones. Mínimo 3 caracteres.</p>
+                    </div>
+
+                    <!-- Contraseña -->
+                    <div>
+                        <label for="field-password" class="block text-sm font-medium text-charcoal mb-1">
+                            Contraseña <span class="text-red-400">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="field-password" name="password" 
+                                   class="input-field w-full px-4 py-3 rounded-xl pr-12" 
+                                   placeholder="Mínimo 6 caracteres" required minlength="6">
+                            <button type="button" onclick="togglePassword()" 
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal">
+                                <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Confirmar contraseña -->
+                    <div>
+                        <label for="field-password2" class="block text-sm font-medium text-charcoal mb-1">
+                            Confirmar contraseña <span class="text-red-400">*</span>
+                        </label>
+                        <input type="password" id="field-password2" name="password2" 
+                               class="input-field w-full px-4 py-3 rounded-xl" 
+                               placeholder="Repite tu contraseña" required minlength="6">
+                    </div>
+
+                    <!-- WhatsApp (opcional, pre-llenado si existe) -->
+                    <div>
+                        <label for="field-whatsapp" class="block text-sm font-medium text-charcoal mb-1">
+                            WhatsApp <span class="text-charcoal/40 font-normal">(opcional)</span>
+                        </label>
+                        <input type="tel" id="field-whatsapp" name="whatsapp" 
+                               class="input-field w-full px-4 py-3 rounded-xl" 
+                               placeholder="+56 9 1234 5678">
+                    </div>
+
+                    <!-- País (si no vino de la invitación) -->
+                    <div id="country-select-wrapper">
+                        <label for="field-country-select" class="block text-sm font-medium text-charcoal mb-1">
+                            País <span class="text-red-400">*</span>
+                        </label>
+                        <select id="field-country-select" name="country" class="input-field w-full px-4 py-3 rounded-xl" required>
+                            <option value="">Selecciona tu país</option>
+                            <option value="CL">Chile</option>
+                            <option value="AR">Argentina</option>
+                            <option value="MX">México</option>
+                            <option value="CO">Colombia</option>
+                            <option value="PE">Perú</option>
+                            <option value="EC">Ecuador</option>
+                            <option value="UY">Uruguay</option>
+                            <option value="ES">España</option>
+                            <option value="US">Estados Unidos</option>
+                            <option value="BR">Brasil</option>
+                            <option value="VE">Venezuela</option>
+                            <option value="BO">Bolivia</option>
+                            <option value="PY">Paraguay</option>
+                            <option value="CR">Costa Rica</option>
+                            <option value="PA">Panamá</option>
+                            <option value="DO">República Dominicana</option>
+                            <option value="GT">Guatemala</option>
+                            <option value="SV">El Salvador</option>
+                            <option value="HN">Honduras</option>
+                            <option value="NI">Nicaragua</option>
+                            <option value="CU">Cuba</option>
+                            <option value="PR">Puerto Rico</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Error -->
+                <div id="form-error" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm"></div>
+
+                <!-- Submit -->
+                <button type="submit" id="submit-btn" 
+                        class="gradient-btn w-full text-white font-semibold py-4 rounded-xl text-lg flex items-center justify-center gap-2">
+                    <span id="submit-text">Crear mi cuenta de profesor</span>
+                    <div id="submit-spinner" class="spinner hidden"></div>
+                </button>
+
+                <p class="text-xs text-center text-charcoal/40">
+                    Al registrarte aceptas nuestros 
+                    <a href="/terminos" class="underline hover:text-brand-cyan">términos de servicio</a>
+                    y <a href="/privacidad" class="underline hover:text-brand-cyan">política de privacidad</a>.
+                </p>
+            </form>
+        </div>
+    </main>
+
+    <!-- Estado: Éxito -->
+    <main id="success-state" class="flex-1 flex items-center justify-center px-6 hidden">
+        <div class="text-center max-w-md animate-fade-in">
+            <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+            </div>
+            <h2 class="font-serif text-3xl font-bold text-midnight mb-3">¡Registro completo!</h2>
+            <p class="text-charcoal/60 mb-2">Tu cuenta de profesor ha sido creada exitosamente.</p>
+            <p class="text-charcoal/60 mb-8">Serás redirigido a tu panel en unos segundos...</p>
+            <a href="/dashboard" id="go-dashboard" class="inline-block gradient-btn text-white font-semibold px-8 py-3 rounded-xl">
+                Ir a mi panel
+            </a>
+        </div>
+    </main>
+
+    <!-- Footer minimalista -->
+    <footer class="py-6 text-center text-charcoal/30 text-sm">
+        &copy; 2025 PianoLink. Todos los derechos reservados.
+    </footer>
+
+<script>
+(function() {
+    // Elementos de estado
+    const loadingState  = document.getElementById('loading-state');
+    const invalidState  = document.getElementById('invalid-state');
+    const registerState = document.getElementById('register-state');
+    const successState  = document.getElementById('success-state');
+
+    // Obtener código de la URL
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+
+    if (!code) {
+        showInvalid('No se proporcionó un código de invitación.');
+        return;
+    }
+
+    // Datos de la invitación (se llenan al validar)
+    let inviteData = null;
+
+    // Validar código al cargar
+    validateCode(code);
+
+    async function validateCode(code) {
+        try {
+            const resp = await fetch(`/api/teacher-invite/validate/${encodeURIComponent(code)}`);
+            const data = await resp.json();
+
+            if (!resp.ok || !data.valid) {
+                showInvalid(data.error || 'El código de invitación no es válido o ha expirado.');
+                return;
+            }
+
+            inviteData = data;
+            populateForm(data);
+            showState(registerState);
+        } catch (err) {
+            console.error('Error validando código:', err);
+            showInvalid('Error de conexión. Intenta nuevamente.');
+        }
+    }
+
+    function populateForm(data) {
+        document.getElementById('field-name').value = data.name || '';
+        document.getElementById('field-email').value = data.email || '';
+        document.getElementById('teacher-name-header').textContent = (data.name || '').split(' ')[0];
+
+        // Generar slug sugerido desde el nombre
+        if (data.name) {
+            const slugSuggestion = data.name.toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-')
+                .substring(0, 30);
+            document.getElementById('field-slug').value = slugSuggestion;
+        }
+
+        // País
+        if (data.country) {
+            document.getElementById('field-country-display').value = data.country;
+            document.getElementById('field-country-wrapper').classList.remove('hidden');
+            document.getElementById('country-select-wrapper').classList.add('hidden');
+            // Setear el select oculto
+            document.getElementById('field-country-select').value = data.country;
+        }
+
+        // WhatsApp
+        if (data.whatsapp) {
+            document.getElementById('field-whatsapp').value = data.whatsapp;
+        }
+
+        // Especialidades
+        if (data.specialties && data.specialties.length > 0) {
+            document.getElementById('field-specialties-wrapper').classList.remove('hidden');
+            const container = document.getElementById('field-specialties');
+            data.specialties.forEach(s => {
+                const tag = document.createElement('span');
+                tag.className = 'inline-block bg-brand-cyan/10 text-brand-cyan text-sm px-3 py-1 rounded-full';
+                tag.textContent = s;
+                container.appendChild(tag);
+            });
+        }
+    }
+
+    // Normalizar slug en tiempo real
+    document.getElementById('field-slug').addEventListener('input', function() {
+        this.value = this.value.toLowerCase()
+            .replace(/[^a-z0-9\-]/g, '')
+            .replace(/-+/g, '-');
+    });
+
+    // Toggle contraseña
+    window.togglePassword = function() {
+        const field = document.getElementById('field-password');
+        field.type = field.type === 'password' ? 'text' : 'password';
+    };
+
+    // Enviar formulario
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const password  = document.getElementById('field-password').value;
+        const password2 = document.getElementById('field-password2').value;
+        const slug      = document.getElementById('field-slug').value;
+        const whatsapp  = document.getElementById('field-whatsapp').value;
+        const country   = document.getElementById('field-country-select').value;
+
+        // Validaciones cliente
+        if (password !== password2) {
+            showError('Las contraseñas no coinciden.');
+            return;
+        }
+        if (password.length < 6) {
+            showError('La contraseña debe tener al menos 6 caracteres.');
+            return;
+        }
+        if (!slug || slug.length < 3) {
+            showError('El slug debe tener al menos 3 caracteres.');
+            return;
+        }
+        if (!country) {
+            showError('Selecciona tu país.');
+            return;
+        }
+
+        setLoading(true);
+        hideError();
+
+        try {
+            const resp = await fetch(`/api/teacher-invite/register/${encodeURIComponent(code)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password, slug, whatsapp, country })
+            });
+
+            const data = await resp.json();
+
+            if (!resp.ok) {
+                showError(data.error || 'Error al registrar. Intenta nuevamente.');
+                setLoading(false);
+                return;
+            }
+
+            // Guardar token y datos de usuario
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+            }
+            if (data.user) {
+                localStorage.setItem('user', JSON.stringify(data.user));
+            }
+
+            // Mostrar éxito y redirigir
+            showState(successState);
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 3000);
+
+        } catch (err) {
+            console.error('Error en registro:', err);
+            showError('Error de conexión. Intenta nuevamente.');
+            setLoading(false);
+        }
+    });
+
+    // --- Helpers ---
+    function showState(state) {
+        [loadingState, invalidState, registerState, successState].forEach(s => s.classList.add('hidden'));
+        state.classList.remove('hidden');
+    }
+
+    function showInvalid(message) {
+        document.getElementById('invalid-message').textContent = message;
+        showState(invalidState);
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('form-error');
+        el.textContent = msg;
+        el.classList.remove('hidden');
+    }
+
+    function hideError() {
+        document.getElementById('form-error').classList.add('hidden');
+    }
+
+    function setLoading(loading) {
+        const btn     = document.getElementById('submit-btn');
+        const text    = document.getElementById('submit-text');
+        const spinner = document.getElementById('submit-spinner');
+
+        btn.disabled = loading;
+        text.textContent = loading ? 'Creando cuenta...' : 'Crear mi cuenta de profesor';
+        spinner.classList.toggle('hidden', !loading);
+    }
+})();
+</script>
+</body>
+</html>

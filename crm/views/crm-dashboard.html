@@ -306,6 +306,7 @@
 
     <p class="sidebar-section">Captación</p>
     <ul class="sidebar-nav">
+        <li><a class="nav-link" data-section="teacher-invites"><span class="icon">🎫</span> Invitaciones Profesor</a></li>
         <li><a class="nav-link" data-section="founder-invites"><span class="icon">✉️</span> Invitaciones Fundador</a></li>
     </ul>
 
@@ -979,6 +980,61 @@
             </div>
         </section>
 
+        <!-- ==================== INVITACIONES PROFESOR ==================== -->
+        <section class="section" id="section-teacher-invites">
+            <div class="content-inner" style="padding:24px;">
+                <!-- Stats -->
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
+                    <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:var(--shadow); text-align:center;">
+                        <div style="font-size:28px; font-weight:700; color:var(--info);" id="ti-stat-pending">0</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Pendientes</div>
+                    </div>
+                    <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:var(--shadow); text-align:center;">
+                        <div style="font-size:28px; font-weight:700; color:var(--warning);" id="ti-stat-sent">0</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Enviadas</div>
+                    </div>
+                    <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:var(--shadow); text-align:center;">
+                        <div style="font-size:28px; font-weight:700; color:var(--success);" id="ti-stat-registered">0</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Registrados</div>
+                    </div>
+                    <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:var(--shadow); text-align:center;">
+                        <div style="font-size:28px; font-weight:700; color:var(--danger);" id="ti-stat-expired">0</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Expiradas/Revocadas</div>
+                    </div>
+                </div>
+
+                <!-- Acciones -->
+                <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
+                    <button onclick="tiShowCreateModal()" style="background:var(--accent); color:#fff; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;">🎫 Nueva Invitación</button>
+                    <button onclick="loadTeacherInvites()" style="background:#fff; color:var(--text-primary); border:1px solid var(--border); padding:10px 20px; border-radius:8px; cursor:pointer; font-size:13px;">🔄 Actualizar</button>
+                </div>
+
+                <!-- Tabla Invitaciones -->
+                <div style="background:#fff; border-radius:12px; box-shadow:var(--shadow); overflow:hidden;">
+                    <div style="padding:16px 20px; border-bottom:1px solid var(--border); font-weight:600;">🎫 Invitaciones a Profesores</div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead>
+                                <tr style="background:#f8f9fa; text-align:left;">
+                                    <th style="padding:10px 16px;">Profesor</th>
+                                    <th style="padding:10px 16px;">Email</th>
+                                    <th style="padding:10px 16px;">País</th>
+                                    <th style="padding:10px 16px;">Código</th>
+                                    <th style="padding:10px 16px;">Estado</th>
+                                    <th style="padding:10px 16px;">Emails</th>
+                                    <th style="padding:10px 16px;">Expira</th>
+                                    <th style="padding:10px 16px;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ti-invites-table">
+                                <tr><td colspan="8" style="text-align:center; padding:40px; color:var(--text-secondary);">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ==================== INVITACIONES FUNDADOR ==================== -->
         <section class="section" id="section-founder-invites">
             <div class="content-inner" style="padding:24px;">
@@ -1449,6 +1505,7 @@
             case 'inbox': loadInbox(); break;
             case 'pixel': loadPixelConfig(); break;
             case 'founder-invites': loadFounderInvites(); break;
+            case 'teacher-invites': loadTeacherInvites(); break;
             case 'tasks': loadTasksSection(); break;
             case 'report': loadReportSection(); break;
         }
@@ -1574,6 +1631,7 @@
                     <button class="btn-icon" title="Editar" onclick="editLead('${leadId}', '${lead._id}')">✏️</button>
                     <button class="btn-icon" title="Pipeline" onclick="showPipelineModal('${lead._id}', '${ref.type}')">📋</button>
                     <button class="btn-icon" title="Tarea" onclick="showAddTaskModal('${lead._id}')">📌</button>
+                    ${ref.type === 'teacher' ? `<button class="btn-icon" title="Invitar Profesor" onclick="tiInviteFromLead('${leadId}','${lead._id}','${esc(name)}','${esc(email)}','${esc(ref.country||'')}')">🎫</button>` : ''}
                     <button class="btn-icon" title="Eliminar" onclick="deleteLead('${leadId}', '${esc(name)}')">🗑️</button>
                 </td>
             </tr>`;
@@ -3060,6 +3118,196 @@
     window.loadInbox = loadInbox;
     window.filterInbox = filterInbox;
     window.markAllInboxRead = markAllInboxRead;
+
+    window.filterInbox = filterInbox;
+    window.markAllInboxRead = markAllInboxRead;
+
+    // ==================== INVITACIONES PROFESOR (TeacherApplication) ====================
+    const TI_ADMIN_API = '/admin/teacher-applications';
+    let tiInvites = [];
+
+    async function loadTeacherInvites() {
+        try {
+            const res = await fetch(TI_ADMIN_API, { headers: authHeaders() });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error);
+            tiInvites = data.applications || [];
+            renderTeacherInvites(tiInvites);
+        } catch (err) {
+            console.error('[TI] Error cargando invitaciones:', err);
+        }
+    }
+
+    function renderTeacherInvites(invites) {
+        // Stats
+        const pending = invites.filter(i => i.status === 'pending').length;
+        const sent = invites.filter(i => i.status === 'sent').length;
+        const registered = invites.filter(i => i.status === 'registered').length;
+        const expiredRevoked = invites.filter(i => i.status === 'expired' || i.status === 'revoked').length;
+        
+        const el = id => document.getElementById(id);
+        if (el('ti-stat-pending')) el('ti-stat-pending').textContent = pending;
+        if (el('ti-stat-sent')) el('ti-stat-sent').textContent = sent;
+        if (el('ti-stat-registered')) el('ti-stat-registered').textContent = registered;
+        if (el('ti-stat-expired')) el('ti-stat-expired').textContent = expiredRevoked;
+
+        const tbody = document.getElementById('ti-invites-table');
+        if (!tbody) return;
+        if (invites.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">Sin invitaciones. Usa el botón 🎫 en la tabla de profesores o crea una nueva.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = invites.map(inv => {
+            const statusMap = {
+                pending: '<span class="badge badge-nuevo">Pendiente</span>',
+                sent: '<span class="badge badge-contactado">Enviada</span>',
+                registered: '<span class="badge badge-convertido">Registrado ✓</span>',
+                expired: '<span class="badge badge-draft">Expirada</span>',
+                revoked: '<span class="badge" style="background:#fce4ec;color:#c62828;">Revocada</span>'
+            };
+            const status = statusMap[inv.status] || `<span class="badge">${inv.status}</span>`;
+            const expires = inv.expiresAt ? new Date(inv.expiresAt).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) : '--';
+            const emails = inv.emailResendCount || 0;
+            const canSend = inv.status === 'pending' || inv.status === 'sent';
+            const canRevoke = inv.status === 'pending' || inv.status === 'sent';
+
+            return `<tr>
+                <td><strong>${esc(inv.name)}</strong></td>
+                <td>${esc(inv.email)}</td>
+                <td>${esc(inv.country || '--')}</td>
+                <td><code style="font-size:11px;background:#f1f3f5;padding:2px 6px;border-radius:4px;">${esc(inv.inviteCode)}</code></td>
+                <td>${status}</td>
+                <td>${emails}</td>
+                <td>${expires}</td>
+                <td>
+                    ${canSend ? `<button class="btn-icon" title="Enviar/Reenviar email" onclick="tiSendEmail('${inv._id}')">📧</button>` : ''}
+                    <button class="btn-icon" title="Copiar link" onclick="tiCopyLink('${esc(inv.inviteCode)}')">🔗</button>
+                    ${canRevoke ? `<button class="btn-icon" title="Revocar" onclick="tiRevoke('${inv._id}','${esc(inv.name)}')">🚫</button>` : ''}
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // Crear invitación desde la tabla de profesores (botón 🎫)
+    async function tiInviteFromLead(coreLeadId, crmLeadId, name, email, country) {
+        if (!confirm(`¿Generar invitación para ${name} (${email})?`)) return;
+        try {
+            const res = await fetch(TI_ADMIN_API, {
+                method: 'POST',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, country, leadId: coreLeadId, crmLeadId })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || 'Error al crear invitación');
+                return;
+            }
+            // Preguntar si enviar email ahora
+            const sendNow = confirm(`✅ Invitación creada.\nCódigo: ${data.inviteCode}\n\n¿Enviar email de invitación ahora?`);
+            if (sendNow) {
+                await tiSendEmail(data.applicationId);
+            }
+            // Recargar datos
+            await loadTeacherInvites();
+        } catch (err) {
+            console.error('[TI] Error creando invitación:', err);
+            alert('Error de conexión');
+        }
+    }
+
+    // Enviar/reenviar email de invitación
+    async function tiSendEmail(applicationId) {
+        try {
+            const personalMessage = prompt('Mensaje personalizado (opcional):') || '';
+            const res = await fetch(`${TI_ADMIN_API}/${applicationId}/send-email`, {
+                method: 'POST',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ personalMessage })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || 'Error al enviar email');
+                return;
+            }
+            alert('📧 Email enviado exitosamente');
+            await loadTeacherInvites();
+        } catch (err) {
+            console.error('[TI] Error enviando email:', err);
+            alert('Error de conexión');
+        }
+    }
+
+    // Copiar link de invitación
+    function tiCopyLink(code) {
+        const url = `${window.location.origin}/teacher-register.html?code=${encodeURIComponent(code)}`;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('🔗 Link copiado al portapapeles:\n' + url);
+        }).catch(() => {
+            prompt('Copia este link:', url);
+        });
+    }
+
+    // Revocar invitación
+    async function tiRevoke(applicationId, name) {
+        if (!confirm(`¿Revocar invitación de ${name}? No podrá registrarse con este código.`)) return;
+        try {
+            const res = await fetch(`${TI_ADMIN_API}/${applicationId}`, {
+                method: 'DELETE',
+                headers: authHeaders()
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || 'Error al revocar');
+                return;
+            }
+            alert('🚫 Invitación revocada');
+            await loadTeacherInvites();
+        } catch (err) {
+            console.error('[TI] Error revocando:', err);
+            alert('Error de conexión');
+        }
+    }
+
+    // Modal para crear invitación manualmente
+    function tiShowCreateModal() {
+        const name = prompt('Nombre del profesor:');
+        if (!name) return;
+        const email = prompt('Email del profesor:');
+        if (!email) return;
+        const country = prompt('País (código, ej: CL, MX):') || '';
+        tiCreateManual(name, email, country);
+    }
+
+    async function tiCreateManual(name, email, country) {
+        try {
+            const res = await fetch(TI_ADMIN_API, {
+                method: 'POST',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, country })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || 'Error al crear invitación');
+                return;
+            }
+            const sendNow = confirm(`✅ Invitación creada.\nCódigo: ${data.inviteCode}\n\n¿Enviar email ahora?`);
+            if (sendNow) {
+                await tiSendEmail(data.applicationId);
+            }
+            await loadTeacherInvites();
+        } catch (err) {
+            console.error('[TI] Error creando invitación:', err);
+            alert('Error de conexión');
+        }
+    }
+
+    // Exponer funciones al window
+    window.loadTeacherInvites = loadTeacherInvites;
+    window.tiInviteFromLead = tiInviteFromLead;
+    window.tiSendEmail = tiSendEmail;
+    window.tiCopyLink = tiCopyLink;
+    window.tiRevoke = tiRevoke;
+    window.tiShowCreateModal = tiShowCreateModal;
 
     // ==================== INVITACIONES FUNDADOR ====================
     const FI_API = '/api/founder-invite';

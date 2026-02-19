@@ -176,6 +176,7 @@ app.use('/api/leads', require('./routes/leadRoutes')); // Lead generation
 app.use('/api/calendar', require('./routes/calendarRoutes')); // Google Calendar integration
 app.use('/api/analytics', require('./routes/analyticsRoutes')); // Session Analytics
 app.use('/admin', require('./routes/adminRoutes'));
+app.use('/api/teacher-invite', require('./routes/teacherInviteRoutes')); // Invitación pública profesores
 
 // ✨ v2.0: Rutas de Suscripciones, Salas y Webhooks
 app.use('/api/rooms', require('./routes/rooms'));

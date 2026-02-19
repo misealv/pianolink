@@ -268,6 +268,16 @@ router.put('/mp-credentials/:countryCode/toggle', adminController.toggleMpCreden
 router.delete('/mp-credentials/:countryCode', adminController.deleteMpCredentials);
 router.post('/mp-credentials/:countryCode/test', adminController.testMpCredentials);
 
+/* -------------------------------------------------------------------------- */
+/* TEACHER APPLICATIONS — Invitaciones a profesores                           */
+/* -------------------------------------------------------------------------- */
+router.get('/teacher-applications', adminController.getTeacherApplications);
+router.post('/teacher-applications', adminController.createTeacherApplication);
+router.post('/teacher-applications/:id/send-email', adminController.sendTeacherInvitationEmail);
+router.delete('/teacher-applications/:id', adminController.revokeTeacherApplication);
+
+// NOTA: Las rutas PÚBLICAS de invitación (validate/register) están en routes/teacherInviteRoutes.js
+
 // Actualizar configuración de Early Bird (Fase 5 v5.0)
 router.put('/config/early-bird', adminController.updateEarlyBirdConfig);
 
