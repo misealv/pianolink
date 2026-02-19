@@ -58,6 +58,28 @@ router.get('/resolve-provider', protect, teacherOrAdmin, async (req, res) => {
 });
 
 /**
+ * GET /api/membership/founder-slots
+ * Cupos restantes de fundadores (público, no requiere auth)
+ */
+router.get('/founder-slots', async (req, res) => {
+    try {
+        const MAX_FOUNDERS = 10;
+        const currentFounders = await User.countDocuments({
+            role: 'teacher',
+            $or: [{ isFounder: true }, { isFoundingMember: true }]
+        });
+        res.json({
+            success: true,
+            maxSlots: MAX_FOUNDERS,
+            taken: currentFounders,
+            remaining: Math.max(0, MAX_FOUNDERS - currentFounders)
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al consultar cupos' });
+    }
+});
+
+/**
  * POST /api/membership/checkout/premium
  * Crea preferencia de pago para membresía Premium ($19 USD/mes).
  * Body: { returnUrl?: string }
@@ -122,6 +144,16 @@ router.post('/checkout/founder', protect, teacherOrAdmin, async (req, res) => {
         // Solo fundadores pueden acceder a este checkout
         if (!teacher.isFounder && !teacher.isFoundingMember) {
             return res.status(403).json({ error: 'Solo profesores fundadores pueden acceder a este plan' });
+        }
+
+        // Verificar cupos disponibles
+        const MAX_FOUNDERS = 10;
+        const currentFounders = await User.countDocuments({
+            role: 'teacher',
+            'teacherData.plan': 'founder'
+        });
+        if (currentFounders >= MAX_FOUNDERS) {
+            return res.status(400).json({ error: 'Los 10 cupos de fundador ya están ocupados' });
         }
 
         const currentPlan = teacher.teacherData?.plan || 'free';

@@ -492,6 +492,9 @@
                 <div id="founderLocked" class="plan-btn btn-outline" style="cursor: default; opacity: 0.5;">
                     🔒 Solo para profesores fundadores
                 </div>
+                <div id="founderSlots" style="margin-top: 12px; text-align: center; font-size: 13px; color: var(--gold); font-weight: 600; display: none;">
+                    🔥 <span id="founderSlotsText"></span>
+                </div>
             </div>
         </div>
     </section>
@@ -556,6 +559,8 @@
         // Inicialización
         document.addEventListener('DOMContentLoaded', async () => {
             authToken = localStorage.getItem('token');
+            // Siempre cargar cupos de fundador (público)
+            await loadFounderSlots();
             if (authToken) {
                 await loadUserData();
                 await loadSavingsCalculator();
@@ -695,6 +700,31 @@
 
         function capitalize(str) {
             return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // Cargar cupos de fundador
+        async function loadFounderSlots() {
+            try {
+                const res = await fetch('/api/membership/founder-slots');
+                if (!res.ok) return;
+                const data = await res.json();
+                const el = document.getElementById('founderSlots');
+                const txt = document.getElementById('founderSlotsText');
+                if (data.remaining <= 0) {
+                    txt.textContent = 'Cupos agotados';
+                    txt.style.color = 'var(--red, #ef4444)';
+                    // Ocultar botón de checkout founder
+                    const btn = document.getElementById('btnFounder');
+                    if (btn) btn.style.display = 'none';
+                    const locked = document.getElementById('founderLocked');
+                    if (locked) { locked.textContent = '❌ Cupos agotados'; locked.style.display = 'block'; }
+                } else {
+                    txt.textContent = `Solo ${data.remaining} de ${data.maxSlots} cupos disponibles`;
+                }
+                el.style.display = 'block';
+            } catch (e) {
+                console.error('Error cargando cupos:', e);
+            }
         }
     </script>
 

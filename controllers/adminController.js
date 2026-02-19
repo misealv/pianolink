@@ -1360,6 +1360,8 @@ exports.registerTeacherWithCode = async (req, res) => {
             slug: slugNormalized,
             whatsapp: whatsapp || application.whatsapp || '',
             country: country || application.country || '',
+            isFoundingMember: true,
+            isFounder: true,
             branding: {
                 primaryColor: '#00B8CC',
                 backgroundColor: '#1a1a2e'
