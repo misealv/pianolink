@@ -23,6 +23,7 @@
     "express": "^4.22.1",
     "googleapis": "^144.0.0",
     "jsonwebtoken": "^8.5.1",
+    "mercadopago": "^2.12.0",
     "moment-timezone": "^0.6.0",
     "mongoose": "^6.10.0",
     "multer": "^2.0.2",
