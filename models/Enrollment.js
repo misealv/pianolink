@@ -61,6 +61,11 @@ const enrollmentSchema = new mongoose.Schema({
     // Código de invitación usado (si aplica)
     inviteCode: { type: String, default: '' },
 
+    // Clases pre-pagadas al profesor fuera de la plataforma
+    // Se asignan al registrar alumno con invitación privada
+    preloadedClasses: { type: Number, default: 0, min: 0 },
+    classesRemaining: { type: Number, default: 0, min: 0 },
+
     // Comisión aplicada en esta relación (se calcula al crear enrollment)
     appliedCommission: {
         platformPercent: { type: Number, default: 20 },   // % PianoLink (25, 15, o 0)

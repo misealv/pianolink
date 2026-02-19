@@ -927,12 +927,20 @@
                 <div id="invitePanel" style="display: none; background: linear-gradient(135deg, #1e2e1e 0%, #2d442d 100%); border-radius: 10px; padding: 14px; border: 1px solid #3d5c3d; margin-bottom: 10px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                         <div style="color: #4ade80; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">🔗 Invitar Alumnos Privados</div>
-                        <button onclick="generateInviteLink()" style="background: rgba(74,222,128,0.2); border: none; color: #4ade80; padding: 4px 10px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: 600;">
-                            + Generar Enlace
-                        </button>
+                        <div id="inviteSlots" style="color: rgba(255,255,255,0.5); font-size: 9px; font-weight: 600;"></div>
                     </div>
                     <div style="color: rgba(255,255,255,0.7); font-size: 10px; margin-bottom: 10px;">
                         Genera un enlace para invitar a tus propios alumnos. Ellos se registran directo contigo, sin comisión (0%).
+                    </div>
+                    <!-- Input clases pre-pagadas + botón generar -->
+                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
+                        <div style="flex: 1; display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.25); border-radius: 6px; padding: 4px 8px;">
+                            <label for="preloadedClassesInput" style="color: rgba(255,255,255,0.6); font-size: 9px; white-space: nowrap;">Clases pre-pagadas:</label>
+                            <input id="preloadedClassesInput" type="number" min="0" max="50" value="0" style="width: 40px; background: transparent; border: 1px solid rgba(74,222,128,0.3); color: #4ade80; padding: 2px 4px; border-radius: 3px; font-size: 10px; text-align: center; outline: none;">
+                        </div>
+                        <button id="generateInviteBtn" onclick="generateInviteLink()" style="background: rgba(74,222,128,0.2); border: none; color: #4ade80; padding: 6px 12px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: 600; white-space: nowrap;">
+                            + Generar Enlace
+                        </button>
                     </div>
                     <!-- Enlace generado -->
                     <div id="inviteLinkBox" style="display: none; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px; margin-bottom: 8px;">
@@ -2884,13 +2892,14 @@
     // === INVITACIONES PRIVADAS ===
     async function generateInviteLink() {
         try {
+            const preloadedClasses = parseInt(document.getElementById('preloadedClassesInput')?.value) || 0;
             const res = await fetch('/api/invite/generate', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${user.token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ expiresInDays: 7 })
+                body: JSON.stringify({ expiresInDays: 7, preloadedClasses })
             });
             
             const data = await res.json();
@@ -2898,9 +2907,10 @@
                 const box = document.getElementById('inviteLinkBox');
                 box.style.display = 'block';
                 document.getElementById('inviteLinkInput').value = data.invite?.url || data.inviteUrl || `${window.location.origin}/invite/${data.invite?.code || data.code}`;
+                document.getElementById('preloadedClassesInput').value = 0;
                 loadMyInvites();
             } else {
-                alert(data.error || 'Error generando invitación');
+                alert(data.message || 'Error generando invitación');
             }
         } catch (error) {
             console.error('[Dashboard] Error generando invite:', error);
@@ -2925,6 +2935,21 @@
             const data = await res.json();
             const list = document.getElementById('invitesList');
             
+            // Mostrar indicador de cupos activos
+            const slotsEl = document.getElementById('inviteSlots');
+            if (slotsEl && data.activeCount !== undefined) {
+                const remaining = data.maxActive - data.activeCount;
+                slotsEl.textContent = `${data.activeCount}/${data.maxActive} activas`;
+                slotsEl.style.color = remaining <= 0 ? '#ef4444' : 'rgba(255,255,255,0.5)';
+                // Deshabilitar botón si no hay cupo
+                const btn = document.getElementById('generateInviteBtn');
+                if (btn) {
+                    btn.disabled = remaining <= 0;
+                    btn.style.opacity = remaining <= 0 ? '0.4' : '1';
+                    btn.style.cursor = remaining <= 0 ? 'not-allowed' : 'pointer';
+                }
+            }
+            
             if (!data.success || !data.invites?.length) {
                 list.innerHTML = '<div style="text-align:center; color:#555; font-size:10px; padding:8px;">Sin invitaciones activas</div>';
                 return;
@@ -2934,14 +2959,18 @@
                 const statusColors = { active: '#4ade80', used: '#888', expired: '#ef4444', revoked: '#ef4444' };
                 const statusLabels = { active: 'Activa', used: 'Usada', expired: 'Expirada', revoked: 'Revocada' };
                 const color = statusColors[inv.status] || '#888';
+                const classesTag = inv.preloadedClasses > 0 
+                    ? `<span style="background: rgba(99,102,241,0.2); color: #818cf8; padding: 1px 5px; border-radius: 3px; font-size: 8px; margin-left: 4px;">${inv.preloadedClasses} clases</span>` 
+                    : '';
                 
                 return `<div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
                     <div>
-                        <div style="color: #ddd; font-size: 10px; font-family: monospace;">${inv.code}</div>
+                        <div style="color: #ddd; font-size: 10px; font-family: monospace;">${inv.code}${classesTag}</div>
                         <div style="color: ${color}; font-size: 9px;">${statusLabels[inv.status] || inv.status}</div>
                     </div>
                     ${inv.status === 'active' ? `<button onclick="revokeInvite('${inv.code}')" style="background: rgba(239,68,68,0.15); border: none; color: #ef4444; padding: 3px 6px; border-radius: 3px; font-size: 9px; cursor: pointer;">Revocar</button>` : ''}
                 </div>`;
+            }).join('');
             }).join('');
         } catch (error) {
             console.error('[Dashboard] Error cargando invites:', error);

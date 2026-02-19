@@ -39,10 +39,23 @@ router.post('/generate',
     async (req, res) => {
         try {
             const teacher = req.user;
-            const { expiresInDays = 7 } = req.body;
+            const { expiresInDays = 7, preloadedClasses = 0 } = req.body;
+
+            // Validar límite de 3 invitaciones activas simultáneas
+            const activeCount = await TeacherInvite.countActiveByTeacher(teacher._id);
+            if (activeCount >= 3) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Ya tienes 3 invitaciones activas. Revoca o espera que expiren antes de crear otra.',
+                    activeCount
+                });
+            }
 
             // Validar rango de expiración (1-30 días)
             const days = Math.min(Math.max(parseInt(expiresInDays) || 7, 1), 30);
+
+            // Validar clases pre-pagadas (0-50)
+            const classes = Math.min(Math.max(parseInt(preloadedClasses) || 0, 0), 50);
 
             // Generar código único
             const code = TeacherInvite.generateCode(teacher.name);
@@ -57,6 +70,7 @@ router.post('/generate',
                 code,
                 type: 'private_student',
                 status: 'active',
+                preloadedClasses: classes,
                 expiresAt
             });
 
@@ -75,6 +89,7 @@ router.post('/generate',
                     url: inviteUrl,
                     expiresAt: invite.expiresAt,
                     status: invite.status,
+                    preloadedClasses: invite.preloadedClasses,
                     createdAt: invite.createdAt
                 }
             });
@@ -108,12 +123,14 @@ router.get('/my-invites',
     async (req, res) => {
         try {
             const invites = await TeacherInvite.getByTeacher(req.user._id);
+            const activeCount = await TeacherInvite.countActiveByTeacher(req.user._id);
             const baseUrl = process.env.BASE_URL || 'https://pianolink.net';
 
             const result = invites.map(inv => ({
                 code: inv.code,
                 url: `${baseUrl}/invite/${inv.code}`,
                 status: inv.status,
+                preloadedClasses: inv.preloadedClasses || 0,
                 expiresAt: inv.expiresAt,
                 createdAt: inv.createdAt,
                 usedBy: inv.usedBy ? {
@@ -126,6 +143,8 @@ router.get('/my-invites',
             res.json({
                 success: true,
                 count: result.length,
+                activeCount,
+                maxActive: 3,
                 invites: result
             });
         } catch (error) {
@@ -333,12 +352,17 @@ router.post('/register/:code', async (req, res) => {
         // 4. Crear enrollment con comisión 0% (alumno privado)
         const commission = await CommissionService.calculateCommission(teacher._id, 'private_invite');
 
+        // Clases pre-pagadas que el profesor asignó al generar el enlace
+        const preloaded = invite.preloadedClasses || 0;
+
         const enrollment = new Enrollment({
             studentId: student._id,
             teacherId: teacher._id,
             roomId: null, // Se asigna sala después, cuando el profesor configure
             source: 'private_invite',
             inviteCode: code,
+            preloadedClasses: preloaded,
+            classesRemaining: preloaded,
             appliedCommission: {
                 platformPercent: commission.platformPercent,
                 teacherPercent: commission.teacherPercent,
@@ -386,6 +410,7 @@ router.post('/register/:code', async (req, res) => {
                     <h2>¡Nuevo alumno registrado!</h2>
                     <p>Tu alumno <strong>${student.name}</strong> (${student.email}) se ha registrado 
                     usando tu enlace de invitación.</p>
+                    ${preloaded > 0 ? `<p>Se le asignaron <strong>${preloaded} clases pre-pagadas</strong> según lo que configuraste al generar el enlace.</p>` : ''}
                     <p>Como alumno privado, <strong>PianoLink no cobra comisión</strong> por las clases con este alumno.</p>
                     <p>Ya puedes verlo en tu panel de alumnos.</p>
                 `
@@ -419,7 +444,9 @@ router.post('/register/:code', async (req, res) => {
             },
             enrollment: {
                 source: enrollment.source,
-                commission: enrollment.appliedCommission
+                commission: enrollment.appliedCommission,
+                preloadedClasses: enrollment.preloadedClasses,
+                classesRemaining: enrollment.classesRemaining
             },
             token
         });

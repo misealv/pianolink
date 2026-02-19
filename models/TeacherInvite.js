@@ -50,6 +50,15 @@ const teacherInviteSchema = new mongoose.Schema({
     // Fecha en que se usó
     usedAt: { type: Date },
 
+    // Clases pre-pagadas que el profesor asigna al generar la invitación
+    // Estas clases ya fueron cobradas fuera de la plataforma
+    preloadedClasses: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 50
+    },
+
     // Fecha de expiración del enlace
     expiresAt: {
         type: Date,
@@ -83,6 +92,17 @@ teacherInviteSchema.statics.getByTeacher = function(teacherId) {
     return this.find({ teacherId })
         .sort({ createdAt: -1 })
         .populate('usedBy', 'name email');
+};
+
+/**
+ * Contar invitaciones activas (no usadas/expiradas/revocadas) de un profesor
+ */
+teacherInviteSchema.statics.countActiveByTeacher = function(teacherId) {
+    return this.countDocuments({
+        teacherId,
+        status: 'active',
+        expiresAt: { $gt: new Date() }
+    });
 };
 
 /**
