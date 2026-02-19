@@ -433,6 +433,12 @@
             color: white;
         }
 
+        .btn-pay.btn-paypal {
+            background: linear-gradient(135deg, #ffc439 0%, #f0b72f 100%);
+            color: #003087;
+            font-weight: 700;
+        }
+
         .btn-pay:disabled {
             opacity: 0.6;
             cursor: not-allowed;
@@ -626,7 +632,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="country">País</label>
-                                <select id="country" name="country" class="form-input" required>
+                                <select id="country" name="country" class="form-input" required onchange="updatePaymentButtons()">
                                     <option value="CL">🇨🇱 Chile</option>
                                     <option value="MX">🇲🇽 México</option>
                                     <option value="CO">🇨🇴 Colombia</option>
@@ -668,12 +674,11 @@
                         </div>
 
                         <div class="payment-buttons">
-                            <!-- Stripe oculto temporalmente hasta constituir empresa en EEUU -->
-                            <!-- <button type="button" class="btn-pay" id="btnStripe" onclick="processPayment('stripe')">
-                                💳 Pagar con Tarjeta
-                            </button> -->
                             <button type="button" class="btn-pay btn-mercadopago" id="btnMP" onclick="processPayment('mercadopago')">
                                 🇨🇱 Pagar con MercadoPago
+                            </button>
+                            <button type="button" class="btn-pay btn-paypal" id="btnPayPal" onclick="processPayment('paypal')" style="display:none;">
+                                🌎 Pagar con PayPal
                             </button>
                         </div>
                     </form>
@@ -765,6 +770,20 @@
             }
         }
 
+        // Muestra el botón de pago correcto según el país
+        function updatePaymentButtons() {
+            const country = document.getElementById('country').value;
+            const btnMP = document.getElementById('btnMP');
+            const btnPayPal = document.getElementById('btnPayPal');
+            if (country === 'CL') {
+                btnMP.style.display = '';
+                btnPayPal.style.display = 'none';
+            } else {
+                btnMP.style.display = 'none';
+                btnPayPal.style.display = '';
+            }
+        }
+
         async function detectCountry() {
             try {
                 const res = await fetch('https://ipapi.co/json/');
@@ -779,6 +798,7 @@
             } catch (e) {
                 console.log('No se pudo detectar el país');
             }
+            updatePaymentButtons();
         }
 
         function setStudentType(type) {
@@ -885,8 +905,8 @@
         async function processPayment(provider) {
             if (!validateForm()) return;
             
-            const btn = provider === 'stripe' 
-                ? document.getElementById('btnStripe') 
+            const btn = provider === 'paypal'
+                ? document.getElementById('btnPayPal')
                 : document.getElementById('btnMP');
             const originalText = btn.innerHTML;
             
@@ -926,8 +946,8 @@
                     throw new Error(checkoutData.error || 'Error guardando datos');
                 }
                 
-                const endpoint = provider === 'stripe' 
-                    ? '/api/payment/create-kit-payment-stripe'
+                const endpoint = provider === 'paypal'
+                    ? '/api/payment/create-kit-payment-paypal'
                     : '/api/payment/create-kit-payment-mercadopago';
                 
                 const paymentRes = await fetch(endpoint, {

@@ -149,6 +149,15 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
         console.log('[MercadoPago Kit] Datos recibidos:', JSON.stringify(req.body));
         console.log('[MercadoPago Kit] ========================================');
 
+        // MercadoPago solo disponible para Chile
+        const countryUpper = (country || 'CL').toUpperCase();
+        if (countryUpper !== 'CL') {
+            return res.status(400).json({
+                success: false,
+                error: 'MercadoPago solo está disponible para Chile. Usa PayPal para otros países.'
+            });
+        }
+
         if (!email || !name) {
             return res.status(400).json({ 
                 success: false, 
@@ -333,6 +342,142 @@ router.post('/create-kit-payment-mercadopago', async (req, res) => {
         res.status(500).json({ 
             success: false, 
             error: error.message 
+        });
+    }
+});
+
+// ============================================
+// 1d. KIT DE BIENVENIDA CON PAYPAL (V2 - Internacional)
+// ============================================
+router.post('/create-kit-payment-paypal', async (req, res) => {
+    try {
+        const { email, name, country, kitType, childrenCount, totalUSD } = req.body;
+
+        console.log('[PayPal Kit V2] Datos recibidos:', JSON.stringify(req.body));
+
+        if (!email || !name) {
+            return res.status(400).json({
+                success: false,
+                error: 'Email y nombre son requeridos'
+            });
+        }
+
+        const accessToken = await getPayPalAccessToken();
+        const baseUrl = process.env.PAYPAL_MODE === 'live'
+            ? 'https://api-m.paypal.com'
+            : 'https://api-m.sandbox.paypal.com';
+
+        // Calcular precio
+        const config = await GlobalConfig.findOne({ isDefault: true });
+        const isV2 = kitType === 'welcome_kit_v2' || totalUSD;
+        let finalPrice;
+
+        if (isV2 && totalUSD && typeof totalUSD === 'number') {
+            finalPrice = totalUSD;
+        } else if (isV2) {
+            const basePrice = config?.welcomeKitV2?.priceUSD || 44;
+            const extraChildPrice = config?.welcomeKitV2?.extraChildPriceUSD || 15;
+            const extraChildren = Math.max(0, (childrenCount || 1) - 1);
+            finalPrice = basePrice + (extraChildren * extraChildPrice);
+        } else {
+            finalPrice = 15; // Kit legacy
+        }
+
+        // Buscar descuento automático (cupón waitlist)
+        const couponDiscount = await DiscountService.getApplicableDiscount({
+            email,
+            purchaseType: 'kit_purchase',
+            amountCents: Math.round(finalPrice * 100)
+        });
+
+        if (couponDiscount && couponDiscount.discountPercent) {
+            const discountAmount = finalPrice * couponDiscount.discountPercent / 100;
+            finalPrice = +(finalPrice - discountAmount).toFixed(2);
+        }
+
+        const finalPriceStr = finalPrice.toFixed(2);
+        const referenceId = `kit_paypal_${Date.now()}_${email}`;
+        const frontendUrl = process.env.FRONTEND_URL || 'https://pianolink-v4.fly.dev';
+
+        const description = isV2
+            ? (childrenCount > 1
+                ? `Kit de Bienvenida PianoLink (${childrenCount} estudiantes)`
+                : 'Kit de Bienvenida PianoLink')
+            : 'Kit de Bienvenida PianoLink - Cable MIDI + Setup + Clase prueba';
+
+        const orderData = {
+            intent: 'CAPTURE',
+            purchase_units: [{
+                reference_id: referenceId,
+                description,
+                custom_id: email,
+                amount: {
+                    currency_code: 'USD',
+                    value: finalPriceStr,
+                    breakdown: {
+                        item_total: {
+                            currency_code: 'USD',
+                            value: finalPriceStr
+                        }
+                    }
+                },
+                items: [{
+                    name: description,
+                    description: couponDiscount
+                        ? `Asesoría + Setup + Clase (${couponDiscount.discountPercent}% dto)`
+                        : 'Asesoría técnica + Setup MIDI + Clase de prueba 30min',
+                    unit_amount: {
+                        currency_code: 'USD',
+                        value: finalPriceStr
+                    },
+                    quantity: '1',
+                    category: 'DIGITAL_GOODS'
+                }]
+            }],
+            application_context: {
+                brand_name: 'PianoLink',
+                locale: 'es-ES',
+                user_action: 'PAY_NOW',
+                shipping_preference: 'NO_SHIPPING',
+                return_url: `${frontendUrl}/welcome-kit/success?provider=paypal&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`,
+                cancel_url: `${frontendUrl}/kit-bienvenida-v2.html`
+            }
+        };
+
+        const response = await fetch(`${baseUrl}/v2/checkout/orders`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+
+        const order = await response.json();
+
+        if (order.id) {
+            const approveLink = order.links?.find(link => link.rel === 'approve')?.href;
+            console.log(`[PayPal Kit V2] ✅ Orden creada: ${order.id} → $${finalPriceStr} USD (${country || 'INT'})`);
+            res.json({
+                success: true,
+                orderId: order.id,
+                approveLink,
+                checkoutUrl: approveLink, // Compatible con el frontend
+                price: finalPrice,
+                currency: 'USD'
+            });
+        } else {
+            console.error('[PayPal Kit V2] Error:', order);
+            res.status(500).json({
+                success: false,
+                error: 'Error creando orden de pago PayPal'
+            });
+        }
+    } catch (error) {
+        console.error('[PayPal Kit V2] Error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
         });
     }
 });

@@ -1115,29 +1115,28 @@
             document.getElementById('beneficiary-fields').classList.toggle('show', isGuardian);
         }
         
-        // Stripe Integration
-        let stripeInitialized = false;
+        // Inicialización de botones de pago
+        let paymentInitialized = false;
         
         function initStripeCheckout() {
-            if (stripeInitialized) return;
-            stripeInitialized = true;
+            if (paymentInitialized) return;
+            paymentInitialized = true;
             
+            const isCL = selectedCountry === 'CL';
             const container = document.getElementById('paypal-button-container');
-            container.innerHTML = `
-                <button id="stripe-checkout-btn" class="stripe-button" onclick="processStripePayment()" style="width: 100%; padding: 15px; background: #635bff; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-bottom: 10px;">
-                    💳 Pagar con Tarjeta (Internacional)
+            container.innerHTML = isCL
+                ? `<button id="mp-checkout-btn" onclick="processMercadoPagoPayment()" style="width: 100%; padding: 15px; background: #00a2e8; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">
+                    🇨🇱 Pagar con MercadoPago
                 </button>
-                <button id="mp-checkout-btn" class="mercadopago-button" onclick="processMercadoPagoPayment()" style="width: 100%; padding: 15px; background: #00a2e8; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">
-                    🇨🇱 Pagar con MercadoPago (Chile)
+                <p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-top: 10px;">Pago seguro 🔒 MercadoPago</p>`
+                : `<button id="paypal-checkout-btn" onclick="processPayPalPayment()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #ffc439, #f0b72f); color: #003087; border: none; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer;">
+                    🌎 Pagar con PayPal
                 </button>
-                <p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-top: 10px;">
-                    Pagos seguros 🔒 Stripe + MercadoPago
-                </p>
-            `;
+                <p style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-top: 10px;">Pago seguro 🔒 PayPal</p>`;
         }
         
-        async function processStripePayment() {
-            const btn = document.getElementById('stripe-checkout-btn');
+        async function processPayPalPayment() {
+            const btn = document.getElementById('paypal-checkout-btn');
             btn.disabled = true;
             btn.textContent = 'Procesando...';
             
@@ -1145,7 +1144,6 @@
                 const name = document.getElementById('name').value;
                 const email = document.getElementById('email').value;
                 
-                // Preparar datos para el pago
                 const paymentData = {
                     name,
                     email,
@@ -1154,10 +1152,9 @@
                     kitType: needsCable ? 'full' : 'setup_only'
                 };
                 
-                console.log('[PianoLink] Enviando a Stripe:', paymentData);
+                console.log('[PianoLink] Enviando a PayPal:', paymentData);
                 
-                // Llamar al endpoint de Stripe que lee precio del admin
-                const res = await fetch('/api/payment/create-kit-payment-stripe', {
+                const res = await fetch('/api/payment/create-kit-payment-paypal', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(paymentData)
@@ -1166,10 +1163,9 @@
                 const data = await res.json();
                 
                 if (!data.success) {
-                    throw new Error(data.error || 'Error creando sesión de pago');
+                    throw new Error(data.error || 'Error creando orden PayPal');
                 }
                 
-                // Redirigir a Stripe Checkout
                 if (data.checkoutUrl) {
                     window.location.href = data.checkoutUrl;
                 } else {
@@ -1177,10 +1173,10 @@
                 }
                 
             } catch (error) {
-                console.error('Stripe error:', error);
+                console.error('PayPal error:', error);
                 alert('Error: ' + error.message);
                 btn.disabled = false;
-                btn.textContent = '💳 Pagar con Tarjeta (Internacional)';
+                btn.textContent = '🌎 Pagar con PayPal';
             }
         }
         
