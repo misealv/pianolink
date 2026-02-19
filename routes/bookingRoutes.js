@@ -220,8 +220,11 @@ router.get('/teacher', protect, async (req, res) => {
             if (to) query.scheduledStart.$lte = new Date(to);
         }
         
+        // Filtrar por status si se especifica, sino excluir canceladas por defecto
         if (status) {
             query.status = status;
+        } else {
+            query.status = { $nin: ['cancelled'] };
         }
         
         const bookings = await Booking.find(query)

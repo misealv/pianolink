@@ -291,6 +291,26 @@ class EmailService {
             throw error;
         }
     }
+
+    /**
+     * Envía notificación al estudiante cuando el profesor cancela una clase
+     * @param {Object} data - { studentName, studentEmail, teacherName, classDate, classTime, reason, rescheduleUrl }
+     */
+    async sendClassCancelledByTeacher(data) {
+        try {
+            const generateEmail = require('../templates/emails/classCancelledByTeacher');
+            const html = generateEmail(data);
+
+            return await this.sendSafe({
+                to: data.studentEmail,
+                subject: `📅 Clase cancelada — ${data.teacherName} no podrá asistir el ${data.classDate}`,
+                html
+            });
+        } catch (error) {
+            console.error('[EMAIL] Error enviando email cancelación por profesor:', error.message);
+            return false;
+        }
+    }
 }
 
 // Singleton: una única instancia compartida

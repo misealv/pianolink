@@ -885,6 +885,31 @@ class BookingService {
             
             await session.commitTransaction();
             
+            // Enviar email de notificación al estudiante (fuera de transacción)
+            try {
+                const student = await User.findById(booking.studentId);
+                const teacher = await User.findById(teacherId);
+                if (student && teacher) {
+                    const emailService = require('./EmailService');
+                    const classDate = new Date(booking.scheduledStart);
+                    const dateStr = classDate.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                    const timeStr = classDate.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                    
+                    await emailService.sendClassCancelledByTeacher({
+                        studentName: student.name,
+                        studentEmail: student.email,
+                        teacherName: teacher.name,
+                        classDate: dateStr,
+                        classTime: timeStr,
+                        reason: reason,
+                        rescheduleUrl: `https://pianolink.net/cliente.html`
+                    });
+                    console.log(`[BookingService] 📧 Email de cancelación enviado a ${student.email}`);
+                }
+            } catch (emailError) {
+                console.error('[BookingService] ⚠️ Error enviando email de cancelación:', emailError.message);
+            }
+            
             console.log(`📧 Notificación: Clase cancelada por profesor`);
             console.log(`   Booking: ${bookingId}`);
             console.log(`   Clase reembolsada: Sí`);
