@@ -295,7 +295,7 @@
             <h2 class="font-serif text-3xl font-bold text-midnight mb-3">¡Registro completo!</h2>
             <p class="text-charcoal/60 mb-2">Tu cuenta de profesor ha sido creada exitosamente.</p>
             <p class="text-charcoal/60 mb-8">Serás redirigido a tu panel en unos segundos...</p>
-            <a href="/dashboard" id="go-dashboard" class="inline-block gradient-btn text-white font-semibold px-8 py-3 rounded-xl">
+            <a href="/dashboard.html" id="go-dashboard" class="inline-block gradient-btn text-white font-semibold px-8 py-3 rounded-xl">
                 Ir a mi panel
             </a>
         </div>
@@ -461,7 +461,7 @@
             // Mostrar éxito y redirigir
             showState(successState);
             setTimeout(() => {
-                window.location.href = '/dashboard';
+                window.location.href = '/dashboard.html';
             }, 3000);
 
         } catch (err) {
