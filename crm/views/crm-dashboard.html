@@ -3199,6 +3199,15 @@
             });
             const data = await res.json();
             if (!res.ok) {
+                // Si ya existe invitación activa, ofrecer enviar email
+                if (res.status === 409 && data.applicationId) {
+                    const sendExisting = confirm(`⚠️ Ya existe invitación para este email.\nCódigo: ${data.existingCode}\n\n¿Enviar (o reenviar) el email de invitación?`);
+                    if (sendExisting) {
+                        await tiSendEmail(data.applicationId);
+                    }
+                    await loadTeacherInvites();
+                    return;
+                }
                 alert(data.error || 'Error al crear invitación');
                 return;
             }

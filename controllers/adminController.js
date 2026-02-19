@@ -1157,9 +1157,11 @@ exports.createTeacherApplication = async (req, res) => {
         // Verificar que no exista invitación activa para ese email
         const existingApp = await TeacherApplication.findByEmail(email);
         if (existingApp) {
-            return res.status(400).json({
+            return res.status(409).json({
                 error: 'Ya existe una invitación activa para ese email',
-                existingCode: existingApp.inviteCode
+                existingCode: existingApp.inviteCode,
+                applicationId: existingApp._id,
+                status: existingApp.status
             });
         }
 
