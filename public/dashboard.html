@@ -2897,7 +2897,7 @@
             if (data.success) {
                 const box = document.getElementById('inviteLinkBox');
                 box.style.display = 'block';
-                document.getElementById('inviteLinkInput').value = data.inviteUrl || `${window.location.origin}/invite/${data.code}`;
+                document.getElementById('inviteLinkInput').value = data.invite?.url || data.inviteUrl || `${window.location.origin}/invite/${data.invite?.code || data.code}`;
                 loadMyInvites();
             } else {
                 alert(data.error || 'Error generando invitación');
