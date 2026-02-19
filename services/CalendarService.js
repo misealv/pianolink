@@ -209,17 +209,17 @@ Equipo PianoLink
                 });
             }
             
-            // Crear evento SIN Google Meet, con sala de PianoLink
+            // Crear evento CON Google Meet automático
             const event = {
                 summary: summary || `Demo PianoLink - ${attendeeName}`,
                 description: customDescription,
                 start: {
                     dateTime: startDateTime,
-                    timeZone: timezone // Zona horaria del invitado (ej: America/Mexico_City para México)
+                    timeZone: timezone
                 },
                 end: {
                     dateTime: endDateTime,
-                    timeZone: timezone // Google Calendar convertirá automáticamente para cada asistente
+                    timeZone: timezone
                 },
                 attendees: attendees,
                 reminders: {
@@ -230,23 +230,35 @@ Equipo PianoLink
                         { method: 'popup', minutes: 10 }        // 10 minutos antes
                     ]
                 },
-                // NO incluir conferenceData para evitar crear Google Meet
-                // La sala de PianoLink está en la descripción
+                // Crear Google Meet automáticamente
+                conferenceData: {
+                    createRequest: {
+                        requestId: `pianolink-${Date.now()}`,
+                        conferenceSolutionKey: { type: 'hangoutsMeet' }
+                    }
+                }
             };
             
             const response = await this.calendar.events.insert({
                 calendarId: 'primary',
                 resource: event,
-                sendUpdates: 'all' // Enviar invitación por email a todos los asistentes
+                sendUpdates: 'all',
+                conferenceDataVersion: 1 // Requerido para crear Meet
             });
+            
+            // Extraer link de Meet del evento creado
+            const meetLink = response.data.conferenceData?.entryPoints?.find(
+                ep => ep.entryPointType === 'video'
+            )?.uri || response.data.hangoutLink || '';
             
             console.log(`[Calendar] ✅ Evento creado: ${response.data.id}`);
             console.log(`[Calendar] 📧 Invitaciones enviadas a: ${attendees.map(a => a.email).join(', ')}`);
+            if (meetLink) console.log(`[Calendar] 🎥 Meet: ${meetLink}`);
             
             return {
                 id: response.data.id,
                 link: response.data.htmlLink,
-                meetingLink: this.getPianoLinkRoomUrl() // Link de la sala de PianoLink
+                meetingLink: meetLink || this.getPianoLinkRoomUrl()
             };
             
         } catch (error) {

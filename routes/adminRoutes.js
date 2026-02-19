@@ -118,7 +118,7 @@ router.get('/google-calendar', async (req, res) => {
         res.json({
             clientId: config.googleCalendar?.clientId || '',
             clientSecret: config.googleCalendar?.clientSecret || '',
-            redirectUri: config.googleCalendar?.redirectUri || 'https://pianolink.onrender.com/api/calendar/oauth2callback',
+            redirectUri: config.googleCalendar?.redirectUri || 'https://pianolink-v4.fly.dev/api/calendar/oauth2callback',
             refreshToken: config.googleCalendar?.refreshToken || ''
         });
     } catch (error) {
@@ -140,7 +140,7 @@ router.post('/google-calendar', async (req, res) => {
         config.googleCalendar = {
             clientId: clientId || '',
             clientSecret: clientSecret || '',
-            redirectUri: redirectUri || 'https://pianolink.onrender.com/api/calendar/oauth2callback',
+            redirectUri: redirectUri || 'https://pianolink-v4.fly.dev/api/calendar/oauth2callback',
             refreshToken: refreshToken || ''
         };
         

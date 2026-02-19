@@ -714,7 +714,7 @@ async function loadCalendarConfig() {
         const data = await res.json();
         document.getElementById('calendar-client-id').value = data.clientId || '';
         document.getElementById('calendar-client-secret').value = data.clientSecret || '';
-        document.getElementById('calendar-redirect-uri').value = data.redirectUri || 'https://pianolink.onrender.com/api/calendar/oauth2callback';
+        document.getElementById('calendar-redirect-uri').value = data.redirectUri || 'https://pianolink-v4.fly.dev/api/calendar/oauth2callback';
         document.getElementById('calendar-refresh-token').value = data.refreshToken || '';
     } catch (e) {
         console.error('Error loading calendar:', e);

@@ -178,6 +178,24 @@ router.get('/oauth2callback', async (req, res) => {
         
         const tokens = await getCalendarService().getTokensFromCode(code);
         
+        // Guardar refresh token automáticamente en BD y reinicializar
+        let savedToDB = false;
+        if (tokens.refresh_token) {
+            try {
+                const GlobalConfig = require('../models/GlobalConfig');
+                await GlobalConfig.findOneAndUpdate(
+                    { isDefault: true },
+                    { $set: { 'googleCalendar.refreshToken': tokens.refresh_token } }
+                );
+                // Reinicializar CalendarService con el nuevo token
+                await getCalendarService().reinitialize();
+                savedToDB = true;
+                console.log('[Calendar] ✅ Refresh token guardado en BD y servicio reinicializado');
+            } catch (dbErr) {
+                console.error('[Calendar] ⚠️ Error guardando token en BD:', dbErr.message);
+            }
+        }
+        
         res.send(`
             <html>
                 <head>
@@ -240,8 +258,14 @@ router.get('/oauth2callback', async (req, res) => {
                         
                         <div class="success">
                             <strong>¡Perfecto!</strong> Google Calendar ha sido autorizado correctamente.
+                            ${savedToDB ? '<br>🔄 Token guardado automáticamente y Calendar reinicializado.' : ''}
                         </div>
                         
+                        ${savedToDB ? `
+                        <h2>✅ ¡Todo listo!</h2>
+                        <p>El refresh token se guardó automáticamente en la base de datos y Calendar ya está funcionando.</p>
+                        <p><a href="/admin.html" style="color:#1a73e8;font-weight:bold;">Volver al Panel de Admin</a></p>
+                        ` : `
                         <h2>🔑 Refresh Token</h2>
                         <p>Copia este token y agrégalo a tu archivo <code>.env</code>:</p>
                         
@@ -250,6 +274,7 @@ router.get('/oauth2callback', async (req, res) => {
                         </div>
                         
                         <button class="copy-btn" onclick="copyToken()">📋 Copiar Token</button>
+                        `}
                         
                         <div class="warning">
                             <strong>⚠️ Importante:</strong>

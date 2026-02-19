@@ -39,7 +39,7 @@ const globalConfigSchema = new mongoose.Schema({
     googleCalendar: {
         clientId: { type: String, default: "" },
         clientSecret: { type: String, default: "" },
-        redirectUri: { type: String, default: "https://pianolink.onrender.com/api/calendar/oauth2callback" },
+        redirectUri: { type: String, default: "https://pianolink-v4.fly.dev/api/calendar/oauth2callback" },
         refreshToken: { type: String, default: "" }
     },
     
