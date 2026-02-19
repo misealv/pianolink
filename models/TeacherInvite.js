@@ -1,12 +1,12 @@
 /**
  * models/TeacherInvite.js
- * Invitaciones de Alumnos Particulares - PianoLink v5.0
+ * Invitaciones de Alumnos Particulares - PianoLink v6.0
  * 
- * Gestiona los enlaces de invitación que los profesores Premium/Founder
- * generan para invitar alumnos propios (comisión 0% PianoLink).
+ * Gestiona invitaciones por email que los profesores Premium/Founder
+ * envían a sus alumnos propios (comisión 0% PianoLink).
  * 
- * Solo profesores con plan premium o founder pueden crear invitaciones.
- * El middleware requirePermission('canInvitePrivateStudents') lo valida.
+ * Flujo: Profesor ingresa nombre + email → se envía invitación formal
+ * por correo → alumno se registra con el enlace del email.
  */
 
 const mongoose = require('mongoose');
@@ -40,6 +40,19 @@ const teacherInviteSchema = new mongoose.Schema({
         default: 'active'
     },
 
+    // Datos del alumno invitado (ingresados por el profesor)
+    studentEmail: {
+        type: String,
+        required: true,
+        trim: true,
+        lowercase: true
+    },
+    studentName: {
+        type: String,
+        required: true,
+        trim: true
+    },
+
     // Alumno que usó el código (null si aún no se usa)
     usedBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -51,13 +64,16 @@ const teacherInviteSchema = new mongoose.Schema({
     usedAt: { type: Date },
 
     // Clases pre-pagadas que el profesor asigna al generar la invitación
-    // Estas clases ya fueron cobradas fuera de la plataforma
+    // Máximo 4 — cobradas fuera de la plataforma
     preloadedClasses: {
         type: Number,
         default: 0,
         min: 0,
-        max: 50
+        max: 4
     },
+
+    // Fecha en que se envió el email de invitación
+    emailSentAt: { type: Date },
 
     // Fecha de expiración del enlace
     expiresAt: {

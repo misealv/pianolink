@@ -1,11 +1,12 @@
 /**
  * routes/invite.js
- * CRUD de Invitaciones de Alumnos Particulares - PianoLink v5.0 (Fase 3)
+ * Invitaciones Privadas por Email - PianoLink v6.0
  * 
  * Endpoints protegidos (profesor premium/founder):
- *   POST   /api/invite/generate         - Generar nueva invitación
+ *   POST   /api/invite/send              - Enviar invitación por email
  *   GET    /api/invite/my-invites        - Listar invitaciones del profesor
  *   DELETE /api/invite/:code             - Revocar invitación
+ *   POST   /api/invite/:code/resend      - Reenviar email de invitación
  * 
  * Endpoint público (sin auth):
  *   GET    /api/invite/validate/:code    - Validar código de invitación
@@ -23,92 +24,221 @@ const CommissionService = require('../services/CommissionService');
 const PlanPermissionService = require('../services/PlanPermissionService');
 const emailService = require('../services/EmailService');
 
-// ==================== RUTAS PROTEGIDAS (profesor premium/founder) ====================
+// ==================== HELPERS ====================
 
 /**
- * POST /api/invite/generate
- * Generar nueva invitación para alumno particular
- * 
- * Body: { expiresInDays?: number } (default: 7 días)
- * Requiere: plan premium o founder con permiso canInvitePrivateStudents
+ * Genera el HTML del email de invitación formal
  */
-router.post('/generate',
+function buildInviteEmailHtml(teacherName, studentName, inviteUrl, preloadedClasses) {
+    const classesSection = preloadedClasses > 0 
+        ? `<tr><td style="padding: 16px 30px;">
+               <div style="background: #f0f4ff; border-radius: 8px; padding: 14px 18px; border-left: 4px solid #6366f1;">
+                   <p style="margin: 0; font-size: 14px; color: #4338ca; font-weight: 600;">
+                       🎁 ${preloadedClasses} clase${preloadedClasses > 1 ? 's' : ''} ya pagada${preloadedClasses > 1 ? 's' : ''} te esperan
+                   </p>
+                   <p style="margin: 6px 0 0; font-size: 13px; color: #555;">
+                       Tu profesor ya dejó preparadas tus primeras clases. Solo necesitas crear tu cuenta para comenzar.
+                   </p>
+               </div>
+           </td></tr>` 
+        : '';
+
+    return `
+    <div style="background: #f5f5f5; padding: 40px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <table cellpadding="0" cellspacing="0" style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+            <!-- Header con gradiente -->
+            <tr>
+                <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 32px 30px; text-align: center;">
+                    <div style="font-size: 28px; margin-bottom: 8px;">🎹</div>
+                    <h1 style="color: #ffffff; font-size: 20px; margin: 0; font-weight: 700; letter-spacing: -0.5px;">PianoLink</h1>
+                    <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 4px 0 0; text-transform: uppercase; letter-spacing: 1.5px;">Invitación Privada</p>
+                </td>
+            </tr>
+            <!-- Cuerpo -->
+            <tr>
+                <td style="padding: 30px 30px 10px;">
+                    <p style="font-size: 16px; color: #1e293b; margin: 0 0 6px;">Hola <strong>${studentName}</strong>,</p>
+                    <p style="font-size: 15px; color: #475569; line-height: 1.6; margin: 0;">
+                        El profesor <strong style="color: #1e293b;">${teacherName}</strong> te ha invitado personalmente a ser parte de su estudio en PianoLink.
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 30px 6px;">
+                    <p style="font-size: 14px; color: #64748b; line-height: 1.6; margin: 0;">
+                        Al aceptar esta invitación, tendrás acceso a clases personalizadas de piano con atención directa de tu profesor, 
+                        herramientas interactivas y seguimiento de tu progreso.
+                    </p>
+                </td>
+            </tr>
+            ${classesSection}
+            <!-- Botón CTA -->
+            <tr>
+                <td style="padding: 24px 30px; text-align: center;">
+                    <a href="${inviteUrl}" style="display: inline-block; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 10px; font-size: 15px; font-weight: 700; letter-spacing: 0.3px; box-shadow: 0 4px 14px rgba(99,102,241,0.4);">
+                        Aceptar Invitación
+                    </a>
+                </td>
+            </tr>
+            <!-- Nota -->
+            <tr>
+                <td style="padding: 0 30px 24px; text-align: center;">
+                    <p style="font-size: 12px; color: #94a3b8; margin: 0;">
+                        Este enlace expira en 7 días. Si no solicitaste esta invitación, puedes ignorar este correo.
+                    </p>
+                </td>
+            </tr>
+            <!-- Footer -->
+            <tr>
+                <td style="background: #f8fafc; padding: 18px 30px; text-align: center; border-top: 1px solid #e2e8f0;">
+                    <p style="font-size: 11px; color: #94a3b8; margin: 0;">
+                        © ${new Date().getFullYear()} PianoLink · Plataforma de clases de piano en vivo
+                    </p>
+                </td>
+            </tr>
+        </table>
+    </div>`;
+}
+
+// ==================== RUTAS PROTEGIDAS ====================
+
+/**
+ * POST /api/invite/send
+ * Enviar invitación formal por email a un alumno
+ * 
+ * Body: { studentName, studentEmail, preloadedClasses? (0-4) }
+ */
+router.post('/send',
     protect,
     teacherOrAdmin,
     requirePermission('canInvitePrivateStudents'),
     async (req, res) => {
         try {
             const teacher = req.user;
-            const { expiresInDays = 7, preloadedClasses = 0 } = req.body;
+            const { studentName, studentEmail, preloadedClasses = 0 } = req.body;
 
-            // Validar límite de 3 invitaciones activas simultáneas
+            // Validaciones
+            if (!studentName?.trim() || !studentEmail?.trim()) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'El nombre y email del alumno son requeridos.'
+                });
+            }
+
+            // Validar formato email básico
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(studentEmail.trim())) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'El email ingresado no es válido.'
+                });
+            }
+
+            // Verificar que el alumno no tenga cuenta ya
+            const existingUser = await User.findOne({ email: studentEmail.toLowerCase().trim() });
+            if (existingUser) {
+                return res.status(409).json({
+                    success: false,
+                    message: `Ya existe una cuenta con el email ${studentEmail}. El alumno puede iniciar sesión directamente.`
+                });
+            }
+
+            // Verificar que no haya invitación activa para este email
+            const existingInvite = await TeacherInvite.findOne({
+                teacherId: teacher._id,
+                studentEmail: studentEmail.toLowerCase().trim(),
+                status: 'active',
+                expiresAt: { $gt: new Date() }
+            });
+            if (existingInvite) {
+                return res.status(409).json({
+                    success: false,
+                    message: `Ya tienes una invitación activa para ${studentEmail}. Puedes reenviarla.`
+                });
+            }
+
+            // Límite de 3 invitaciones activas simultáneas
             const activeCount = await TeacherInvite.countActiveByTeacher(teacher._id);
             if (activeCount >= 3) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Ya tienes 3 invitaciones activas. Revoca o espera que expiren antes de crear otra.',
+                    message: 'Ya tienes 3 invitaciones pendientes. Espera a que acepten o revoca alguna.',
                     activeCount
                 });
             }
 
-            // Validar rango de expiración (1-30 días)
-            const days = Math.min(Math.max(parseInt(expiresInDays) || 7, 1), 30);
+            // Validar clases pre-pagadas (máximo 4)
+            const classes = Math.min(Math.max(parseInt(preloadedClasses) || 0, 0), 4);
 
-            // Validar clases pre-pagadas (0-50)
-            const classes = Math.min(Math.max(parseInt(preloadedClasses) || 0, 0), 50);
-
-            // Generar código único
+            // Generar código e invitación
             const code = TeacherInvite.generateCode(teacher.name);
-
-            // Calcular fecha de expiración
             const expiresAt = new Date();
-            expiresAt.setDate(expiresAt.getDate() + days);
+            expiresAt.setDate(expiresAt.getDate() + 7);
 
-            // Crear invitación
             const invite = new TeacherInvite({
                 teacherId: teacher._id,
                 code,
                 type: 'private_student',
                 status: 'active',
+                studentName: studentName.trim(),
+                studentEmail: studentEmail.toLowerCase().trim(),
                 preloadedClasses: classes,
                 expiresAt
             });
 
             await invite.save();
 
-            // Construir URL de invitación
+            // Enviar email de invitación formal
             const baseUrl = process.env.BASE_URL || 'https://pianolink.net';
             const inviteUrl = `${baseUrl}/invite/${code}`;
 
-            console.log(`[Invite] Profesor ${teacher.email} generó invitación: ${code}`);
+            try {
+                await emailService.sendSafe({
+                    to: studentEmail.toLowerCase().trim(),
+                    subject: `🎹 ${teacher.name} te invita a PianoLink`,
+                    html: buildInviteEmailHtml(teacher.name, studentName.trim(), inviteUrl, classes)
+                });
+                invite.emailSentAt = new Date();
+                await invite.save();
+            } catch (emailErr) {
+                console.error('[Invite] Error enviando email de invitación:', emailErr.message);
+                // No fallar — la invitación se creó, el email puede reenviarse
+            }
+
+            console.log(`[Invite] ${teacher.email} invitó a ${studentEmail} (código: ${code}, clases: ${classes})`);
 
             res.status(201).json({
                 success: true,
+                message: `Invitación enviada a ${studentEmail}`,
                 invite: {
                     code: invite.code,
-                    url: inviteUrl,
+                    studentName: invite.studentName,
+                    studentEmail: invite.studentEmail,
+                    preloadedClasses: invite.preloadedClasses,
                     expiresAt: invite.expiresAt,
                     status: invite.status,
-                    preloadedClasses: invite.preloadedClasses,
-                    createdAt: invite.createdAt
+                    emailSentAt: invite.emailSentAt
                 }
             });
         } catch (error) {
-            console.error('[Invite] Error generando invitación:', error.message);
-
-            // Manejar código duplicado (raro pero posible)
+            console.error('[Invite] Error enviando invitación:', error.message);
             if (error.code === 11000) {
-                return res.status(409).json({
-                    success: false,
-                    message: 'Error generando código único. Intenta de nuevo.'
-                });
+                return res.status(409).json({ success: false, message: 'Error generando código. Intenta de nuevo.' });
             }
-
-            res.status(500).json({
-                success: false,
-                message: 'Error interno al generar invitación'
-            });
+            res.status(500).json({ success: false, message: 'Error interno al enviar invitación' });
         }
+    }
+);
+
+// Mantener /generate como alias por compatibilidad
+router.post('/generate',
+    protect,
+    teacherOrAdmin,
+    requirePermission('canInvitePrivateStudents'),
+    async (req, res) => {
+        // Redirigir al nuevo endpoint
+        req.url = '/send';
+        router.handle(req, res);
     }
 );
 
@@ -124,13 +254,14 @@ router.get('/my-invites',
         try {
             const invites = await TeacherInvite.getByTeacher(req.user._id);
             const activeCount = await TeacherInvite.countActiveByTeacher(req.user._id);
-            const baseUrl = process.env.BASE_URL || 'https://pianolink.net';
 
             const result = invites.map(inv => ({
                 code: inv.code,
-                url: `${baseUrl}/invite/${inv.code}`,
                 status: inv.status,
+                studentName: inv.studentName || '',
+                studentEmail: inv.studentEmail || '',
                 preloadedClasses: inv.preloadedClasses || 0,
+                emailSentAt: inv.emailSentAt || null,
                 expiresAt: inv.expiresAt,
                 createdAt: inv.createdAt,
                 usedBy: inv.usedBy ? {
@@ -207,6 +338,46 @@ router.delete('/:code',
 );
 
 // ==================== RUTAS PÚBLICAS (sin auth) ====================
+
+/**
+ * POST /api/invite/:code/resend
+ * Reenviar email de invitación
+ */
+router.post('/:code/resend',
+    protect,
+    teacherOrAdmin,
+    requirePermission('canInvitePrivateStudents'),
+    async (req, res) => {
+        try {
+            const invite = await TeacherInvite.findOne({
+                code: req.params.code,
+                teacherId: req.user._id,
+                status: 'active'
+            });
+
+            if (!invite) {
+                return res.status(404).json({ success: false, message: 'Invitación no encontrada o ya no está activa.' });
+            }
+
+            const baseUrl = process.env.BASE_URL || 'https://pianolink.net';
+            const inviteUrl = `${baseUrl}/invite/${invite.code}`;
+
+            await emailService.sendSafe({
+                to: invite.studentEmail,
+                subject: `🎹 Recordatorio: ${req.user.name} te invita a PianoLink`,
+                html: buildInviteEmailHtml(req.user.name, invite.studentName, inviteUrl, invite.preloadedClasses)
+            });
+
+            invite.emailSentAt = new Date();
+            await invite.save();
+
+            res.json({ success: true, message: `Email reenviado a ${invite.studentEmail}` });
+        } catch (error) {
+            console.error('[Invite] Error reenviando email:', error.message);
+            res.status(500).json({ success: false, message: 'Error al reenviar email' });
+        }
+    }
+);
 
 /**
  * GET /api/invite/validate/:code

@@ -925,35 +925,70 @@
 
                 <!-- === PANEL DE INVITACIONES (solo Premium/Founder) === -->
                 <div id="invitePanel" style="display: none; background: linear-gradient(135deg, #1e2e1e 0%, #2d442d 100%); border-radius: 10px; padding: 14px; border: 1px solid #3d5c3d; margin-bottom: 10px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                        <div style="color: #4ade80; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">🔗 Invitar Alumnos Privados</div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <div style="color: #4ade80; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">✉️ Mis Alumnos Privados</div>
                         <div id="inviteSlots" style="color: rgba(255,255,255,0.5); font-size: 9px; font-weight: 600;"></div>
                     </div>
-                    <div style="color: rgba(255,255,255,0.7); font-size: 10px; margin-bottom: 10px;">
-                        Genera un enlace para invitar a tus propios alumnos. Ellos se registran directo contigo, sin comisión (0%).
+                    <div style="color: rgba(255,255,255,0.6); font-size: 10px; margin-bottom: 10px; line-height: 1.4;">
+                        Invita alumnos por email. Sin comisión (0%).
                     </div>
-                    <!-- Input clases pre-pagadas + botón generar -->
-                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 10px;">
-                        <div style="flex: 1; display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.25); border-radius: 6px; padding: 4px 8px;">
-                            <label for="preloadedClassesInput" style="color: rgba(255,255,255,0.6); font-size: 9px; white-space: nowrap;">Clases pre-pagadas:</label>
-                            <input id="preloadedClassesInput" type="number" min="0" max="50" value="0" style="width: 40px; background: transparent; border: 1px solid rgba(74,222,128,0.3); color: #4ade80; padding: 2px 4px; border-radius: 3px; font-size: 10px; text-align: center; outline: none;">
-                        </div>
-                        <button id="generateInviteBtn" onclick="generateInviteLink()" style="background: rgba(74,222,128,0.2); border: none; color: #4ade80; padding: 6px 12px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: 600; white-space: nowrap;">
-                            + Generar Enlace
-                        </button>
-                    </div>
-                    <!-- Enlace generado -->
-                    <div id="inviteLinkBox" style="display: none; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px; margin-bottom: 8px;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <input id="inviteLinkInput" type="text" readonly style="flex: 1; background: transparent; border: none; color: #4ade80; font-size: 10px; outline: none; font-family: monospace;" value="">
-                            <button onclick="copyInviteLinkGenerated()" style="background: #4ade80; color: #0a0a0a; border: none; padding: 4px 8px; border-radius: 4px; font-size: 9px; cursor: pointer; font-weight: 700;">
-                                📋 Copiar
-                            </button>
-                        </div>
-                    </div>
+                    <button id="openInviteModalBtn" onclick="openInviteModal()" style="width: 100%; background: linear-gradient(135deg, #4ade80, #22c55e); border: none; color: #0a1a0a; padding: 10px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 700; letter-spacing: 0.3px; transition: opacity 0.2s;">
+                        + Invitar Alumno
+                    </button>
                     <!-- Lista de invitaciones -->
-                    <div id="invitesList" style="max-height: 120px; overflow-y: auto;">
-                        <div style="text-align: center; color: #555; font-size: 10px; padding: 8px;">Cargando invitaciones...</div>
+                    <div id="invitesList" style="margin-top: 10px; max-height: 200px; overflow-y: auto;"></div>
+                </div>
+
+                <!-- === MODAL INVITAR ALUMNO === -->
+                <div id="inviteModal" style="display: none; position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+                    <div style="background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%); border-radius: 16px; width: 420px; max-width: 92vw; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); overflow: hidden;">
+                        <!-- Header modal -->
+                        <div style="background: linear-gradient(135deg, #0f172a, #1e293b); padding: 22px 24px 18px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                            <div style="font-size: 32px; margin-bottom: 6px;">🎹</div>
+                            <h2 style="margin: 0; color: #fff; font-size: 17px; font-weight: 700;">Invitar Alumno Privado</h2>
+                            <p style="margin: 6px 0 0; color: rgba(255,255,255,0.5); font-size: 11px;">Se enviará una invitación formal por email</p>
+                        </div>
+                        <!-- Body modal -->
+                        <div style="padding: 22px 24px;">
+                            <div style="margin-bottom: 16px;">
+                                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Nombre del alumno</label>
+                                <input id="invStudentName" type="text" placeholder="Ej: María González" 
+                                    style="width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; font-size: 14px; outline: none; transition: border 0.2s; box-sizing: border-box;"
+                                    onfocus="this.style.borderColor='#4ade80'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+                            </div>
+                            <div style="margin-bottom: 16px;">
+                                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Email del alumno</label>
+                                <input id="invStudentEmail" type="email" placeholder="alumno@email.com" 
+                                    style="width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; font-size: 14px; outline: none; transition: border 0.2s; box-sizing: border-box;"
+                                    onfocus="this.style.borderColor='#4ade80'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+                            </div>
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Clases pre-pagadas <span style="color: rgba(255,255,255,0.35); font-weight: 400;">(opcional, máx. 4)</span></label>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input id="invPreloadedClasses" type="range" min="0" max="4" value="0" 
+                                        style="flex: 1; accent-color: #4ade80; cursor: pointer;"
+                                        oninput="document.getElementById('invClassesLabel').textContent = this.value">
+                                    <div id="invClassesLabel" style="background: rgba(74,222,128,0.15); color: #4ade80; padding: 4px 12px; border-radius: 6px; font-size: 16px; font-weight: 700; min-width: 24px; text-align: center;">0</div>
+                                </div>
+                                <p style="margin: 6px 0 0; color: rgba(255,255,255,0.35); font-size: 10px; line-height: 1.4;">Clases que ya cobraste y quieres asignarle al alumno al registrarse.</p>
+                            </div>
+                            <!-- Info box -->
+                            <div style="background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.15); border-radius: 8px; padding: 10px 14px; margin-bottom: 18px;">
+                                <p style="margin: 0; color: rgba(255,255,255,0.5); font-size: 10px; line-height: 1.5;">
+                                    📧 El alumno recibirá un email con tu nombre invitándolo a crear su cuenta en PianoLink. La invitación expira en 7 días.
+                                </p>
+                            </div>
+                            <!-- Botones -->
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="closeInviteModal()" style="flex: 1; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+                                    Cancelar
+                                </button>
+                                <button id="sendInviteBtn" onclick="sendInvite()" style="flex: 2; padding: 11px; background: linear-gradient(135deg, #4ade80, #22c55e); border: none; color: #0a1a0a; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 700; letter-spacing: 0.3px; transition: all 0.2s; box-shadow: 0 4px 14px rgba(74,222,128,0.3);">
+                                    ✉️ Enviar Invitación
+                                </button>
+                            </div>
+                            <div id="inviteModalMsg" style="text-align: center; margin-top: 10px; font-size: 11px; min-height: 16px;"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -2890,41 +2925,68 @@
     }
     
     // === INVITACIONES PRIVADAS ===
-    async function generateInviteLink() {
-        try {
-            const preloadedClasses = parseInt(document.getElementById('preloadedClassesInput')?.value) || 0;
-            const res = await fetch('/api/invite/generate', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${user.token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ expiresInDays: 7, preloadedClasses })
-            });
-            
-            const data = await res.json();
-            if (data.success) {
-                const box = document.getElementById('inviteLinkBox');
-                box.style.display = 'block';
-                document.getElementById('inviteLinkInput').value = data.invite?.url || data.inviteUrl || `${window.location.origin}/invite/${data.invite?.code || data.code}`;
-                document.getElementById('preloadedClassesInput').value = 0;
-                loadMyInvites();
-            } else {
-                alert(data.message || 'Error generando invitación');
-            }
-        } catch (error) {
-            console.error('[Dashboard] Error generando invite:', error);
-            alert('Error de conexión');
-        }
+    function openInviteModal() {
+        document.getElementById('invStudentName').value = '';
+        document.getElementById('invStudentEmail').value = '';
+        document.getElementById('invPreloadedClasses').value = 0;
+        document.getElementById('invClassesLabel').textContent = '0';
+        document.getElementById('inviteModalMsg').textContent = '';
+        document.getElementById('sendInviteBtn').disabled = false;
+        const modal = document.getElementById('inviteModal');
+        modal.style.display = 'flex';
     }
     
-    function copyInviteLinkGenerated() {
-        const input = document.getElementById('inviteLinkInput');
-        navigator.clipboard.writeText(input.value).then(() => {
-            const feedback = document.getElementById('copyFeedback');
-            feedback.textContent = '✅ Enlace copiado';
-            setTimeout(() => { feedback.textContent = ''; }, 2000);
-        });
+    function closeInviteModal() {
+        document.getElementById('inviteModal').style.display = 'none';
+    }
+    
+    // Cerrar modal al hacer click fuera
+    document.getElementById('inviteModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeInviteModal();
+    });
+    
+    async function sendInvite() {
+        const studentName = document.getElementById('invStudentName').value.trim();
+        const studentEmail = document.getElementById('invStudentEmail').value.trim();
+        const preloadedClasses = parseInt(document.getElementById('invPreloadedClasses').value) || 0;
+        const msgEl = document.getElementById('inviteModalMsg');
+        const btn = document.getElementById('sendInviteBtn');
+        
+        if (!studentName || !studentEmail) {
+            msgEl.style.color = '#ef4444';
+            msgEl.textContent = 'Completa nombre y email del alumno.';
+            return;
+        }
+        
+        btn.disabled = true;
+        btn.textContent = 'Enviando...';
+        msgEl.textContent = '';
+        
+        try {
+            const res = await fetch('/api/invite/send', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${user.token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ studentName, studentEmail, preloadedClasses })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                msgEl.style.color = '#4ade80';
+                msgEl.textContent = `✅ Invitación enviada a ${studentEmail}`;
+                setTimeout(() => { closeInviteModal(); loadMyInvites(); }, 1500);
+            } else {
+                msgEl.style.color = '#ef4444';
+                msgEl.textContent = data.message || 'Error al enviar invitación';
+                btn.disabled = false;
+                btn.textContent = '✉️ Enviar Invitación';
+            }
+        } catch (error) {
+            console.error('[Dashboard] Error enviando invite:', error);
+            msgEl.style.color = '#ef4444';
+            msgEl.textContent = 'Error de conexión';
+            btn.disabled = false;
+            btn.textContent = '✉️ Enviar Invitación';
+        }
     }
     
     async function loadMyInvites() {
@@ -2939,10 +3001,9 @@
             const slotsEl = document.getElementById('inviteSlots');
             if (slotsEl && data.activeCount !== undefined) {
                 const remaining = data.maxActive - data.activeCount;
-                slotsEl.textContent = `${data.activeCount}/${data.maxActive} activas`;
-                slotsEl.style.color = remaining <= 0 ? '#ef4444' : 'rgba(255,255,255,0.5)';
-                // Deshabilitar botón si no hay cupo
-                const btn = document.getElementById('generateInviteBtn');
+                slotsEl.textContent = `${data.activeCount} de ${data.maxActive} enviadas`;
+                slotsEl.style.color = remaining <= 0 ? '#ef4444' : 'rgba(255,255,255,0.4)';
+                const btn = document.getElementById('openInviteModalBtn');
                 if (btn) {
                     btn.disabled = remaining <= 0;
                     btn.style.opacity = remaining <= 0 ? '0.4' : '1';
@@ -2951,29 +3012,56 @@
             }
             
             if (!data.success || !data.invites?.length) {
-                list.innerHTML = '<div style="text-align:center; color:#555; font-size:10px; padding:8px;">Sin invitaciones activas</div>';
+                list.innerHTML = '<div style="text-align:center; color:rgba(255,255,255,0.3); font-size:10px; padding:10px;">No hay invitaciones aún</div>';
                 return;
             }
             
             list.innerHTML = data.invites.map(inv => {
-                const statusColors = { active: '#4ade80', used: '#888', expired: '#ef4444', revoked: '#ef4444' };
-                const statusLabels = { active: 'Activa', used: 'Usada', expired: 'Expirada', revoked: 'Revocada' };
-                const color = statusColors[inv.status] || '#888';
+                const statusConfig = {
+                    active: { color: '#4ade80', bg: 'rgba(74,222,128,0.1)', label: '⏳ Pendiente' },
+                    used:   { color: '#818cf8', bg: 'rgba(129,140,248,0.1)', label: '✅ Aceptada' },
+                    expired:{ color: '#ef4444', bg: 'rgba(239,68,68,0.1)', label: '⏰ Expirada' },
+                    revoked:{ color: '#f97316', bg: 'rgba(249,115,22,0.1)', label: '🚫 Revocada' }
+                };
+                const s = statusConfig[inv.status] || statusConfig.expired;
                 const classesTag = inv.preloadedClasses > 0 
-                    ? `<span style="background: rgba(99,102,241,0.2); color: #818cf8; padding: 1px 5px; border-radius: 3px; font-size: 8px; margin-left: 4px;">${inv.preloadedClasses} clases</span>` 
+                    ? `<span style="background: rgba(99,102,241,0.15); color: #a5b4fc; padding: 2px 6px; border-radius: 4px; font-size: 9px;">${inv.preloadedClasses} clase${inv.preloadedClasses > 1 ? 's' : ''}</span>` 
+                    : '';
+                const actions = inv.status === 'active' 
+                    ? `<div style="display:flex; gap:4px; margin-top:4px;">
+                        <button onclick="resendInvite('${inv.code}')" style="background:rgba(74,222,128,0.1); border:none; color:#4ade80; padding:3px 7px; border-radius:4px; font-size:9px; cursor:pointer;">📧 Reenviar</button>
+                        <button onclick="revokeInvite('${inv.code}')" style="background:rgba(239,68,68,0.1); border:none; color:#ef4444; padding:3px 7px; border-radius:4px; font-size:9px; cursor:pointer;">Revocar</button>
+                       </div>` 
                     : '';
                 
-                return `<div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                    <div>
-                        <div style="color: #ddd; font-size: 10px; font-family: monospace;">${inv.code}${classesTag}</div>
-                        <div style="color: ${color}; font-size: 9px;">${statusLabels[inv.status] || inv.status}</div>
+                return `<div style="background: ${s.bg}; border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.04);">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <div style="color: #e2e8f0; font-size: 12px; font-weight: 600;">${inv.studentName || 'Sin nombre'}</div>
+                            <div style="color: rgba(255,255,255,0.4); font-size: 10px;">${inv.studentEmail || inv.code}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="color: ${s.color}; font-size: 10px; font-weight: 600;">${s.label}</div>
+                            ${classesTag}
+                        </div>
                     </div>
-                    ${inv.status === 'active' ? `<button onclick="revokeInvite('${inv.code}')" style="background: rgba(239,68,68,0.15); border: none; color: #ef4444; padding: 3px 6px; border-radius: 3px; font-size: 9px; cursor: pointer;">Revocar</button>` : ''}
+                    ${actions}
                 </div>`;
             }).join('');
         } catch (error) {
             console.error('[Dashboard] Error cargando invites:', error);
         }
+    }
+    
+    async function resendInvite(code) {
+        try {
+            const res = await fetch(`/api/invite/${code}/resend`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            const data = await res.json();
+            alert(data.message || 'Email reenviado');
+        } catch (e) { console.error(e); }
     }
     
     async function revokeInvite(code) {
