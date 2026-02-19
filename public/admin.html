@@ -1322,7 +1322,7 @@
                                     <li>Los cambios solo afectan a nuevas suscripciones</li>
                                     <li>Las suscripciones existentes mantienen su precio original</li>
                                     <li>Los precios se guardan en dólares USD</li>
-                                    <li>PianoLink retiene 20% de comisión, el profesor recibe 80%</li>
+                                    <li>Las comisiones se configuran en la sección "Comisiones por Plan" más abajo</li>
                                 </ul>
                             </div>
                             <button class="btn btn-primary" onclick="savePricingConfig()" style="width:100%; padding:15px; font-size:16px;">
@@ -1332,6 +1332,148 @@
                     </div>
 
                     <div id="pricing-status" style="display:none; padding:15px; border-radius:8px; margin-top:15px;"></div>
+
+                    <!-- COMISIONES POR PLAN Y TARIFA MÍNIMA -->
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:30px; margin-bottom:20px;">
+                        <h3 style="color:var(--accent-blue); margin-bottom:8px;">📊 Comisiones por Plan y Tarifa Mínima</h3>
+                        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:20px;">
+                            Define qué porcentaje retiene PianoLink por cada clase según el plan del profesor.
+                        </p>
+                        
+                        <!-- Tarifa mínima -->
+                        <div class="form-group" style="margin-bottom:20px;">
+                            <label>💵 Tarifa Mínima por Clase (USD)</label>
+                            <input type="number" id="comm-min-rate" step="1" min="1" max="500" placeholder="15"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                            <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                Lo mínimo que un profesor puede cobrar por clase
+                            </small>
+                        </div>
+
+                        <!-- Plan Free -->
+                        <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:15px; border-left:3px solid #888;">
+                            <div style="color:#888; font-weight:700; margin-bottom:10px;">Plan Free</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                                <div class="form-group">
+                                    <label>PianoLink retiene (%)</label>
+                                    <input type="number" id="comm-free-platform" step="1" min="0" max="100" placeholder="25"
+                                        style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border-color); 
+                                        background:var(--bg-card); color:var(--text-primary); font-size:16px;"
+                                        oninput="syncCommission('free')">
+                                </div>
+                                <div class="form-group">
+                                    <label>Profesor recibe (%)</label>
+                                    <input type="number" id="comm-free-teacher" step="1" min="0" max="100" placeholder="75"
+                                        style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border-color); 
+                                        background:var(--bg-card); color:var(--text-primary); font-size:16px;" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Plan Premium -->
+                        <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:15px; border-left:3px solid #818cf8;">
+                            <div style="color:#818cf8; font-weight:700; margin-bottom:10px;">Plan Premium</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                                <div class="form-group">
+                                    <label>PianoLink retiene (%)</label>
+                                    <input type="number" id="comm-premium-platform" step="1" min="0" max="100" placeholder="15"
+                                        style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border-color); 
+                                        background:var(--bg-card); color:var(--text-primary); font-size:16px;"
+                                        oninput="syncCommission('premium')">
+                                </div>
+                                <div class="form-group">
+                                    <label>Profesor recibe (%)</label>
+                                    <input type="number" id="comm-premium-teacher" step="1" min="0" max="100" placeholder="85"
+                                        style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border-color); 
+                                        background:var(--bg-card); color:var(--text-primary); font-size:16px;" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Plan Fundador -->
+                        <div style="background:var(--bg-dark); padding:15px; border-radius:8px; margin-bottom:15px; border-left:3px solid #fbbf24;">
+                            <div style="color:#fbbf24; font-weight:700; margin-bottom:10px;">Plan Fundador</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                                <div class="form-group">
+                                    <label>PianoLink retiene (%)</label>
+                                    <input type="number" id="comm-founder-platform" step="1" min="0" max="100" placeholder="15"
+                                        style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border-color); 
+                                        background:var(--bg-card); color:var(--text-primary); font-size:16px;"
+                                        oninput="syncCommission('founder')">
+                                </div>
+                                <div class="form-group">
+                                    <label>Profesor recibe (%)</label>
+                                    <input type="number" id="comm-founder-teacher" step="1" min="0" max="100" placeholder="85"
+                                        style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border-color); 
+                                        background:var(--bg-card); color:var(--text-primary); font-size:16px;" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="saveCommissionConfig()" style="width:100%; padding:15px; font-size:16px;">
+                            💾 Guardar Comisiones y Tarifa Mínima
+                        </button>
+                        <div id="comm-status" style="display:none; padding:10px; border-radius:8px; margin-top:10px;"></div>
+                    </div>
+
+                    <!-- MERCADOPAGO CREDENCIALES POR PAÍS -->
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:30px; margin-bottom:20px;">
+                        <h3 style="color:#00b1ea; margin-bottom:8px;">🌎 MercadoPago — Credenciales por País</h3>
+                        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:20px;">
+                            Cada país requiere su propia cuenta MP. Los profesores que se registren desde un país con MP activo pagarán en moneda local.
+                            Países sin credenciales usan PayPal (USD).
+                        </p>
+
+                        <!-- Tabla de países -->
+                        <div id="mp-creds-table" style="margin-bottom:20px;">
+                            <div style="text-align:center; color:var(--text-secondary); padding:20px;">Cargando...</div>
+                        </div>
+
+                        <!-- Formulario para agregar/editar -->
+                        <div style="background:var(--bg-dark); padding:20px; border-radius:10px; border:1px solid var(--border-color);">
+                            <h4 style="color:var(--text-primary); margin-bottom:15px;">➕ Agregar / Actualizar País</h4>
+                            
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                                <div class="form-group">
+                                    <label>País</label>
+                                    <select id="mp-country" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); font-size:14px;">
+                                        <option value="">Seleccionar país...</option>
+                                        <option value="CL">🇨🇱 Chile (CLP)</option>
+                                        <option value="MX">🇲🇽 México (MXN)</option>
+                                        <option value="AR">🇦🇷 Argentina (ARS)</option>
+                                        <option value="CO">🇨🇴 Colombia (COP)</option>
+                                        <option value="BR">🇧🇷 Brasil (BRL)</option>
+                                        <option value="PE">🇵🇪 Perú (PEN)</option>
+                                        <option value="UY">🇺🇾 Uruguay (UYU)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:12px;">
+                                <label>🔑 Access Token</label>
+                                <input type="text" id="mp-access-token" placeholder="APP_USR-..." 
+                                    style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); font-size:13px; font-family:monospace;">
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:12px;">
+                                <label>🔓 Public Key</label>
+                                <input type="text" id="mp-public-key" placeholder="APP_USR-..." 
+                                    style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); font-size:13px; font-family:monospace;">
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:15px;">
+                                <label>🔒 Webhook Secret (opcional)</label>
+                                <input type="text" id="mp-webhook-secret" placeholder="Secreto para validar webhooks"
+                                    style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); font-size:13px; font-family:monospace;">
+                            </div>
+
+                            <button class="btn btn-primary" onclick="saveMpCredential()" style="width:100%; padding:12px; font-size:14px; background:linear-gradient(135deg, #00b1ea, #009ee3);">
+                                💾 Guardar y Activar País
+                            </button>
+                            <div id="mp-creds-status" style="display:none; padding:10px; border-radius:8px; margin-top:10px;"></div>
+                        </div>
+                    </div>
 
                     <!-- OFERTA EARLY BIRD (Fase 5 v5.0) -->
                     <div style="background:linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(239,68,68,0.1) 100%); border:2px solid rgba(245,158,11,0.4); border-radius:12px; padding:30px; margin-top:20px;">

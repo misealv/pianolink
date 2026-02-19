@@ -159,6 +159,12 @@ router.get('/dashboard-data', protect, teacherOrAdmin, async (req, res) => {
                 total: platformStudents + privateStudents
             },
             earnings: td.earnings || { pending: 0, paid: 0, totalClasses: 0 },
+            // Precios dinámicos para el dashboard
+            minHourlyRate: config?.memberships?.minHourlyRate || 15,
+            membershipPricing: {
+                premium: (plans.premium?.price || 1900) / 100,
+                founder: (plans.founder?.price || 1000) / 100
+            },
             upsell
         });
     } catch (error) {

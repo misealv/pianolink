@@ -788,14 +788,13 @@ class StripeService {
         const classCount = parseInt(classes);
         const rate = parseFloat(teacherRate);
         const totalAmount = session.amount_total / 100; // Convertir de centavos
-        
-        const PLATFORM_COMMISSION = 0.20; // 20%
 
         console.log(`[StripeService] 🎹 Procesando compra marketplace: ${classCount} clases`);
 
         try {
             // Importar modelo si no está disponible
             const StudentEnrollment = require('../models/StudentEnrollment');
+            const CommissionService = require('../services/CommissionService');
             
             // Buscar o crear enrollment
             let enrollment = await StudentEnrollment.findOne({
@@ -822,8 +821,10 @@ class StripeService {
                 });
             }
 
-            // Calcular ganancias
-            const platformEarnings = totalAmount * PLATFORM_COMMISSION;
+            // Calcular ganancias con comisión dinámica
+            const enrollSource = enrollment.source || 'platform';
+            const commResult = await CommissionService.calculateCommission(teacherId, enrollSource);
+            const platformEarnings = totalAmount * (commResult.platformPercent / 100);
             const teacherEarnings = totalAmount - platformEarnings;
 
             // Registrar la compra

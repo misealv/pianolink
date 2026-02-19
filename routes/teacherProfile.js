@@ -10,16 +10,36 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const GlobalConfig = require('../models/GlobalConfig');
+const CommissionService = require('../services/CommissionService');
 const StudentEnrollment = require('../models/StudentEnrollment');
 const { protect } = require('../middleware/authMiddleware');
 
-// Constantes del marketplace
-const MIN_HOURLY_RATE = 15; // USD mínimo por clase
-const PLATFORM_COMMISSION = 0.20; // 20% para PianoLink
+// Constantes dinámicas — se leen de GlobalConfig y CommissionService
+// Ya NO se usan constantes hardcodeadas de MIN_HOURLY_RATE ni PLATFORM_COMMISSION
+
+/**
+ * Obtener config dinámica de tarifa mínima desde GlobalConfig (con cache)
+ */
+let _minRateCache = null;
+let _minRateCacheExpiry = 0;
+async function getMinHourlyRate() {
+    const now = Date.now();
+    if (_minRateCache !== null && _minRateCacheExpiry > now) return _minRateCache;
+    try {
+        const config = await GlobalConfig.findOne({});
+        _minRateCache = config?.memberships?.minHourlyRate || 15;
+        _minRateCacheExpiry = now + 5 * 60 * 1000; // Cache 5 min
+        return _minRateCache;
+    } catch {
+        return 15; // Fallback seguro
+    }
+}
 
 /**
  * GET /api/teacher-profile/my-rates
  * Obtener tarifa y paquetes del profesor autenticado
+ * Comisión dinámica según plan del profesor (via CommissionService)
  */
 router.get('/my-rates', protect, async (req, res) => {
     try {
@@ -30,19 +50,25 @@ router.get('/my-rates', protect, async (req, res) => {
         }
         
         const hourlyRate = user.teacherData?.hourlyRate || 25;
-        const packages = user.teacherData?.packages || [];
         
-        // Calcular precios para el estudiante (con comisión PL)
-        const studentPrice = Math.round(hourlyRate / (1 - PLATFORM_COMMISSION) * 100) / 100;
+        // Comisión dinámica según plan del profesor
+        const commission = await CommissionService.calculateCommission(req.user._id, 'platform');
+        const platformPercent = commission.platformPercent / 100; // ej: 0.25 o 0.15
+        const minRate = await getMinHourlyRate();
+        
+        // Calcular precio para el estudiante (con comisión dinámica)
+        const studentPrice = Math.round(hourlyRate / (1 - platformPercent) * 100) / 100;
         
         res.json({
             success: true,
             rates: {
                 teacherEarns: hourlyRate,           // Lo que gana el profesor
                 studentPays: studentPrice,          // Lo que paga el estudiante
-                platformFee: PLATFORM_COMMISSION * 100, // 20%
-                minRate: MIN_HOURLY_RATE,
-                packages: packages.map(pkg => ({
+                platformFee: commission.platformPercent, // % comisión (ej: 25 o 15)
+                teacherFee: commission.teacherPercent,   // % profesor (ej: 75 o 85)
+                plan: commission.plan,                   // Plan efectivo del profesor
+                minRate: minRate,
+                packages: (user.teacherData?.packages || []).map(pkg => ({
                     ...pkg.toObject(),
                     teacherEarns: hourlyRate * pkg.classes * (1 - pkg.discountPercent / 100),
                     studentPays: studentPrice * pkg.classes * (1 - pkg.discountPercent / 100)
@@ -69,10 +95,11 @@ router.put('/my-rates', protect, async (req, res) => {
             return res.status(403).json({ error: 'Solo profesores pueden acceder' });
         }
         
-        // Validar tarifa mínima
-        if (hourlyRate < MIN_HOURLY_RATE) {
+        // Validar tarifa mínima desde GlobalConfig
+        const minRate = await getMinHourlyRate();
+        if (hourlyRate < minRate) {
             return res.status(400).json({ 
-                error: `La tarifa mínima es $${MIN_HOURLY_RATE} USD por clase` 
+                error: `La tarifa mínima es $${minRate} USD por clase` 
             });
         }
         
@@ -404,7 +431,7 @@ router.get('/catalog', async (req, res) => {
         }
         
         const teachers = await User.find(query)
-            .select('name lastName slug branding teacherData.hourlyRate teacherData.packages teacherData.profile teacherData.earnings timezone')
+            .select('name lastName slug branding teacherData.hourlyRate teacherData.packages teacherData.profile teacherData.earnings teacherData.plan teacherData.subscriptionStatus teacherData.isFounder timezone')
             .lean();
 
         // Obtener disponibilidad de todos los profesores de una sola consulta
@@ -437,10 +464,18 @@ router.get('/catalog', async (req, res) => {
             };
         });
         
+        // Obtener config de comisiones una sola vez para todos los profesores
+        const configDoc = await GlobalConfig.findOne({});
+        const teacherPlansConfig = configDoc?.memberships?.teacherPlans || {};
+        
         // Formatear para el catálogo
         let catalog = teachers.map(t => {
             const hourlyRate = t.teacherData?.hourlyRate || 25;
-            const studentPrice = Math.round(hourlyRate / (1 - PLATFORM_COMMISSION) * 100) / 100;
+            // Comisión dinámica según plan del profesor
+            const teacherPlan = t.teacherData?.plan || 'free';
+            const planCfg = teacherPlansConfig[teacherPlan] || teacherPlansConfig.free || { platformCommission: 25 };
+            const platformFraction = (planCfg.platformCommission || 25) / 100;
+            const studentPrice = Math.round(hourlyRate / (1 - platformFraction) * 100) / 100;
             const tid = t._id.toString();
             const availability = availabilityMap[tid] || { activeDays: [], activeDayNames: [], weeklySlots: [], timezone: 'America/Santiago' };
             const totalClasses = t.teacherData?.earnings?.totalClasses || 0;
@@ -552,7 +587,10 @@ router.get('/public/:slug', async (req, res) => {
         }
         
         const hourlyRate = teacher.teacherData?.hourlyRate || 25;
-        const studentPrice = Math.round(hourlyRate / (1 - PLATFORM_COMMISSION) * 100) / 100;
+        // Comisión dinámica según plan del profesor
+        const commission = await CommissionService.calculateCommission(teacher._id, 'platform');
+        const platformFraction = commission.platformPercent / 100;
+        const studentPrice = Math.round(hourlyRate / (1 - platformFraction) * 100) / 100;
 
         // Obtener disponibilidad semanal
         const template = await AvailabilityTemplate.findOne({

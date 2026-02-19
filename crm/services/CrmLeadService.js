@@ -37,9 +37,9 @@ class CrmLeadService {
                 currency: enrichmentData.currency || 'USD',
                 lifecycleStage: 'lead',
                 segment: 'cold',
-                // Inicializar pipeline según tipo de lead
-                pipelineStudent: coreLead.type === 'client' ? 'lead' : null,
-                pipelineTeacher: coreLead.type === 'teacher' ? 'lead' : null,
+                // Inicializar pipeline según tipo de lead (undefined para no-usado, evita error de validación enum)
+                pipelineStudent: coreLead.type === 'client' ? 'lead' : undefined,
+                pipelineTeacher: coreLead.type === 'teacher' ? 'lead' : undefined,
                 tags: enrichmentData.tags || [],
                 attribution: {
                     firstTouch: CrmLeadService._buildAttribution(enrichmentData),

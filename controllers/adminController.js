@@ -824,3 +824,289 @@ exports.runMembershipReminders = async (req, res) => {
         });
     }
 };
+
+// ==================== COMISIONES POR PLAN Y TARIFA MÍNIMA ====================
+
+// Obtener configuración de comisiones y tarifa mínima
+exports.getCommissionConfig = async (req, res) => {
+    try {
+        const config = await GlobalConfig.findOne({ isDefault: true });
+        const plans = config?.memberships?.teacherPlans || {};
+        
+        res.json({
+            minHourlyRate: config?.memberships?.minHourlyRate || 15,
+            plans: {
+                free: {
+                    platformCommission: plans.free?.platformCommission ?? 25,
+                    teacherCommission: plans.free?.teacherCommission ?? 75
+                },
+                premium: {
+                    platformCommission: plans.premium?.platformCommission ?? 15,
+                    teacherCommission: plans.premium?.teacherCommission ?? 85
+                },
+                founder: {
+                    platformCommission: plans.founder?.platformCommission ?? 15,
+                    teacherCommission: plans.founder?.teacherCommission ?? 85
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error obteniendo comisiones:', error);
+        res.status(500).json({ message: 'Error obteniendo configuración de comisiones' });
+    }
+};
+
+// Actualizar configuración de comisiones y tarifa mínima
+exports.updateCommissionConfig = async (req, res) => {
+    try {
+        const { minHourlyRate, plans } = req.body;
+        
+        // Validar tarifa mínima
+        if (typeof minHourlyRate !== 'number' || minHourlyRate < 1 || minHourlyRate > 500) {
+            return res.status(400).json({ message: 'La tarifa mínima debe ser entre $1 y $500 USD' });
+        }
+        
+        // Validar comisiones
+        for (const [planName, planData] of Object.entries(plans || {})) {
+            const p = planData.platformCommission;
+            const t = planData.teacherCommission;
+            if (typeof p !== 'number' || p < 0 || p > 100) {
+                return res.status(400).json({ message: `Comisión inválida para plan ${planName}` });
+            }
+            if (p + t !== 100) {
+                return res.status(400).json({ message: `Las comisiones del plan ${planName} deben sumar 100%` });
+            }
+        }
+        
+        let config = await GlobalConfig.findOne({ isDefault: true });
+        if (!config) {
+            config = new GlobalConfig({ isDefault: true });
+        }
+        
+        // Inicializar memberships si no existe
+        if (!config.memberships) config.memberships = {};
+        
+        // Actualizar tarifa mínima
+        config.memberships.minHourlyRate = minHourlyRate;
+        
+        // Actualizar comisiones por plan
+        if (!config.memberships.teacherPlans) config.memberships.teacherPlans = {};
+        
+        for (const [planName, planData] of Object.entries(plans)) {
+            if (!config.memberships.teacherPlans[planName]) {
+                config.memberships.teacherPlans[planName] = {};
+            }
+            config.memberships.teacherPlans[planName].platformCommission = planData.platformCommission;
+            config.memberships.teacherPlans[planName].teacherCommission = planData.teacherCommission;
+        }
+        
+        // Marcar subdocumento como modificado para que Mongoose lo guarde
+        config.markModified('memberships');
+        await config.save();
+        
+        // Invalidar cache de CommissionService
+        try {
+            const CommissionService = require('../services/CommissionService');
+            CommissionService.invalidateCache();
+        } catch (e) { /* CommissionService puede no estar importado */ }
+        
+        console.log('[Admin] Comisiones actualizadas:', {
+            minHourlyRate,
+            plans: Object.entries(plans).map(([k, v]) => `${k}: ${v.platformCommission}/${v.teacherCommission}`)
+        });
+        
+        res.json({
+            message: 'Comisiones y tarifa mínima actualizadas exitosamente',
+            minHourlyRate,
+            plans
+        });
+    } catch (error) {
+        console.error('Error actualizando comisiones:', error);
+        res.status(500).json({ message: 'Error actualizando comisiones' });
+    }
+};
+
+// ===================== CRUD MercadoPago Credentials por País =====================
+const MpCredentials = require('../models/MpCredentials');
+
+/**
+ * GET /admin/mp-credentials
+ * Listar todas las credenciales MP (activas e inactivas).
+ */
+exports.getMpCredentials = async (req, res) => {
+    try {
+        const creds = await MpCredentials.find().sort({ countryCode: 1 }).lean();
+        // Enmascarar tokens sensibles para la respuesta
+        const safe = creds.map(c => ({
+            _id: c._id,
+            countryCode: c.countryCode,
+            countryName: c.countryName,
+            currency: c.currency,
+            isActive: c.isActive,
+            tokenStatus: c.tokenStatus,
+            lastTokenCheck: c.lastTokenCheck,
+            accessTokenPreview: c.accessToken ? c.accessToken.substring(0, 20) + '...' : '',
+            publicKeyPreview: c.publicKey ? c.publicKey.substring(0, 20) + '...' : '',
+            hasWebhookSecret: !!c.webhookSecret,
+            collector: c.collector,
+            payout: c.payout,
+            updatedAt: c.updatedAt
+        }));
+        res.json({ success: true, credentials: safe });
+    } catch (error) {
+        console.error('[Admin] Error listando MpCredentials:', error);
+        res.status(500).json({ error: 'Error al listar credenciales' });
+    }
+};
+
+/**
+ * POST /admin/mp-credentials
+ * Crear o actualizar credenciales MP para un país.
+ * Body: { countryCode, accessToken, publicKey, webhookSecret?, collector?, payout? }
+ */
+exports.upsertMpCredentials = async (req, res) => {
+    try {
+        const { countryCode, accessToken, publicKey, webhookSecret, collector, payout } = req.body;
+
+        if (!countryCode || !accessToken || !publicKey) {
+            return res.status(400).json({ error: 'countryCode, accessToken y publicKey son obligatorios' });
+        }
+
+        const code = countryCode.toUpperCase();
+        const validCountries = ['CL', 'MX', 'AR', 'CO', 'BR', 'PE', 'UY'];
+        if (!validCountries.includes(code)) {
+            return res.status(400).json({ error: `País inválido. Válidos: ${validCountries.join(', ')}` });
+        }
+
+        const countryNames = { CL: 'Chile', MX: 'México', AR: 'Argentina', CO: 'Colombia', BR: 'Brasil', PE: 'Perú', UY: 'Uruguay' };
+        const currencyMap = { CL: 'CLP', MX: 'MXN', AR: 'ARS', CO: 'COP', BR: 'BRL', PE: 'PEN', UY: 'UYU' };
+
+        const updateData = {
+            countryCode: code,
+            countryName: countryNames[code],
+            currency: currencyMap[code],
+            accessToken,
+            publicKey,
+            isActive: true,
+            tokenStatus: 'unknown'
+        };
+
+        if (webhookSecret !== undefined) updateData.webhookSecret = webhookSecret;
+        if (collector) updateData.collector = collector;
+        if (payout) updateData.payout = { ...payout, payoutCurrency: payout.payoutCurrency || currencyMap[code] };
+
+        const result = await MpCredentials.findOneAndUpdate(
+            { countryCode: code },
+            { $set: updateData },
+            { upsert: true, new: true, runValidators: true }
+        );
+
+        console.log(`[Admin] MpCredentials ${result.isNew !== false ? 'creado' : 'actualizado'}: ${code} (${countryNames[code]})`);
+
+        res.json({
+            success: true,
+            message: `Credenciales de ${countryNames[code]} guardadas y activadas`,
+            credential: {
+                _id: result._id,
+                countryCode: result.countryCode,
+                countryName: result.countryName,
+                currency: result.currency,
+                isActive: result.isActive
+            }
+        });
+    } catch (error) {
+        console.error('[Admin] Error guardando MpCredentials:', error);
+        res.status(500).json({ error: error.message || 'Error al guardar credenciales' });
+    }
+};
+
+/**
+ * PUT /admin/mp-credentials/:countryCode/toggle
+ * Activar/desactivar credenciales de un país.
+ */
+exports.toggleMpCredentials = async (req, res) => {
+    try {
+        const code = req.params.countryCode.toUpperCase();
+        const cred = await MpCredentials.findOne({ countryCode: code });
+        if (!cred) return res.status(404).json({ error: `No hay credenciales para ${code}` });
+
+        cred.isActive = !cred.isActive;
+        await cred.save();
+
+        console.log(`[Admin] MpCredentials ${code}: ${cred.isActive ? 'ACTIVADO' : 'DESACTIVADO'}`);
+        res.json({ success: true, countryCode: code, isActive: cred.isActive });
+    } catch (error) {
+        console.error('[Admin] Error toggle MpCredentials:', error);
+        res.status(500).json({ error: 'Error al cambiar estado' });
+    }
+};
+
+/**
+ * DELETE /admin/mp-credentials/:countryCode
+ * Eliminar credenciales de un país.
+ */
+exports.deleteMpCredentials = async (req, res) => {
+    try {
+        const code = req.params.countryCode.toUpperCase();
+        const result = await MpCredentials.deleteOne({ countryCode: code });
+        if (result.deletedCount === 0) return res.status(404).json({ error: `No hay credenciales para ${code}` });
+
+        console.log(`[Admin] MpCredentials eliminado: ${code}`);
+        res.json({ success: true, message: `Credenciales de ${code} eliminadas` });
+    } catch (error) {
+        console.error('[Admin] Error eliminando MpCredentials:', error);
+        res.status(500).json({ error: 'Error al eliminar credenciales' });
+    }
+};
+
+/**
+ * POST /admin/mp-credentials/:countryCode/test
+ * Verificar que las credenciales funcionan haciendo una llamada a la API de MP.
+ */
+exports.testMpCredentials = async (req, res) => {
+    try {
+        const code = req.params.countryCode.toUpperCase();
+        const cred = await MpCredentials.findOne({ countryCode: code });
+        if (!cred) return res.status(404).json({ error: `No hay credenciales para ${code}` });
+
+        // Verificar token haciendo GET a /users/me
+        const response = await fetch('https://api.mercadopago.com/users/me', {
+            headers: { 'Authorization': `Bearer ${cred.accessToken}` }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            cred.tokenStatus = 'valid';
+            cred.lastTokenCheck = new Date();
+            if (data.email) cred.collector.email = data.email;
+            if (data.id) cred.collector.userId = String(data.id);
+            await cred.save();
+
+            res.json({
+                success: true,
+                status: 'valid',
+                account: {
+                    id: data.id,
+                    email: data.email,
+                    nickname: data.nickname,
+                    siteId: data.site_id,
+                    countryId: data.country_id
+                }
+            });
+        } else {
+            cred.tokenStatus = 'expired';
+            cred.lastTokenCheck = new Date();
+            await cred.save();
+
+            const errData = await response.json().catch(() => ({}));
+            res.json({
+                success: false,
+                status: 'expired',
+                error: errData.message || `HTTP ${response.status}`
+            });
+        }
+    } catch (error) {
+        console.error('[Admin] Error testeando MpCredentials:', error);
+        res.status(500).json({ error: 'Error al verificar credenciales' });
+    }
+};

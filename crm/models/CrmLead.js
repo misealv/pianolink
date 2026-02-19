@@ -100,13 +100,13 @@ const crmLeadSchema = new mongoose.Schema({
     // Etapas para Estudiantes
     pipelineStudent: {
         type: String,
-        enum: ['lead', 'contacted', 'demo_scheduled', 'demo_completed', 'trial_class', 'enrolled', 'lost'],
+        enum: [null, 'lead', 'contacted', 'demo_scheduled', 'demo_completed', 'trial_class', 'enrolled', 'lost'],
         default: null  // Solo se usa si leadRef.type === 'client'
     },
     // Etapas para Profesores
     pipelineTeacher: {
         type: String,
-        enum: ['lead', 'contacted', 'application_review', 'interview', 'onboarding', 'active', 'rejected'],
+        enum: [null, 'lead', 'contacted', 'application_review', 'interview', 'onboarding', 'active', 'rejected'],
         default: null  // Solo se usa si leadRef.type === 'teacher'
     },
 

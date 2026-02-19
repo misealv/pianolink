@@ -97,6 +97,9 @@ const globalConfigSchema = new mongoose.Schema({
             currency: { type: String, default: 'USD' }
         },
         
+        // ==================== TARIFA MÍNIMA POR CLASE ====================
+        minHourlyRate: { type: Number, default: 15 },  // USD mínimo que un profesor puede cobrar
+        
         // ==================== PLANES DE PROFESOR (v5.0) ====================
         // Reemplaza teacherSubscription como fuente de verdad para comisiones
         teacherPlans: {

@@ -257,6 +257,17 @@ router.put('/config/pricing', adminController.updatePricingConfig);
 // Actualizar precio del Kit de Bienvenida V2
 router.put('/config/kit-v2-price', adminController.updateKitV2Price);
 
+// Comisiones por plan y tarifa mínima
+router.get('/config/commissions', adminController.getCommissionConfig);
+router.put('/config/commissions', adminController.updateCommissionConfig);
+
+// CRUD MercadoPago Credentials por país
+router.get('/mp-credentials', adminController.getMpCredentials);
+router.post('/mp-credentials', adminController.upsertMpCredentials);
+router.put('/mp-credentials/:countryCode/toggle', adminController.toggleMpCredentials);
+router.delete('/mp-credentials/:countryCode', adminController.deleteMpCredentials);
+router.post('/mp-credentials/:countryCode/test', adminController.testMpCredentials);
+
 // Actualizar configuración de Early Bird (Fase 5 v5.0)
 router.put('/config/early-bird', adminController.updateEarlyBirdConfig);
 

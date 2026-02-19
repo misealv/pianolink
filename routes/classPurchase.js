@@ -5,8 +5,7 @@ const StudentEnrollment = require('../models/StudentEnrollment');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { protect } = require('../middleware/authMiddleware');
 const DiscountService = require('../services/DiscountService');
-
-const PLATFORM_COMMISSION = 0.20; // 20% para PianoLink
+const CommissionService = require('../services/CommissionService');
 
 /**
  * POST /api/class-purchase/create-checkout
@@ -39,9 +38,16 @@ router.post('/create-checkout', protect, async (req, res) => {
             });
         }
 
-        // Calcular precio basado en tarifa del profesor
+        // Calcular precio basado en tarifa del profesor y comisión dinámica
         const teacherRate = teacher.teacherData?.hourlyRate || 25;
-        const studentPrice = teacherRate / (1 - PLATFORM_COMMISSION); // 80% teacher = 100% student price
+        
+        // Obtener comisión dinámica según plan del profesor y origen del alumno
+        const existingEnroll = await StudentEnrollment.findOne({ student: studentId, teacher: teacher._id });
+        const studentSource = existingEnroll?.source || 'platform';
+        const commission = await CommissionService.calculateCommission(teacher._id, studentSource);
+        const platformPercent = commission.platformPercent / 100; // ej: 0.25 o 0.15
+        
+        const studentPrice = teacherRate / (1 - platformPercent);
         
         // Aplicar descuento si hay paquete
         const discount = discountPercent || 0;
@@ -253,8 +259,10 @@ async function processClassPurchase(session) {
         });
     }
 
-    // Calcular ganancias
-    const platformEarnings = totalAmount * PLATFORM_COMMISSION;
+    // Calcular ganancias con comisión dinámica
+    const enrollSource = enrollment.source || 'platform';
+    const commResult = await CommissionService.calculateCommission(teacherId, enrollSource);
+    const platformEarnings = totalAmount * (commResult.platformPercent / 100);
     const teacherEarnings = totalAmount - platformEarnings;
 
     // Calcular fecha de expiración

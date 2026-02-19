@@ -72,7 +72,7 @@ function loadModuleData(moduleName) {
         case 'payouts': loadPayouts(); break;
         case 'welcome-kits': loadWelcomeKits(); break;
         case 'admin-profile': loadAdminProfile(); break;
-        case 'pricing': loadPricingConfig(); loadKitV2Price(); loadEarlyBirdConfig(); break;
+        case 'pricing': loadPricingConfig(); loadKitV2Price(); loadEarlyBirdConfig(); loadCommissionConfig(); loadMpCredentials(); break;
         case 'teacher-plans': loadTeacherPlans(); loadCommissionReport(); break;
     }
 }
@@ -6513,6 +6513,311 @@ async function savePricingConfig() {
 }
 
 // ==================== EARLY BIRD CONFIG (Fase 5 v5.0) ====================
+
+// ==================== COMISIONES POR PLAN ====================
+
+/**
+ * Sincronizar campo "profesor recibe" cuando se edita "plataforma retiene"
+ */
+function syncCommission(plan) {
+    const platformInput = document.getElementById(`comm-${plan}-platform`);
+    const teacherInput = document.getElementById(`comm-${plan}-teacher`);
+    if (platformInput && teacherInput) {
+        const pv = parseInt(platformInput.value) || 0;
+        teacherInput.value = Math.max(0, 100 - pv);
+    }
+}
+
+/**
+ * Cargar comisiones actuales y tarifa mínima desde GlobalConfig
+ */
+async function loadCommissionConfig() {
+    try {
+        const res = await fetch('/admin/config/commissions', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Tarifa mínima
+        const minRateInput = document.getElementById('comm-min-rate');
+        if (minRateInput) minRateInput.value = data.minHourlyRate ?? 15;
+
+        // Plan Free
+        document.getElementById('comm-free-platform').value = data.plans?.free?.platformCommission ?? 25;
+        document.getElementById('comm-free-teacher').value = data.plans?.free?.teacherCommission ?? 75;
+
+        // Plan Premium
+        document.getElementById('comm-premium-platform').value = data.plans?.premium?.platformCommission ?? 15;
+        document.getElementById('comm-premium-teacher').value = data.plans?.premium?.teacherCommission ?? 85;
+
+        // Plan Fundador
+        document.getElementById('comm-founder-platform').value = data.plans?.founder?.platformCommission ?? 15;
+        document.getElementById('comm-founder-teacher').value = data.plans?.founder?.teacherCommission ?? 85;
+
+    } catch (err) {
+        console.error('Error cargando comisiones:', err);
+    }
+}
+
+/**
+ * Guardar comisiones y tarifa mínima
+ */
+async function saveCommissionConfig() {
+    const statusDiv = document.getElementById('comm-status');
+
+    const minRate = parseInt(document.getElementById('comm-min-rate').value);
+    const freePlatform = parseInt(document.getElementById('comm-free-platform').value);
+    const premiumPlatform = parseInt(document.getElementById('comm-premium-platform').value);
+    const founderPlatform = parseInt(document.getElementById('comm-founder-platform').value);
+
+    // Validaciones
+    if (isNaN(minRate) || minRate < 1) {
+        showNotification('La tarifa mínima debe ser al menos $1', 'error');
+        return;
+    }
+    for (const [name, val] of [['Free', freePlatform], ['Premium', premiumPlatform], ['Fundador', founderPlatform]]) {
+        if (isNaN(val) || val < 0 || val > 100) {
+            showNotification(`Comisión del plan ${name} debe estar entre 0% y 100%`, 'error');
+            return;
+        }
+    }
+
+    try {
+        const res = await fetch('/admin/config/commissions', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userSession.token}`
+            },
+            body: JSON.stringify({
+                minHourlyRate: minRate,
+                plans: {
+                    free: { platformCommission: freePlatform, teacherCommission: 100 - freePlatform },
+                    premium: { platformCommission: premiumPlatform, teacherCommission: 100 - premiumPlatform },
+                    founder: { platformCommission: founderPlatform, teacherCommission: 100 - founderPlatform }
+                }
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#10b981';
+            statusDiv.style.color = 'white';
+            statusDiv.textContent = '✅ Comisiones y tarifa mínima actualizadas';
+            setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
+            showNotification('Comisiones actualizadas', 'success');
+        } else {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#ef4444';
+            statusDiv.style.color = 'white';
+            statusDiv.textContent = '❌ ' + (data.message || 'Error');
+            showNotification(data.message || 'Error guardando comisiones', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+// ===================== MERCADOPAGO CREDENTIALS POR PAÍS =====================
+
+const MP_COUNTRY_FLAGS = { CL: '🇨🇱', MX: '🇲🇽', AR: '🇦🇷', CO: '🇨🇴', BR: '🇧🇷', PE: '🇵🇪', UY: '🇺🇾' };
+const MP_COUNTRY_NAMES = { CL: 'Chile', MX: 'México', AR: 'Argentina', CO: 'Colombia', BR: 'Brasil', PE: 'Perú', UY: 'Uruguay' };
+const MP_CURRENCIES = { CL: 'CLP', MX: 'MXN', AR: 'ARS', CO: 'COP', BR: 'BRL', PE: 'PEN', UY: 'UYU' };
+const MP_ALL_COUNTRIES = ['CL', 'MX', 'AR', 'CO', 'BR', 'PE', 'UY'];
+
+async function loadMpCredentials() {
+    const container = document.getElementById('mp-creds-table');
+    if (!container) return;
+
+    try {
+        const res = await fetch('/api/admin/mp-credentials', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        const existing = data.credentials || [];
+        const existingCodes = existing.map(c => c.countryCode);
+
+        // Generar filas para TODOS los países (activos + pendientes)
+        let html = '<div style="display:grid; gap:8px;">';
+
+        for (const code of MP_ALL_COUNTRIES) {
+            const cred = existing.find(c => c.countryCode === code);
+            const flag = MP_COUNTRY_FLAGS[code];
+            const name = MP_COUNTRY_NAMES[code];
+            const currency = MP_CURRENCIES[code];
+
+            if (cred) {
+                // País con credenciales
+                const statusColor = cred.isActive ? '#10b981' : '#ef4444';
+                const statusText = cred.isActive ? '✅ Activo' : '❌ Inactivo';
+                const tokenColor = cred.tokenStatus === 'valid' ? '#10b981' : cred.tokenStatus === 'expired' ? '#ef4444' : '#888';
+                const tokenIcon = cred.tokenStatus === 'valid' ? '🟢' : cred.tokenStatus === 'expired' ? '🔴' : '⚪';
+
+                html += `
+                <div style="background:var(--bg-dark); padding:14px 18px; border-radius:8px; border-left:3px solid ${statusColor}; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:12px; min-width:200px;">
+                        <span style="font-size:22px;">${flag}</span>
+                        <div>
+                            <div style="color:var(--text-primary); font-weight:600;">${name} <span style="color:#888; font-size:11px;">${currency}</span></div>
+                            <div style="font-size:11px; color:#888;">${cred.accessTokenPreview}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+                        <span style="color:${tokenColor};">${tokenIcon} Token: ${cred.tokenStatus}</span>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button onclick="testMpCredential('${code}')" title="Verificar token" 
+                            style="padding:6px 10px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-card); color:#00b1ea; cursor:pointer; font-size:12px;">
+                            🔍 Test
+                        </button>
+                        <button onclick="toggleMpCredential('${code}')" title="${cred.isActive ? 'Desactivar' : 'Activar'}"
+                            style="padding:6px 10px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-card); color:${cred.isActive ? '#ef4444' : '#10b981'}; cursor:pointer; font-size:12px;">
+                            ${cred.isActive ? '⏸ Desactivar' : '▶ Activar'}
+                        </button>
+                        <button onclick="deleteMpCredential('${code}')" title="Eliminar"
+                            style="padding:6px 10px; border-radius:6px; border:1px solid #ef4444; background:transparent; color:#ef4444; cursor:pointer; font-size:12px;">
+                            🗑
+                        </button>
+                    </div>
+                </div>`;
+            } else {
+                // País sin credenciales (pendiente)
+                html += `
+                <div style="background:var(--bg-dark); padding:14px 18px; border-radius:8px; border-left:3px solid #555; display:flex; justify-content:space-between; align-items:center; opacity:0.6;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span style="font-size:22px;">${flag}</span>
+                        <div>
+                            <div style="color:var(--text-primary); font-weight:600;">${name} <span style="color:#888; font-size:11px;">${currency}</span></div>
+                            <div style="font-size:11px; color:#666;">Sin credenciales — Usa PayPal</div>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('mp-country').value='${code}'; document.getElementById('mp-access-token').focus();"
+                        style="padding:6px 12px; border-radius:6px; border:1px solid #00b1ea; background:transparent; color:#00b1ea; cursor:pointer; font-size:12px;">
+                        ➕ Configurar
+                    </button>
+                </div>`;
+            }
+        }
+
+        html += '</div>';
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('[Admin] Error loading MpCredentials:', error);
+        container.innerHTML = '<div style="color:#ef4444; padding:15px;">Error al cargar credenciales: ' + error.message + '</div>';
+    }
+}
+
+async function saveMpCredential() {
+    const statusDiv = document.getElementById('mp-creds-status');
+    const countryCode = document.getElementById('mp-country').value;
+    const accessToken = document.getElementById('mp-access-token').value.trim();
+    const publicKey = document.getElementById('mp-public-key').value.trim();
+    const webhookSecret = document.getElementById('mp-webhook-secret').value.trim();
+
+    if (!countryCode) { showNotification('Selecciona un país', 'error'); return; }
+    if (!accessToken) { showNotification('Access Token es obligatorio', 'error'); return; }
+    if (!publicKey) { showNotification('Public Key es obligatoria', 'error'); return; }
+
+    try {
+        const res = await fetch('/api/admin/mp-credentials', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ countryCode, accessToken, publicKey, webhookSecret })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#10b981';
+            statusDiv.style.color = 'white';
+            statusDiv.textContent = '✅ ' + data.message;
+            setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
+
+            // Limpiar formulario
+            document.getElementById('mp-country').value = '';
+            document.getElementById('mp-access-token').value = '';
+            document.getElementById('mp-public-key').value = '';
+            document.getElementById('mp-webhook-secret').value = '';
+
+            // Recargar tabla
+            loadMpCredentials();
+            showNotification(data.message, 'success');
+        } else {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#ef4444';
+            statusDiv.style.color = 'white';
+            statusDiv.textContent = '❌ ' + (data.error || 'Error');
+            showNotification(data.error, 'error');
+        }
+    } catch (error) {
+        console.error('[Admin] Error saving MpCredential:', error);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+async function testMpCredential(countryCode) {
+    showNotification(`Verificando ${MP_COUNTRY_NAMES[countryCode]}...`, 'info');
+    try {
+        const res = await fetch(`/api/admin/mp-credentials/${countryCode}/test`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showNotification(`✅ ${MP_COUNTRY_FLAGS[countryCode]} Token válido — ${data.account.email} (${data.account.siteId})`, 'success');
+        } else {
+            showNotification(`❌ ${MP_COUNTRY_FLAGS[countryCode]} Token inválido: ${data.error}`, 'error');
+        }
+        loadMpCredentials(); // Refrescar estado
+    } catch (error) {
+        showNotification('Error al verificar: ' + error.message, 'error');
+    }
+}
+
+async function toggleMpCredential(countryCode) {
+    try {
+        const res = await fetch(`/api/admin/mp-credentials/${countryCode}/toggle`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+            showNotification(`${MP_COUNTRY_FLAGS[countryCode]} ${countryCode} ${data.isActive ? 'activado' : 'desactivado'}`, 'success');
+            loadMpCredentials();
+        } else {
+            showNotification(data.error, 'error');
+        }
+    } catch (error) {
+        showNotification('Error: ' + error.message, 'error');
+    }
+}
+
+async function deleteMpCredential(countryCode) {
+    if (!confirm(`¿Eliminar credenciales de ${MP_COUNTRY_NAMES[countryCode]}? Los profesores de ese país usarán PayPal.`)) return;
+    try {
+        const res = await fetch(`/api/admin/mp-credentials/${countryCode}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+            showNotification(`🗑 Credenciales de ${countryCode} eliminadas`, 'success');
+            loadMpCredentials();
+        } else {
+            showNotification(data.error, 'error');
+        }
+    } catch (error) {
+        showNotification('Error: ' + error.message, 'error');
+    }
+}
 
 /**
  * Cargar configuración actual de Early Bird desde la API pública

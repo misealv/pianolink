@@ -915,7 +915,7 @@
                     <!-- Botones -->
                     <div id="planActions">
                         <button id="btnUpgrade" onclick="window.location.href='/pricing'" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 12px rgba(99,102,241,0.3);">
-                            ⚡ Upgrade a Premium — $19/mes
+                            ⚡ Upgrade a Premium
                         </button>
                         <button id="btnRenew" onclick="handleMembershipCheckout()" style="display: none; width: 100%; padding: 10px; background: linear-gradient(135deg, #00b1ea 0%, #009ee3 100%); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; margin-top: 6px;">
                             🔄 Renovar Membresía
@@ -1118,7 +1118,7 @@
                     
                     <div style="margin-top: 15px; font-size: 11px; color: #666;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <span>Tú recibes (80%):</span>
+                            <span>Tú recibes (<span id="teacherFeeLabel">--</span>%):</span>
                             <span id="teacherEarnsDisplay" style="color: #4ade80; font-weight: 600;">$20.00</span>
                         </div>
                         <div style="display: flex; justify-content: space-between;">
@@ -1127,8 +1127,8 @@
                         </div>
                     </div>
                     
-                    <div style="margin-top: 10px; font-size: 9px; color: #555; text-align: center;">
-                        Mínimo: $15 USD | PianoLink cobra 20% de comisión
+                    <div id="rateInfoLabel" style="margin-top: 10px; font-size: 9px; color: #555; text-align: center;">
+                        Mínimo: $15 USD | PianoLink cobra --% de comisión
                     </div>
                 </div>
                 
@@ -2657,6 +2657,10 @@
     
     // Variable global para almacenar precios de membresía
     let membershipPricing = { regular: 20, founder: 10 };
+    // Variables globales para comisiones y tarifa mínima (se cargan dinámicamente)
+    let dashboardPlatformFee = 25;   // % comisión plataforma (default free plan)
+    let dashboardTeacherFee = 75;    // % profesor
+    let dashboardMinRate = 15;       // Tarifa mínima USD
     
     async function loadSubscriptionStatus() {
         try {
@@ -2722,10 +2726,31 @@
         planBadgeEl.style.background = badge.bg;
         planBadgeEl.style.color = badge.color;
         
-        // Comisiones
+        // Comisiones — actualizar variables globales
         const comm = data.commission || { platform: 25, teacher: 75 };
+        dashboardPlatformFee = comm.platform;
+        dashboardTeacherFee = comm.teacher;
         document.getElementById('planCommission').textContent = comm.platform + '%';
         document.getElementById('planTeacherCut').textContent = comm.teacher + '%';
+        
+        // Tarifa mínima y precios de membresía (desde API)
+        if (data.minHourlyRate) dashboardMinRate = data.minHourlyRate;
+        if (data.membershipPricing) {
+            membershipPricing = { regular: data.membershipPricing.premium, founder: data.membershipPricing.founder };
+        }
+        
+        // Actualizar labels de tarifa con comisiones reales
+        const teacherFeeLabel = document.getElementById('teacherFeeLabel');
+        if (teacherFeeLabel) teacherFeeLabel.textContent = comm.teacher;
+        const rateInfoLabel = document.getElementById('rateInfoLabel');
+        if (rateInfoLabel) rateInfoLabel.textContent = `Mínimo: $${dashboardMinRate} USD | PianoLink cobra ${comm.platform}% de comisión`;
+        const hourlyInput = document.getElementById('hourlyRateInput');
+        if (hourlyInput) hourlyInput.min = dashboardMinRate;
+        
+        // Re-renderizar tarifa y paquetes con comisión correcta
+        const currentRate = parseFloat(hourlyInput?.value) || 25;
+        updateRateDisplay(currentRate);
+        renderRatePackages();
         
         // Permisos
         const perms = data.permissions || {};
@@ -2770,8 +2795,10 @@
             btnUpgrade.style.display = 'block';
             btnRenew.style.display = 'none';
             if (data.isFounder) {
-                btnUpgrade.textContent = '⭐ Activar Plan Fundador — $10/mes';
+                btnUpgrade.textContent = `⭐ Activar Plan Fundador — $${membershipPricing.founder}/mes`;
                 btnUpgrade.onclick = () => handleMembershipCheckout('founder');
+            } else {
+                btnUpgrade.textContent = `⚡ Upgrade a Premium — $${membershipPricing.regular}/mes`;
             }
         } else if (['expired', 'cancelled', 'past_due'].includes(data.subscriptionStatus)) {
             btnUpgrade.style.display = 'none';
@@ -3158,6 +3185,21 @@ El sistema está en modo TEST.`;
             if (data.success) {
                 const rates = data.rates;
                 document.getElementById('hourlyRateInput').value = rates.teacherEarns;
+                
+                // Actualizar comisiones desde la respuesta de my-rates (fuente de verdad del backend)
+                if (rates.platformFee !== undefined) dashboardPlatformFee = rates.platformFee;
+                if (rates.teacherFee !== undefined) dashboardTeacherFee = rates.teacherFee;
+                if (rates.minRate !== undefined) {
+                    dashboardMinRate = rates.minRate;
+                    document.getElementById('hourlyRateInput').min = rates.minRate;
+                }
+                
+                // Actualizar labels
+                const teacherFeeLabel = document.getElementById('teacherFeeLabel');
+                if (teacherFeeLabel) teacherFeeLabel.textContent = dashboardTeacherFee;
+                const rateInfoLabel = document.getElementById('rateInfoLabel');
+                if (rateInfoLabel) rateInfoLabel.textContent = `Mínimo: $${dashboardMinRate} USD | PianoLink cobra ${dashboardPlatformFee}% de comisión`;
+                
                 updateRateDisplay(rates.teacherEarns);
                 
                 currentPackages = rates.packages || [];
@@ -3168,9 +3210,10 @@ El sistema está en modo TEST.`;
         }
     }
     
-    // Actualizar display de tarifa
+    // Actualizar display de tarifa (usa comisión dinámica)
     function updateRateDisplay(teacherRate) {
-        const studentPrice = (teacherRate / 0.80).toFixed(2);
+        const teacherFraction = dashboardTeacherFee / 100; // ej: 0.75 o 0.85
+        const studentPrice = (teacherRate / teacherFraction).toFixed(2);
         document.getElementById('teacherEarnsDisplay').textContent = `$${teacherRate.toFixed(2)}`;
         document.getElementById('studentPaysDisplay').textContent = `$${studentPrice}`;
     }
@@ -3182,12 +3225,12 @@ El sistema está en modo TEST.`;
         renderRatePackages(); // Actualizar precios de paquetes
     });
     
-    // Guardar tarifa
+    // Guardar tarifa (usa tarifa mínima dinámica)
     async function saveHourlyRate() {
         const rate = parseFloat(document.getElementById('hourlyRateInput').value);
         
-        if (rate < 15) {
-            alert('⚠️ La tarifa mínima es $15 USD');
+        if (rate < dashboardMinRate) {
+            alert(`⚠️ La tarifa mínima es $${dashboardMinRate} USD`);
             return;
         }
         
@@ -3218,7 +3261,8 @@ El sistema está en modo TEST.`;
     function renderRatePackages() {
         const container = document.getElementById('packagesContainer');
         const teacherRate = parseFloat(document.getElementById('hourlyRateInput').value) || 25;
-        const studentPrice = teacherRate / 0.80;
+        const teacherFraction = dashboardTeacherFee / 100; // ej: 0.75 o 0.85
+        const studentPrice = teacherRate / teacherFraction;
         
         if (currentPackages.length === 0) {
             container.innerHTML = `
@@ -4261,7 +4305,7 @@ El sistema está en modo TEST.`;
                         <div style="color: white; font-weight: 600;">¿Cómo funcionan los pagos?</div>
                         <div style="color: #888; font-size: 12px; line-height: 1.6;">
                             1. Marcas la clase como completada → 2. El estudiante confirma (o auto-confirma en 48h) → 
-                            3. El dinero pasa a "escrow" → 4. El día 1 de cada mes se genera tu pago → 5. Admin aprueba y recibes el 80%
+                            3. El dinero pasa a "escrow" → 4. El día 1 de cada mes se genera tu pago → 5. Admin aprueba y recibes tu porcentaje según tu plan
                         </div>
                     </div>
                 </div>
