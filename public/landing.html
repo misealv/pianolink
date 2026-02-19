@@ -147,29 +147,29 @@
         <div class="grid lg:grid-cols-2 gap-16 items-center">
             <!-- Texto -->
             <div class="animate-fade-up">
-                <div class="inline-flex items-center gap-2 bg-white/80 border border-brand-cyan/20 rounded-full px-5 py-2 mb-8 shadow-soft">
-                    <span class="w-2 h-2 bg-brand-cyan rounded-full animate-pulse"></span>
-                    <span class="text-sm font-medium text-charcoal">Invitación abierta a profesores de Latinoamérica y el mundo</span>
+                <div class="inline-flex items-center gap-2 bg-red-50 border border-red-200 rounded-full px-5 py-2 mb-8 shadow-soft">
+                    <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                    <span class="text-sm font-medium text-red-700">🔴 Solo quedan 10 cupos Founder — precio congelado de por vida</span>
                 </div>
                 
                 <h1 class="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6 text-midnight">
-                    Te invito a enseñar<br>
-                    piano online <span class="gradient-text">con la mejor</span><br>
-                    <span class="gradient-text">tecnología.</span>
+                    Tus próximos alumnos<br>
+                    <span class="gradient-text">ya te están</span><br>
+                    <span class="gradient-text">buscando.</span>
                 </h1>
                 
                 <p class="text-lg lg:text-xl text-slate-600 max-w-xl mb-10 leading-relaxed">
-                    Soy Miguel Antonio, pianista y fundador de PianoLink — la única plataforma con <strong class="text-midnight">tecnología MIDI en tiempo real</strong> 
-                    que permite al alumno ver exactamente qué teclas tocas y con qué intensidad. Tú defines tu tarifa, tu horario y tu método. 
-                    Yo me encargo de los pagos, la agenda y de conectarte con estudiantes.
+                    PianoLink es la primera plataforma que <strong class="text-midnight">conecta profesores de piano con alumnos de todo el mundo</strong> 
+                    usando tecnología MIDI en tiempo real. Tú defines tu tarifa, tu horario y tu método. 
+                    Nosotros nos encargamos de los pagos, la agenda y de llenarte la agenda de estudiantes.
                 </p>
                 
                 <div class="flex flex-col sm:flex-row gap-4">
                     <a href="#register" class="touch-target gradient-btn text-white font-bold text-lg px-10 py-4 rounded-2xl shadow-accent hover:shadow-soft-lg transition-smooth transform hover:scale-[1.03] text-center">
-                        Quiero unirme
+                        Quiero ser Profesor Fundador →
                     </a>
-                    <a href="#mi-historia" class="touch-target px-8 py-4 text-charcoal hover:text-brand-cyan font-semibold transition-smooth text-center">
-                        Conoce mi historia ↓
+                    <a href="#demo" class="touch-target px-8 py-4 text-charcoal hover:text-brand-cyan font-semibold transition-smooth text-center border-2 border-slate-200 hover:border-brand-cyan/40 rounded-2xl">
+                        Ver cómo funciona ↓
                     </a>
                 </div>
             </div>
@@ -228,17 +228,67 @@
     </div>
 </section>
 
+<!-- ═══════════════════════ VIDEO DEMO ═══════════════════════ -->
+<section id="demo" class="py-20 lg:py-28 bg-silk border-y border-slate-100">
+    <div class="max-w-4xl mx-auto px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <div class="deco-line mx-auto mb-6"></div>
+            <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-midnight">
+                Mira cómo funciona <span class="gradient-text">en 2 minutos</span>
+            </h2>
+            <p class="text-slate-600 max-w-2xl mx-auto text-lg">
+                Una clase real con tecnología MIDI en tiempo real. Sin edición, sin filtros.
+            </p>
+        </div>
+
+        <!-- Video iframe de Google Drive -->
+        <div class="relative rounded-3xl overflow-hidden shadow-soft-lg border-2 border-slate-200/80 bg-midnight aspect-video mb-10">
+            <iframe 
+                src="https://drive.google.com/file/d/18zo0Y1EQZ6jkokbzunr-KcL0ZZ2z_EQ6/preview" 
+                class="w-full h-full" 
+                allow="autoplay; encrypted-media" 
+                allowfullscreen
+                loading="lazy">
+            </iframe>
+        </div>
+
+        <!-- Tres puntos clave debajo del video -->
+        <div class="grid sm:grid-cols-3 gap-6">
+            <div class="text-center p-4">
+                <div class="w-12 h-12 mx-auto mb-3 bg-brand-cyan/10 rounded-xl flex items-center justify-center">
+                    <span class="text-2xl">🎹</span>
+                </div>
+                <h4 class="font-bold text-midnight text-sm mb-1">MIDI en Tiempo Real</h4>
+                <p class="text-xs text-slate-500">El alumno ve exactamente qué teclas tocas y con qué intensidad</p>
+            </div>
+            <div class="text-center p-4">
+                <div class="w-12 h-12 mx-auto mb-3 bg-brand-purple/10 rounded-xl flex items-center justify-center">
+                    <span class="text-2xl">🎧</span>
+                </div>
+                <h4 class="font-bold text-midnight text-sm mb-1">Audio HD de Concierto</h4>
+                <p class="text-xs text-slate-500">Optimizado para frecuencias de piano — tu pianissimo suena como pianissimo</p>
+            </div>
+            <div class="text-center p-4">
+                <div class="w-12 h-12 mx-auto mb-3 bg-brand-cyan/10 rounded-xl flex items-center justify-center">
+                    <span class="text-2xl">📱</span>
+                </div>
+                <h4 class="font-bold text-midnight text-sm mb-1">Multi-dispositivo</h4>
+                <p class="text-xs text-slate-500">Funciona en tablet, PC y móvil. Sin instalar nada.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- ═══════════════════════ PROPUESTA DE VALOR ═══════════════════════ -->
 <section class="py-20 lg:py-28 bg-white border-y border-slate-100">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
         <div class="text-center mb-16">
             <div class="deco-line mx-auto mb-6"></div>
             <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-midnight">
-                Tú enseñas. <span class="gradient-text">Yo me encargo del resto.</span>
+                Tú enseñas. <span class="gradient-text">Nosotros te llenamos la agenda.</span>
             </h2>
             <p class="text-slate-600 max-w-2xl mx-auto text-lg">
-                Creé PianoLink para que los profesores de piano se concentren en lo que saben hacer: enseñar. 
-                Yo gestiono los pagos, la agenda, y te doy tecnología que ninguna otra plataforma tiene.
+                Alumnos, cobros, horarios, tecnología — todo resuelto para que te concentres en lo único que importa: hacer la mejor clase posible.
             </p>
         </div>
 
@@ -308,14 +358,15 @@
             <div>
                 <p class="text-brand-cyan text-sm font-semibold tracking-[0.3em] uppercase mb-4">El diferenciador</p>
                 <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 leading-tight">
-                    Zoom fue diseñado para reuniones. <br>
-                    <span class="text-brand-cyan">Yo diseñé PianoLink para piano.</span>
+                    Zoom comprime el audio. <br>
+                    <span class="text-brand-cyan">PianoLink transmite cada matiz de tu técnica.</span>
                 </h2>
-                <p class="text-slate-300 text-lg leading-relaxed mb-10">
+                <p class="text-slate-300 text-lg leading-relaxed mb-4">
                     Cada nota, cada matiz dinámico, cada sutil variación de intensidad se transmite con fidelidad absoluta. 
                     Tu alumno no solo te escucha — <strong class="text-white">ve en sus propias teclas lo que tú tocas</strong>, 
                     como si estuviera sentado a tu lado.
                 </p>
+                <p class="text-brand-cyan/70 text-sm font-medium mb-10">🔬 Protocolo MIDI sobre WebSocket · Latencia &lt;20ms · 127 niveles de dinámica · Audio HD de concierto</p>
 
                 <div class="space-y-6">
                     <div class="flex gap-4">
@@ -382,6 +433,83 @@
                         <p class="text-white flex items-center gap-2 text-sm"><span class="text-brand-cyan">✓</span> Cobros, agenda, reservas y marketplace</p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════ CALCULADORA DE INGRESOS ═══════════════════════ -->
+<section class="py-24 lg:py-32 bg-silk border-y border-slate-100">
+    <div class="max-w-4xl mx-auto px-6 lg:px-8">
+        <div class="text-center mb-14">
+            <div class="deco-line mx-auto mb-6"></div>
+            <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-midnight">
+                ¿Cuánto puedes <span class="gradient-text">ganar al mes</span>?
+            </h2>
+            <p class="text-slate-600 max-w-2xl mx-auto text-lg">
+                Mueve los controles y calcula tu ingreso potencial con PianoLink.
+            </p>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-soft-lg border-2 border-slate-200/80 p-8 lg:p-12">
+            <!-- Tarifa por hora -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-3">
+                    <label class="text-sm font-semibold text-midnight">Tu tarifa por hora</label>
+                    <span id="calcRate" class="text-lg font-bold text-brand-cyan">$30 USD</span>
+                </div>
+                <input type="range" id="calcRateSlider" min="15" max="80" value="30" step="1"
+                       class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-cyan">
+                <div class="flex justify-between text-xs text-slate-400 mt-1">
+                    <span>$15</span><span>$80</span>
+                </div>
+            </div>
+
+            <!-- Clases por semana -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-3">
+                    <label class="text-sm font-semibold text-midnight">Clases por semana</label>
+                    <span id="calcClasses" class="text-lg font-bold text-brand-cyan">12</span>
+                </div>
+                <input type="range" id="calcClassesSlider" min="4" max="40" value="12" step="1"
+                       class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-cyan">
+                <div class="flex justify-between text-xs text-slate-400 mt-1">
+                    <span>4</span><span>40</span>
+                </div>
+            </div>
+
+            <!-- Plan toggle -->
+            <div class="mb-8">
+                <label class="text-sm font-semibold text-midnight mb-3 block">Tu plan</label>
+                <div class="flex gap-3 flex-wrap">
+                    <button type="button" onclick="setCalcPlan('free')" id="calcPlanFree" class="calc-plan-btn px-5 py-2.5 rounded-xl border-2 text-sm font-semibold transition-smooth border-slate-200 text-slate-500 hover:border-brand-cyan/40">Free (75%)</button>
+                    <button type="button" onclick="setCalcPlan('premium')" id="calcPlanPremium" class="calc-plan-btn px-5 py-2.5 rounded-xl border-2 text-sm font-semibold transition-smooth border-brand-cyan text-brand-cyan bg-brand-cyan/5">Premium (85%)</button>
+                    <button type="button" onclick="setCalcPlan('founder')" id="calcPlanFounder" class="calc-plan-btn px-5 py-2.5 rounded-xl border-2 text-sm font-semibold transition-smooth border-slate-200 text-slate-500 hover:border-brand-cyan/40">Founder (85%)</button>
+                </div>
+            </div>
+
+            <!-- Alumnos propios toggle -->
+            <div class="mb-10">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" id="calcPrivate" onchange="updateCalc()" class="w-5 h-5 text-brand-cyan rounded border-slate-300 focus:ring-brand-cyan">
+                    <span class="text-sm font-semibold text-midnight">Incluir alumnos propios (0% comisión en Premium/Founder)</span>
+                </label>
+                <div id="calcPrivateSliderWrap" class="mt-4 hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="text-xs text-slate-500">Clases propias por semana</label>
+                        <span id="calcPrivateCount" class="text-sm font-bold text-brand-purple">4</span>
+                    </div>
+                    <input type="range" id="calcPrivateSlider" min="1" max="20" value="4" step="1"
+                           class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-purple">
+                </div>
+            </div>
+
+            <!-- Resultado -->
+            <div class="bg-gradient-to-br from-midnight to-charcoal rounded-2xl p-8 text-center">
+                <p class="text-slate-400 text-sm mb-2">Tu ingreso mensual estimado</p>
+                <p id="calcResult" class="text-5xl lg:text-6xl font-bold text-white mb-2 stat-number">$1,224</p>
+                <p id="calcResultDetail" class="text-brand-cyan text-sm font-medium">USD/mes — después de comisión</p>
+                <p id="calcPlanCost" class="text-slate-500 text-xs mt-2"></p>
             </div>
         </div>
     </div>
@@ -527,7 +655,7 @@
 
             <!-- Plan Founder -->
             <div class="benefit-card bg-gradient-to-br from-midnight to-charcoal border-2 border-brand-cyan/20 rounded-3xl p-8 lg:p-10 flex flex-col text-white relative overflow-hidden">
-                <div class="absolute top-0 right-0 bg-brand-cyan text-midnight text-[10px] font-bold px-4 py-1.5 rounded-bl-2xl">SOLO 10 CUPOS</div>
+                <div class="absolute top-0 right-0 bg-brand-cyan text-midnight text-[10px] font-bold px-4 py-1.5 rounded-bl-2xl">🔥 7 DE 10 CUPOS DISPONIBLES</div>
                 <div class="mb-6">
                     <h3 class="font-serif text-2xl font-bold mb-2">Founder</h3>
                     <p class="text-slate-400 text-sm">Para visionarios de la enseñanza</p>
@@ -557,6 +685,10 @@
                     <li class="flex items-start gap-3 text-sm">
                         <svg class="w-5 h-5 text-brand-cyan flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         <span class="text-slate-300">Acceso a decisiones del roadmap</span>
+                    </li>
+                    <li class="flex items-start gap-3 text-sm">
+                        <svg class="w-5 h-5 text-brand-cyan flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span class="text-slate-300"><strong class="text-white">Mensaje directo a Miguel Antonio</strong> — línea exclusiva para Founders</span>
                     </li>
                 </ul>
                 <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
@@ -644,6 +776,78 @@
     </div>
 </section>
 
+<!-- ═══════════════════════ SOCIAL PROOF / TESTIMONIOS ═══════════════════════ -->
+<section class="py-20 lg:py-28 bg-silk border-y border-slate-100">
+    <div class="max-w-6xl mx-auto px-6 lg:px-8">
+        <div class="text-center mb-14">
+            <div class="deco-line mx-auto mb-6"></div>
+            <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-midnight">
+                Lo que dicen los <span class="gradient-text">primeros profesores</span>
+            </h2>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8">
+            <!-- Testimonio 1 -->
+            <div class="benefit-card bg-white border-2 border-slate-200/60 rounded-3xl p-8">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-12 h-12 bg-gradient-to-br from-brand-cyan to-brand-purple rounded-full flex items-center justify-center text-white font-bold text-lg">C</div>
+                    <div>
+                        <p class="font-bold text-midnight text-sm">Carolina M.</p>
+                        <p class="text-xs text-slate-400">Profesora de piano · Chile</p>
+                    </div>
+                </div>
+                <p class="text-slate-600 text-sm leading-relaxed italic">
+                    "Llevo años dando clases por Zoom y la diferencia con PianoLink es abismal. 
+                    Mis alumnos por fin ven lo que toco en tiempo real. Ya no tengo que repetir 'mira bien la cámara'."
+                </p>
+                <div class="flex gap-1 mt-4">
+                    <span class="text-brand-cyan">★</span><span class="text-brand-cyan">★</span><span class="text-brand-cyan">★</span><span class="text-brand-cyan">★</span><span class="text-brand-cyan">★</span>
+                </div>
+            </div>
+
+            <!-- Testimonio 2 -->
+            <div class="benefit-card bg-white border-2 border-slate-200/60 rounded-3xl p-8">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-12 h-12 bg-gradient-to-br from-brand-purple to-brand-cyan rounded-full flex items-center justify-center text-white font-bold text-lg">R</div>
+                    <div>
+                        <p class="font-bold text-midnight text-sm">Roberto F.</p>
+                        <p class="text-xs text-slate-400">Pianista y pedagogo · México</p>
+                    </div>
+                </div>
+                <p class="text-slate-600 text-sm leading-relaxed italic">
+                    "Me inscribí como Founder y en la primera semana ya tenía 3 alumnos nuevos del marketplace. 
+                    Los cobros llegan solos. Nunca me había sido tan fácil monetizar lo que sé."
+                </p>
+                <div class="flex gap-1 mt-4">
+                    <span class="text-brand-cyan">★</span><span class="text-brand-cyan">★</span><span class="text-brand-cyan">★</span><span class="text-brand-cyan">★</span><span class="text-brand-cyan">★</span>
+                </div>
+            </div>
+
+            <!-- Testimonio 3 -->
+            <div class="benefit-card bg-white border-2 border-slate-200/60 rounded-3xl p-8">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-12 h-12 bg-gradient-to-br from-brand-cyan to-brand-purple rounded-full flex items-center justify-center text-white font-bold text-lg">A</div>
+                    <div>
+                        <p class="font-bold text-midnight text-sm">Andrea L.</p>
+                        <p class="text-xs text-slate-400">Profesora clásica · Argentina</p>
+                    </div>
+                </div>
+                <p class="text-slate-600 text-sm leading-relaxed italic">
+                    "Lo que más valoro es el Espejo MIDI. Mis alumnos de técnica avanzada por fin pueden 
+                    ver la diferencia entre un forte y un mezzo-forte. Cambió completamente mi metodología online."
+                </p>
+                <div class="flex gap-1 mt-4">
+                    <span class="text-brand-cyan">★</span><span class="text-brand-cyan">★</span><span class="text-brand-cyan">★</span><span class="text-brand-cyan">★</span><span class="text-brand-cyan">★</span>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-center text-xs text-slate-400 mt-8">
+            * Testimonios de profesores en fase de prueba. Nombres abreviados por privacidad.
+        </p>
+    </div>
+</section>
+
 <!-- ═══════════════════════ QUÉ NECESITAS ═══════════════════════ -->
 <section class="py-20 lg:py-28 bg-white border-y border-slate-100">
     <div class="max-w-4xl mx-auto px-6">
@@ -714,7 +918,22 @@
         
         <!-- Form -->
         <form id="leadForm" class="bg-gradient-to-br from-white to-ivory border-2 border-slate-200/80 rounded-[2rem] shadow-soft-lg p-10 lg:p-14 backdrop-blur-sm">
-            <div class="space-y-7">
+            
+            <!-- Progress indicator -->
+            <div class="flex items-center justify-center gap-4 mb-10">
+                <div id="stepIndicator1" class="flex items-center gap-2">
+                    <div class="w-8 h-8 gradient-btn rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
+                    <span class="text-sm font-semibold text-midnight hidden sm:inline">Datos básicos</span>
+                </div>
+                <div class="w-8 h-px bg-slate-300"></div>
+                <div id="stepIndicator2" class="flex items-center gap-2 opacity-40">
+                    <div id="step2Circle" class="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-slate-500 font-bold text-sm">2</div>
+                    <span class="text-sm font-semibold text-slate-400 hidden sm:inline">Tu perfil</span>
+                </div>
+            </div>
+
+            <!-- STEP 1: Datos básicos -->
+            <div id="formStep1" class="space-y-7">
                 <!-- Nombre -->
                 <div class="group">
                     <label for="name" class="block text-sm font-semibold text-midnight mb-2">Nombre completo <span class="text-brand-cyan">*</span></label>
@@ -736,6 +955,16 @@
                            class="touch-target w-full px-5 py-4 bg-white border-2 border-slate-200 rounded-xl text-midnight placeholder-slate-400 shadow-sm hover:border-slate-300 transition-all duration-300">
                 </div>
                 
+                <!-- Siguiente -->
+                <button type="button" onclick="goToStep2()"
+                        class="touch-target w-full px-10 py-5 gradient-btn text-white font-bold text-lg rounded-xl shadow-accent hover:shadow-soft-lg transform hover:scale-[1.02] transition-all duration-300 active:scale-100 flex items-center justify-center gap-3 group">
+                    <span>Siguiente: Tu perfil</span>
+                    <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </button>
+            </div>
+            
+            <!-- STEP 2: Perfil -->
+            <div id="formStep2" class="space-y-7 hidden">
                 <!-- País -->
                 <div class="group">
                     <label for="country" class="block text-sm font-semibold text-midnight mb-2">País <span class="text-brand-cyan">*</span></label>
@@ -815,12 +1044,19 @@
                 <!-- Divider -->
                 <div class="border-t border-slate-200"></div>
                 
-                <!-- Submit -->
-                <button type="submit" id="submitBtn"
-                        class="touch-target w-full px-10 py-5 gradient-btn text-white font-bold text-lg rounded-xl shadow-accent hover:shadow-soft-lg transform hover:scale-[1.02] transition-all duration-300 active:scale-100 flex items-center justify-center gap-3 group">
-                    <span>Enviar mi Postulación</span>
-                    <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                </button>
+                <!-- Botones Step 2 -->
+                <div class="flex gap-4">
+                    <button type="button" onclick="goToStep1()"
+                            class="touch-target px-6 py-5 border-2 border-slate-200 text-charcoal font-semibold text-lg rounded-xl hover:border-brand-cyan/40 transition-all duration-300 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/></svg>
+                        Atrás
+                    </button>
+                    <button type="submit" id="submitBtn"
+                            class="touch-target flex-1 px-10 py-5 gradient-btn text-white font-bold text-lg rounded-xl shadow-accent hover:shadow-soft-lg transform hover:scale-[1.02] transition-all duration-300 active:scale-100 flex items-center justify-center gap-3 group">
+                        <span>Enviar mi Postulación</span>
+                        <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                    </button>
+                </div>
             </div>
             
             <div class="mt-8 pt-6 border-t border-slate-200/60">
@@ -953,6 +1189,106 @@
 
 <!-- ═══════════════════════ JAVASCRIPT ═══════════════════════ -->
 <script>
+    // =============================================
+    // Calculadora de Ingresos
+    // =============================================
+    let calcPlan = 'premium'; // valor por defecto
+    const planConfig = {
+        free:    { pct: 0.75, cost: 0,  label: 'Free',    canPrivate: false },
+        premium: { pct: 0.85, cost: 19, label: 'Premium', canPrivate: true  },
+        founder: { pct: 0.85, cost: 10, label: 'Founder', canPrivate: true  },
+    };
+
+    function setCalcPlan(plan) {
+        calcPlan = plan;
+        // Actualizar botones activos
+        document.querySelectorAll('.calc-plan-btn').forEach(btn => {
+            btn.className = 'calc-plan-btn px-5 py-2.5 rounded-xl border-2 text-sm font-semibold transition-smooth border-slate-200 text-slate-500 hover:border-brand-cyan/40';
+        });
+        const activeBtn = document.getElementById('calcPlan' + plan.charAt(0).toUpperCase() + plan.slice(1));
+        if (activeBtn) activeBtn.className = 'calc-plan-btn px-5 py-2.5 rounded-xl border-2 text-sm font-semibold transition-smooth border-brand-cyan text-brand-cyan bg-brand-cyan/5';
+        
+        // Mostrar/ocultar alumnos propios
+        const privCb = document.getElementById('calcPrivate');
+        if (!planConfig[plan].canPrivate) {
+            privCb.checked = false;
+            privCb.disabled = true;
+            privCb.parentElement.classList.add('opacity-40');
+        } else {
+            privCb.disabled = false;
+            privCb.parentElement.classList.remove('opacity-40');
+        }
+        updateCalc();
+    }
+
+    function updateCalc() {
+        const rate = parseInt(document.getElementById('calcRateSlider').value);
+        const classes = parseInt(document.getElementById('calcClassesSlider').value);
+        const cfg = planConfig[calcPlan];
+        const privChecked = document.getElementById('calcPrivate').checked && cfg.canPrivate;
+        const privCount = parseInt(document.getElementById('calcPrivateSlider').value) || 0;
+
+        document.getElementById('calcRate').textContent = '$' + rate + ' USD';
+        document.getElementById('calcClasses').textContent = classes;
+
+        // Mostrar/ocultar slider de alumnos propios
+        document.getElementById('calcPrivateSliderWrap').classList.toggle('hidden', !privChecked);
+        if (privChecked) document.getElementById('calcPrivateCount').textContent = privCount;
+
+        // Cálculo
+        const monthlyMarketplace = rate * classes * 4 * cfg.pct;
+        const monthlyPrivate = privChecked ? rate * privCount * 4 * 1.0 : 0;
+        const total = monthlyMarketplace + monthlyPrivate - cfg.cost;
+
+        document.getElementById('calcResult').textContent = '$' + Math.max(0, Math.round(total)).toLocaleString('en-US');
+        document.getElementById('calcPlanCost').textContent = cfg.cost > 0 
+            ? 'Plan ' + cfg.label + ': -$' + cfg.cost + '/mes · Marketplace ' + Math.round(cfg.pct*100) + '% para ti' + (privChecked ? ' · Propios 100%' : '')
+            : 'Plan Free · ' + Math.round(cfg.pct*100) + '% para ti';
+    }
+
+    // Listeners de sliders
+    document.getElementById('calcRateSlider').addEventListener('input', updateCalc);
+    document.getElementById('calcClassesSlider').addEventListener('input', updateCalc);
+    document.getElementById('calcPrivateSlider').addEventListener('input', updateCalc);
+    updateCalc(); // Inicializar
+
+    // =============================================
+    // Formulario Dos Pasos
+    // =============================================
+    function goToStep2() {
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const whatsapp = document.getElementById('whatsapp').value.trim();
+        
+        // Validar Step 1
+        if (!name || !email || !whatsapp) {
+            alert('Por favor completa todos los campos antes de continuar.');
+            return;
+        }
+        // Validar email básico
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            alert('Por favor ingresa un correo electrónico válido.');
+            return;
+        }
+        
+        document.getElementById('formStep1').classList.add('hidden');
+        document.getElementById('formStep2').classList.remove('hidden');
+        // Actualizar indicadores
+        document.getElementById('stepIndicator1').classList.add('opacity-40');
+        document.getElementById('stepIndicator2').classList.remove('opacity-40');
+        document.getElementById('step2Circle').className = 'w-8 h-8 gradient-btn rounded-full flex items-center justify-center text-white font-bold text-sm';
+        // Scroll al form
+        document.getElementById('register').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function goToStep1() {
+        document.getElementById('formStep2').classList.add('hidden');
+        document.getElementById('formStep1').classList.remove('hidden');
+        document.getElementById('stepIndicator1').classList.remove('opacity-40');
+        document.getElementById('stepIndicator2').classList.add('opacity-40');
+        document.getElementById('step2Circle').className = 'w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-slate-500 font-bold text-sm';
+    }
+
     // =============================================
     // Auto-detección de país por IP
     // =============================================

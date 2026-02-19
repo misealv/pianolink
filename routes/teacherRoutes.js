@@ -238,6 +238,211 @@ router.post('/set-country', protect, teacherOrAdmin, async (req, res) => {
 
 // ==================== FIN FASE 4 ====================
 
+// ==================== MIS ESTUDIANTES + BITÁCORA ====================
+const Booking = require('../models/Booking');
+const LessonLog = require('../models/LessonLog');
+
+/**
+ * GET /api/teacher/my-students
+ * Lista consolidada de estudiantes del profesor (plataforma + privados).
+ * Incluye datos de enrollment, próxima clase, y última entrada de bitácora.
+ */
+router.get('/my-students', protect, teacherOrAdmin, async (req, res) => {
+    try {
+        const teacherId = req.user._id;
+
+        // Obtener enrollments activos y pausados
+        const enrollments = await StudentEnrollment.find({
+            teacher: teacherId,
+            status: { $in: ['active', 'paused'] }
+        })
+        .populate('student', 'name email branding.profilePhotoUrl studentData clientData')
+        .sort({ lastClassAt: -1 })
+        .lean();
+
+        const now = new Date();
+
+        // Para cada enrollment, buscar próxima clase y última bitácora
+        const students = await Promise.all(enrollments.map(async (enr) => {
+            // Próxima clase agendada
+            const nextBooking = await Booking.findOne({
+                teacherId,
+                studentId: enr.student?._id,
+                status: { $in: ['pending', 'confirmed'] },
+                scheduledStart: { $gte: now }
+            })
+            .sort({ scheduledStart: 1 })
+            .select('scheduledStart duration')
+            .lean();
+
+            // Última entrada de bitácora
+            const lastLog = await LessonLog.findOne({
+                enrollment: enr._id
+            })
+            .sort({ date: -1 })
+            .select('date type topics progress')
+            .lean();
+
+            // Conteo de entradas de bitácora
+            const logCount = await LessonLog.countDocuments({ enrollment: enr._id });
+
+            return {
+                enrollmentId: enr._id,
+                student: {
+                    _id: enr.student?._id,
+                    name: enr.dependentName || enr.student?.name || 'Estudiante',
+                    email: enr.student?.email || '',
+                    photo: enr.student?.branding?.profilePhotoUrl || null
+                },
+                status: enr.status,
+                source: enr.source || 'platform',
+                level: enr.level || 'beginner',
+                classesRemaining: enr.classesRemaining || 0,
+                classesCompleted: enr.classesCompleted || 0,
+                enrolledAt: enr.enrolledAt,
+                lastClassAt: enr.lastClassAt,
+                nextClass: nextBooking ? {
+                    date: nextBooking.scheduledStart,
+                    duration: nextBooking.duration
+                } : null,
+                lastLog: lastLog ? {
+                    date: lastLog.date,
+                    type: lastLog.type,
+                    topics: lastLog.topics,
+                    progress: lastLog.progress
+                } : null,
+                logCount
+            };
+        }));
+
+        res.json({ success: true, students });
+    } catch (error) {
+        console.error('[TeacherRoutes] Error my-students:', error);
+        res.status(500).json({ error: 'Error al obtener estudiantes' });
+    }
+});
+
+/**
+ * GET /api/teacher/journal/:enrollmentId
+ * Obtiene la bitácora de un alumno específico.
+ */
+router.get('/journal/:enrollmentId', protect, teacherOrAdmin, async (req, res) => {
+    try {
+        const enrollment = await StudentEnrollment.findOne({
+            _id: req.params.enrollmentId,
+            teacher: req.user._id
+        });
+        if (!enrollment) return res.status(404).json({ error: 'Enrollment no encontrado' });
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+
+        const entries = await LessonLog.find({ enrollment: enrollment._id })
+            .sort({ date: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .lean();
+
+        const total = await LessonLog.countDocuments({ enrollment: enrollment._id });
+
+        res.json({
+            success: true,
+            entries,
+            pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+        });
+    } catch (error) {
+        console.error('[TeacherRoutes] Error journal:', error);
+        res.status(500).json({ error: 'Error al obtener bitácora' });
+    }
+});
+
+/**
+ * POST /api/teacher/journal/:enrollmentId
+ * Crea nueva entrada de bitácora.
+ */
+router.post('/journal/:enrollmentId', protect, teacherOrAdmin, async (req, res) => {
+    try {
+        const enrollment = await StudentEnrollment.findOne({
+            _id: req.params.enrollmentId,
+            teacher: req.user._id
+        });
+        if (!enrollment) return res.status(404).json({ error: 'Enrollment no encontrado' });
+
+        const { type, topics, content, homework, progress, visibility, bookingId, date } = req.body;
+
+        if (!content && (!topics || topics.length === 0)) {
+            return res.status(400).json({ error: 'Se requiere contenido o temas' });
+        }
+
+        const entry = await LessonLog.create({
+            enrollment: enrollment._id,
+            teacher: req.user._id,
+            student: enrollment.student,
+            booking: bookingId || null,
+            date: date || new Date(),
+            type: type || 'class_notes',
+            topics: topics || [],
+            content: content || '',
+            homework: homework || '',
+            progress: progress || null,
+            visibility: visibility || 'shared'
+        });
+
+        res.status(201).json({ success: true, entry });
+    } catch (error) {
+        console.error('[TeacherRoutes] Error crear journal:', error);
+        res.status(500).json({ error: 'Error al crear entrada' });
+    }
+});
+
+/**
+ * PUT /api/teacher/journal/entry/:entryId
+ * Edita una entrada existente.
+ */
+router.put('/journal/entry/:entryId', protect, teacherOrAdmin, async (req, res) => {
+    try {
+        const entry = await LessonLog.findOne({
+            _id: req.params.entryId,
+            teacher: req.user._id
+        });
+        if (!entry) return res.status(404).json({ error: 'Entrada no encontrada' });
+
+        const { topics, content, homework, progress, visibility } = req.body;
+
+        if (topics !== undefined) entry.topics = topics;
+        if (content !== undefined) entry.content = content;
+        if (homework !== undefined) entry.homework = homework;
+        if (progress !== undefined) entry.progress = progress;
+        if (visibility !== undefined) entry.visibility = visibility;
+
+        await entry.save();
+        res.json({ success: true, entry });
+    } catch (error) {
+        console.error('[TeacherRoutes] Error editar journal:', error);
+        res.status(500).json({ error: 'Error al editar entrada' });
+    }
+});
+
+/**
+ * DELETE /api/teacher/journal/entry/:entryId
+ * Elimina una entrada de bitácora.
+ */
+router.delete('/journal/entry/:entryId', protect, teacherOrAdmin, async (req, res) => {
+    try {
+        const entry = await LessonLog.findOneAndDelete({
+            _id: req.params.entryId,
+            teacher: req.user._id
+        });
+        if (!entry) return res.status(404).json({ error: 'Entrada no encontrada' });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[TeacherRoutes] Error eliminar journal:', error);
+        res.status(500).json({ error: 'Error al eliminar entrada' });
+    }
+});
+
+// ==================== FIN MIS ESTUDIANTES + BITÁCORA ====================
+
 const teacherController = require('../controllers/teacherController'); // Asegurar importación
 router.get('/conversation', teacherController.getMyConversation);
 

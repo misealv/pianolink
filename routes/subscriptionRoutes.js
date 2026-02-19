@@ -131,9 +131,46 @@ router.post('/purchase', authMiddleware, async (req, res) => {
     try {
         const { packageId, autoRenew } = req.body;
 
-        // Validar paquete
-        const package_ = await TeacherPackage.findById(packageId).populate('teacherId', 'name brandName');
+        // Validar paquete — buscar primero en TeacherPackage, luego fallback a teacherData.packages
+        let package_ = await TeacherPackage.findById(packageId).populate('teacherId', 'name brandName teacherData');
+        let teacher = package_?.teacherId;
+
+        // Fallback: buscar en teacherData.packages del User (sistema antiguo)
         if (!package_ || !package_.isActive) {
+            teacher = await User.findOne({
+                role: 'teacher',
+                'teacherData.packages._id': packageId
+            }).select('name brandName teacherData');
+
+            if (teacher) {
+                const embeddedPkg = teacher.teacherData.packages.find(
+                    p => p._id.toString() === packageId && p.isActive !== false
+                );
+                if (embeddedPkg) {
+                    // Calcular precio al alumno desde hourlyRate + descuento
+                    const hourlyRate = teacher.teacherData?.hourlyRate || 25;
+                    const teacherFee = teacher.teacherData?.plan === 'founder' ? 85 : 75;
+                    const studentPricePerClass = Math.round((hourlyRate / (teacherFee / 100)) * 100); // centavos USD
+                    const totalPrice = Math.round(studentPricePerClass * embeddedPkg.classes * (1 - (embeddedPkg.discountPercent || 0) / 100));
+
+                    // Construir objeto compatible con TeacherPackage
+                    package_ = {
+                        _id: embeddedPkg._id,
+                        teacherId: teacher,
+                        category: 'piano',
+                        name: `Paquete ${embeddedPkg.classes} clases de Piano`,
+                        classCount: embeddedPkg.classes,
+                        classDurationMinutes: 45,
+                        priceUSD: totalPrice,
+                        validityDays: embeddedPkg.validDays || 30,
+                        isActive: true,
+                        isRecurring: true
+                    };
+                }
+            }
+        }
+
+        if (!package_) {
             return res.status(404).json({ 
                 success: false, 
                 error: 'Paquete no encontrado o no disponible' 
@@ -152,9 +189,9 @@ router.post('/purchase', authMiddleware, async (req, res) => {
             });
         }
 
-        // Convertir precio USD a CLP (Chile)
+        // Convertir precio USD (centavos) a CLP
         const USD_TO_CLP = 950;
-        const priceInCLP = Math.round(package_.priceUSD * USD_TO_CLP);
+        const priceInCLP = Math.round((package_.priceUSD / 100) * USD_TO_CLP);
         
         const teacherName = package_.teacherId?.brandName || package_.teacherId?.name || 'Profesor';
         const externalRef = `pkg_${package_._id}_${student._id}_${Date.now()}`;

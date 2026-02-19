@@ -65,6 +65,28 @@
         }
         input:focus { border-color: #e8b100; }
         input::placeholder { color: #666; }
+        .password-requirements {
+            margin-top: 6px;
+            font-size: 0.78rem;
+            color: #888;
+            line-height: 1.5;
+        }
+        .password-requirements .req {
+            transition: color 0.2s;
+        }
+        .password-requirements .req.valid {
+            color: #4ade80;
+        }
+        .password-requirements .req.invalid {
+            color: #888;
+        }
+        .password-match {
+            font-size: 0.8rem;
+            margin-top: 4px;
+            height: 18px;
+        }
+        .password-match.ok { color: #4ade80; }
+        .password-match.mismatch { color: #fca5a5; }
         .btn {
             width: 100%;
             padding: 14px;
@@ -145,7 +167,17 @@
                 </div>
                 <div class="form-group">
                     <label for="password">Contraseña</label>
-                    <input type="password" id="password" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                    <input type="password" id="password" placeholder="Mínimo 6 caracteres" required oninput="validatePasswordFields()">
+                    <div class="password-requirements">
+                        <span class="req" id="reqLength">✗ Mínimo 6 caracteres</span><br>
+                        <span class="req" id="reqUpper">✗ Al menos 1 mayúscula</span><br>
+                        <span class="req" id="reqNumber">✗ Al menos 1 número</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="password2">Confirmar contraseña</label>
+                    <input type="password" id="password2" placeholder="Repite tu contraseña" required oninput="validatePasswordFields()">
+                    <div class="password-match" id="matchMsg"></div>
                 </div>
                 <button type="submit" class="btn" id="submitBtn">Registrarme</button>
             </form>
@@ -201,9 +233,31 @@
         async function handleRegister(e) {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
+            document.getElementById('errorMsg').style.display = 'none';
+
+            const password = document.getElementById('password').value;
+            const password2 = document.getElementById('password2').value;
+
+            // Validar requisitos de contraseña
+            if (password.length < 6) {
+                showError('La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+            if (!/[A-Z]/.test(password)) {
+                showError('La contraseña debe tener al menos 1 letra mayúscula');
+                return;
+            }
+            if (!/[0-9]/.test(password)) {
+                showError('La contraseña debe tener al menos 1 número');
+                return;
+            }
+            if (password !== password2) {
+                showError('Las contraseñas no coinciden');
+                return;
+            }
+
             btn.disabled = true;
             btn.textContent = 'Registrando...';
-            document.getElementById('errorMsg').style.display = 'none';
 
             const body = {
                 name: document.getElementById('name').value.trim(),
@@ -237,7 +291,7 @@
                 document.getElementById('successState').style.display = 'block';
 
                 setTimeout(() => {
-                    window.location.href = '/student-dashboard.html';
+                    window.location.href = '/cliente';
                 }, 2000);
             } catch (err) {
                 showError('Error de conexión. Intenta de nuevo.');
@@ -247,6 +301,39 @@
         }
 
         init();
+
+        function validatePasswordFields() {
+            const pw = document.getElementById('password').value;
+            const pw2 = document.getElementById('password2').value;
+
+            // Requisitos individuales
+            const hasLength = pw.length >= 6;
+            const hasUpper = /[A-Z]/.test(pw);
+            const hasNumber = /[0-9]/.test(pw);
+
+            setReq('reqLength', hasLength, '✓ Mínimo 6 caracteres', '✗ Mínimo 6 caracteres');
+            setReq('reqUpper', hasUpper, '✓ Al menos 1 mayúscula', '✗ Al menos 1 mayúscula');
+            setReq('reqNumber', hasNumber, '✓ Al menos 1 número', '✗ Al menos 1 número');
+
+            // Match
+            const matchEl = document.getElementById('matchMsg');
+            if (pw2.length === 0) {
+                matchEl.textContent = '';
+                matchEl.className = 'password-match';
+            } else if (pw === pw2) {
+                matchEl.textContent = '✓ Las contraseñas coinciden';
+                matchEl.className = 'password-match ok';
+            } else {
+                matchEl.textContent = '✗ Las contraseñas no coinciden';
+                matchEl.className = 'password-match mismatch';
+            }
+        }
+
+        function setReq(id, ok, goodText, badText) {
+            const el = document.getElementById(id);
+            el.textContent = ok ? goodText : badText;
+            el.className = 'req ' + (ok ? 'valid' : 'invalid');
+        }
     </script>
 </body>
 </html>

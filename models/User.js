@@ -46,6 +46,7 @@ const userSchema = mongoose.Schema({
     packages: [{
       classes: { type: Number, required: true },      // Número de clases
       discountPercent: { type: Number, default: 0 },  // % descuento (ej: 10 = 10%)
+      validDays: { type: Number, default: 30 },       // Días de vigencia del paquete
       isActive: { type: Boolean, default: true }
     }],
     

@@ -86,10 +86,40 @@ router.get('/teacher/:teacherId', async (req, res) => {
             });
         }
 
-        const packages = await TeacherPackage.find({
+        let packages = await TeacherPackage.find({
             teacherId: req.params.teacherId,
             isActive: true
         }).sort({ isFeatured: -1, priceUSD: 1 });
+
+        // Fallback: si no hay paquetes en TeacherPackage, usar teacherData.packages
+        if (packages.length === 0 && teacher.teacherData?.packages?.length > 0) {
+            const hourlyRate = teacher.teacherData?.hourlyRate || 25;
+            // Calcular fracción del profesor para obtener precio al alumno
+            const teacherFee = teacher.teacherData?.plan === 'founder' ? 85 : 75;
+            const studentPricePerClass = Math.round((hourlyRate / (teacherFee / 100)) * 100); // en centavos USD
+            
+            packages = teacher.teacherData.packages
+                .filter(p => p.isActive !== false)
+                .map(p => ({
+                    _id: p._id,
+                    teacherId: teacher._id,
+                    category: 'piano',
+                    name: `Paquete ${p.classes} clases de Piano`,
+                    description: p.discountPercent > 0 ? `${p.discountPercent}% de descuento` : '',
+                    classCount: p.classes,
+                    classDurationMinutes: 45,
+                    priceUSD: Math.round(studentPricePerClass * p.classes * (1 - (p.discountPercent || 0) / 100)),
+                    pricePerClassUSD: Math.round(studentPricePerClass * (1 - (p.discountPercent || 0) / 100)),
+                    basePricePerClassUSD: studentPricePerClass, // precio base sin descuento (centavos)
+                    discountPercent: p.discountPercent || 0,
+                    validityDays: p.validDays || 30,
+                    isRecurring: true,
+                    billingCycleDays: 30,
+                    isActive: true,
+                    isFeatured: false,
+                    stats: { totalSold: 0, activeSubscriptions: 0, revenue: 0 }
+                }));
+        }
 
         // Agrupar por categoría
         const byCategory = {};

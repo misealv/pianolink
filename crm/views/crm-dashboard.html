@@ -2661,20 +2661,25 @@
         const stage = document.getElementById('pipelineStage').value;
         
         try {
+            let result;
             if (stage === 'lost' || stage === 'rejected') {
                 const reason = document.getElementById('lostReason').value;
                 const details = document.getElementById('lostDetails').value;
-                await apiFetch('/leads/' + crmLeadId + '/pipeline/lost', {
+                result = await apiFetch('/leads/' + crmLeadId + '/pipeline/lost', {
                     method: 'POST',
                     body: JSON.stringify({ reason, details })
                 });
             } else {
-                await apiFetch('/leads/' + crmLeadId + '/pipeline/advance', {
+                result = await apiFetch('/leads/' + crmLeadId + '/pipeline/advance', {
                     method: 'POST',
                     body: JSON.stringify({ stage })
                 });
             }
             
+            if (!result || !result.success) {
+                alert('Error al actualizar pipeline: ' + (result?.message || 'Error de conexión'));
+                return;
+            }
             alert('Pipeline actualizado');
             closeModal('modalPipeline');
             loadDashboard();

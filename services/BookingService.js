@@ -5,6 +5,7 @@ const Booking = require('../models/Booking');
 const User = require('../models/User');
 const ClassSession = require('../models/ClassSession');
 const StudentSubscription = require('../models/StudentSubscription');
+const Enrollment = require('../models/Enrollment');
 const eventService = require('./EventService');
 
 /**
@@ -114,6 +115,23 @@ class BookingService {
                 } else {
                     availableClasses = payer.classesRemaining || 0;
                     studentName = payer.name;
+                    
+                    // Fallback enrollment: si el alumno fue invitado y tiene clases en Enrollment
+                    if (availableClasses <= 0 && payer.studentData?.source === 'invited') {
+                        const enrollment = await Enrollment.findOne({
+                            studentId: payerId,
+                            teacherId: teacherId,
+                            status: 'active',
+                            classesRemaining: { $gt: 0 }
+                        }).session(session);
+                        if (enrollment) {
+                            availableClasses = enrollment.classesRemaining;
+                            // Sincronizar User.classesRemaining desde enrollment
+                            payer.classesRemaining = enrollment.classesRemaining;
+                            await payer.save({ session });
+                            console.log(`[BookingService] Sincronizado classesRemaining desde Enrollment. Clases: ${availableClasses}`);
+                        }
+                    }
                 }
             }
             
@@ -139,6 +157,14 @@ class BookingService {
             } else {
                 payer.classesRemaining--;
                 await payer.save({ session });
+                
+                // Sincronizar enrollment si el alumno fue invitado
+                if (payer.studentData?.source === 'invited') {
+                    await Enrollment.updateOne(
+                        { studentId: payerId, teacherId: teacherId, status: 'active', classesRemaining: { $gt: 0 } },
+                        { $inc: { classesRemaining: -1 } }
+                    ).session(session);
+                }
             }
             
             // 4. Actualizar slot a booked y generar sesión MIDI
@@ -187,6 +213,18 @@ class BookingService {
                 duration: slot.duration
             });
 
+            // 8. Auto-crear enrollment si el alumno no tiene uno con este profesor
+            // (alumnos de plataforma que agendaron su primera clase)
+            this._ensureEnrollment(payerId, teacherId, payer).catch(err => {
+                console.error('[BookingService] Error en auto-enrollment:', err.message);
+            });
+
+            // 9. Si el alumno tiene WelcomeKit en trial_available, actualizar a trial_scheduled
+            // y marcar el booking como tipo trial
+            this._updateWelcomeKitOnBooking(payerId, booking[0]._id, teacherId).catch(err => {
+                console.error('[BookingService] Error actualizando WelcomeKit:', err.message);
+            });
+
             return {
                 success: true,
                 booking: booking[0],
@@ -204,6 +242,127 @@ class BookingService {
         }
     }
     
+    /**
+     * Auto-crea enrollment y asigna profesor si el alumno no tiene uno.
+     * Se ejecuta async después del booking para no bloquear la reserva.
+     */
+    static async _ensureEnrollment(studentId, teacherId, payer) {
+        // Verificar si ya existe enrollment activo con este profesor
+        const existing = await Enrollment.findOne({
+            studentId,
+            teacherId,
+            status: 'active'
+        });
+
+        if (existing) return; // Ya existe, no hacer nada
+
+        // Calcular comisión según fuente del alumno
+        const CommissionService = require('./CommissionService');
+        const source = payer.studentData?.source || 'platform';
+        let commission;
+        try {
+            commission = await CommissionService.calculateCommission(teacherId, source);
+        } catch (e) {
+            // Fallback por defecto si falla
+            commission = { platformPercent: 25, teacherPercent: 75, reason: 'default' };
+        }
+
+        // Buscar sala activa del profesor
+        const Room = require('../models/Room');
+        const teacherRoom = await Room.findOne({
+            teacherId,
+            status: 'active'
+        });
+
+        // Crear enrollment
+        const enrollmentData = {
+            studentId,
+            teacherId,
+            source: source === 'invited' ? 'private_invite' : 'platform',
+            preloadedClasses: 0,
+            classesRemaining: 0, // Las clases se manejan en User.classesRemaining
+            appliedCommission: {
+                platformPercent: commission.platformPercent,
+                teacherPercent: commission.teacherPercent,
+                reason: commission.reason
+            },
+            status: 'active'
+        };
+
+        // Solo incluir roomId si existe sala
+        if (teacherRoom) {
+            enrollmentData.roomId = teacherRoom._id;
+        }
+
+        const enrollment = new Enrollment(enrollmentData);
+
+        try {
+            // Si no hay sala, desactivar required temporalmente
+            if (!teacherRoom) {
+                enrollment.schema.path('roomId').required(false);
+            }
+            await enrollment.save();
+        } catch (err) {
+            if (err.code === 11000) {
+                // Duplicado — otro proceso lo creó primero, está OK
+                return;
+            }
+            // Re-intentar sin roomId required como último recurso
+            if (err.errors?.roomId) {
+                enrollment.schema.path('roomId').required(false);
+                await enrollment.save();
+            } else {
+                throw err;
+            }
+        }
+
+        // Asignar profesor en studentData si no tiene uno
+        if (!payer.studentData?.assignedTeacher) {
+            await User.updateOne(
+                { _id: studentId },
+                { 
+                    $set: { 
+                        'studentData.assignedTeacher': teacherId,
+                        'studentData.source': source || 'platform'
+                    }
+                }
+            );
+        }
+
+        console.log(`[BookingService] Auto-enrollment creado: alumno ${studentId} → profesor ${teacherId} (source: ${source})`);
+    }
+
+    /**
+     * Actualiza WelcomeKit a trial_scheduled cuando el alumno agenda su primera clase.
+     * También marca el booking como tipo 'trial'.
+     */
+    static async _updateWelcomeKitOnBooking(studentId, bookingId, teacherId) {
+        const WelcomeKit = require('../models/WelcomeKit');
+        const kit = await WelcomeKit.findOne({
+            clientId: studentId,
+            overallStatus: 'trial_available'
+        });
+
+        if (!kit) return; // No tiene kit o ya pasó esta etapa
+
+        // Actualizar kit a trial_scheduled
+        kit.overallStatus = 'trial_scheduled';
+        kit.trialClass = {
+            bookingId,
+            teacherId,
+            scheduledAt: new Date()
+        };
+        await kit.save();
+
+        // Marcar el booking como tipo trial
+        await Booking.updateOne(
+            { _id: bookingId },
+            { $set: { bookingType: 'trial' } }
+        );
+
+        console.log(`[BookingService] WelcomeKit ${kit._id} → trial_scheduled, booking ${bookingId} → trial`);
+    }
+
     /**
      * Cancela una reserva.
      * Si faltan <24h, es cancelación tardía (sin reembolso, pero puede solicitar recuperación).

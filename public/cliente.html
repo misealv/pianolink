@@ -950,6 +950,61 @@
         }
 
         /* Modal Agendar */
+
+        /* Tarjeta del Profesor Asignado (alumnos invitados) */
+        .assigned-teacher-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .assigned-teacher-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa);
+        }
+        .assigned-teacher-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .assigned-teacher-avatar {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: 800; color: #fff;
+            flex-shrink: 0;
+        }
+        .assigned-teacher-name {
+            font-size: 18px; font-weight: 700; color: #f0f0f5;
+            margin: 0 0 4px;
+        }
+        .assigned-teacher-label {
+            font-size: 12px; color: #a78bfa;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .assigned-teacher-actions {
+            display: flex; gap: 12px; flex-wrap: wrap;
+        }
+        .btn-book-assigned {
+            flex: 1; min-width: 180px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff; border: none;
+            padding: 14px 24px; border-radius: 12px;
+            font-size: 15px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-book-assigned:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
+        .btn-book-assigned:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -1575,46 +1630,66 @@
 
         .packages-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
         }
 
         .package-card {
+            position: relative;
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: 20px;
             overflow: hidden;
-            transition: all 0.3s;
+            transition: all 0.35s cubic-bezier(.4,0,.2,1);
         }
-
+        .package-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            padding: 1.5px;
+            background: var(--pkg-gradient);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 0.5;
+            transition: opacity 0.35s;
+        }
         .package-card:hover {
-            border-color: var(--accent);
-            transform: translateY(-4px);
-            box-shadow: 0 12px 40px rgba(255, 118, 77, 0.15);
+            transform: translateY(-6px);
+            box-shadow: 0 20px 50px var(--pkg-shadow);
         }
+        .package-card:hover::before { opacity: 1; }
+
+        /* Esquemas de color por posición */
+        .package-card.pkg-tier-1 { --pkg-gradient: linear-gradient(135deg, #6366f1, #8b5cf6); --pkg-accent: #818cf8; --pkg-shadow: rgba(99,102,241,0.2); --pkg-btn: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .package-card.pkg-tier-2 { --pkg-gradient: linear-gradient(135deg, #06b6d4, #3b82f6); --pkg-accent: #22d3ee; --pkg-shadow: rgba(6,182,212,0.2); --pkg-btn: linear-gradient(135deg, #06b6d4, #3b82f6); }
+        .package-card.pkg-tier-3 { --pkg-gradient: linear-gradient(135deg, #f59e0b, #ef4444); --pkg-accent: #fbbf24; --pkg-shadow: rgba(245,158,11,0.2); --pkg-btn: linear-gradient(135deg, #f59e0b, #ef4444); }
+        .package-card.pkg-tier-4 { --pkg-gradient: linear-gradient(135deg, #10b981, #059669); --pkg-accent: #34d399; --pkg-shadow: rgba(16,185,129,0.2); --pkg-btn: linear-gradient(135deg, #10b981, #059669); }
 
         .package-card.featured {
-            border-color: #fbbf24;
-            background: linear-gradient(180deg, rgba(251, 191, 36, 0.08) 0%, var(--card) 100%);
+            border-color: transparent;
         }
-
-        .package-card.featured::before {
-            content: '⭐ Destacado';
-            display: block;
+        .package-card.featured::after {
+            content: '⭐ Más popular';
+            position: absolute;
+            top: 14px; right: -30px;
             background: linear-gradient(90deg, #fbbf24, #f59e0b);
             color: #000;
-            font-size: 11px;
-            font-weight: 700;
-            text-align: center;
-            padding: 6px;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 4px 36px;
+            transform: rotate(35deg);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            z-index: 2;
         }
 
         .package-header {
-            padding: 20px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
-            border-bottom: 1px solid var(--border);
+            padding: 20px 20px 14px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+            position: relative;
         }
 
         .package-teacher {
@@ -1623,12 +1698,11 @@
             gap: 12px;
             margin-bottom: 12px;
         }
-
         .package-teacher-avatar {
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), #ff9f7e);
+            background: var(--pkg-gradient, linear-gradient(135deg, var(--accent), #ff9f7e));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1636,22 +1710,21 @@
             color: white;
             font-size: 18px;
         }
-
         .package-teacher-info h4 {
             margin: 0 0 4px 0;
             font-size: 15px;
             font-weight: 600;
         }
-
         .package-teacher-info small {
             color: var(--text-muted);
             font-size: 12px;
         }
 
         .package-name {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 700;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            color: #fff;
         }
 
         .package-category {
@@ -1661,41 +1734,64 @@
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
-            background: rgba(99, 102, 241, 0.15);
-            color: #818cf8;
+            background: rgba(255,255,255,0.06);
+            color: var(--pkg-accent, #818cf8);
+        }
+
+        .package-discount-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            font-size: 12px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 20px;
+            letter-spacing: -0.3px;
         }
 
         .package-body {
-            padding: 20px;
+            padding: 0 20px 20px;
         }
 
         .package-stats {
             display: flex;
             justify-content: space-between;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 14px 8px;
             margin-bottom: 16px;
         }
 
         .package-stat {
             text-align: center;
+            flex: 1;
+        }
+        .package-stat + .package-stat {
+            border-left: 1px solid rgba(255,255,255,0.06);
         }
 
         .package-stat-value {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 800;
-            color: var(--accent);
+            color: var(--pkg-accent, var(--accent));
+            line-height: 1.1;
         }
 
         .package-stat-label {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-muted);
             text-transform: uppercase;
+            margin-top: 2px;
+            letter-spacing: 0.3px;
         }
 
         .package-description {
             color: var(--text-muted);
-            font-size: 14px;
+            font-size: 13px;
             line-height: 1.5;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         .package-price {
@@ -1703,34 +1799,59 @@
             justify-content: space-between;
             align-items: center;
             padding-top: 16px;
-            border-top: 1px solid var(--border);
+            border-top: 1px solid rgba(255,255,255,0.06);
         }
 
         .package-price-amount {
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 800;
+            background: var(--pkg-gradient, linear-gradient(135deg, var(--accent), #ff9f7e));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .package-price-per {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-muted);
         }
 
+        .package-savings {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            color: #34d399;
+            margin-top: 2px;
+        }
+
         .btn-buy-package {
-            background: linear-gradient(135deg, var(--accent), #ff9f7e);
+            background: var(--pkg-btn, linear-gradient(135deg, var(--accent), #ff9f7e));
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 10px;
+            padding: 12px 22px;
+            border-radius: 12px;
             font-size: 14px;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s cubic-bezier(.4,0,.2,1);
+            position: relative;
+            overflow: hidden;
         }
-
+        .btn-buy-package::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(rgba(255,255,255,0.15), transparent);
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
         .btn-buy-package:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(255, 118, 77, 0.3);
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 8px 24px var(--pkg-shadow, rgba(255,118,77,0.3));
+        }
+        .btn-buy-package:hover::after { opacity: 1; }
+        .btn-buy-package:active {
+            transform: translateY(0) scale(0.98);
         }
 
         /* Modal de Compra de Paquete */
@@ -1882,6 +2003,22 @@
             font-size: 32px;
             font-weight: 800;
         }
+
+        /* Colores dinámicos para stat card de clases */
+        .stat-card.classes-ok .stat-number { color: var(--success); }
+        .stat-card.classes-low .stat-number { color: var(--warning); }
+        .stat-card.classes-low { border-color: rgba(245, 158, 11, 0.4); }
+        .stat-card.classes-empty .stat-number { color: var(--danger); }
+        .stat-card.classes-empty { border-color: rgba(239, 68, 68, 0.4); }
+        .buy-prompt {
+            font-size: 11px;
+            margin-top: 6px;
+            cursor: pointer;
+            text-decoration: underline;
+            transition: color 0.2s;
+        }
+        .buy-prompt.warn { color: var(--warning); }
+        .buy-prompt.danger { color: var(--danger); }
 
         .subscription-classes-label {
             font-size: 11px;
@@ -2072,6 +2209,81 @@
             gap: 12px;
             justify-content: flex-end;
         }
+
+        /* ============================================
+           BITÁCORA DEL ALUMNO
+           ============================================ */
+        .journal-student-section {
+            margin-bottom: 24px;
+        }
+
+        .journal-student-entry {
+            background: var(--card-bg, #1e1e1e);
+            border: 1px solid var(--border, #333);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .journal-student-entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .journal-student-entry-date {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .journal-student-entry-teacher {
+            font-size: 12px;
+            color: #818cf8;
+        }
+
+        .journal-student-entry-progress {
+            font-size: 22px;
+        }
+
+        .journal-student-topics {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .journal-student-topic {
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        .journal-student-content {
+            color: #ccc;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .journal-student-homework {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #f59e0b;
+        }
+
+        .journal-student-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+
+        .journal-student-empty .icon { font-size: 40px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -2091,6 +2303,18 @@
             <p>Cargando tu panel...</p>
         </div>
     </main>
+
+    <!-- Modal Compra de Paquete -->
+    <div class="modal-overlay" id="packagePurchaseModal">
+        <div class="modal-content package-modal-content">
+            <div class="modal-header">
+                <h2>🛒 Comprar Paquete</h2>
+                <button class="modal-close" onclick="closePackageModal()">×</button>
+            </div>
+            <div class="modal-body" id="packageModalBody">
+            </div>
+        </div>
+    </div>
 
     <!-- Modal Agendar Clase -->
     <div class="modal-overlay" id="scheduleModal">
@@ -2324,8 +2548,13 @@
                 const storedStatus = myKit.overallStatus;
                 
                 // Corregir inconsistencias:
+                // Si hay clase próxima y el kit está en trial_available → ya agendó, mostrar como trial_scheduled
+                if (nextClass?.hasNext && storedStatus === 'trial_available') {
+                    console.warn('[Estado Resiliente] Hay clase agendada pero overallStatus=trial_available. Mostrando como trial_scheduled.');
+                    myKit._realStatus = 'trial_scheduled';
+                }
                 // Si hay clase trial próxima pero el estado dice "completed" → debería ser "trial_scheduled"
-                if (hasUpcomingTrialClass && storedStatus === 'completed') {
+                else if (hasUpcomingTrialClass && storedStatus === 'completed') {
                     console.warn('[Estado Resiliente] Hay clase trial agendada pero overallStatus=completed. Mostrando como trial_scheduled.');
                     myKit._realStatus = 'trial_scheduled';
                 }
@@ -2342,9 +2571,13 @@
 
             const students = user.clientData?.managedStudents || [];
             const isGuardian = students.length > 0;
+            const classesRemaining = user.summary.totalClassesRemaining || 0;
 
             // Renderizar tarjeta de próxima clase
             const nextClassHTML = renderNextClass(nextClass);
+            
+            // Renderizar profesor asignado (alumnos invitados)
+            const assignedTeacherHTML = renderAssignedTeacher(user);
             
             // Renderizar estado del Onboarding Kit (pasar students para guardians)
             const onboardingHTML = renderOnboardingStatus(myKit, nextClass, students);
@@ -2366,18 +2599,23 @@
                 <!-- Onboarding Kit Status (si aplica) -->
                 ${onboardingHTML}
 
+                <!-- Profesor Asignado -->
+                ${assignedTeacherHTML}
+
                 <!-- Clases Pendientes de Confirmar -->
                 ${renderPendingValidations()}
 
                 <!-- Próxima Clase -->
                 ${nextClassHTML}
 
-                <!-- Stats y Actions — solo después de completar onboarding -->
-                ${isOnboardingComplete ? `
+                <!-- Stats — siempre visibles si tiene enrollment o onboarding completo -->
+                ${(isOnboardingComplete || user.enrollment?.teacher) ? `
                 <section class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number">${user.summary.totalClassesRemaining}</div>
+                    <div class="stat-card ${classesRemaining >= 4 ? 'classes-ok' : classesRemaining > 0 ? 'classes-low' : 'classes-empty'}">
+                        <div class="stat-number">${classesRemaining}</div>
                         <div class="stat-label">Clases disponibles</div>
+                        ${classesRemaining < 4 && classesRemaining > 0 ? '<div class="buy-prompt warn" onclick="scrollToPackages()">⚠ Pocas clases — comprar más</div>' : ''}
+                        ${classesRemaining === 0 ? '<div class="buy-prompt danger" onclick="scrollToPackages()">🛒 Compra clases para agendar</div>' : ''}
                     </div>
                     <div class="stat-card success">
                         <div class="stat-number">${user.summary.totalClassesUsed}</div>
@@ -2391,6 +2629,22 @@
                     ` : ''}
                 </section>
 
+                <!-- Paquetes del profesor asignado -->
+                <div id="teacherPackagesSection"></div>
+                ` : ''}
+
+                <!-- Bitácora del alumno -->
+                ${isOnboardingComplete ? `
+                <section class="journal-student-section" id="studentJournalSection">
+                    <h2 class="section-title">📓 Mi Bitácora</h2>
+                    <p style="color: #888; font-size: 13px; margin-bottom: 16px;">Notas de tus clases, tareas pendientes y progreso.</p>
+                    <div id="studentJournalEntries">
+                        <div style="text-align: center; padding: 30px; color: #888;">Cargando bitácora...</div>
+                    </div>
+                </section>
+                ` : ''}
+
+                ${isOnboardingComplete ? `
                 <section class="actions">
                     <a href="/profesores.html" class="btn btn-primary">
                         🎹 Explorar Profesores
@@ -2485,6 +2739,11 @@
 
             // Cargar cupones de descuento
             loadCoupons();
+
+            // Cargar paquetes del profesor asignado (si aplica)
+            if (user.enrollment?.teacher?.id) {
+                loadTeacherPackages(user.enrollment.teacher.id, user.enrollment.teacher.name);
+            }
 
             // Si el kit está en estado de agendar entrevista, cargar slots disponibles
             if (myKit && ['entrevista_pendiente', 'pending', 'paid'].includes(myKit.overallStatus)) {
@@ -3639,9 +3898,76 @@
             }
         }
 
+        // ============================================
+        // PROFESOR ASIGNADO (alumnos invitados)
+        // ============================================
+        function renderAssignedTeacher(user) {
+            if (!user.enrollment?.teacher) return '';
+            const t = user.enrollment.teacher;
+            const initials = t.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            const classesAvail = user.summary.totalClassesRemaining || 0;
+            const noClasses = classesAvail <= 0;
+            
+            return `
+                <section class="assigned-teacher-card">
+                    <div class="assigned-teacher-header">
+                        <div class="assigned-teacher-avatar">${initials}</div>
+                        <div>
+                            <div class="assigned-teacher-label">Tu profesor</div>
+                            <h3 class="assigned-teacher-name">${t.name}</h3>
+                        </div>
+                    </div>
+                    <div class="assigned-teacher-actions">
+                        ${noClasses 
+                            ? `<button class="btn-book-assigned" disabled style="opacity:0.6">🎹 Sin clases disponibles</button>
+                               <p style="color:#f59e0b; font-size:12px; margin:8px 0 0; text-align:center;">Compra un paquete abajo para agendar más clases 👇</p>`
+                            : `<button class="btn-book-assigned" onclick="bookWithAssignedTeacher('${t.id}', '${t.name}')">
+                                🎹 Agendar clase
+                              </button>`
+                        }
+                    </div>
+                </section>
+            `;
+        }
+
+        function bookWithAssignedTeacher(teacherId, teacherName) {
+            // Setear datos del alumno si no están
+            if (!bookingStudentName && currentUserData) {
+                bookingStudentName = currentUserData.name;
+                bookingStudentId = currentUserData._id;
+            }
+            
+            // Abrir modal y saltar directo al paso de horarios (sin paso de elegir profesor)
+            document.getElementById('bookingForText').textContent = 
+                `Agendar clase con ${teacherName}`;
+            
+            document.getElementById('teacherStep').style.display = 'none';
+            document.getElementById('slotStep').style.display = 'block';
+            document.getElementById('confirmStep').style.display = 'none';
+            
+            currentTeacherId = teacherId;
+            selectedSlotId = null;
+            
+            document.getElementById('selectedTeacherText').innerHTML = 
+                `<strong>${teacherName}</strong>`;
+            
+            document.getElementById('scheduleModal').classList.add('active');
+            
+            loadAvailableSlots(teacherId);
+        }
+
         function scheduleClass(studentName = null, studentId = null) {
             const students = currentUserData?.clientData?.managedStudents || [];
             const isGuardian = students.length > 0;
+
+            // Si es alumno invitado con profesor asignado, ir directo a sus horarios
+            if (currentUserData?.enrollment?.teacher && !isGuardian) {
+                const t = currentUserData.enrollment.teacher;
+                bookingStudentName = currentUserData.name;
+                bookingStudentId = currentUserData._id;
+                bookWithAssignedTeacher(t.id, t.name);
+                return;
+            }
             
             // Si es guardian y no especificó estudiante
             if (isGuardian && !studentName && !studentId) {
@@ -4514,6 +4840,191 @@
             }
         }
 
+        // ============================================
+        // PAQUETES DEL PROFESOR ASIGNADO
+        // ============================================
+        async function loadTeacherPackages(teacherId, teacherName) {
+            const section = document.getElementById('teacherPackagesSection');
+            if (!section) return;
+
+            try {
+                const res = await fetch(`/api/teacher-packages/teacher/${teacherId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                const packages = data.packages || [];
+                if (packages.length === 0) return;
+
+                const initials = teacherName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                const CATS = { piano:'🎹 Piano', teoria:'📖 Teoría', armonia:'🎵 Armonía', solfeo:'🎼 Solfeo', composicion:'✍️ Composición', improvisacion:'🎶 Improvisación', otro:'📦 Otro' };
+
+                const tierColors = ['pkg-tier-1', 'pkg-tier-2', 'pkg-tier-3', 'pkg-tier-4'];
+                // Calcular precio base por clase sin descuento (desde API o inferido)
+                const basePricePerClass = packages[0]?.basePricePerClassUSD
+                    ? packages[0].basePricePerClassUSD / 100
+                    : (packages.length > 0 ? Math.max(...packages.map(p => (p.priceUSD / 100) / p.classCount)) : 0);
+
+                section.innerHTML = `
+                    <section class="packages-section" id="packagesAnchor">
+                        <div class="section-header">
+                            <h2 class="section-title">🎹 Paquetes de clases</h2>
+                            <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">Elige un paquete y agenda tus clases con ${teacherName}</p>
+                        </div>
+                        <div class="packages-grid">
+                            ${packages.map((p, i) => {
+                                const totalUSD = (p.priceUSD / 100).toFixed(0);
+                                const perClass = ((p.priceUSD / 100) / p.classCount).toFixed(2);
+                                // Usar descuento real del profesor, o calcular vs precio base
+                                const savingsPercent = p.discountPercent || (basePricePerClass > 0 ? Math.round((1 - (p.priceUSD / 100 / p.classCount) / basePricePerClass) * 100) : 0);
+                                const tier = tierColors[i % tierColors.length];
+                                return `
+                                <div class="package-card ${tier} ${p.isFeatured ? 'featured' : ''}">
+                                    <div class="package-header">
+                                        <div class="package-name">${p.name}</div>
+                                        <span class="package-category">${CATS[p.category] || p.category}</span>
+                                        ${savingsPercent > 0 ? `<div class="package-discount-badge">-${savingsPercent}%</div>` : ''}
+                                    </div>
+                                    <div class="package-body">
+                                        <div class="package-stats" style="position: relative;">
+                                            <div class="package-stat">
+                                                <div class="package-stat-value">${p.classCount}</div>
+                                                <div class="package-stat-label">Clases</div>
+                                            </div>
+                                            <div class="package-stat">
+                                                <div class="package-stat-value">${p.classDurationMinutes || 45}'</div>
+                                                <div class="package-stat-label">Minutos</div>
+                                            </div>
+                                            <div class="package-stat">
+                                                <div class="package-stat-value">${p.validityDays || 30}d</div>
+                                                <div class="package-stat-label">Vigencia</div>
+                                            </div>
+                                        </div>
+                                        ${p.description ? `<p class="package-description">${p.description}</p>` : ''}
+                                        <div class="package-price">
+                                            <div>
+                                                <div class="package-price-amount">$${totalUSD} USD</div>
+                                                <div class="package-price-per">${savingsPercent > 0 ? `<span style="text-decoration:line-through;color:var(--text-muted);font-size:11px;">$${basePricePerClass.toFixed(2)}</span> ` : ''}$${perClass} / clase</div>
+                                                ${savingsPercent > 0 ? `<div class="package-savings">Ahorras ${savingsPercent}%</div>` : ''}
+                                            </div>
+                                            <button class="btn-buy-package" onclick="openPackagePurchase('${p._id}', '${p.name.replace(/'/g, '\\&#39;')}', ${p.classCount}, ${p.priceUSD}, ${p.classDurationMinutes || 45}, ${p.validityDays || 30}, '${teacherName.replace(/'/g, '\\&#39;')}', '${initials}')">
+                                                🛒 Comprar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `}).join('')}
+                        </div>
+                    </section>
+                `;
+            } catch (err) {
+                console.error('[Packages] Error cargando paquetes:', err);
+            }
+        }
+
+        function scrollToPackages() {
+            const el = document.getElementById('packagesAnchor');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (currentUserData?.enrollment?.teacher?.id) {
+                // Si no se cargaron aún, cargarlos y después scrollear
+                loadTeacherPackages(currentUserData.enrollment.teacher.id, currentUserData.enrollment.teacher.name).then(() => {
+                    setTimeout(() => {
+                        const el2 = document.getElementById('packagesAnchor');
+                        if (el2) el2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 200);
+                });
+            }
+        }
+
+        function openPackagePurchase(pkgId, pkgName, classCount, priceUSD, duration, validity, teacherName, teacherInitials) {
+            const body = document.getElementById('packageModalBody');
+            body.innerHTML = `
+                <div class="package-modal-summary">
+                    <div class="package-modal-teacher">
+                        <div class="package-teacher-avatar">${teacherInitials}</div>
+                        <div>
+                            <h4 style="margin:0">${teacherName}</h4>
+                            <small style="color:var(--text-muted)">Profesor</small>
+                        </div>
+                    </div>
+                    <div class="package-modal-details">
+                        <div class="package-modal-detail">
+                            <div class="package-modal-detail-label">Paquete</div>
+                            <div class="package-modal-detail-value">${pkgName}</div>
+                        </div>
+                        <div class="package-modal-detail">
+                            <div class="package-modal-detail-label">Clases</div>
+                            <div class="package-modal-detail-value">${classCount} clases</div>
+                        </div>
+                        <div class="package-modal-detail">
+                            <div class="package-modal-detail-label">Duración</div>
+                            <div class="package-modal-detail-value">${duration} min</div>
+                        </div>
+                        <div class="package-modal-detail">
+                            <div class="package-modal-detail-label">Vigencia</div>
+                            <div class="package-modal-detail-value">${validity} días</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="package-modal-total">
+                    <div class="package-modal-total-label">Total a pagar</div>
+                    <div class="package-modal-total-amount">$${(priceUSD / 100).toFixed(0)} USD</div>
+                </div>
+                <div class="package-features">
+                    <div class="package-feature"><span class="package-feature-icon">✅</span> Clases se acreditan instantáneamente</div>
+                    <div class="package-feature"><span class="package-feature-icon">✅</span> Agenda cuando quieras dentro de la vigencia</div>
+                    <div class="package-feature"><span class="package-feature-icon">✅</span> Pago seguro con MercadoPago</div>
+                </div>
+                <button class="btn-purchase" id="purchaseBtn" onclick="executePurchase('${pkgId}')">
+                    💳 Pagar $${(priceUSD / 100).toFixed(0)} USD
+                </button>
+                <p class="payment-note">Serás redirigido a MercadoPago para completar el pago.</p>
+            `;
+            document.getElementById('packagePurchaseModal').classList.add('active');
+        }
+
+        function closePackageModal() {
+            document.getElementById('packagePurchaseModal').classList.remove('active');
+        }
+
+        async function executePurchase(packageId) {
+            const btn = document.getElementById('purchaseBtn');
+            btn.disabled = true;
+            btn.textContent = 'Procesando...';
+
+            try {
+                const res = await fetch('/api/subscriptions/purchase', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ packageId, autoRenew: true })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alert('❌ ' + (data.message || 'Error al iniciar pago'));
+                    btn.disabled = false;
+                    btn.textContent = '💳 Reintentar pago';
+                    return;
+                }
+
+                if (data.paymentUrl) {
+                    window.location.href = data.paymentUrl;
+                } else {
+                    alert('❌ No se recibió la URL de pago');
+                    btn.disabled = false;
+                    btn.textContent = '💳 Reintentar pago';
+                }
+            } catch (err) {
+                console.error('[Purchase] Error:', err);
+                alert('❌ Error de conexión');
+                btn.disabled = false;
+                btn.textContent = '💳 Reintentar pago';
+            }
+        }
+
         // Verificar parámetros de URL (retorno de MercadoPago)
         function checkPaymentReturn() {
             const params = new URLSearchParams(window.location.search);
@@ -4540,6 +5051,84 @@
         // Iniciar
         checkPaymentReturn();
         loadDashboard();
+
+        // ============================================
+        // BITÁCORA DEL ALUMNO
+        // ============================================
+        async function loadStudentJournal() {
+            const container = document.getElementById('studentJournalEntries');
+            if (!container) return; // Sección no renderizada aún
+
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch('/api/client/journal?limit=10', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (!data.success || !data.entries || data.entries.length === 0) {
+                    container.innerHTML = `
+                        <div class="journal-student-empty">
+                            <div class="icon">📓</div>
+                            <div>Tu profesor aún no ha agregado notas a tu bitácora.</div>
+                            <div style="font-size: 12px; margin-top: 4px;">Después de cada clase verás aquí temas, tareas y tu progreso.</div>
+                        </div>`;
+                    return;
+                }
+
+                const progressMap = { needs_work: '😕', progressing: '🙂', good: '😊', excellent: '🌟' };
+                const typeLabels = {
+                    class_notes: '📝 Clase', homework: '📚 Tarea',
+                    progress: '📊 Progreso', general: '💬 Nota'
+                };
+
+                container.innerHTML = data.entries.map(entry => {
+                    const dateStr = new Date(entry.date).toLocaleDateString('es-CL', {
+                        weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+                    });
+                    const progressEmoji = progressMap[entry.progress] || '';
+                    const typeLabel = typeLabels[entry.type] || '📝';
+                    const teacherName = entry.teacherName || 'Profesor';
+
+                    const topicsHtml = (entry.topics || []).map(t =>
+                        `<span class="journal-student-topic">${escapeHtml(t)}</span>`
+                    ).join('');
+
+                    return `
+                        <div class="journal-student-entry">
+                            <div class="journal-student-entry-header">
+                                <div>
+                                    <div class="journal-student-entry-date">${typeLabel} · ${dateStr}</div>
+                                    <div class="journal-student-entry-teacher">Prof. ${escapeHtml(teacherName)}</div>
+                                </div>
+                                <div class="journal-student-entry-progress">${progressEmoji}</div>
+                            </div>
+                            ${topicsHtml ? `<div class="journal-student-topics">${topicsHtml}</div>` : ''}
+                            ${entry.content ? `<div class="journal-student-content">${escapeHtml(entry.content)}</div>` : ''}
+                            ${entry.homework ? `<div class="journal-student-homework">📝 Tarea: ${escapeHtml(entry.homework)}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('Error cargando bitácora:', err);
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #ef4444;">Error de conexión</div>';
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        }
+
+        // Cargar bitácora después de que el dashboard se renderice
+        const journalObserver = new MutationObserver(() => {
+            if (document.getElementById('studentJournalEntries')) {
+                loadStudentJournal();
+                journalObserver.disconnect();
+            }
+        });
+        journalObserver.observe(document.getElementById('dashboard') || document.body, { childList: true, subtree: true });
     </script>
 </body>
 </html>

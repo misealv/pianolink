@@ -456,6 +456,16 @@ class CrmLeadService {
             const leadType = crmLead.leadRef?.type;
             const previousStage = crmLead.pipelineStudent || crmLead.pipelineTeacher || 'lead';
 
+            // Inicializar pipeline si no existe (fix: leads creados sin pipeline asignado)
+            if (crmLead.pipelineStudent == null && crmLead.pipelineTeacher == null) {
+                if (leadType === 'teacher') {
+                    crmLead.pipelineTeacher = 'lead';
+                } else {
+                    crmLead.pipelineStudent = 'lead';
+                }
+                await crmLead.save();
+            }
+
             // Validar y avanzar según tipo
             await crmLead.advancePipeline(newStage);
 
@@ -496,8 +506,19 @@ class CrmLeadService {
      */
     static async markLost(crmLeadId, reason, details = '') {
         try {
-            const crmLead = await CrmLead.findById(crmLeadId);
+            const crmLead = await CrmLead.findById(crmLeadId).populate('leadRef', 'type');
             if (!crmLead) return { success: false, message: 'CrmLead no encontrado', status: 404 };
+
+            // Inicializar pipeline si no existe (fix: leads creados sin pipeline asignado)
+            if (crmLead.pipelineStudent == null && crmLead.pipelineTeacher == null) {
+                const leadType = crmLead.leadRef?.type;
+                if (leadType === 'teacher') {
+                    crmLead.pipelineTeacher = 'lead';
+                } else {
+                    crmLead.pipelineStudent = 'lead';
+                }
+                await crmLead.save();
+            }
 
             await crmLead.markLost(reason, details);
 

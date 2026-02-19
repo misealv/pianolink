@@ -506,12 +506,16 @@ router.post('/register/:code', async (req, res) => {
         const bcrypt = require('bcryptjs');
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Clases pre-pagadas que el profesor asignó al generar el enlace
+        const preloaded = invite.preloadedClasses || 0;
+
         const student = new User({
             name: name.trim(),
             email: email.toLowerCase().trim(),
             password: hashedPassword,
             role: 'student',
             country: country || '',
+            classesRemaining: preloaded, // Sincronizar con enrollment para que BookingService las vea
             studentData: {
                 source: 'invited',
                 assignedTeacher: teacher._id
@@ -522,9 +526,6 @@ router.post('/register/:code', async (req, res) => {
 
         // 4. Crear enrollment con comisión 0% (alumno privado)
         const commission = await CommissionService.calculateCommission(teacher._id, 'private_invite');
-
-        // Clases pre-pagadas que el profesor asignó al generar el enlace
-        const preloaded = invite.preloadedClasses || 0;
 
         const enrollment = new Enrollment({
             studentId: student._id,

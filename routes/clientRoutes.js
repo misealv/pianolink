@@ -9,6 +9,7 @@ const { protect } = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const WelcomeKit = require('../models/WelcomeKit');
 const Coupon = require('../models/Coupon');
+const Enrollment = require('../models/Enrollment');
 
 /**
  * GET /api/client/me
@@ -40,8 +41,49 @@ router.get('/me', protect, async (req, res) => {
             });
         }
 
+        // Fallback: si es client sin managedStudents, usar sus propias clases
+        if (user.role === 'client' && totalClassesRemaining === 0) {
+            totalClassesRemaining = user.classesRemaining || 0;
+            totalClassesUsed = user.classesCompleted || 0;
+        }
+
+        // Buscar enrollment activo (cualquier alumno con enrollment, no solo invitados)
+        let enrollmentData = null;
+        if (user.role === 'student' || user.role === 'client') {
+            const enrollment = await Enrollment.findOne({
+                studentId: user._id,
+                status: 'active'
+            }).populate('teacherId', 'name email teacherData.plan teacherData.hourlyRate').lean();
+
+            if (enrollment) {
+                // Si User.classesRemaining está en 0 pero enrollment tiene clases, sincronizar
+                if (totalClassesRemaining === 0 && enrollment.classesRemaining > 0) {
+                    totalClassesRemaining = enrollment.classesRemaining;
+                    // Sincronizar en background para que BookingService las vea
+                    User.updateOne({ _id: user._id }, { classesRemaining: enrollment.classesRemaining }).catch(err => {
+                        console.error('[CLIENT] Error sincronizando classesRemaining desde enrollment:', err.message);
+                    });
+                }
+                enrollmentData = {
+                    id: enrollment._id,
+                    source: enrollment.source,
+                    classesRemaining: enrollment.classesRemaining,
+                    preloadedClasses: enrollment.preloadedClasses,
+                    teacher: enrollment.teacherId ? {
+                        id: enrollment.teacherId._id,
+                        name: enrollment.teacherId.name,
+                        email: enrollment.teacherId.email,
+                        plan: enrollment.teacherId.teacherData?.plan
+                    } : null,
+                    commission: enrollment.appliedCommission,
+                    status: enrollment.status
+                };
+            }
+        }
+
         res.json({
             ...user,
+            enrollment: enrollmentData,
             summary: {
                 totalClassesRemaining,
                 totalClassesUsed,
@@ -368,6 +410,75 @@ router.post('/orders/:orderId/confirm-receipt', protect, async (req, res) => {
     } catch (error) {
         console.error('[CLIENT] Error confirmando recepción:', error);
         res.status(500).json({ message: 'Error interno del servidor' });
+    }
+});
+
+// ==================== BITÁCORA DEL ALUMNO ====================
+const LessonLog = require('../models/LessonLog');
+const StudentEnrollment = require('../models/StudentEnrollment');
+
+/**
+ * GET /api/client/journal
+ * Bitácora del alumno: entradas compartidas por sus profesores.
+ * Filtra solo visibility: 'shared'.
+ */
+router.get('/journal', protect, async (req, res) => {
+    try {
+        const studentId = req.user._id;
+
+        // Obtener enrollments activos del alumno
+        const enrollments = await StudentEnrollment.find({
+            student: studentId,
+            status: { $in: ['active', 'paused'] }
+        }).populate('teacher', 'name branding.profilePhotoUrl').lean();
+
+        if (!enrollments.length) {
+            return res.json({ success: true, entries: [], teachers: [] });
+        }
+
+        const enrollmentIds = enrollments.map(e => e._id);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 30;
+
+        const entries = await LessonLog.find({
+            enrollment: { $in: enrollmentIds },
+            visibility: 'shared'
+        })
+        .sort({ date: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate('enrollment', 'dependentName')
+        .lean();
+
+        const total = await LessonLog.countDocuments({
+            enrollment: { $in: enrollmentIds },
+            visibility: 'shared'
+        });
+
+        // Enriquecer con nombre del profesor
+        const teacherMap = {};
+        enrollments.forEach(e => {
+            teacherMap[e._id.toString()] = {
+                name: e.teacher?.name || 'Profesor',
+                photo: e.teacher?.branding?.profilePhotoUrl || null
+            };
+        });
+
+        const enrichedEntries = entries.map(e => ({
+            ...e,
+            teacherName: teacherMap[e.enrollment?._id?.toString()]?.name || 'Profesor',
+            teacherPhoto: teacherMap[e.enrollment?._id?.toString()]?.photo || null,
+            dependentName: e.enrollment?.dependentName || null
+        }));
+
+        res.json({
+            success: true,
+            entries: enrichedEntries,
+            pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+        });
+    } catch (error) {
+        console.error('[CLIENT] Error journal:', error);
+        res.status(500).json({ error: 'Error al obtener bitácora' });
     }
 });
 
