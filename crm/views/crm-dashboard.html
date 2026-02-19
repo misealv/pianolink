@@ -1224,6 +1224,10 @@
                     <label>Notas</label>
                     <textarea class="form-control" id="editLeadNotes" rows="3"></textarea>
                 </div>
+                <div class="form-group" id="editLeadAvailGroup" style="display:none;">
+                    <label>Disponibilidad para entrevista</label>
+                    <div id="editLeadAvailDisplay" style="padding:8px 12px; background:var(--bg-primary); border-radius:8px; font-size:13px; color:var(--text-secondary);"></div>
+                </div>
             </form>
         </div>
         <div class="modal-footer">
@@ -1234,6 +1238,37 @@
 </div>
 
 <!-- Modal: Crear Landing -->
+<!-- Modal: Agendar Entrevista Profesor -->
+<div class="modal" id="modalScheduleInterview">
+    <div class="modal-content" style="max-width:520px;">
+        <div class="modal-header">
+            <h3>📅 Agendar Entrevista</h3>
+            <button class="modal-close" onclick="closeModal('modalScheduleInterview')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="siLeadId">
+            <p style="margin-bottom:12px;"><strong id="siLeadName"></strong> — <span id="siLeadEmail" style="color:var(--text-secondary);"></span></p>
+            <div id="siAvailInfo" style="margin-bottom:16px; padding:10px 14px; background:var(--bg-primary); border-radius:8px; font-size:13px; color:var(--text-secondary);"></div>
+            <div class="form-group">
+                <label>Fecha y hora de entrevista *</label>
+                <input type="datetime-local" class="form-control" id="siDateTime" required>
+            </div>
+            <div class="form-group">
+                <label>Duración</label>
+                <select class="form-control" id="siDuration">
+                    <option value="20">20 minutos</option>
+                    <option value="30">30 minutos</option>
+                    <option value="45">45 minutos</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modalScheduleInterview')">Cancelar</button>
+            <button class="btn btn-primary" onclick="confirmScheduleInterview()">📅 Crear evento en Calendar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Avanzar Pipeline -->
 <div class="modal" id="modalPipeline">
     <div class="modal-content" style="max-width:500px;">
@@ -1631,6 +1666,7 @@
                     <button class="btn-icon" title="Editar" onclick="editLead('${leadId}', '${lead._id}')">✏️</button>
                     <button class="btn-icon" title="Pipeline" onclick="showPipelineModal('${lead._id}', '${ref.type}')">📋</button>
                     <button class="btn-icon" title="Tarea" onclick="showAddTaskModal('${lead._id}')">📌</button>
+                    ${ref.type === 'teacher' ? `<button class="btn-icon" title="Agendar Entrevista" onclick="showScheduleInterview('${leadId}','${esc(name)}','${esc(email)}','${esc(ref.availability?.join(',') || '')}')">📅</button>` : ''}
                     ${ref.type === 'teacher' ? `<button class="btn-icon" title="Invitar Profesor" onclick="tiInviteFromLead('${leadId}','${lead._id}','${esc(name)}','${esc(email)}','${esc(ref.country||'')}')">🎫</button>` : ''}
                     <button class="btn-icon" title="Eliminar" onclick="deleteLead('${leadId}', '${esc(name)}')">🗑️</button>
                 </td>
@@ -1942,6 +1978,18 @@
             document.getElementById('editLeadStatus').value = crmLead?.lifecycleStage || 'lead';
             document.getElementById('editLeadSource').value = lead.source || 'manual';
             document.getElementById('editLeadNotes').value = lead.notes || '';
+
+            // Mostrar disponibilidad si es profesor
+            const availGroup = document.getElementById('editLeadAvailGroup');
+            const availDisplay = document.getElementById('editLeadAvailDisplay');
+            if (lead.type === 'teacher' && lead.availability && lead.availability.length > 0) {
+                const labels = { weekday_morning:'Lun-Vie mañana', weekday_afternoon:'Lun-Vie tarde', weekday_evening:'Lun-Vie noche', weekend:'Fines de semana' };
+                availDisplay.textContent = '🕐 ' + lead.availability.map(a => labels[a] || a).join(', ');
+                availGroup.style.display = 'block';
+            } else {
+                availGroup.style.display = 'none';
+            }
+
             document.getElementById('modalEditLead').classList.add('show');
         } catch (e) {
             alert('Error al cargar lead: ' + e.message);
@@ -2018,6 +2066,67 @@
     };
 
     window.emailLead = function(id) { alert('Enviar email a lead: ' + id); };
+
+    // === AGENDAR ENTREVISTA PROFESOR ===
+    const AVAIL_LABELS = {
+        weekday_morning: 'Lun-Vie mañana',
+        weekday_afternoon: 'Lun-Vie tarde',
+        weekday_evening: 'Lun-Vie noche',
+        weekend: 'Fines de semana'
+    };
+
+    window.showScheduleInterview = function(leadId, name, email, availStr) {
+        document.getElementById('siLeadId').value = leadId;
+        document.getElementById('siLeadName').textContent = name;
+        document.getElementById('siLeadEmail').textContent = email;
+        
+        const avail = availStr ? availStr.split(',').filter(Boolean) : [];
+        const infoEl = document.getElementById('siAvailInfo');
+        if (avail.length > 0) {
+            infoEl.innerHTML = '🕐 <strong>Disponibilidad declarada:</strong> ' + avail.map(a => AVAIL_LABELS[a] || a).join(', ');
+            infoEl.style.display = 'block';
+        } else {
+            infoEl.innerHTML = '⚠️ El profesor no indicó disponibilidad.';
+            infoEl.style.display = 'block';
+        }
+
+        // Pre-llenar con mañana a las 10:00
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(10, 0, 0, 0);
+        const iso = tomorrow.toISOString().slice(0, 16);
+        document.getElementById('siDateTime').value = iso;
+        document.getElementById('siDuration').value = '20';
+
+        document.getElementById('modalScheduleInterview').classList.add('show');
+    };
+
+    window.confirmScheduleInterview = async function() {
+        const leadId = document.getElementById('siLeadId').value;
+        const demoDate = document.getElementById('siDateTime').value;
+        const duration = parseInt(document.getElementById('siDuration').value);
+
+        if (!demoDate) { alert('Selecciona fecha y hora'); return; }
+
+        try {
+            const res = await fetch('/api/leads/' + leadId + '/schedule-demo', {
+                method: 'POST',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ demoDate: new Date(demoDate).toISOString(), duration })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                alert(data.message || 'Error al agendar');
+                return;
+            }
+            alert('✅ Entrevista agendada.\nEl profesor recibirá una invitación de Google Calendar por email.');
+            closeModal('modalScheduleInterview');
+            loadDashboard();
+        } catch (err) {
+            console.error('[Schedule] Error:', err);
+            alert('Error de conexión');
+        }
+    };
     window.editCampaign = function(id) { alert('Editar campaña: ' + id); };
     window.editSequence = function(id) { alert('Editar secuencia: ' + id); };
     window.viewSequenceMetrics = function(id) { alert('Ver métricas de secuencia: ' + id); };

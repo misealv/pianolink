@@ -72,6 +72,13 @@ const leadSchema = mongoose.Schema({
         maxlength: [1000, 'La trayectoria no puede exceder 1000 caracteres'],
         default: ''
     },
+
+    // Disponibilidad para entrevista (franjas horarias)
+    availability: {
+        type: [String],
+        enum: ['weekday_morning', 'weekday_afternoon', 'weekday_evening', 'weekend'],
+        default: []
+    },
     
     // Zona horaria del lead (para programar demos correctamente)
     timezone: {

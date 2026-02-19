@@ -56,7 +56,7 @@ module.exports = function generateLeadConfirmationEmail(data) {
                                 </p>
                                 <ol style="color: #4a5568; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
                                     <li>Revisaremos tu perfil en detalle</li>
-                                    <li>Te contactaremos por <strong>WhatsApp</strong> para agendar una breve entrevista</li>
+                                    <li>Te contactaremos por <strong>correo electrónico</strong> para agendar una breve entrevista</li>
                                     <li>Te haremos una demo de la plataforma y la tecnología MIDI</li>
                                     <li>Si todo va bien, recibirás tu invitación para crear tu cuenta</li>
                                 </ol>
@@ -64,7 +64,7 @@ module.exports = function generateLeadConfirmationEmail(data) {
 
                             <p style="color: #4a5568; font-size: 16px; line-height: 1.6; margin: 24px 0 0;">
                                 El proceso normalmente toma entre <strong style="color: #1a1a2e;">24 y 72 horas</strong>. 
-                                Mientras tanto, asegúrate de tener tu WhatsApp activo para que podamos comunicarnos contigo.
+                                Revisa tu bandeja de entrada (y la carpeta de spam) para no perderte nuestra respuesta.
                             </p>
 
                         </td>

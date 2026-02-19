@@ -121,6 +121,7 @@ class LeadService {
             email: data.email.toLowerCase().trim(),
             whatsapp: data.whatsapp.trim(),
             background: data.background ? data.background.trim() : '',
+            availability: Array.isArray(data.availability) ? data.availability : [],
             source: sourceValue,
             utmSource: data.utmSource || '',
             utmMedium: data.utmMedium || '',
@@ -455,7 +456,7 @@ class LeadService {
             }
 
             const event = await getCalendarService().createEvent({
-                summary: `Demo PianoLink - ${lead.name}`,
+                summary: `Entrevista PianoLink - ${lead.name}`,
                 startDateTime: startDateTime.toISOString(),
                 endDateTime: endDateTime.toISOString(),
                 attendeeEmail: lead.email,
