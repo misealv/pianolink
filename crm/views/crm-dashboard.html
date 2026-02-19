@@ -36,6 +36,7 @@
             display: flex;
             flex-direction: column;
             z-index: 100;
+            overflow-y: auto;
         }
         .sidebar-brand {
             padding: 16px;
@@ -196,6 +197,18 @@
         .btn-sm { padding: 6px 10px; font-size: 12px; }
         .btn-icon { width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: 6px; background: #f5f5f5; border: none; cursor: pointer; }
         .btn-icon:hover { background: #eee; }
+
+        /* === DROPDOWN ACCIONES === */
+        .action-dropdown { position: relative; display: inline-block; }
+        .action-dropdown-btn { width: 32px; height: 32px; border: none; border-radius: 6px; background: #f5f5f5; cursor: pointer; font-size: 18px; line-height: 32px; text-align: center; color: var(--text-secondary); transition: background .15s; }
+        .action-dropdown-btn:hover { background: var(--accent); color: #fff; }
+        .action-dropdown-menu { display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); min-width: 180px; z-index: 200; padding: 4px 0; }
+        .action-dropdown.open .action-dropdown-menu { display: block; }
+        .action-dropdown-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 14px; border: none; background: none; cursor: pointer; font-size: 13px; color: var(--text-primary); text-align: left; transition: background .1s; }
+        .action-dropdown-menu button:hover { background: #f0f0f5; }
+        .action-dropdown-menu button.danger { color: var(--danger); }
+        .action-dropdown-menu button.danger:hover { background: #fff0f0; }
+        .action-dropdown-menu hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
 
         /* === FORMS === */
         .form-group { margin-bottom: 16px; }
@@ -1668,12 +1681,18 @@
                 <td style="${isOverdue ? 'color:var(--danger);font-weight:600;' : ''}">${followUp}</td>
                 <td>${date}</td>
                 <td>
-                    <button class="btn-icon" title="Editar" onclick="editLead('${leadId}', '${lead._id}')">✏️</button>
-                    <button class="btn-icon" title="Pipeline" onclick="showPipelineModal('${lead._id}', '${ref.type}')">📋</button>
-                    <button class="btn-icon" title="Tarea" onclick="showAddTaskModal('${lead._id}')">📌</button>
-                    ${ref.type === 'teacher' ? `<button class="btn-icon" title="Agendar Entrevista" onclick="showScheduleInterview('${leadId}','${esc(name)}','${esc(email)}','${esc(ref.availability?.join(',') || '')}')">📅</button>` : ''}
-                    ${ref.type === 'teacher' ? `<button class="btn-icon" title="Invitar Profesor" onclick="tiInviteFromLead('${leadId}','${lead._id}','${esc(name)}','${esc(email)}','${esc(ref.country||'')}')">🎫</button>` : ''}
-                    <button class="btn-icon" title="Eliminar" onclick="deleteLead('${leadId}', '${esc(name)}')">🗑️</button>
+                    <div class="action-dropdown">
+                        <button class="action-dropdown-btn" onclick="toggleActionMenu(event)">⋮</button>
+                        <div class="action-dropdown-menu">
+                            <button onclick="editLead('${leadId}', '${lead._id}')">✏️ Editar</button>
+                            <button onclick="showPipelineModal('${lead._id}', '${ref.type}')">📋 Pipeline</button>
+                            <button onclick="showAddTaskModal('${lead._id}')">📌 Nueva Tarea</button>
+                            ${ref.type === 'teacher' ? `<button onclick="showScheduleInterview('${leadId}','${esc(name)}','${esc(email)}','${esc(ref.availability?.join(',') || '')}')">📅 Agendar Entrevista</button>` : ''}
+                            ${ref.type === 'teacher' ? `<button onclick="tiInviteFromLead('${leadId}','${lead._id}','${esc(name)}','${esc(email)}','${esc(ref.country||'')}')">🎫 Invitar Profesor</button>` : ''}
+                            <hr>
+                            <button class="danger" onclick="deleteLead('${leadId}', '${esc(name)}')">🗑️ Eliminar</button>
+                        </div>
+                    </div>
                 </td>
             </tr>`;
         }).join('');
@@ -1962,6 +1981,21 @@
         div.textContent = str;
         return div.innerHTML;
     }
+
+    // === DROPDOWN ACCIONES ===
+    function toggleActionMenu(e) {
+        e.stopPropagation();
+        const dropdown = e.currentTarget.closest('.action-dropdown');
+        // Cerrar cualquier otro abierto
+        document.querySelectorAll('.action-dropdown.open').forEach(d => {
+            if (d !== dropdown) d.classList.remove('open');
+        });
+        dropdown.classList.toggle('open');
+    }
+    // Cerrar dropdown al hacer clic fuera
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.action-dropdown.open').forEach(d => d.classList.remove('open'));
+    });
 
     // === EDITAR LEAD ===
     window.editLead = async function(id, crmLeadId) {
