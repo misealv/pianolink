@@ -1983,7 +1983,7 @@
     }
 
     // === DROPDOWN ACCIONES ===
-    function toggleActionMenu(e) {
+    window.toggleActionMenu = function(e) {
         e.stopPropagation();
         const dropdown = e.currentTarget.closest('.action-dropdown');
         // Cerrar cualquier otro abierto
@@ -1991,8 +1991,8 @@
             if (d !== dropdown) d.classList.remove('open');
         });
         dropdown.classList.toggle('open');
-    }
-    // Cerrar dropdown al hacer clic fuera
+    };
+    // Cerrar dropdown al hacer clic fuera o al elegir una opción
     document.addEventListener('click', () => {
         document.querySelectorAll('.action-dropdown.open').forEach(d => d.classList.remove('open'));
     });
