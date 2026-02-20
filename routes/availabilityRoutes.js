@@ -270,6 +270,138 @@ router.delete('/slots/:id', protect, async (req, res) => {
 });
 
 /**
+ * DELETE /api/availability/slots/bulk
+ * Eliminar slots disponibles en lote con filtros
+ * Body: { fromDate, toDate, daysOfWeek?, fromTime?, toTime? }
+ */
+router.delete('/slots/bulk', protect, async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({ message: 'Solo profesores pueden eliminar slots' });
+        }
+
+        const { fromDate, toDate, daysOfWeek, fromTime, toTime } = req.body;
+
+        if (!fromDate || !toDate) {
+            return res.status(400).json({ message: 'Rango de fechas requerido (fromDate, toDate)' });
+        }
+
+        const startRange = new Date(fromDate + 'T00:00:00.000Z');
+        const endRange = new Date(toDate + 'T23:59:59.999Z');
+
+        // Buscar slots disponibles en el rango (solo available, nunca booked)
+        const query = {
+            teacherId: req.user._id,
+            status: 'available',
+            startTime: { $gte: startRange, $lte: endRange }
+        };
+
+        // Obtener candidatos para filtrar por día/hora en JS
+        let candidates = await TimeSlot.find(query).lean();
+
+        // Filtrar por días de la semana si se especificaron
+        if (daysOfWeek && Array.isArray(daysOfWeek) && daysOfWeek.length > 0) {
+            candidates = candidates.filter(s => daysOfWeek.includes(new Date(s.startTime).getDay()));
+        }
+
+        // Filtrar por rango de hora si se especificó
+        if (fromTime) {
+            const [fh, fm] = fromTime.split(':').map(Number);
+            const fromMinutes = fh * 60 + fm;
+            candidates = candidates.filter(s => {
+                const d = new Date(s.startTime);
+                return (d.getHours() * 60 + d.getMinutes()) >= fromMinutes;
+            });
+        }
+        if (toTime) {
+            const [th, tm] = toTime.split(':').map(Number);
+            const toMinutes = th * 60 + tm;
+            candidates = candidates.filter(s => {
+                const d = new Date(s.startTime);
+                return (d.getHours() * 60 + d.getMinutes()) <= toMinutes;
+            });
+        }
+
+        if (candidates.length === 0) {
+            return res.json({ success: true, deleted: 0, message: 'No se encontraron slots con esos filtros' });
+        }
+
+        const ids = candidates.map(s => s._id);
+
+        // Marcar como cancelled en vez de borrar físicamente
+        const result = await TimeSlot.updateMany(
+            { _id: { $in: ids } },
+            { $set: { status: 'cancelled' } }
+        );
+
+        res.json({
+            success: true,
+            deleted: result.modifiedCount,
+            message: `${result.modifiedCount} slots eliminados`
+        });
+
+    } catch (error) {
+        console.error('Error eliminando slots en lote:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
+ * GET /api/availability/slots/bulk-preview
+ * Previsualizar cuántos slots se eliminarían con los filtros dados
+ */
+router.get('/slots/bulk-preview', protect, async (req, res) => {
+    try {
+        const { fromDate, toDate, daysOfWeek, fromTime, toTime } = req.query;
+
+        if (!fromDate || !toDate) {
+            return res.json({ count: 0 });
+        }
+
+        const startRange = new Date(fromDate + 'T00:00:00.000Z');
+        const endRange = new Date(toDate + 'T23:59:59.999Z');
+
+        const query = {
+            teacherId: req.user._id,
+            status: 'available',
+            startTime: { $gte: startRange, $lte: endRange }
+        };
+
+        let candidates = await TimeSlot.find(query).lean();
+
+        // Filtrar por días
+        if (daysOfWeek) {
+            const days = daysOfWeek.split(',').map(Number);
+            candidates = candidates.filter(s => days.includes(new Date(s.startTime).getDay()));
+        }
+
+        // Filtrar por hora
+        if (fromTime) {
+            const [fh, fm] = fromTime.split(':').map(Number);
+            const fromMinutes = fh * 60 + fm;
+            candidates = candidates.filter(s => {
+                const d = new Date(s.startTime);
+                return (d.getHours() * 60 + d.getMinutes()) >= fromMinutes;
+            });
+        }
+        if (toTime) {
+            const [th, tm] = toTime.split(':').map(Number);
+            const toMinutes = th * 60 + tm;
+            candidates = candidates.filter(s => {
+                const d = new Date(s.startTime);
+                return (d.getHours() * 60 + d.getMinutes()) <= toMinutes;
+            });
+        }
+
+        res.json({ count: candidates.length });
+
+    } catch (error) {
+        console.error('Error en preview bulk:', error);
+        res.json({ count: 0 });
+    }
+});
+
+/**
  * POST /api/availability/slots
  * Crear slots manualmente (único o en lote)
  * Body: { slots: [{ date, startTime, endTime }] } o { date, startTime, endTime } para uno solo

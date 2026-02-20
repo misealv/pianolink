@@ -816,6 +816,64 @@
             </div>
         </div>
 
+        <!-- Eliminar Disponibilidad en Lote -->
+        <div class="card">
+            <h2>🗑️ Eliminar Disponibilidad en Lote</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+                ¿Generaste horarios por error? Filtra y elimina muchos slots de una vez. Solo se eliminan slots <strong style="color: #4ade80;">disponibles</strong> (nunca reservados).
+            </p>
+            
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px;">
+                <div class="config-item" style="flex: 1; min-width: 130px;">
+                    <label>Desde fecha</label>
+                    <input type="date" id="bulkDelFromDate" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                </div>
+                <div class="config-item" style="flex: 1; min-width: 130px;">
+                    <label>Hasta fecha</label>
+                    <input type="date" id="bulkDelToDate" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 12px; color: var(--text-muted);">FILTRAR POR DÍAS (vacío = todos)</label>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <label class="day-check"><input type="checkbox" id="bulkDelDay1"> Lun</label>
+                    <label class="day-check"><input type="checkbox" id="bulkDelDay2"> Mar</label>
+                    <label class="day-check"><input type="checkbox" id="bulkDelDay3"> Mié</label>
+                    <label class="day-check"><input type="checkbox" id="bulkDelDay4"> Jue</label>
+                    <label class="day-check"><input type="checkbox" id="bulkDelDay5"> Vie</label>
+                    <label class="day-check"><input type="checkbox" id="bulkDelDay6"> Sáb</label>
+                    <label class="day-check"><input type="checkbox" id="bulkDelDay0"> Dom</label>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px;">
+                <div class="config-item" style="min-width: 100px;">
+                    <label>Hora desde <span style="font-size: 10px; opacity: 0.6;">(opcional)</span></label>
+                    <input type="time" id="bulkDelFromTime" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                </div>
+                <div class="config-item" style="min-width: 100px;">
+                    <label>Hora hasta <span style="font-size: 10px; opacity: 0.6;">(opcional)</span></label>
+                    <input type="time" id="bulkDelToTime" style="width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 6px; color: var(--text-main);">
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-secondary" onclick="previewBulkDelete()" style="height: 42px;">
+                        🔍 Previsualizar
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Preview resultado -->
+            <div id="bulkDeletePreview" style="display: none; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+            </div>
+            
+            <div style="text-align: center;">
+                <button class="btn" id="bulkDeleteBtn" onclick="executeBulkDelete()" disabled style="background: #ef4444; color: white; opacity: 0.5; cursor: not-allowed; padding: 12px 30px; font-size: 15px;">
+                    🗑️ Eliminar Slots
+                </button>
+            </div>
+        </div>
+
         <!-- Próximas Reservas - Vista Calendario Semanal -->
         <div class="card">
             <h2>📅 Mi Calendario de Clases</h2>
@@ -1565,7 +1623,137 @@
             loadCalendarData();
             loadBlockedDates();
             initBlockDatePicker();
+            initBulkDeletePicker();
         });
+
+        // ==================== BULK DELETE ====================
+        let bulkDeleteCount = 0;
+
+        function initBulkDeletePicker() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('bulkDelFromDate').setAttribute('min', today);
+            document.getElementById('bulkDelFromDate').value = today;
+            const fourWeeks = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            document.getElementById('bulkDelToDate').setAttribute('min', today);
+            document.getElementById('bulkDelToDate').value = fourWeeks;
+        }
+
+        function getBulkDeleteFilters() {
+            const fromDate = document.getElementById('bulkDelFromDate').value;
+            const toDate = document.getElementById('bulkDelToDate').value;
+            const fromTime = document.getElementById('bulkDelFromTime').value;
+            const toTime = document.getElementById('bulkDelToTime').value;
+
+            // Días seleccionados
+            const daysOfWeek = [];
+            for (let i = 0; i <= 6; i++) {
+                const cb = document.getElementById(`bulkDelDay${i}`);
+                if (cb && cb.checked) daysOfWeek.push(i);
+            }
+
+            return { fromDate, toDate, fromTime, toTime, daysOfWeek };
+        }
+
+        async function previewBulkDelete() {
+            const { fromDate, toDate, fromTime, toTime, daysOfWeek } = getBulkDeleteFilters();
+            const previewEl = document.getElementById('bulkDeletePreview');
+            const btn = document.getElementById('bulkDeleteBtn');
+
+            if (!fromDate || !toDate) {
+                showToast('Selecciona un rango de fechas', true);
+                return;
+            }
+
+            previewEl.style.display = 'block';
+            previewEl.style.background = 'rgba(255,255,255,0.05)';
+            previewEl.innerHTML = '<span style="color: var(--text-muted);">Calculando...</span>';
+
+            try {
+                let url = `/api/availability/slots/bulk-preview?fromDate=${fromDate}&toDate=${toDate}`;
+                if (daysOfWeek.length > 0) url += `&daysOfWeek=${daysOfWeek.join(',')}`;
+                if (fromTime) url += `&fromTime=${fromTime}`;
+                if (toTime) url += `&toTime=${toTime}`;
+
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                bulkDeleteCount = data.count || 0;
+
+                if (bulkDeleteCount === 0) {
+                    previewEl.style.background = 'rgba(255,255,255,0.05)';
+                    previewEl.innerHTML = '<span style="color: var(--text-muted);">No se encontraron slots disponibles con esos filtros.</span>';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                } else {
+                    previewEl.style.background = 'rgba(239, 68, 68, 0.15)';
+                    previewEl.innerHTML = `
+                        <span style="font-size: 28px; font-weight: 800; color: #ef4444;">${bulkDeleteCount}</span>
+                        <br><span style="color: #f87171;">slots disponibles serán eliminados</span>
+                        <br><span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: inline-block;">Las clases ya reservadas no se verán afectadas</span>
+                    `;
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                }
+            } catch (error) {
+                console.error('Error preview:', error);
+                previewEl.innerHTML = '<span style="color: #ef4444;">Error al consultar</span>';
+            }
+        }
+
+        async function executeBulkDelete() {
+            if (bulkDeleteCount === 0) return;
+
+            if (!confirm(`¿Estás seguro de eliminar ${bulkDeleteCount} slots disponibles?\n\nEsta acción no se puede deshacer.`)) {
+                return;
+            }
+
+            const { fromDate, toDate, fromTime, toTime, daysOfWeek } = getBulkDeleteFilters();
+            const btn = document.getElementById('bulkDeleteBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Eliminando...';
+
+            try {
+                const res = await fetch('/api/availability/slots/bulk', {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        fromDate, toDate, fromTime, toTime,
+                        daysOfWeek: daysOfWeek.length > 0 ? daysOfWeek : undefined
+                    })
+                });
+
+                const result = await res.json();
+
+                if (res.ok) {
+                    showToast(`✓ ${result.deleted} slots eliminados`);
+                    // Resetear preview
+                    const previewEl = document.getElementById('bulkDeletePreview');
+                    previewEl.style.display = 'none';
+                    bulkDeleteCount = 0;
+                    btn.textContent = '🗑️ Eliminar Slots';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                    // Recargar calendario
+                    loadCalendarData();
+                } else {
+                    showToast(result.message || 'Error al eliminar', true);
+                    btn.textContent = '🗑️ Eliminar Slots';
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error bulk delete:', error);
+                showToast('Error de conexión', true);
+                btn.textContent = '🗑️ Eliminar Slots';
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>
