@@ -18,6 +18,7 @@ const GlobalConfig = require('../models/GlobalConfig');
 const User = require('../models/User');
 const MpCredentials = require('../models/MpCredentials');
 const DiscountService = require('../services/DiscountService');
+const PayPalService = require('../services/PayPalService');
 
 // Intentar importar MercadoPago SDK si disponible
 let MercadoPagoConfig, Preference;
@@ -194,6 +195,9 @@ router.post('/checkout/founder', protect, teacherOrAdmin, async (req, res) => {
  * POST /api/membership/activate
  * Activar plan después de pago exitoso (callback desde MP/PayPal).
  * Body: { plan, paymentId, provider }
+ * 
+ * Para PayPal: paymentId = orderId (token del URL de retorno).
+ * Se captura la orden antes de activar para asegurar el cobro real.
  */
 router.post('/activate', protect, teacherOrAdmin, async (req, res) => {
     try {
@@ -203,26 +207,81 @@ router.post('/activate', protect, teacherOrAdmin, async (req, res) => {
             return res.status(400).json({ error: 'Plan inválido' });
         }
 
+        if (!paymentId) {
+            return res.status(400).json({ error: 'ID de pago requerido' });
+        }
+
         const teacher = await User.findById(req.user._id);
         if (!teacher) return res.status(404).json({ error: 'Profesor no encontrado' });
 
-        // Activar plan vía PlanPermissionService
         const options = {
             paymentProvider: provider || 'mercadopago'
         };
 
-        if (provider === 'mercadopago') {
-            options.mpSubscriptionId = paymentId;
+        // === PAYPAL: Capturar orden antes de activar ===
+        if (provider === 'paypal') {
+            console.log(`[MembershipCheckout] 🔄 Capturando orden PayPal ${paymentId} para ${teacher.email}`);
+
+            if (!PayPalService.isConfigured()) {
+                return res.status(503).json({ error: 'PayPal no está configurado' });
+            }
+
+            try {
+                // Primero verificar estado actual de la orden
+                const orderDetails = await PayPalService.getOrderDetails(paymentId);
+                console.log(`[MembershipCheckout] 📦 Estado orden PayPal: ${orderDetails.status}`);
+
+                if (orderDetails.status === 'COMPLETED') {
+                    // Ya fue capturada previamente (ej: webhook o retry)
+                    const captureId = orderDetails.purchase_units?.[0]?.payments?.captures?.[0]?.id;
+                    console.log(`[MembershipCheckout] ✅ Orden ya capturada: ${captureId}`);
+                    options.subscriptionId = captureId || paymentId;
+
+                } else if (orderDetails.status === 'APPROVED') {
+                    // Capturar el pago ahora
+                    const capture = await PayPalService.captureOrder(paymentId);
+
+                    if (!capture.success) {
+                        console.error(`[MembershipCheckout] ❌ Error capturando PayPal:`, capture);
+                        return res.status(402).json({ 
+                            error: 'No se pudo completar el cobro en PayPal. Intenta de nuevo.',
+                            status: capture.status
+                        });
+                    }
+
+                    console.log(`[MembershipCheckout] ✅ PayPal capturado: ${capture.captureId} - $${capture.amount} ${capture.currency}`);
+                    options.subscriptionId = capture.captureId || paymentId;
+
+                } else {
+                    // Estado inesperado (CREATED, VOIDED, etc.)
+                    console.error(`[MembershipCheckout] ❌ Orden PayPal en estado inesperado: ${orderDetails.status}`);
+                    return res.status(400).json({ 
+                        error: `El pago no fue aprobado en PayPal (estado: ${orderDetails.status}). Intenta de nuevo.`
+                    });
+                }
+
+                // Guardar referencia PayPal en teacherData
+                options.paypalSubscriptionId = options.subscriptionId;
+
+            } catch (paypalError) {
+                console.error('[MembershipCheckout] ❌ Error PayPal capture:', paypalError.message);
+                return res.status(500).json({ 
+                    error: 'Error al verificar el pago con PayPal. Intenta de nuevo en unos minutos.'
+                });
+            }
+
         } else {
-            options.paypalSubscriptionId = paymentId;
+            // MercadoPago: se valida via webhook, aquí solo guardamos la referencia
+            options.mpSubscriptionId = paymentId;
         }
 
+        // Activar plan vía PlanPermissionService
         await PlanPermissionService.activatePlan(teacher._id, plan, options);
 
         // Recargar datos actualizados
         const updated = await User.findById(teacher._id).select('teacherData.plan teacherData.permissions teacherData.subscriptionStatus teacherData.subscriptionExpiresAt');
 
-        console.log(`[MembershipCheckout] ✅ Plan ${plan} activado para ${teacher.email} (${provider})`);
+        console.log(`[MembershipCheckout] ✅ Plan ${plan} activado para ${teacher.email} (${provider}) - Pago verificado`);
 
         res.json({
             success: true,
