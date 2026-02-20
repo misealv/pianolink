@@ -43,3 +43,7 @@ coverage/
 DEPLOY_INSTRUCCIONES.txt
 configure-secrets.sh
 deploy-fly.sh
+
+# Credenciales OAuth y datos extraídos
+secrets/
+data/
