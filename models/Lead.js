@@ -65,6 +65,13 @@ const leadSchema = mongoose.Schema({
         default: ''
     },
     
+    // Link directo a WhatsApp (wa.me/...)
+    whatsappLink: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    
     // Trayectoria del profesor (campo de postulación)
     background: {
         type: String,
@@ -95,7 +102,7 @@ const leadSchema = mongoose.Schema({
     // Metadata de captura
     source: {
         type: String,
-        enum: ['landing', 'referral', 'social', 'kit_v2_checkout', 'other'],
+        enum: ['landing', 'referral', 'social', 'kit_v2_checkout', 'ex_alumno_resonancias', 'other'],
         default: 'landing'
     },
     utmSource: { type: String, default: '' },
@@ -111,6 +118,23 @@ const leadSchema = mongoose.Schema({
     
     // Notas internas
     notes: { type: String, default: '' },
+    
+    // === CAMPOS EXTENDIDOS (Resonancias / Segmentos especiales) ===
+    fuente: { type: String, default: '' },              // ej: 'ex_alumno_resonancias'
+    prioridad: { type: String, default: '' },            // 'alta', 'media', 'guitarra_abierto_piano', 'menor_ahora_adulto'
+    rol: {
+        type: String,
+        enum: ['prospecto_estudiante', 'prospecto_profesor', null],
+        default: null
+    },
+    estadoPipeline: {
+        type: String,
+        enum: ['nuevo', 'contactado', 'en_seguimiento', 'convertido', 'descartado', null],
+        default: null
+    },
+    cursoOriginal: { type: String, default: '' },        // ej: 'Piano', 'Guitarra'
+    anioInscripcionResonancias: { type: String, default: '' }, // ej: '2016', '2019', 's/f'
+    lista: { type: String, default: '' },                // ej: 'ex_estudiantes_resonancias'
     
     // Sistema de seguimiento
     nextFollowUp: { 

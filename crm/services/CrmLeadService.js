@@ -111,7 +111,7 @@ class CrmLeadService {
     static async getById(crmLeadId) {
         try {
             const lead = await CrmLead.findById(crmLeadId)
-                .populate('leadRef', 'name email phone type status availability country background')
+                .populate('leadRef', 'name email whatsapp whatsappLink type status availability country background')
                 .lean();
 
             if (!lead) {
@@ -131,7 +131,7 @@ class CrmLeadService {
     static async getByLeadRef(leadRefId) {
         try {
             const lead = await CrmLead.findOne({ leadRef: leadRefId })
-                .populate('leadRef', 'name email phone type status availability country background')
+                .populate('leadRef', 'name email whatsapp whatsappLink type status availability country background')
                 .lean();
 
             if (!lead) {
@@ -152,6 +152,7 @@ class CrmLeadService {
         try {
             const {
                 segment,
+                lista,
                 lifecycleStage,
                 tags,
                 channel,
@@ -167,6 +168,7 @@ class CrmLeadService {
             const query = {};
 
             if (segment) query.segment = segment;
+            if (lista) query.lista = lista;
             if (lifecycleStage) query.lifecycleStage = lifecycleStage;
             if (tags) query.tags = { $in: Array.isArray(tags) ? tags : [tags] };
             if (channel) query['attribution.firstTouch.channel'] = channel;
@@ -191,7 +193,7 @@ class CrmLeadService {
 
             const [leads, total] = await Promise.all([
                 CrmLead.find(query)
-                    .populate('leadRef', 'name email phone type status createdAt availability country background')
+                    .populate('leadRef', 'name email whatsapp whatsappLink type status createdAt availability country background')
                     .sort(sort)
                     .skip(skip)
                     .limit(Number(limit))
@@ -238,7 +240,7 @@ class CrmLeadService {
                 crmLeadId,
                 { $set: updateData },
                 { new: true, runValidators: true }
-            ).populate('leadRef', 'name email phone type status availability country background');
+            ).populate('leadRef', 'name email whatsapp whatsappLink type status availability country background');
 
             if (!lead) {
                 return { success: false, message: 'CrmLead no encontrado', status: 404 };
@@ -682,7 +684,7 @@ class CrmLeadService {
     static async getTopLeads(limit = 10) {
         try {
             const leads = await CrmLead.find({ score: { $gt: 0 } })
-                .populate('leadRef', 'name email type')
+                .populate('leadRef', 'name email whatsapp whatsappLink type')
                 .sort({ score: -1 })
                 .limit(limit)
                 .lean();

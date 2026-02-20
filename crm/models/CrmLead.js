@@ -132,9 +132,12 @@ const crmLeadSchema = new mongoose.Schema({
     tags: [{ type: String, trim: true }],
     segment: { 
         type: String, 
-        enum: ['cold', 'warm', 'hot', 'customer', 'churned'],
+        enum: ['cold', 'warm', 'hot', 'customer', 'churned', 'ex_estudiantes_resonancias'],
         default: 'cold'
     },
+
+    // Lista/segmento especial independiente del pipeline principal
+    lista: { type: String, default: '', trim: true },
 
     // === TAREAS DE SEGUIMIENTO ===
     tasks: [taskSchema],

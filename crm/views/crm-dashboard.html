@@ -443,6 +443,10 @@
                         <button class="filter-btn" data-type="teacher">👨‍🏫 Profesores</button>
                         <button class="filter-btn" data-type="client">👨‍🎓 Clientes</button>
                         <span style="margin-left:auto;"></span>
+                        <select class="filter-select" id="filterLista">
+                            <option value="">Todas las listas</option>
+                            <option value="ex_estudiantes_resonancias">🎹 Ex Estudiantes Resonancias</option>
+                        </select>
                         <select class="filter-select" id="filterStatus">
                             <option value="">Todas las etapas</option>
                             <option value="lead">Nuevos</option>
@@ -465,13 +469,14 @@
                                     <th>Origen</th>
                                     <th>Score</th>
                                     <th>Etapa</th>
+                                    <th>WhatsApp</th>
                                     <th>Seguimiento</th>
                                     <th>Fecha</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="leadsTableAll">
-                                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando leads...</td></tr>
+                                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando leads...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -509,13 +514,14 @@
                                     <th>Origen</th>
                                     <th>Score</th>
                                     <th>Etapa</th>
+                                    <th>WhatsApp</th>
                                     <th>Seguimiento</th>
                                     <th>Fecha</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="leadsTableProfesores">
-                                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
+                                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -553,13 +559,14 @@
                                     <th>Origen</th>
                                     <th>Score</th>
                                     <th>Etapa</th>
+                                    <th>WhatsApp</th>
                                     <th>Seguimiento</th>
                                     <th>Fecha</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="leadsTableClientes">
-                                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
+                                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1575,7 +1582,7 @@
         }
 
         // Cargar leads
-        const leadsRes = await apiFetch('/leads?limit=100');
+        const leadsRes = await apiFetch('/leads?limit=500');
         if (leadsRes?.success) {
             allLeads = leadsRes.data || [];
             
@@ -1645,7 +1652,7 @@
         const tbody = document.getElementById(tableId);
         if (!tbody) return;
         if (leads.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">Sin leads en esta categoría</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Sin leads en esta categoría</td></tr>';
             return;
         }
         tbody.innerHTML = leads.map(lead => {
@@ -1668,6 +1675,11 @@
             const isOverdue = lead.nextFollowUp && new Date(lead.nextFollowUp) < new Date();
             
             const leadId = ref._id || lead._id;
+            // WhatsApp: usar whatsappLink o construir desde whatsapp
+            const waLink = ref.whatsappLink || (ref.whatsapp ? `https://wa.me/${ref.whatsapp.replace(/[^0-9]/g, '')}` : '');
+            const waBtn = waLink
+                ? `<a href="${esc(waLink)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#25D366;color:#fff;border-radius:6px;font-size:12px;text-decoration:none;font-weight:500;" title="Abrir WhatsApp">💬 WhatsApp</a>`
+                : '';
             return `<tr>
                 <td>
                     <div class="lead-name">${esc(name)}</div>
@@ -1678,6 +1690,7 @@
                 <td>${esc(origin)}</td>
                 <td><strong>${score}</strong></td>
                 <td><span class="badge ${stage.css}">${stage.label}</span></td>
+                <td>${waBtn}</td>
                 <td style="${isOverdue ? 'color:var(--danger);font-weight:600;' : ''}">${followUp}</td>
                 <td>${date}</td>
                 <td>
@@ -2903,6 +2916,13 @@
 
     function applyLeadFilters(tableId, typeFilter) {
         let filtered = typeFilter ? allLeads.filter(l => l.leadRef?.type === typeFilter) : allLeads;
+
+        // Filtro por lista (Resonancias, etc.)
+        const listaEl = document.getElementById('filterLista');
+        const listaValue = listaEl?.value;
+        if (listaValue) {
+            filtered = filtered.filter(l => l.lista === listaValue);
+        }
         
         // Filtro por etapa de pipeline
         const statusSelect = typeFilter === 'teacher' ? 'filterStatusProf' : typeFilter === 'client' ? 'filterStatusClient' : 'filterStatus';
@@ -2964,6 +2984,11 @@
                 const [type, table] = map[id];
                 applyLeadFilters(table, type);
             });
+        });
+
+        // Filtro por lista (Resonancias, etc.)
+        document.getElementById('filterLista')?.addEventListener('change', () => {
+            applyLeadFilters('leadsTableAll', null);
         });
 
         // Filtros por búsqueda (con debounce)
