@@ -173,6 +173,38 @@ router.post('/generate', protect, async (req, res) => {
             return res.status(400).json({ message: 'Máximo 336 días (48 semanas) por generación' });
         }
         
+        // Obtener plantilla para saber qué días están activos
+        const template = await AvailabilityTemplate.findById(templateId);
+        if (!template) {
+            return res.status(404).json({ message: 'Plantilla no encontrada' });
+        }
+        
+        const activeDays = template.weeklySlots
+            .filter(s => s.isActive !== false)
+            .map(s => s.dayOfWeek);
+        
+        // Cancelar slots available de días que ya NO están en la plantilla
+        // (solo los generados por esta plantilla, no los manuales)
+        const allAvailable = await TimeSlot.find({
+            teacherId: req.user._id,
+            templateId: templateId,
+            status: 'available',
+            startTime: { $gte: from, $lte: to }
+        }).lean();
+        
+        const orphanIds = allAvailable
+            .filter(s => !activeDays.includes(new Date(s.startTime).getDay()))
+            .map(s => s._id);
+        
+        let orphansCancelled = 0;
+        if (orphanIds.length > 0) {
+            const result = await TimeSlot.updateMany(
+                { _id: { $in: orphanIds } },
+                { $set: { status: 'cancelled' } }
+            );
+            orphansCancelled = result.modifiedCount;
+        }
+        
         const slots = await AvailabilityService.generateSlotsFromTemplate(
             templateId,
             from,
@@ -182,6 +214,7 @@ router.post('/generate', protect, async (req, res) => {
         res.json({
             success: true,
             slotsCreated: slots.length,
+            slotsRemoved: orphansCancelled,
             slots
         });
     } catch (error) {

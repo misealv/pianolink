@@ -1030,7 +1030,11 @@
                 const result = await res.json();
                 
                 if (res.ok) {
-                    showToast(`✓ ${result.slotsCreated} horarios generados para todo el año`);
+                    let msg = `✓ ${result.slotsCreated} horarios generados`;
+                    if (result.slotsRemoved > 0) {
+                        msg += ` · ${result.slotsRemoved} de días desactivados eliminados`;
+                    }
+                    showToast(msg);
                     // Recargar el calendario
                     await loadCalendarData();
                 } else {
