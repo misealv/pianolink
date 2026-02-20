@@ -241,38 +241,10 @@ router.post('/slots/block', protect, async (req, res) => {
 });
 
 /**
- * DELETE /api/availability/slots/:id
- * Eliminar/cancelar un slot específico
- */
-router.delete('/slots/:id', protect, async (req, res) => {
-    try {
-        const slot = await TimeSlot.findOne({
-            _id: req.params.id,
-            teacherId: req.user._id
-        });
-        
-        if (!slot) {
-            return res.status(404).json({ message: 'Slot no encontrado' });
-        }
-        
-        if (slot.status === 'booked') {
-            return res.status(400).json({ message: 'No puedes eliminar un slot con reserva activa' });
-        }
-        
-        slot.status = 'cancelled';
-        await slot.save();
-        
-        res.json({ success: true, message: 'Slot cancelado' });
-    } catch (error) {
-        console.error('Error cancelando slot:', error);
-        res.status(500).json({ message: error.message });
-    }
-});
-
-/**
  * DELETE /api/availability/slots/bulk
  * Eliminar slots disponibles en lote con filtros
  * Body: { fromDate, toDate, daysOfWeek?, fromTime?, toTime? }
+ * NOTA: Debe estar ANTES de /slots/:id para que Express no capture "bulk" como :id
  */
 router.delete('/slots/bulk', protect, async (req, res) => {
     try {
@@ -398,6 +370,35 @@ router.get('/slots/bulk-preview', protect, async (req, res) => {
     } catch (error) {
         console.error('Error en preview bulk:', error);
         res.json({ count: 0 });
+    }
+});
+
+/**
+ * DELETE /api/availability/slots/:id
+ * Eliminar/cancelar un slot específico
+ */
+router.delete('/slots/:id', protect, async (req, res) => {
+    try {
+        const slot = await TimeSlot.findOne({
+            _id: req.params.id,
+            teacherId: req.user._id
+        });
+        
+        if (!slot) {
+            return res.status(404).json({ message: 'Slot no encontrado' });
+        }
+        
+        if (slot.status === 'booked') {
+            return res.status(400).json({ message: 'No puedes eliminar un slot con reserva activa' });
+        }
+        
+        slot.status = 'cancelled';
+        await slot.save();
+        
+        res.json({ success: true, message: 'Slot cancelado' });
+    } catch (error) {
+        console.error('Error cancelando slot:', error);
+        res.status(500).json({ message: error.message });
     }
 });
 
