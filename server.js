@@ -212,6 +212,9 @@ app.use('/api/membership', require('./routes/membershipCheckout')); // Checkout 
 app.use('/api/config', require('./routes/configRoutes'));           // Config pública: /api/config/early-bird
 app.use('/api/early-bird', require('./routes/earlyBirdCheckout'));  // Checkout early bird kit
 
+// === GMAIL OAUTH — Extracción leads GetResponse (rutas admin temporales) ===
+app.use('/admin/gmail', require('./routes/gmailOAuthRoutes'));
+
 // === MÓDULO CRM ===
 app.use('/api/crm', require('./crm')); // CRM: leads, campañas, conversiones, dashboard
 app.use('/l', require('./crm/routes/crmLandingPublicRoutes')); // Landings públicas: /l/:slug
