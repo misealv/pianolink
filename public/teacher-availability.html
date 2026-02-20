@@ -1032,7 +1032,7 @@
                 if (res.ok) {
                     showToast(`✓ ${result.slotsCreated} horarios generados para todo el año`);
                     // Recargar el calendario
-                    await loadCalendar();
+                    await loadCalendarData();
                 } else {
                     showToast(result.message || 'Error generando horarios', true);
                 }
