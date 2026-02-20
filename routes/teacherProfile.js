@@ -431,7 +431,7 @@ router.get('/catalog', async (req, res) => {
         }
         
         const teachers = await User.find(query)
-            .select('name lastName slug branding teacherData.hourlyRate teacherData.packages teacherData.profile teacherData.earnings teacherData.plan teacherData.subscriptionStatus teacherData.isFounder timezone')
+            .select('name lastName slug branding teacherData.hourlyRate teacherData.packages teacherData.profile teacherData.earnings teacherData.plan teacherData.subscriptionStatus isFoundingMember timezone')
             .lean();
 
         // Obtener disponibilidad de todos los profesores de una sola consulta

@@ -146,7 +146,7 @@ router.get('/dashboard-data', protect, teacherOrAdmin, async (req, res) => {
             activatedAt: td.planActivatedAt,
             daysUntilExpiry,
             paymentProvider: td.membershipPaymentProvider,
-            isFounder: teacher.isFounder || teacher.isFoundingMember || false,
+            isFounder: teacher.isFoundingMember || false,
             country: teacher.country,
             commission: {
                 platform: currentPlanConfig.platformCommission,

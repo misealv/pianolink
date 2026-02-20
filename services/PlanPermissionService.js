@@ -119,6 +119,12 @@ class PlanPermissionService {
                 teacher.teacherData.subscriptionExpiresAt = expiresAt;
             }
 
+            // Si el plan es founder, asegurar que isFoundingMember esté marcado
+            // (marca permanente de por vida — nunca se borra)
+            if (newPlan === 'founder') {
+                teacher.isFoundingMember = true;
+            }
+
             // Guardar proveedor de pago si se especifica
             if (options.paymentProvider) {
                 teacher.teacherData.membershipPaymentProvider = options.paymentProvider;

@@ -95,7 +95,7 @@ router.post('/register/:token', async (req, res) => {
             }
         }
 
-        // Crear el profesor con beneficios de fundador
+        // Crear el profesor con plan free (elegible para founder tras pago)
         const user = await User.create({
             name,
             email,
@@ -104,19 +104,17 @@ router.post('/register/:token', async (req, res) => {
             country: country || '',
             whatsapp: whatsapp || '',
             role: 'teacher',
-            isFounder: true,
-            isFoundingMember: true,
+            isFoundingMember: true, // Marca permanente: elegible para precio fundador al pagar
             teacherData: {
-                subscriptionStatus: 'active',
-                plan: 'founder',
+                subscriptionStatus: 'trial',
+                plan: 'free',
                 planActivatedAt: new Date(),
-                subscriptionExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 año inicial
                 hourlyRate: 2500, // $25 USD default
                 trialPrice: 1500, // $15 USD clase de prueba
                 permissions: {
-                    canInvitePrivateStudents: true,
-                    hasPriorityQueue: true,
-                    maxActiveStudents: -1 // Ilimitado
+                    canInvitePrivateStudents: false,
+                    hasPriorityQueue: false,
+                    maxActiveStudents: -1
                 }
             },
             branding: {
@@ -164,26 +162,26 @@ router.post('/register/:token', async (req, res) => {
             });
             await emailService.sendSafe({
                 to: user.email,
-                subject: '🎹 ¡Bienvenido a PianoLink, Profesor Fundador!',
+                subject: '🎹 ¡Bienvenido a PianoLink! Activa tu plan Fundador',
                 html
             });
         } catch (e) {
             console.warn('[FounderInvite] Error enviando email de bienvenida:', e.message);
         }
 
-        console.log(`[FounderInvite] ✅ Profesor fundador registrado: ${user.email}`);
+        console.log(`[FounderInvite] ✅ Profesor registrado (plan free, elegible founder): ${user.email}`);
 
         res.status(201).json({
             success: true,
-            message: '¡Cuenta creada exitosamente! Ya eres Profesor Fundador.',
+            message: '¡Cuenta creada exitosamente! Activa tu plan Fundador desde el dashboard.',
             user: {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
                 role: user.role,
                 slug: user.slug,
-                isFounder: true,
-                plan: 'founder'
+                isFoundingMember: true,
+                plan: 'free'
             }
         });
 

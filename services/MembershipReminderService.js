@@ -120,9 +120,11 @@ class MembershipReminderService {
      * Enviar recordatorio según el tipo
      */
     async sendReminder(teacher, type, daysUntilExpiry) {
-        const isFounder = teacher.isFoundingMember || false;
-        const planName = isFounder ? 'Founder' : 'Premium';
-        const price = isFounder ? 10 : 19;
+        // Determinar tipo de plan desde teacherData.plan (source of truth)
+        const teacherPlan = teacher.teacherData?.plan || 'free';
+        const isFounderPlan = teacherPlan === 'founder';
+        const planName = isFounderPlan ? 'Founder' : 'Premium';
+        const price = isFounderPlan ? 10 : 19;
         const renewUrl = 'https://pianolink.net/dashboard.html';
 
         let subject, title, message, urgency, ctaText;
@@ -214,7 +216,7 @@ class MembershipReminderService {
                             <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 25px;">
                                 <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Precio mensual</div>
                                 <div style="color: white; font-size: 36px; font-weight: 800;">$${price} USD</div>
-                                ${isFounder ? '<div style="color: #fbbf24; font-size: 11px; margin-top: 5px;">⭐ Precio exclusivo fundador</div>' : ''}
+                                ${isFounderPlan ? '<div style="color: #fbbf24; font-size: 11px; margin-top: 5px;">⭐ Precio exclusivo fundador</div>' : ''}
                             </div>
                             
                             <!-- CTA -->

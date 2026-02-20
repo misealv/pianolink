@@ -64,9 +64,10 @@ router.get('/resolve-provider', protect, teacherOrAdmin, async (req, res) => {
 router.get('/founder-slots', async (req, res) => {
     try {
         const MAX_FOUNDERS = 10;
+        // Contar profesores marcados como founding member (límite de por vida)
         const currentFounders = await User.countDocuments({
             role: 'teacher',
-            $or: [{ isFounder: true }, { isFoundingMember: true }]
+            isFoundingMember: true
         });
         res.json({
             success: true,
@@ -133,7 +134,7 @@ router.post('/checkout/premium', protect, teacherOrAdmin, async (req, res) => {
 /**
  * POST /api/membership/checkout/founder
  * Crea preferencia de pago para membresía Fundador ($10 USD/mes).
- * Solo accesible si el profesor tiene isFounder o isFoundingMember.
+ * Disponible para cualquier profesor mientras haya cupos (máx 10).
  * Body: { returnUrl?: string }
  */
 router.post('/checkout/founder', protect, teacherOrAdmin, async (req, res) => {
@@ -141,18 +142,14 @@ router.post('/checkout/founder', protect, teacherOrAdmin, async (req, res) => {
         const teacher = await User.findById(req.user._id);
         if (!teacher) return res.status(404).json({ error: 'Profesor no encontrado' });
 
-        // Solo fundadores pueden acceder a este checkout
-        if (!teacher.isFounder && !teacher.isFoundingMember) {
-            return res.status(403).json({ error: 'Solo profesores fundadores pueden acceder a este plan' });
-        }
-
-        // Verificar cupos disponibles
+        // Verificar cupos: máximo 10 fundadores en toda la plataforma
         const MAX_FOUNDERS = 10;
         const currentFounders = await User.countDocuments({
             role: 'teacher',
-            'teacherData.plan': 'founder'
+            isFoundingMember: true
         });
-        if (currentFounders >= MAX_FOUNDERS) {
+        // Si ya es founding member, no bloquear (ya se contó en el límite)
+        if (currentFounders >= MAX_FOUNDERS && !teacher.isFoundingMember) {
             return res.status(400).json({ error: 'Los 10 cupos de fundador ya están ocupados' });
         }
 
@@ -266,7 +263,7 @@ router.get('/status', protect, teacherOrAdmin, async (req, res) => {
             activatedAt: td.planActivatedAt,
             daysUntilExpiry,
             paymentProvider: td.membershipPaymentProvider,
-            isFounder: teacher.isFounder || teacher.isFoundingMember || false,
+            isFounder: teacher.isFoundingMember || false,
             country: teacher.country
         });
     } catch (error) {

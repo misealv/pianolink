@@ -1420,17 +1420,7 @@
             </div>
         </div>
 
-        <!-- Banner de Modo Prueba -->
-        <div id="testModeBanner" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #60a5fa;">
-            <div style="color: white; font-size: 11px; font-weight: 700; margin-bottom: 4px;">🧪 MODO PRUEBA</div>
-            <div style="color: rgba(255,255,255,0.9); font-size: 9px; line-height: 1.4;">
-                Usa tarjeta de prueba Stripe:<br>
-                <strong>4242 4242 4242 4242</strong>
-            </div>
-            <button onclick="toggleTestInfo()" style="margin-top: 6px; background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 10px; border-radius: 4px; font-size: 9px; cursor: pointer;">
-                ℹ️ Más info
-            </button>
-        </div>
+
 
         <!-- 🔔 BANNER DE RENOVACIÓN DE MEMBRESÍA -->
         <div id="renewalBanner" style="display: none; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 10px; padding: 14px; margin-bottom: 10px; border: 2px solid #fbbf24; animation: pulse-border 2s infinite;">
@@ -3643,14 +3633,30 @@
             btnUpgrade.style.display = 'block';
             btnRenew.style.display = 'none';
             if (data.isFounder) {
-                btnUpgrade.textContent = `⭐ Activar Plan Fundador — $${membershipPricing.founder}/mes`;
+                // Founding member inactivo: puede reactivar su plan founder directamente
+                btnUpgrade.textContent = `⭐ Reactivar Plan Fundador — $${membershipPricing.founder}/mes`;
                 btnUpgrade.onclick = () => handleMembershipCheckout('founder');
             } else {
-                btnUpgrade.textContent = `⚡ Upgrade a Premium — $${membershipPricing.regular}/mes`;
+                // Profesor normal: ir a pricing donde elige Premium o Founder (si hay cupos)
+                btnUpgrade.textContent = '⚡ Ver Planes y Precios';
+                btnUpgrade.onclick = () => window.location.href = '/pricing';
             }
         } else if (['expired', 'cancelled', 'past_due'].includes(data.subscriptionStatus)) {
             btnUpgrade.style.display = 'none';
             btnRenew.style.display = 'block';
+            // Personalizar texto según si es founder o premium
+            if (data.isFounder && plan === 'founder') {
+                btnRenew.textContent = '⭐ Reactivar Plan Fundador';
+            } else {
+                btnRenew.textContent = '🔄 Renovar Membresía';
+            }
+            btnRenew.onclick = () => handleMembershipCheckout(plan);
+        } else if (data.subscriptionStatus === 'trial') {
+            // Plan asignado pero aún no pagado — mostrar botón de pago
+            const planLabel = { premium: 'Premium', founder: 'Fundador' }[plan] || plan;
+            btnUpgrade.style.display = 'none';
+            btnRenew.style.display = 'block';
+            btnRenew.textContent = `💳 Activar Plan ${planLabel}`;
             btnRenew.onclick = () => handleMembershipCheckout(plan);
         } else {
             // Plan activo: no mostrar botones de upgrade
@@ -4032,26 +4038,7 @@
         }
     }
     
-    // Función para mostrar/ocultar info de tarjetas de prueba
-    function toggleTestInfo() {
-        const message = `🧪 TARJETAS DE PRUEBA STRIPE
 
-✅ Tarjeta que siempre funciona:
-Número: 4242 4242 4242 4242
-CVV: 123
-Fecha: 12/34 (cualquier fecha futura)
-
-⚠️ Con autenticación 3D Secure:
-Número: 4000 0025 0000 3155
-
-❌ Que siempre falla:
-Número: 4000 0000 0000 9995
-
-💡 Estos pagos NO generan cargos reales.
-El sistema está en modo TEST.`;
-
-        alert(message);
-    }
     
     // Ejecutar activación de membresía pendiente al cargar
     // Esperar a que todo esté listo antes de intentar activar

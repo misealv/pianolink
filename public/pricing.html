@@ -595,13 +595,18 @@
             const btn = document.getElementById(btnId);
             if (btn) btn.style.display = 'none';
 
-            // Si es founder, mostrar botón founder y ocultar locked
-            if (currentUser.isFounder) {
-                document.getElementById('btnFounder').style.display = 'block';
-                document.getElementById('founderLocked').style.display = 'none';
-                if (plan === 'founder') {
-                    document.getElementById('btnFounder').style.display = 'none';
-                }
+            // Mostrar botón founder si hay cupos disponibles (cualquier profesor puede ser founder)
+            // El botón se oculta si cupos=0 (lo maneja loadFounderSlots)
+            const btnFounder = document.getElementById('btnFounder');
+            const founderLocked = document.getElementById('founderLocked');
+            if (plan === 'founder') {
+                // Ya es founder activo
+                if (btnFounder) btnFounder.style.display = 'none';
+                if (founderLocked) founderLocked.style.display = 'none';
+            } else {
+                // Mostrar botón si hay cupos (loadFounderSlots lo oculta si no hay)
+                if (btnFounder) btnFounder.style.display = 'block';
+                if (founderLocked) founderLocked.style.display = 'none';
             }
 
             // Si ya es premium, cambiar botón a "Gestionar"

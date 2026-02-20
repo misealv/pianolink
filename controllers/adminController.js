@@ -1361,7 +1361,7 @@ exports.registerTeacherWithCode = async (req, res) => {
             whatsapp: whatsapp || application.whatsapp || '',
             country: country || application.country || '',
             isFoundingMember: true,
-            isFounder: true,
+            // isFounder se deprecó: se usa isFoundingMember + teacherData.plan
             branding: {
                 primaryColor: '#00B8CC',
                 backgroundColor: '#1a1a2e'

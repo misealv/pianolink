@@ -213,12 +213,17 @@ const userSchema = mongoose.Schema({
     default: null
   },
 
+  // Marca permanente de por vida: "este profesor alcanzó a ser uno de los 10 fundadores".
+  // Se usa junto con teacherData.plan para determinar estado actual.
+  // Si isFoundingMember=true y plan='free' → fundador inactivo (puede reactivar).
+  // Si isFoundingMember=true y plan='founder' + status='active' → fundador activo.
   isFoundingMember: { 
     type: Boolean, 
     default: false 
   },
 
-  // Profesor fundador
+  // DEPRECADO: usar isFoundingMember + teacherData.plan en su lugar.
+  // Se mantiene por retrocompatibilidad con datos existentes.
   isFounder: {
     type: Boolean,
     default: false

@@ -777,11 +777,17 @@ router.post('/create-teacher-subscription', protect, async (req, res) => {
             });
         }
 
-        // Verificar si es profesor fundador
-        if (!user.isFounder) {
-            return res.status(403).json({ 
-                success: false, 
-                error: 'Solo profesores fundadores pueden acceder a esta membresía' 
+        // Verificar cupos disponibles (máximo 10 fundadores en toda la plataforma)
+        const MAX_FOUNDER_SLOTS = 10;
+        const activeFounders = await User.countDocuments({
+            role: 'teacher',
+            isFoundingMember: true
+        });
+        // Si ya es founding member, no bloquear (ya se contó)
+        if (activeFounders >= MAX_FOUNDER_SLOTS && !user.isFoundingMember) {
+            return res.status(409).json({
+                success: false,
+                error: `Los ${MAX_FOUNDER_SLOTS} cupos de Profesor Fundador están agotados`
             });
         }
 

@@ -315,7 +315,7 @@ router.get('/teacher-plans', async (req, res) => {
         const total = await User.countDocuments(query);
 
         const teachers = await User.find(query)
-            .select('name email country isFounder isFoundingMember teacherData.plan teacherData.subscriptionStatus teacherData.subscriptionExpiresAt teacherData.planActivatedAt teacherData.permissions teacherData.membershipPaymentProvider teacherData.earnings createdAt')
+            .select('name email country isFoundingMember teacherData.plan teacherData.subscriptionStatus teacherData.subscriptionExpiresAt teacherData.planActivatedAt teacherData.permissions teacherData.membershipPaymentProvider teacherData.earnings createdAt')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(parseInt(limit));
@@ -342,7 +342,7 @@ router.get('/teacher-plans', async (req, res) => {
                 name: t.name,
                 email: t.email,
                 country: t.country,
-                isFounder: t.isFounder || t.isFoundingMember,
+                isFounder: t.isFoundingMember || false,
                 plan: t.teacherData?.plan || 'free',
                 subscriptionStatus: t.teacherData?.subscriptionStatus || 'trial',
                 expiresAt: t.teacherData?.subscriptionExpiresAt,

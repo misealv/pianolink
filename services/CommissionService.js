@@ -26,7 +26,7 @@ class CommissionService {
      */
     static async calculateCommission(teacherId, studentSource = 'platform') {
         // Obtener profesor
-        const teacher = await User.findById(teacherId).select('teacherData.plan teacherData.subscriptionStatus teacherData.subscriptionExpiresAt teacherData.isFounder isFoundingMember');
+        const teacher = await User.findById(teacherId).select('teacherData.plan teacherData.subscriptionStatus teacherData.subscriptionExpiresAt isFoundingMember');
         
         if (!teacher) {
             throw new Error(`Profesor no encontrado: ${teacherId}`);
@@ -153,12 +153,9 @@ class CommissionService {
         // Free no requiere membresía activa
         if (plan === 'free') return 'free';
 
-        // Founder: verificar flags existentes como respaldo
+        // Founder: verificar elegibilidad con isFoundingMember
         if (plan === 'founder') {
-            const isFounder = td.isFounder || teacher.isFoundingMember;
-            if (isFounder) {
-                // Founders mantienen plan si tienen flag activo
-                // Aun si membresía expiró, la renovación es diferente
+            if (teacher.isFoundingMember) {
                 const status = td.subscriptionStatus;
                 if (status === 'active' || status === 'trial') return 'founder';
                 // Grace period: si expiró hace menos de 7 días
@@ -167,7 +164,7 @@ class CommissionService {
                     if (daysSinceExpiry <= 7) return 'founder';
                 }
             }
-            // Si no tiene flags de founder o expiró, tratar como free
+            // Si no es founding member o membresía expiró, tratar como free
             return 'free';
         }
 
