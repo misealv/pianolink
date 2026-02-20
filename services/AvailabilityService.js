@@ -77,11 +77,11 @@ class AvailabilityService {
         while (slotStart.clone().add(duration, 'minutes').isSameOrBefore(dayEnd)) {
             const slotEnd = slotStart.clone().add(duration, 'minutes');
             
-            // Verificar si ya existe este slot (evitar duplicados y re-creación de cancelados)
+            // Verificar si ya existe un slot activo (evitar duplicados)
             const existingSlot = await TimeSlot.findOne({
                 teacherId: template.teacherId,
                 startTime: slotStart.utc().toDate(),
-                status: { $in: ['available', 'pending', 'booked', 'cancelled'] }
+                status: { $in: ['available', 'pending', 'booked'] }
             });
             
             if (!existingSlot) {
