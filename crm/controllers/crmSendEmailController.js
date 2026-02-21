@@ -39,9 +39,20 @@ exports.sendEmail = async (req, res) => {
         const resendService = getInstance();
 
         // Convertir texto plano a HTML (preservar saltos de línea)
+        // Convertir URLs de texto plano a <a> tags para que sean clickeables y trackeables
+        function linkifyUrls(text) {
+            return text.replace(
+                /(https?:\/\/[^\s<>"')\]]+)/gi,
+                '<a href="$1" style="color:#6c5ce7;">$1</a>'
+            );
+        }
+
         const htmlBody = body
             .split('\n')
-            .map(line => `<p style="margin:0 0 8px 0;font-family:Georgia,serif;font-size:15px;line-height:1.6;color:#333;">${line || '&nbsp;'}</p>`)
+            .map(line => {
+                const linked = linkifyUrls(line);
+                return `<p style="margin:0 0 8px 0;font-family:Georgia,serif;font-size:15px;line-height:1.6;color:#333;">${linked || '&nbsp;'}</p>`;
+            })
             .join('');
 
         // Enviar con from fijo
