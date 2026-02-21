@@ -385,20 +385,167 @@
         .tl-summary .tls-item { display:flex; align-items:center; gap:4px; }
         .tl-summary .tls-item strong { font-size:16px; color:var(--text-primary); }
 
-        /* === AJUSTES RESPONSIVE TABLA PIANO === */
+        /* === HAMBURGER BUTTON (solo visible en mobile) === */
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+        .hamburger:hover { background: #f0f0f5; }
+
+        /* === SIDEBAR OVERLAY (mobile) === */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.4);
+            z-index: 99;
+        }
+        .sidebar-overlay.show { display: block; }
+
+        /* ============================================================
+           RESPONSIVE — TABLETS (≤1024px)
+           ============================================================ */
+        @media (max-width: 1024px) {
+            :root { --sidebar-w: 200px; }
+            .content { padding: 16px; }
+            th, td { padding: 10px 10px; font-size: 13px; }
+            .kpi-card h3 { font-size: 22px; }
+            .grid-2 { grid-template-columns: 1fr; }
+            .grid-3 { grid-template-columns: 1fr 1fr; }
+            .funnel-label { width: 110px; font-size: 12px; }
+        }
+
+        /* ============================================================
+           RESPONSIVE — MOBILE (≤768px)
+           ============================================================ */
         @media (max-width: 768px) {
-            .quick-btns { flex-wrap: wrap; }
-            .activity-bar { font-size: 12px; gap: 8px; }
-            .activity-bar .act-stat { padding: 3px 8px; }
-            .result-menu { right: auto; left: 0; }
-            .email-modal { max-width: 95vw; margin: 10px; }
+            /* Hamburger visible */
+            .hamburger { display: block; }
+
+            /* Sidebar como drawer */
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform .25s ease;
+                width: 260px;
+                z-index: 200;
+            }
+            .sidebar.open { transform: translateX(0); }
+
+            /* Main sin margin */
+            .main { margin-left: 0; }
+
+            /* Header compacto */
+            .header { padding: 0 12px; gap: 8px; }
+            .header h1 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50vw; }
+            .header-btn { padding: 6px 10px; font-size: 12px; }
+
+            /* Content padding reducido */
+            .content { padding: 12px; }
+
+            /* KPI grid — 2 columnas en mobile */
+            .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .kpi-card { padding: 14px; gap: 10px; }
+            .kpi-card h3 { font-size: 20px; }
+            .kpi-icon { width: 38px; height: 38px; font-size: 18px; }
+
+            /* Card headers se apilan si falta espacio */
+            .card-header { flex-wrap: wrap; gap: 8px; padding: 12px 14px; }
+            .card-header h2 { font-size: 14px; }
+            .card-body { padding: 12px; }
+
+            /* Filters — apilados */
+            .filters { flex-direction: column; align-items: stretch; gap: 8px; }
+            .filter-search { width: 100% !important; max-width: 100% !important; }
+            .filter-select { width: 100%; }
+            .filter-btn { font-size: 12px; padding: 6px 12px; }
+            .quality-toggle { margin-left: 0; }
+
+            /* Tablas — scroll horizontal + columnas compactas */
+            .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -12px; padding: 0 12px; }
+            table { min-width: 700px; }
+            th, td { padding: 8px 8px; font-size: 12px; white-space: nowrap; }
+            th { font-size: 10px; }
+            .lead-name { font-size: 13px; }
+            .lead-email { font-size: 11px; }
+
+            /* Botones rápidos */
+            .quick-btns { flex-wrap: wrap; gap: 3px; }
+            .qb { width: 28px; height: 28px; font-size: 13px; }
+
+            /* Activity bar compacta */
+            .activity-bar { font-size: 11px; gap: 6px; padding: 10px 12px; }
+            .activity-bar .act-stat { padding: 3px 8px; font-size: 11px; }
+            .activity-bar .act-stat .act-num { font-size: 15px; }
+            .activity-bar .act-title { font-size: 12px; }
+
+            /* Email dashboard compacto */
+            .email-dash { padding: 12px 14px; }
+            .email-dash-stats { gap: 10px; font-size: 12px; }
+            .email-dash-stats .eds strong { font-size: 13px; }
+
+            /* Hot banner */
+            .hot-banner { flex-wrap: wrap; padding: 10px 14px; font-size: 13px; gap: 8px; }
+
+            /* Result menu */
+            .result-menu { right: auto; left: 0; min-width: 190px; }
+
+            /* Modales full-width en mobile */
+            .modal-content { max-width: 96vw; margin: 8px; border-radius: 10px; }
+            .email-modal { max-width: 96vw; margin: 8px; border-radius: 10px; }
+            .email-modal-hdr { padding: 14px 16px; }
+            .email-modal-hdr h3 { font-size: 15px; }
+            .email-modal-body { padding: 14px 16px; }
+            .email-field textarea { min-height: 160px; }
+            .email-modal-footer { padding: 12px 16px; flex-wrap: wrap; }
+            .tl-modal { max-width: 96vw; }
+
+            /* Grid layouts */
+            .grid-2 { grid-template-columns: 1fr; gap: 16px; }
+            .grid-3 { grid-template-columns: 1fr; gap: 12px; }
+
+            /* Funnel */
+            .funnel-label { width: 80px; font-size: 11px; padding-right: 8px; }
+            .funnel-bar { font-size: 12px; padding: 0 10px; height: 32px; }
+
+            /* Toast */
+            .toast-container { top: 10px; right: 10px; left: 10px; }
+            .toast { max-width: 100%; font-size: 13px; padding: 10px 14px; }
+
+            /* Landing cards */
+            .landing-card .preview { height: 100px; }
+
+            /* Action dropdown */
+            .action-dropdown-menu { min-width: 160px; right: 0; }
+        }
+
+        /* ============================================================
+           RESPONSIVE — SMALL MOBILE (≤480px)
+           ============================================================ */
+        @media (max-width: 480px) {
+            .kpi-grid { grid-template-columns: 1fr; gap: 8px; }
+            .kpi-card { padding: 12px; }
+            .kpi-card h3 { font-size: 18px; }
+            .header h1 { font-size: 14px; max-width: 40vw; }
+            table { min-width: 600px; }
+            .activity-bar { flex-direction: column; align-items: flex-start; }
+            .email-dash-stats { flex-direction: column; gap: 6px; }
         }
     </style>
 </head>
 <body>
 
+<!-- ========== SIDEBAR OVERLAY (mobile) ========== -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
 <!-- ========== SIDEBAR ========== -->
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
         <div class="logo">🎹</div>
         <span>PianoLink CRM</span>
@@ -458,7 +605,10 @@
 <!-- ========== MAIN ========== -->
 <div class="main">
     <header class="header">
-        <h1 id="pageTitle">Dashboard</h1>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Menú">☰</button>
+            <h1 id="pageTitle">Dashboard</h1>
+        </div>
         <div class="header-actions">
             <button class="header-btn outline" id="btnRefresh">↻ Actualizar</button>
         </div>
@@ -2200,6 +2350,9 @@ hola@pianolink.net`
                 // Actualizar título
                 const title = link.textContent.trim();
                 document.getElementById('pageTitle').textContent = title;
+
+                // Cerrar sidebar en mobile al navegar
+                closeSidebarOnNav();
 
                 // Cargar datos de la sección si es necesario
                 loadSectionData(sectionId);
@@ -4038,6 +4191,27 @@ hola@pianolink.net`
         }
 
         renderLeadsTable(filtered, tableId);
+    }
+
+    // === SIDEBAR MOBILE TOGGLE ===
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('show');
+        // Prevenir scroll del body cuando sidebar está abierta
+        document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+    }
+    function closeSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.remove('open');
+        overlay.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+    // Cerrar sidebar al navegar (en mobile)
+    function closeSidebarOnNav() {
+        if (window.innerWidth <= 768) closeSidebar();
     }
 
     // === INIT ===
