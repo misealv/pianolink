@@ -40,6 +40,7 @@ const crmInteractionSchema = new mongoose.Schema({
     // === METADATA CONTEXTUAL ===
     metadata: {
         pageUrl: { type: String, default: '' },
+        emailId: { type: String, default: '' },  // ID de Resend para vincular webhooks
         emailSubject: { type: String, default: '' },
         emailSequenceId: { type: mongoose.Schema.Types.ObjectId, ref: 'CrmSequence', default: null },
         emailStepNumber: { type: Number, default: null },
@@ -78,6 +79,7 @@ crmInteractionSchema.index({ leadRef: 1, timestamp: -1 });
 crmInteractionSchema.index({ type: 1, timestamp: -1 });
 crmInteractionSchema.index({ 'metadata.campaignId': 1 });
 crmInteractionSchema.index({ channel: 1 });
+crmInteractionSchema.index({ 'metadata.emailId': 1 }, { sparse: true }); // Lookup rápido para webhooks Resend
 
 // TTL: eliminar interacciones de más de 2 años (costo de storage)
 crmInteractionSchema.index({ timestamp: 1 }, { expireAfterSeconds: 63072000 }); // 730 días
