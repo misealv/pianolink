@@ -84,10 +84,12 @@ class CrmResendService {
                 ? processedHtml.replace(/\{\{unsubscribe_url\}\}/g, this._getUnsubscribeUrl(to))
                 : processedHtml;
 
+            const fromAddress = options.from || this.config.from;
+
             const response = await this.resend.emails.send({
-                from: this.config.from,
+                from: fromAddress,
                 to: [to],
-                reply_to: this.config.replyTo,
+                reply_to: options.replyTo || this.config.replyTo,
                 subject: subject,
                 html: finalHtml,
                 headers: {

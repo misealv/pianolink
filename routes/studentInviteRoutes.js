@@ -233,7 +233,7 @@ router.post('/preview', protect, adminOnly, async (req, res) => {
             success: true,
             recipientName: leadName,
             recipientEmail: leadEmail,
-            subject: `🎹 ¡Invitación especial a PianoLink! Tu Kit de Bienvenida gratis`,
+            subject: 'Te invito a una clase de piano gratis',
             body: _getDefaultEmailBody(leadName)
         });
     } catch (error) {
@@ -285,7 +285,7 @@ router.post('/send', protect, adminOnly, async (req, res) => {
         const inviteUrl = `${baseUrl}/student-invite/${invite.token}`;
 
         // Construir email: usar cuerpo personalizado o default
-        const emailSubject = customSubject || '🎹 ¡Invitación especial a PianoLink! Tu Kit de Bienvenida gratis';
+        const emailSubject = customSubject || 'Te invito a una clase de piano gratis';
         const emailBody = customBody || _getDefaultEmailBody(invite.recipientName);
         const html = _buildInviteEmailHtml(invite.recipientName, inviteUrl, emailBody);
 
@@ -300,7 +300,11 @@ router.post('/send', protect, adminOnly, async (req, res) => {
                     invite.recipientEmail,
                     emailSubject,
                     html,
-                    { nombre: invite.recipientName }
+                    {
+                        nombre: invite.recipientName,
+                        from: 'Miguel Antonio Sepulveda <hola@pianolink.net>',
+                        replyTo: 'hola@pianolink.net'
+                    }
                 );
             }
         } catch (emailErr) {
@@ -423,16 +427,15 @@ router.delete('/revoke/:id', protect, adminOnly, async (req, res) => {
  * Cuerpo de texto default del email (editable desde el CRM)
  */
 function _getDefaultEmailBody(name) {
-    return `¡Hola ${name}! 🎉
+    return `Hola ${name} 🎹
 
-Has sido seleccionado para recibir el Kit de Bienvenida de PianoLink totalmente GRATIS.
+Soy Miguel Antonio, fundador de PianoLink.
 
-Esto incluye:
-✅ Entrevista de bienvenida personalizada
-✅ Sesión de Setup técnico (te ayudamos a configurar todo)
-✅ Una clase de prueba con un profesor real
+Vi que recibiste mi mensaje y quería escribirte directamente. Te invito a una clase de prueba gratuita de 30 minutos con un profesor real — antes de empezar te ayudamos a configurar todo para que la experiencia sea perfecta.
 
-Solo necesitas crear tu cuenta (nombre, email y contraseña) y estarás listo para comenzar.`;
+Sin compromiso. Solo quiero que lo vivas.
+
+¿Tienes piano o teclado en casa? ¿Cuándo tienes un rato esta semana?`;
 }
 
 /**
@@ -440,13 +443,13 @@ Solo necesitas crear tu cuenta (nombre, email y contraseña) y estarás listo pa
  * Recibe el cuerpo como texto plano y lo convierte a HTML.
  */
 function _buildInviteEmailHtml(name, inviteUrl, bodyText) {
-    // Convertir texto plano a párrafos HTML
+    // Convertir texto plano a párrafos HTML — estilo email personal, no marketing
     const bodyHtml = (bodyText || _getDefaultEmailBody(name))
         .split('\n')
         .map(line => {
             const trimmed = line.trim();
-            if (!trimmed) return '';
-            return `<p style="color:#555;font-size:16px;line-height:1.6;margin:0 0 12px;">${trimmed}</p>`;
+            if (!trimmed) return '<br>';
+            return `<p style="color:#333;font-size:15px;line-height:1.7;margin:0 0 4px;font-family:Georgia,'Times New Roman',serif;">${trimmed}</p>`;
         })
         .join('\n');
 
@@ -457,46 +460,22 @@ function _buildInviteEmailHtml(name, inviteUrl, bodyText) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 20px;">
+<body style="margin:0;padding:0;background:#ffffff;font-family:Georgia,'Times New Roman',serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;padding:20px;">
         <tr>
-            <td align="center">
-                <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
-                    <!-- Header -->
-                    <tr>
-                        <td style="background:linear-gradient(135deg,#ff764d,#ff5722);padding:30px 40px;text-align:center;">
-                            <h1 style="color:#ffffff;margin:0;font-size:28px;">🎹 PianoLink</h1>
-                            <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;font-size:14px;">Invitación especial</p>
-                        </td>
-                    </tr>
-                    <!-- Body -->
-                    <tr>
-                        <td style="padding:40px;">
-                            ${bodyHtml}
-                            <!-- CTA Button -->
-                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;">
-                                <tr>
-                                    <td align="center">
-                                        <a href="${inviteUrl}" style="display:inline-block;background:#ff764d;color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:8px;font-size:18px;font-weight:bold;letter-spacing:0.5px;">
-                                            Crear mi cuenta gratis →
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
-                            <p style="color:#999;font-size:13px;text-align:center;margin:20px 0 0;">
-                                Este enlace expira en 7 días.
-                            </p>
-                        </td>
-                    </tr>
-                    <!-- Footer -->
-                    <tr>
-                        <td style="background:#fafafa;padding:20px 40px;text-align:center;border-top:1px solid #eee;">
-                            <p style="color:#999;font-size:12px;margin:0;">
-                                PianoLink — Aprende piano online con profesores reales 🎶
-                            </p>
-                        </td>
-                    </tr>
-                </table>
+            <td style="max-width:560px;padding:20px 0;">
+                ${bodyHtml}
+                <br>
+                <a href="${inviteUrl}" style="display:inline-block;background:#ff764d;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:16px;font-weight:bold;font-family:'Segoe UI',Arial,sans-serif;">
+                    🎹 Crear mi cuenta gratis
+                </a>
+                <p style="color:#999;font-size:12px;margin:24px 0 0;font-family:'Segoe UI',Arial,sans-serif;">
+                    Este enlace expira en 7 días.
+                </p>
+                <br>
+                <p style="color:#333;font-size:15px;line-height:1.7;margin:0;font-family:Georgia,'Times New Roman',serif;">Un abrazo,</p>
+                <p style="color:#333;font-size:15px;line-height:1.7;margin:0;font-family:Georgia,'Times New Roman',serif;"><strong>Miguel Antonio Sepulveda</strong></p>
+                <p style="color:#999;font-size:13px;margin:2px 0 0;font-family:'Segoe UI',Arial,sans-serif;">Fundador, PianoLink</p>
             </td>
         </tr>
     </table>
