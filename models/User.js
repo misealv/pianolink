@@ -178,7 +178,7 @@ const userSchema = mongoose.Schema({
     // De dónde viene el alumno
     source: {
       type: String,
-      enum: ['platform', 'invited'],  // plataforma o invitado por profesor
+      enum: ['platform', 'invited', 'gift_invite'],  // plataforma, invitado por profesor, o invitación gratuita CRM
       default: 'platform'
     },
     
