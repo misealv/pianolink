@@ -2,7 +2,7 @@
 
 > **Fecha:** 2026-02-21
 > **Autor:** Claude Opus 4.6 + Miguel Antonio
-> **Estado:** Diseño aprobado, pendiente implementación Fase 1
+> **Estado:** ✅ Completado — Fases 1, 2 y 3 implementadas y desplegadas
 
 ---
 
@@ -277,19 +277,19 @@ Bloque `#emailDashboard` arriba de la tabla:
 
 | Fase | Tareas | Complejidad | Estado |
 |---|---|---|---|
-| **1A** | Modelo `EmailTrackingEvent` | Baja | ⬜ Pendiente |
-| **1B** | Campos `emailEngagement` en CrmLead | Baja | ⬜ Pendiente |
-| **1C** | Controller webhook Resend events | Media | ⬜ Pendiente |
-| **1D** | Registrar ruta webhook | Baja | ⬜ Pendiente |
-| **1E** | Actualizar crmSendEmailController | Baja | ⬜ Pendiente |
-| **1F** | Indicadores visuales en tablas | Media | ⬜ Pendiente |
-| **1G** | Configurar webhook en Resend Dashboard | Manual | ⬜ Pendiente (Miguel) |
-| **2A** | Tasks automáticas (reglas 1-4) | Media | ⬜ Fase 2 |
-| **2B** | Banner "leads calientes" | Baja | ⬜ Fase 2 |
-| **2C** | Dashboard de métricas | Media | ⬜ Fase 2 |
-| **2D** | Timeline email en detalle del lead | Alta | ⬜ Fase 2 |
-| **3A** | Tracking de links propio (/t/{hash}) | Media | ⬜ Fase 3 |
-| **3B** | Cron diario de seguimiento | Baja | ⬜ Fase 3 |
+| **1A** | Modelo `EmailTrackingEvent` | Baja | ✅ Completado |
+| **1B** | Campos `emailEngagement` en CrmLead | Baja | ✅ Completado |
+| **1C** | Controller webhook Resend events | Media | ✅ Completado |
+| **1D** | Registrar ruta webhook | Baja | ✅ Completado |
+| **1E** | Actualizar crmSendEmailController | Baja | ✅ Completado |
+| **1F** | Indicadores visuales en tablas | Media | ✅ Completado |
+| **1G** | Configurar webhook en Resend Dashboard | Manual | ✅ Completado |
+| **2A** | Tasks automáticas (reglas 1-4) | Media | ✅ Completado |
+| **2B** | Banner "leads calientes" | Baja | ✅ Completado |
+| **2C** | Dashboard de métricas | Media | ✅ Completado |
+| **2D** | Timeline email en detalle del lead | Alta | ✅ Completado |
+| **3A** | Tracking de links propio (/t/{hash}) | Media | ✅ Completado |
+| **3B** | Cron diario de seguimiento | Baja | ✅ Completado |
 
 ---
 
