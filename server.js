@@ -218,6 +218,7 @@ app.use('/admin/gmail', require('./routes/gmailOAuthRoutes'));
 // === MÓDULO CRM ===
 app.use('/api/crm', require('./crm')); // CRM: leads, campañas, conversiones, dashboard
 app.use('/l', require('./crm/routes/crmLandingPublicRoutes')); // Landings públicas: /l/:slug
+app.use('/t', require('./crm/routes/crmLinkTrackingRoutes')); // Link tracking: /t/:hash
 
 // Ruta para página de éxito del Welcome Kit (sin .html)
 app.get('/welcome-kit/success', (req, res) => {

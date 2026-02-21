@@ -173,6 +173,12 @@ exports.receiveResendEvent = async (req, res) => {
                 break;
 
             case 'clicked':
+                // Ignorar clicks en nuestros propios links trackeados (/t/) — ya procesados por crmLinkTrackingRoutes
+                const clickedLink = data.click?.link || data.url || '';
+                if (clickedLink.includes('/t/') && clickedLink.includes('pianolink')) {
+                    console.log(`[Email Tracking] Click en link propio /t/, ya procesado — ignorando`);
+                    break;
+                }
                 eng.totalClicked = (eng.totalClicked || 0) + 1;
                 eng.lastClickedAt = new Date();
                 eng.engagementLevel = 'super_hot';
@@ -183,7 +189,7 @@ exports.receiveResendEvent = async (req, res) => {
                     crmLead.scoreHistory.push({
                         date: new Date(),
                         change: 20,
-                        reason: `Click en link de email: ${data.click?.link || 'link'}`
+                        reason: `Click en link de email: ${clickedLink || 'link'}`
                     });
                 }
                 break;

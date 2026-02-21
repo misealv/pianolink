@@ -8,6 +8,15 @@ const CrmLead = require('../models/CrmLead');
 const Lead = require('../../models/Lead');
 const CrmInteraction = require('../models/CrmInteraction');
 
+// Link tracking (Fase 3A)
+let linkTrackingService = null;
+function getLinkTracking() {
+    if (!linkTrackingService) {
+        try { linkTrackingService = require('../services/CrmLinkTrackingService'); } catch (e) { /* no disponible */ }
+    }
+    return linkTrackingService;
+}
+
 /**
  * POST /api/crm/send-email
  * Body: { to, subject, body, crmLeadId }
@@ -37,14 +46,28 @@ exports.sendEmail = async (req, res) => {
 
         // Enviar con from fijo
         let sendResult;
+        let trackedLinkIds = []; // IDs de links trackeados (Fase 3A)
         if (resendService.isConfigured()) {
             try {
+                // Wrap links con tracking si está disponible (Fase 3A)
+                let finalHtml = htmlBody;
+                const lt = getLinkTracking();
+                if (lt && crmLeadId) {
+                    try {
+                        const wrapped = await lt.wrapLinks(htmlBody, crmLeadId);
+                        finalHtml = wrapped.html;
+                        trackedLinkIds = wrapped.linkIds || [];
+                    } catch (wrapErr) {
+                        console.warn('[CRM Email] Link wrapping falló, enviando sin tracking:', wrapErr.message);
+                    }
+                }
+
                 const response = await resendService.resend.emails.send({
                     from: 'Miguel Antonio Sepúlveda Alvarez <hola@pianolink.net>',
                     to: [to],
                     reply_to: 'hola@pianolink.net',
                     subject: subject,
-                    html: htmlBody,
+                    html: finalHtml,
                     text: body
                 });
                 sendResult = { success: true, id: response.data?.id };
@@ -141,6 +164,16 @@ exports.sendEmail = async (req, res) => {
                         });
                     } catch (trackErr) {
                         console.warn('[CRM Email] ⚠️ Error creando tracking event:', trackErr.message);
+                    }
+
+                    // Vincular TrackedLinks con resendEmailId e interactionId (Fase 3A)
+                    if (trackedLinkIds.length > 0) {
+                        try {
+                            const lt = getLinkTracking();
+                            if (lt) await lt.assignResendId(trackedLinkIds, sendResult.id, interaction._id);
+                        } catch (ltErr) {
+                            console.warn('[CRM Email] ⚠️ Error vinculando tracked links:', ltErr.message);
+                        }
                     }
                 }
             } catch (dbErr) {
