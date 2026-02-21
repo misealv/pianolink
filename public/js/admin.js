@@ -6983,6 +6983,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const ebRegular = document.getElementById('eb-regular-price');
     if (ebPrice) ebPrice.addEventListener('input', updateEarlyBirdPreview);
     if (ebRegular) ebRegular.addEventListener('input', updateEarlyBirdPreview);
+
+    // Cargar dashboard automáticamente al iniciar (el módulo ya está visible por defecto)
+    loadDashboard();
 });
 
 /**
