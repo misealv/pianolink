@@ -25,6 +25,9 @@ router.use('/emails', require('./routes/crmEmailCampaignRoutes'));
 // === Inbox — Emails entrantes (respuestas de leads) ===
 router.use('/inbound', require('./routes/crmInboundEmailRoutes'));
 
+// === Envío individual de email desde CRM ===
+router.use('/send-email', require('./routes/crmSendEmailRoutes'));
+
 // === Configuración (Meta Pixel, etc.) ===
 router.use('/config', require('./routes/crmConfigRoutes'));
 

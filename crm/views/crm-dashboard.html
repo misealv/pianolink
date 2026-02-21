@@ -300,12 +300,51 @@
         .quality-toggle input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
         .quality-toggle:hover { color: var(--text-primary); }
 
+        /* === MODAL EMAIL === */
+        .email-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1100; align-items:center; justify-content:center; }
+        .email-modal-overlay.show { display:flex; }
+        .email-modal { background:#fff; border-radius:12px; width:100%; max-width:640px; max-height:92vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.25); }
+        .email-modal-hdr { display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--border); }
+        .email-modal-hdr h3 { font-size:17px; font-weight:600; display:flex; align-items:center; gap:8px; }
+        .email-modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-secondary); padding:4px 8px; border-radius:4px; }
+        .email-modal-close:hover { background:#f0f0f0; }
+        .email-modal-body { padding:20px 24px; }
+        .email-field { margin-bottom:14px; }
+        .email-field label { display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:5px; text-transform:uppercase; letter-spacing:.5px; }
+        .email-field .ef-readonly { padding:9px 12px; background:#f8f9fa; border:1px solid var(--border); border-radius:6px; font-size:13px; color:var(--text-secondary); }
+        .email-field input, .email-field select { width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:6px; font-size:14px; }
+        .email-field input:focus, .email-field select:focus, .email-field textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(108,92,231,.12); }
+        .email-field textarea { width:100%; min-height:220px; padding:12px; border:1px solid var(--border); border-radius:6px; font-size:14px; font-family:Georgia,serif; line-height:1.7; resize:vertical; }
+        .email-modal-footer { display:flex; justify-content:flex-end; gap:10px; padding:16px 24px; border-top:1px solid var(--border); }
+        .email-modal-footer .btn-send { background:var(--accent); color:#fff; border:none; padding:10px 24px; border-radius:6px; font-size:14px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:8px; }
+        .email-modal-footer .btn-send:hover { background:var(--accent-hover); }
+        .email-modal-footer .btn-send:disabled { opacity:.6; cursor:not-allowed; }
+        .email-modal-footer .btn-send .spinner { display:none; width:16px; height:16px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
+        .email-modal-footer .btn-send.loading .spinner { display:inline-block; }
+        .email-modal-footer .btn-send.loading .btn-text { display:none; }
+        .email-modal-footer .btn-cancel { background:#fff; color:var(--text-primary); border:1px solid var(--border); padding:10px 20px; border-radius:6px; font-size:14px; cursor:pointer; }
+        .email-modal-footer .btn-cancel:hover { background:#f5f5f5; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+
+        /* === TOAST NOTIFICACIÓN === */
+        .toast-container { position:fixed; top:20px; right:20px; z-index:2000; display:flex; flex-direction:column; gap:8px; }
+        .toast { padding:14px 20px; border-radius:8px; color:#fff; font-size:14px; font-weight:500; box-shadow:0 8px 24px rgba(0,0,0,.15); animation:toastIn .3s ease-out; max-width:380px; }
+        .toast.success { background:#00b894; }
+        .toast.error { background:#d63031; }
+        .toast.info { background:#0984e3; }
+        @keyframes toastIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+
+        /* === EMAIL MODAL ERROR === */
+        .email-error { display:none; padding:10px 14px; background:#fff0f0; border:1px solid #ffcccc; border-radius:6px; color:#d63031; font-size:13px; margin-bottom:14px; }
+        .email-error.show { display:block; }
+
         /* === AJUSTES RESPONSIVE TABLA PIANO === */
         @media (max-width: 768px) {
             .quick-btns { flex-wrap: wrap; }
             .activity-bar { font-size: 12px; gap: 8px; }
             .activity-bar .act-stat { padding: 3px 8px; }
             .result-menu { right: auto; left: 0; }
+            .email-modal { max-width: 95vw; margin: 10px; }
         }
     </style>
 </head>
@@ -1546,6 +1585,57 @@
     </div>
 </div>
 
+<!-- ========== MODAL ENVIAR EMAIL ========== -->
+<div class="email-modal-overlay" id="emailModalOverlay">
+    <div class="email-modal">
+        <div class="email-modal-hdr">
+            <h3>✉️ Enviar email</h3>
+            <button class="email-modal-close" onclick="closeEmailModal()">&times;</button>
+        </div>
+        <div class="email-modal-body">
+            <div class="email-error" id="emailError"></div>
+            <input type="hidden" id="emCrmLeadId">
+            <input type="hidden" id="emLeadName">
+            <input type="hidden" id="emIsExAlumno">
+            <div class="email-field">
+                <label>De</label>
+                <div class="ef-readonly">Miguel Antonio Sepúlveda Alvarez &lt;hola@pianolink.net&gt;</div>
+            </div>
+            <div class="email-field">
+                <label>Para</label>
+                <div class="ef-readonly" id="emTo"></div>
+            </div>
+            <div class="email-field">
+                <label>Plantilla</label>
+                <select id="emTemplate" onchange="onTemplateChange()">
+                    <option value="ex_alumno">🎹 Ex alumno Resonancias</option>
+                    <option value="busco_piano">🔍 Buscó clases de piano en la web</option>
+                    <option value="suscriptor">📬 Suscriptor newsletter</option>
+                    <option value="general">📧 Contacto general</option>
+                </select>
+            </div>
+            <div class="email-field">
+                <label>Asunto</label>
+                <input type="text" id="emSubject">
+            </div>
+            <div class="email-field">
+                <label>Cuerpo</label>
+                <textarea id="emBody"></textarea>
+            </div>
+        </div>
+        <div class="email-modal-footer">
+            <button class="btn-cancel" onclick="closeEmailModal()">Cancelar</button>
+            <button class="btn-send" id="emBtnSend" onclick="sendEmailFromModal()">
+                <span class="spinner"></span>
+                <span class="btn-text">Enviar</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
 <script>
 /* =======================================================================
  *  PianoLink CRM v2.0 — Dashboard Rediseñado
@@ -1595,15 +1685,22 @@
         if (to) to.textContent = dailyActivity.wa + dailyActivity.email + dailyActivity.result;
     }
 
-    // === MEJORA 6: Filtro de calidad — dominios basura ===
+    // === MEJORA 6: Filtro de calidad — dominios basura (ampliado) ===
     const JUNK_PATTERNS = [
-        /@booking\.com$/i, /@facebookmail\.com$/i, /@marketplace\.facebook\.com$/i,
-        /noreply@/i, /no-reply@/i, /donotreply@/i, /mailer-daemon@/i,
+        /@booking\.com$/i, /@facebookmail\.com$/i, /@marketplace\.facebook\.com$/i, /@metamail\.com$/i,
+        /noreply@/i, /no-reply@/i, /no-responder@/i, /donotreply@/i, /mailer-daemon@/i,
         /@reply\./i, /@notifications?\./i, /@bounce\./i,
+        /@bci\.cl$/i, /@bancochile\.cl$/i, /@scotiabank\.cl$/i,
+        /@sodimac\.com$/i, /@uber\.com$/i, /@lider\.cl$/i, /@latam\.com$/i,
+        /@godaddy\.com$/i, /@flow\.cl$/i, /@tenpo\.cl$/i, /@domestika\.org$/i,
+        /@bumble\.com$/i, /@cinemark/i, /@cruzverde/i,
+        /^mensajeria@/i, /^comunicaciones@/i, /^newsletter@/i, /^invoice@/i, /^alerts@/i,
+        /^transferencias@/i, /^tarjeta@/i, /^info@flow/i, /^info@sodimac/i,
+        /^mails\./i, /^news\./i, /airbnb/i, /booking@/i,
         /@.*\.gob\.mx$/i, /@government\./i,
         /^info@/i, /^admin@/i, /^webmaster@/i, /^postmaster@/i,
         /@example\.(com|org|net)$/i, /@test\./i, /@localhost$/i,
-        /@.*craigslist/i, /@protonemail/i
+        /@.*craigslist/i
     ];
     function isJunkEmail(email) {
         if (!email) return false;
@@ -1639,19 +1736,117 @@
         return '<span class="channel-ind" title="Sin teléfono — solo email">📵</span>';
     }
 
-    // === MEJORA 2: Templates de email precargados ===
+    // === PLANTILLAS DE EMAIL (4 tipos) ===
+    const EMAIL_TEMPLATES = {
+        ex_alumno: {
+            label: '🎹 Ex alumno Resonancias',
+            subject: (name) => `Hola ${name}, soy Miguel — tengo algo que contarte`,
+            body: (name) => `Hola ${name},
+
+Soy Miguel Antonio, el profe de la Escuela de Música Resonancias. Espero que estés muy bien.
+
+Tengo tu correo porque en algún momento fuiste parte de Resonancias — una etapa que recuerdo con mucho cariño y que me enseñó todo lo que sé sobre enseñar piano.
+
+Te escribo porque quería contarte algo en lo que llevo años trabajando, y que creo que te puede interesar:
+
+Lancé PianoLink — una plataforma de clases de piano online donde el profesor y el alumno se escuchan en sus propios pianos en tiempo real.
+
+No es una videollamada con Zoom. Es tecnología MIDI que hace que las teclas del alumno repliquen exactamente lo que toca el profesor — como estar en la misma sala, desde cualquier parte del mundo.
+
+Estoy buscando personas para las primeras clases de demostración, sin costo. Solo quiero que lo vivas y me digas qué te parece.
+
+¿Sigues tocando? ¿Te animas a probar?
+
+Un abrazo,
+Miguel Antonio
+Fundador, PianoLink
+hola@pianolink.net`
+        },
+        busco_piano: {
+            label: '🔍 Buscó clases de piano',
+            subject: (name) => `Buscaste clases de piano — esto puede interesarte`,
+            body: (name) => `Hola ${name},
+
+Soy Miguel Antonio, pianista y fundador de PianoLink.
+
+Tengo tu correo porque en algún momento visitaste escuelaresonancias.cl o profesordepiano.cl buscando información sobre clases de piano. Tal vez fue hace un tiempo, pero quería escribirte igual.
+
+Desde entonces no paré: lancé PianoLink, una plataforma diseñada específicamente para aprender piano online de una forma que no existe en ningún otro lugar.
+
+La diferencia es simple: cuando tomas clases con un profesor de PianoLink, lo escuchas en tu propio piano. No por parlantes — en tus teclas, en tiempo real. Cada nota que toca el profesor se refleja en tu piano con todos sus matices, como si estuviera a tu lado.
+
+Si en algún momento quisiste aprender piano y la distancia o la logística fue un obstáculo, esto lo resuelve.
+
+Te ofrezco una clase de demostración de 30 minutos, sin costo, para que lo vivas tú mismo.
+
+¿Te interesa?
+
+Miguel Antonio
+Fundador, PianoLink
+hola@pianolink.net`
+        },
+        suscriptor: {
+            label: '📬 Suscriptor newsletter',
+            subject: (name) => `Hola ${name} — Miguel Antonio, Escuela Resonancias`,
+            body: (name) => `Hola ${name},
+
+Soy Miguel Antonio, el fundador de la Escuela de Música Resonancias y ahora de PianoLink.
+
+Tengo tu correo porque en algún momento te suscribiste a nuestra lista de información musical en escuelaresonancias.cl. Han pasado algunos años, pero quería escribirte con algo nuevo.
+
+Lancé PianoLink — una plataforma de clases de piano online con tecnología propia que permite que el alumno escuche al profesor en su propio piano, en tiempo real.
+
+Sé que quizás tu interés original era otro instrumento, pero si alguna vez te llamó la atención el piano — o si conoces a alguien que quiera aprenderlo — me gustaría contarte más.
+
+La primera demostración es completamente sin costo.
+
+¿Te interesa conocerla?
+
+Miguel Antonio
+Fundador, PianoLink
+hola@pianolink.net`
+        },
+        general: {
+            label: '📧 Contacto general',
+            subject: (name) => `Hola ${name} — Miguel Antonio, PianoLink`,
+            body: (name) => `Hola ${name},
+
+Soy Miguel Antonio, pianista chileno y fundador de PianoLink.
+
+Es posible que no recuerdes exactamente cómo llegó tu correo a mi lista — puede haber sido a través de la Escuela Resonancias, un formulario de contacto, o algún evento musical. Te pido disculpas si esto te toma por sorpresa.
+
+Te escribo porque lancé algo en lo que creo mucho: PianoLink es la primera plataforma de clases de piano online donde el alumno escucha al profesor en su propio piano, en tiempo real.
+
+No es Zoom. Es tecnología MIDI que replica cada nota del profesor directamente en las teclas del alumno — como estar en la misma sala, desde cualquier lugar.
+
+Si el piano es parte de tu vida, o quieres que lo sea, me gustaría mostrarte cómo funciona. Primera demostración: sin costo, 30 minutos.
+
+Si no es de tu interés, puedes ignorar este mensaje sin problema. No hay lista de correos ni spam.
+
+Miguel Antonio
+Fundador, PianoLink
+hola@pianolink.net`
+        }
+    };
+
+    // Detectar plantilla sugerida según datos del lead
+    function detectSuggestedTemplate(lead) {
+        const ref = lead.leadRef || {};
+        const isEx = lead._isExAlumno || ref.source === 'ex_alumno_resonancias' || lead.segment === 'ex_estudiantes_resonancias';
+        if (isEx) return 'ex_alumno';
+        const src = (ref.source || '').toLowerCase();
+        const origin = ((lead.attribution && lead.attribution.firstTouch && lead.attribution.firstTouch.channel) || '').toLowerCase();
+        if (src.includes('profesordepiano') || src.includes('piano') || origin.includes('piano')) return 'busco_piano';
+        if (src.includes('getresponse') || src.includes('newsletter') || src.includes('mailchimp')) return 'suscriptor';
+        return 'general';
+    }
+
+    // Fallback para mailto (si se necesita)
     function buildMailtoLink(name, email, isExAlumno) {
         if (!email) return '';
+        const tpl = isExAlumno ? EMAIL_TEMPLATES.ex_alumno : EMAIL_TEMPLATES.general;
         const firstName = (name || '').split(' ')[0] || 'Hola';
-        let subject, body;
-        if (isExAlumno) {
-            subject = '¡Te extrañamos en PianoLink! 🎹';
-            body = `Hola ${firstName},\n\nSoy Miguel Antonio de PianoLink (antes Escuela Resonancias).\n\n¿Recuerdas las clases de piano? Ahora con PianoLink puedes retomar desde donde dejaste, con la misma calidad pero más flexible.\n\nMe encantaría platicarte las novedades. ¿Tienes 5 min esta semana?\n\nUn abrazo musical,\nMiguel Antonio\nPianoLink 🎹`;
-        } else {
-            subject = '¿Te gustaría aprender piano? 🎹 PianoLink';
-            body = `Hola ${firstName},\n\nSoy Miguel Antonio de PianoLink, escuela de piano en línea.\n\nVi que podrías estar interesado/a en clases de piano. Ofrecemos clases personalizadas con profesores certificados, desde principiante hasta avanzado.\n\n¿Te gustaría agendar una clase demo gratuita?\n\nQuedo atento,\nMiguel Antonio\nPianoLink 🎹`;
-        }
-        return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(tpl.subject(firstName))}&body=${encodeURIComponent(tpl.body(firstName))}`;
     }
 
     // === AUTH ===
@@ -1938,17 +2133,17 @@
             const leadId = ref._id || lead._id;
             const crmId = lead._id;
 
-            // Mailto con template (MEJORA 2)
-            const mailtoHref = buildMailtoLink(name, email, isEx);
-
-            // Botones rápidos de contacto (MEJORA 1)
+            // Botones rápidos de contacto (MEJORA 1 + Modal Email)
             const waBtnClass = hasPhone ? 'qb qb-wa' : 'qb qb-wa disabled';
             const waOnclick = hasPhone ? `onclick="trackWaClick()" ` : '';
             const waHref = waLink || '#';
+            const _eName = esc(name).replace(/'/g, '\\&#39;');
+            const _eEmail = esc(email).replace(/'/g, '\\&#39;');
+            const _eSource = esc(String(ref.source || '')).replace(/'/g, '\\&#39;');
 
             const quickBtns = `<div class="quick-btns">
                 <a href="${esc(waHref)}" target="_blank" rel="noopener" class="${waBtnClass}" ${waOnclick}title="${hasPhone ? 'Abrir WhatsApp' : 'Sin teléfono'}">💬</a>
-                ${email ? `<a href="${mailtoHref}" class="qb qb-email" onclick="trackEmailClick()" title="Enviar email a ${esc(email)}">📧</a>` : '<span class="qb" style="background:#eee;cursor:not-allowed;opacity:.4;" title="Sin email">📧</span>'}
+                ${email ? `<button class="qb qb-email" onclick="openEmailModal('${_eName}','${_eEmail}','${crmId}',${!!isEx},'${_eSource}')" title="Enviar email a ${esc(email)}">📧</button>` : '<span class="qb" style="background:#eee;cursor:not-allowed;opacity:.4;" title="Sin email">📧</span>'}
                 <div style="position:relative;display:inline-block;">
                     <button class="qb qb-result" onclick="toggleResultMenu(event, '${crmId}')" title="Registrar resultado">📋</button>
                     <div class="result-menu" id="rm-${crmId}">
@@ -2020,13 +2215,15 @@
             const hasPhone = !!(ref.whatsapp && ref.whatsapp.trim());
             const waLink = ref.whatsappLink || (ref.whatsapp ? `https://wa.me/${ref.whatsapp.replace(/[^0-9]/g, '')}` : '');
             const isEx = lead._isExAlumno || ref.source === 'ex_alumno_resonancias' || lead.segment === 'ex_estudiantes_resonancias';
-            const mailtoHref = buildMailtoLink(name, email, isEx);
 
-            // Botones rápidos contacto (MEJORA 1)
+            // Botones rápidos contacto (MEJORA 1 + Modal Email)
             const waBtnClass = hasPhone ? 'qb qb-wa' : 'qb qb-wa disabled';
+            const _eName2 = esc(name).replace(/'/g, '\\&#39;');
+            const _eEmail2 = esc(email).replace(/'/g, '\\&#39;');
+            const _eSource2 = esc(String(ref.source || '')).replace(/'/g, '\\&#39;');
             const quickBtns = `<div class="quick-btns">
                 <a href="${esc(waLink || '#')}" target="_blank" rel="noopener" class="${waBtnClass}" ${hasPhone ? 'onclick="trackWaClick()"' : ''} title="${hasPhone ? 'WhatsApp' : 'Sin teléfono'}">💬</a>
-                ${email ? `<a href="${mailtoHref}" class="qb qb-email" onclick="trackEmailClick()" title="Email: ${esc(email)}">📧</a>` : ''}
+                ${email ? `<button class="qb qb-email" onclick="openEmailModal('${_eName2}','${_eEmail2}','${crmId}',${!!isEx},'${_eSource2}')" title="Email: ${esc(email)}">📧</button>` : ''}
                 <div style="position:relative;display:inline-block;">
                     <button class="qb qb-result" onclick="toggleResultMenu(event, '${crmId}')" title="Registrar resultado">📋</button>
                     <div class="result-menu" id="rm-${crmId}">
@@ -2438,6 +2635,172 @@
         dailyActivity.email++;
         saveDailyActivity();
     };
+
+    // === MODAL DE EMAIL: Funciones globales ===
+    let _currentEmailLead = null; // guarda datos del lead actual en el modal
+    let _lastTemplateKey = null;  // plantilla actualmente cargada
+
+    window.openEmailModal = function(name, email, crmId, isEx, source) {
+        _currentEmailLead = { name, email, crmId, isEx, source };
+        document.getElementById('emCrmLeadId').value = crmId || '';
+        document.getElementById('emLeadName').value = name || '';
+        document.getElementById('emIsExAlumno').value = isEx ? '1' : '0';
+        document.getElementById('emTo').textContent = `${name} <${email}>`;
+
+        // Detectar plantilla sugerida
+        const suggested = detectTemplateFromParams(isEx, source);
+        const sel = document.getElementById('emTemplate');
+        sel.value = suggested;
+        _lastTemplateKey = suggested;
+
+        // Cargar plantilla
+        applyEmailTemplate(suggested, name);
+
+        // Limpiar estado
+        const errEl = document.getElementById('emailError');
+        errEl.classList.remove('show');
+        errEl.textContent = '';
+        const btnSend = document.getElementById('emBtnSend');
+        btnSend.classList.remove('loading');
+        btnSend.disabled = false;
+
+        document.getElementById('emailModalOverlay').classList.add('show');
+    };
+
+    window.closeEmailModal = function() {
+        document.getElementById('emailModalOverlay').classList.remove('show');
+        _currentEmailLead = null;
+        _lastTemplateKey = null;
+    };
+
+    // Detectar plantilla por parámetros inline
+    function detectTemplateFromParams(isEx, source) {
+        if (isEx) return 'ex_alumno';
+        const src = (source || '').toLowerCase();
+        if (src.includes('profesordepiano') || src.includes('piano')) return 'busco_piano';
+        if (src.includes('getresponse') || src.includes('newsletter') || src.includes('mailchimp')) return 'suscriptor';
+        return 'general';
+    }
+
+    // Aplicar plantilla al formulario
+    function applyEmailTemplate(key, fullName) {
+        const tpl = EMAIL_TEMPLATES[key];
+        if (!tpl) return;
+        const firstName = (fullName || '').split(' ')[0] || 'Hola';
+        document.getElementById('emSubject').value = tpl.subject(firstName);
+        document.getElementById('emBody').value = tpl.body(firstName);
+    }
+
+    // Cuando cambia la plantilla en el selector
+    window.onTemplateChange = function() {
+        const sel = document.getElementById('emTemplate');
+        const newKey = sel.value;
+        if (newKey === _lastTemplateKey) return;
+
+        // Confirmar si ya se editó algo
+        const currentBody = document.getElementById('emBody').value;
+        const tpl = EMAIL_TEMPLATES[_lastTemplateKey];
+        const firstName = (_currentEmailLead?.name || '').split(' ')[0] || 'Hola';
+        const originalBody = tpl ? tpl.body(firstName) : '';
+
+        if (currentBody !== originalBody) {
+            if (!confirm('¿Cambiar plantilla? Se perderán los cambios que hayas hecho en el cuerpo del email.')) {
+                sel.value = _lastTemplateKey;
+                return;
+            }
+        }
+
+        _lastTemplateKey = newKey;
+        applyEmailTemplate(newKey, _currentEmailLead?.name || '');
+    };
+
+    // Enviar email desde el modal
+    window.sendEmailFromModal = async function() {
+        const btn = document.getElementById('emBtnSend');
+        const errEl = document.getElementById('emailError');
+        errEl.classList.remove('show');
+
+        const to = _currentEmailLead?.email;
+        const subject = document.getElementById('emSubject').value.trim();
+        const body = document.getElementById('emBody').value.trim();
+        const crmLeadId = document.getElementById('emCrmLeadId').value;
+
+        // Validaciones
+        if (!to) { showEmailError('No hay email de destino.'); return; }
+        if (!subject) { showEmailError('El asunto no puede estar vacío.'); return; }
+        if (!body) { showEmailError('El cuerpo del email no puede estar vacío.'); return; }
+
+        btn.classList.add('loading');
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/crm/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                body: JSON.stringify({ to, subject, body, crmLeadId })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                // Éxito
+                closeEmailModal();
+                dailyActivity.email++;
+                saveDailyActivity();
+                updateActivityBar();
+                showToast(`✅ Email enviado a ${_currentEmailLead?.name || to}`, 'success');
+
+                // Recargar tabla Piano si está visible
+                if (pianoLeads.length > 0) {
+                    setTimeout(() => loadPianoCalificados(), 1000);
+                }
+            } else {
+                showEmailError(data.message || 'Error al enviar el email.');
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        } catch (err) {
+            showEmailError('Error de conexión: ' + err.message);
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
+    };
+
+    function showEmailError(msg) {
+        const errEl = document.getElementById('emailError');
+        errEl.textContent = msg;
+        errEl.classList.add('show');
+    }
+
+    // === TOAST NOTIFICATIONS ===
+    window.showToast = function(message, type, duration) {
+        type = type || 'info';
+        duration = duration || 4000;
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast ' + type;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity .3s';
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    };
+
+    // Cerrar modal con Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const overlay = document.getElementById('emailModalOverlay');
+            if (overlay && overlay.classList.contains('show')) {
+                closeEmailModal();
+            }
+        }
+    });
+
+    // Cerrar modal al hacer clic fuera
+    document.getElementById('emailModalOverlay')?.addEventListener('click', function(e) {
+        if (e.target === this) closeEmailModal();
+    });
 
     // === EDITAR LEAD ===
     window.editLead = async function(id, crmLeadId) {
