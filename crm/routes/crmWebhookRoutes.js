@@ -17,6 +17,7 @@ const router = express.Router();
 const { protect, adminOnly } = require('../../middleware/authMiddleware');
 const ctrl = require('../controllers/crmWebhookController');
 const inboundCtrl = require('../controllers/crmInboundEmailController');
+const emailTrackingCtrl = require('../controllers/crmEmailTrackingController');
 
 // === META (sin auth — llamado por Meta directamente) ===
 router.get('/meta', ctrl.metaVerify);
@@ -27,6 +28,9 @@ router.post('/google', ctrl.googleReceive);
 
 // === RESEND INBOUND (sin auth — llamado por Resend directamente) ===
 router.post('/resend/inbound', inboundCtrl.receiveInbound);
+
+// === RESEND EVENTS — tracking de aperturas, clicks, bounces ===
+router.post('/resend/events', emailTrackingCtrl.receiveResendEvent);
 
 // === STATUS (requiere admin) ===
 router.get('/status', protect, adminOnly, ctrl.getWebhookStatus);

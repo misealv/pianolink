@@ -164,6 +164,24 @@ const crmLeadSchema = new mongoose.Schema({
         bouncedAt: { type: Date, default: null }
     },
 
+    // === EMAIL ENGAGEMENT (tracking de aperturas/clicks/bounces) ===
+    emailEngagement: {
+        totalSent: { type: Number, default: 0 },
+        totalDelivered: { type: Number, default: 0 },
+        totalOpened: { type: Number, default: 0 },
+        totalClicked: { type: Number, default: 0 },
+        totalBounced: { type: Number, default: 0 },
+        lastSentAt: { type: Date, default: null },
+        lastOpenedAt: { type: Date, default: null },
+        lastClickedAt: { type: Date, default: null },
+        complained: { type: Boolean, default: false },
+        engagementLevel: {
+            type: String,
+            enum: ['none', 'cold', 'warm', 'hot', 'super_hot'],
+            default: 'none'
+        }
+    },
+
     // === INTERNACIONALIZACIÓN ===
     locale: { type: String, default: 'es', trim: true },
     currency: { type: String, default: 'USD', trim: true },

@@ -338,6 +338,13 @@
         .email-error { display:none; padding:10px 14px; background:#fff0f0; border:1px solid #ffcccc; border-radius:6px; color:#d63031; font-size:13px; margin-bottom:14px; }
         .email-error.show { display:block; }
 
+        /* === EMAIL STATUS INDICATORS === */
+        .email-status { font-size:15px; cursor:help; display:inline-block; text-align:center; min-width:24px; }
+        .es-superhot { animation:pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+        .es-bounce { opacity:.7; }
+        .es-spam { opacity:.5; }
+
         /* === AJUSTES RESPONSIVE TABLA PIANO === */
         @media (max-width: 768px) {
             .quick-btns { flex-wrap: wrap; }
@@ -546,12 +553,13 @@
                                     <th>Ex-Alumno</th>
                                     <th>Canal</th>
                                     <th>Pipeline</th>
+                                    <th style="text-align:center;">📧</th>
                                     <th>Contactar</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="pianoTableBody">
-                                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando prospectos calificados...</td></tr>
+                                <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando prospectos calificados...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -598,6 +606,7 @@
                                     <th>Origen</th>
                                     <th>Score</th>
                                     <th>Etapa</th>
+                                    <th style="text-align:center;">📧</th>
                                     <th>Contactar</th>
                                     <th>Seguimiento</th>
                                     <th>Fecha</th>
@@ -605,7 +614,7 @@
                                 </tr>
                             </thead>
                             <tbody id="leadsTableAll">
-                                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando leads...</td></tr>
+                                <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando leads...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -650,7 +659,7 @@
                                 </tr>
                             </thead>
                             <tbody id="leadsTableProfesores">
-                                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
+                                <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -695,7 +704,7 @@
                                 </tr>
                             </thead>
                             <tbody id="leadsTableClientes">
-                                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
+                                <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1849,6 +1858,36 @@ hola@pianolink.net`
         return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(tpl.subject(firstName))}&body=${encodeURIComponent(tpl.body(firstName))}`;
     }
 
+    // === TIEMPO RELATIVO ===
+    function timeAgo(date) {
+        if (!date) return '';
+        const now = Date.now();
+        const d = new Date(date).getTime();
+        const diff = now - d;
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'ahora';
+        if (mins < 60) return `hace ${mins}m`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `hace ${hrs}h`;
+        const days = Math.floor(hrs / 24);
+        if (days < 30) return `hace ${days}d`;
+        return `hace ${Math.floor(days / 30)}mes`;
+    }
+
+    // === INDICADOR DE ESTADO DE EMAIL ===
+    function getEmailStatusIndicator(lead) {
+        const eng = (lead && lead.emailEngagement) || {};
+        if (!eng.totalSent) return '<span class="email-status" title="Sin emails enviados">—</span>';
+        if (eng.complained) return '<span class="email-status es-spam" title="⚠️ Marcó spam">⚠️</span>';
+        if (eng.totalBounced > 0) return '<span class="email-status es-bounce" title="↩️ Email rebotó">↩️</span>';
+        if (eng.totalClicked > 0) return '<span class="email-status es-superhot" title="🔗 Click en link · ' + timeAgo(eng.lastClickedAt) + '">🔗</span>';
+        if (eng.totalOpened >= 3) return '<span class="email-status es-superhot" title="🔥 Abierto ' + eng.totalOpened + 'x · ' + timeAgo(eng.lastOpenedAt) + '">🔥</span>';
+        if (eng.totalOpened >= 2) return '<span class="email-status" title="Abierto ' + eng.totalOpened + 'x · ' + timeAgo(eng.lastOpenedAt) + '">👁‍🗨</span>';
+        if (eng.totalOpened === 1) return '<span class="email-status" title="Abierto 1x · ' + timeAgo(eng.lastOpenedAt) + '">👁</span>';
+        if (eng.totalDelivered > 0) return '<span class="email-status" title="Entregado, sin abrir">✅</span>';
+        return '<span class="email-status" title="Enviado, esperando entrega">📨</span>';
+    }
+
     // === AUTH ===
     // Leer token de múltiples fuentes para máxima compatibilidad
     function getToken() {
@@ -2028,7 +2067,7 @@ hola@pianolink.net`
     // === CARGA POR TIPO (server-side) ===
     async function loadLeadsByType(type, tableId) {
         const tbody = document.getElementById(tableId);
-        if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>';
         const res = await apiFetch(`/leads?type=${type}&limit=200&sortBy=createdAt&sortOrder=desc`);
         if (!res?.success) return;
         const data = res.data || [];
@@ -2072,7 +2111,7 @@ hola@pianolink.net`
         updateActivityBar();
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Sin prospectos calificados</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">Sin prospectos calificados</td></tr>';
             return;
         }
         tbody.innerHTML = filtered.map(lead => {
@@ -2167,6 +2206,7 @@ hola@pianolink.net`
                 <td style="text-align:center;">${exBadge}</td>
                 <td style="text-align:center;">${channelInd}</td>
                 <td><span class="badge ${pipe.css}">${pipe.label}</span></td>
+                <td style="text-align:center;">${getEmailStatusIndicator(lead)}</td>
                 <td>${quickBtns}</td>
                 <td>
                     <div class="action-dropdown">
@@ -2187,7 +2227,7 @@ hola@pianolink.net`
         const tbody = document.getElementById(tableId);
         if (!tbody) return;
         if (leads.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Sin leads en esta categoría</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">Sin leads en esta categoría</td></tr>';
             return;
         }
         tbody.innerHTML = leads.map(lead => {
@@ -2249,6 +2289,7 @@ hola@pianolink.net`
                 <td>${esc(origin)}</td>
                 <td><strong>${score}</strong></td>
                 <td><span class="badge ${stage.css}">${stage.label}</span></td>
+                <td style="text-align:center;">${getEmailStatusIndicator(lead)}</td>
                 <td>${quickBtns}</td>
                 <td style="${isOverdue ? 'color:var(--danger);font-weight:600;' : ''}">${followUp}</td>
                 <td>${date}</td>
@@ -2999,7 +3040,7 @@ hola@pianolink.net`
         const tbody = document.getElementById('emailsTable');
         if (!tbody) return;
         if (campaigns.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);">
                 No hay campañas de email.<br><br>
                 <button class="btn btn-primary" onclick="showCreateEmailModal()">+ Crear Campaña</button>
             </td></tr>`;

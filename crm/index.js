@@ -28,6 +28,12 @@ router.use('/inbound', require('./routes/crmInboundEmailRoutes'));
 // === Envío individual de email desde CRM ===
 router.use('/send-email', require('./routes/crmSendEmailRoutes'));
 
+// === Email tracking — timeline y stats (admin) ===
+const { protect: _protect, adminOnly: _adminOnly } = require('../middleware/authMiddleware');
+const emailTrackingCtrl = require('./controllers/crmEmailTrackingController');
+router.get('/tracking/email/timeline/:crmLeadId', _protect, _adminOnly, emailTrackingCtrl.getEmailTimeline);
+router.get('/tracking/email/stats', _protect, _adminOnly, emailTrackingCtrl.getEmailStats);
+
 // === Configuración (Meta Pixel, etc.) ===
 router.use('/config', require('./routes/crmConfigRoutes'));
 

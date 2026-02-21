@@ -92,8 +92,6 @@ exports.sendEmail = async (req, res) => {
                     });
                     crmLead.score = (crmLead.score || 0) + 5;
 
-                    await crmLead.save();
-
                     // Actualizar Lead core
                     if (crmLead.leadRef) {
                         const leadId = crmLead.leadRef._id || crmLead.leadRef;
@@ -103,21 +101,47 @@ exports.sendEmail = async (req, res) => {
                         });
                     }
 
-                    // Crear CrmInteraction
-                    await CrmInteraction.create({
-                        crmLead: crmLeadId,
-                        type: 'email',
+                    // Actualizar emailEngagement
+                    if (!crmLead.emailEngagement) {
+                        crmLead.emailEngagement = { totalSent: 0, engagementLevel: 'none' };
+                    }
+                    crmLead.emailEngagement.totalSent = (crmLead.emailEngagement.totalSent || 0) + 1;
+                    crmLead.emailEngagement.lastSentAt = new Date();
+                    if (crmLead.emailEngagement.engagementLevel === 'none') {
+                        crmLead.emailEngagement.engagementLevel = 'cold';
+                    }
+                    await crmLead.save();
+
+                    // Crear CrmInteraction (leadRef es el campo correcto del schema)
+                    const interaction = await CrmInteraction.create({
+                        leadRef: crmLeadId,
+                        type: 'email_sent',
                         channel: 'email',
                         direction: 'outbound',
-                        subject: subject,
-                        content: body.substring(0, 500),
                         metadata: {
                             emailId: sendResult.id,
+                            emailSubject: subject,
                             simulated: sendResult.simulated || false,
                             from: 'hola@pianolink.net',
-                            to: to
+                            to: to,
+                            notes: body.substring(0, 500)
                         }
                     });
+
+                    // Crear EmailTrackingEvent tipo 'sent'
+                    try {
+                        const EmailTrackingEvent = require('../models/EmailTrackingEvent');
+                        await EmailTrackingEvent.create({
+                            crmLead: crmLeadId,
+                            emailInteractionId: interaction._id,
+                            resendEmailId: sendResult.id,
+                            eventType: 'sent',
+                            recipient: to,
+                            timestamp: new Date()
+                        });
+                    } catch (trackErr) {
+                        console.warn('[CRM Email] ⚠️ Error creando tracking event:', trackErr.message);
+                    }
                 }
             } catch (dbErr) {
                 // No fallar el envío por error de DB
