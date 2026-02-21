@@ -124,7 +124,8 @@ exports.sendEmail = async (req, res) => {
                         change: 5,
                         reason: `Email enviado: ${subject}`
                     });
-                    crmLead.score = (crmLead.score || 0) + 5;
+                    // CRÍTICO: Clampear score a rango [0, 100] antes de guardar
+                    crmLead.score = Math.min(100, Math.max(0, (crmLead.score || 0) + 5));
 
                     // Actualizar Lead core
                     if (crmLead.leadRef) {
@@ -144,9 +145,9 @@ exports.sendEmail = async (req, res) => {
                     if (crmLead.emailEngagement.engagementLevel === 'none') {
                         crmLead.emailEngagement.engagementLevel = 'cold';
                     }
-                    await crmLead.save();
 
-                    // Crear CrmInteraction (leadRef es el campo correcto del schema)
+                    // PRIMERO crear CrmInteraction (siempre, antes del save del lead)
+                    // Esto garantiza que el emailId quede vinculado para webhooks de Resend
                     const interaction = await CrmInteraction.create({
                         leadRef: crmLeadId,
                         type: 'email_sent',
@@ -161,6 +162,13 @@ exports.sendEmail = async (req, res) => {
                             notes: body.substring(0, 500)
                         }
                     });
+
+                    // Ahora guardar CrmLead (si falla, al menos la interacción ya existe)
+                    try {
+                        await crmLead.save();
+                    } catch (saveErr) {
+                        console.warn('[CRM Email] ⚠️ Error guardando CrmLead (interacción ya creada):', saveErr.message);
+                    }
 
                     // Crear EmailTrackingEvent tipo 'sent'
                     try {

@@ -83,19 +83,52 @@ exports.receiveResendEvent = async (req, res) => {
         console.log(`[Email Tracking] 📬 Evento: ${eventType} | email_id: ${resendEmailId}`);
 
         // Buscar la interacción original por emailId
-        const interaction = await CrmInteraction.findOne({
+        let interaction = await CrmInteraction.findOne({
             'metadata.emailId': resendEmailId
         }).lean();
 
-        if (!interaction) {
-            // Puede ser un email de campaña masiva u otro origen — ignorar
-            console.log(`[Email Tracking] No se encontró interacción para email_id: ${resendEmailId}`);
-            return;
+        let crmLeadId = interaction?.leadRef;
+
+        // FALLBACK: Si no hay interacción vinculada, buscar lead por email del destinatario
+        if (!interaction || !crmLeadId) {
+            const recipientEmail = Array.isArray(data.to) ? data.to[0] : (data.to || '');
+            if (recipientEmail) {
+                try {
+                    const Lead = require('../../models/Lead');
+                    const coreLead = await Lead.findOne({ email: recipientEmail }).lean();
+                    if (coreLead) {
+                        const foundCrmLead = await CrmLead.findOne({ leadRef: coreLead._id }).lean();
+                        if (foundCrmLead) {
+                            crmLeadId = foundCrmLead._id;
+                            console.log(`[Email Tracking] Fallback: lead encontrado por email ${recipientEmail} → ${crmLeadId}`);
+                            // Crear interacción faltante para vincular el emailId
+                            if (!interaction) {
+                                interaction = await CrmInteraction.create({
+                                    leadRef: crmLeadId,
+                                    type: 'email_sent',
+                                    channel: 'email',
+                                    direction: 'outbound',
+                                    metadata: {
+                                        emailId: resendEmailId,
+                                        emailSubject: data.subject || '',
+                                        from: 'hola@pianolink.net',
+                                        to: recipientEmail,
+                                        notes: 'Interacción creada por fallback desde webhook'
+                                    }
+                                });
+                                interaction = interaction.toObject();
+                            }
+                        }
+                    }
+                } catch (fallbackErr) {
+                    console.warn('[Email Tracking] Error en fallback por email:', fallbackErr.message);
+                }
+            }
         }
 
-        const crmLeadId = interaction.leadRef;
         if (!crmLeadId) {
-            console.warn('[Email Tracking] Interacción sin leadRef:', interaction._id);
+            // No se pudo vincular el evento con ningún lead
+            console.log(`[Email Tracking] No se encontró lead para email_id: ${resendEmailId}`);
             return;
         }
 
