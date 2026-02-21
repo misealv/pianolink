@@ -316,15 +316,13 @@ router.post('/send', protect, adminOnly, async (req, res) => {
         try {
             const CrmInteraction = require('../crm/models/CrmInteraction');
             await CrmInteraction.create({
-                crmLeadId: crmLead._id,
-                type: 'email',
-                direction: 'outbound',
-                subject: emailSubject,
-                content: `${emailBody}\n\n---\nLink: ${inviteUrl}`,
+                leadRef: crmLead._id,
+                type: 'email_sent',
                 channel: 'email',
                 metadata: {
-                    inviteId: invite._id,
-                    inviteToken: invite.token
+                    emailId: emailResult.id || '',
+                    emailSubject: emailSubject,
+                    notes: `Invitación gratuita al Kit. Link: ${inviteUrl}`
                 }
             });
         } catch (intErr) {
@@ -333,10 +331,14 @@ router.post('/send', protect, adminOnly, async (req, res) => {
 
         // Actualizar pipeline del lead
         if (crmLead.pipelineStudent !== 'enrolled') {
-            crmLead.pipelineStudent = crmLead.pipelineStudent || 'contacted';
+            const newPipeline = crmLead.pipelineStudent || 'contacted';
             const newScore = Math.min(100, (crmLead.score || 0) + 10);
-            crmLead.updateScore(newScore, 'Invitación gratuita enviada');
-            await crmLead.save();
+            await CrmLead.updateOne({ _id: crmLead._id }, {
+                $set: { pipelineStudent: newPipeline },
+                $push: { scoreHistory: { date: new Date(), score: newScore, reason: 'Invitación gratuita enviada' } },
+                $min: { score: 100 }
+            });
+            await CrmLead.updateOne({ _id: crmLead._id }, { $set: { score: newScore } });
         }
 
         console.log(`[StudentInvite] 📧 Invitación enviada a ${invite.recipientEmail} (token: ${invite.token.substring(0, 8)}...)`);
