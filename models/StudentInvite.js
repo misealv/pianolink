@@ -96,21 +96,24 @@ studentInviteSchema.statics.findValidByToken = async function (token) {
 
 /**
  * Crea invitación para un CrmLead
- * No limita invitaciones múltiples al mismo email (decisión de negocio: sin límite)
+ * Recibe objeto con { _id, email, name } (ya resueltos desde leadRef)
  */
-studentInviteSchema.statics.createForCrmLead = async function (crmLead, adminNote) {
+studentInviteSchema.statics.createForCrmLead = async function (leadData, adminNote) {
+    const email = leadData.email;
+    const name = leadData.name || email.split('@')[0];
+
     // Verificar si ya tiene una invitación activa (evitar duplicados accidentales)
     const existing = await this.findOne({
-        recipientEmail: crmLead.email,
+        recipientEmail: email,
         status: { $in: ['pending', 'sent', 'opened'] },
         expiresAt: { $gt: new Date() }
     });
     if (existing) return existing;
 
     return this.create({
-        crmLeadId: crmLead._id,
-        recipientName: crmLead.name || crmLead.email.split('@')[0],
-        recipientEmail: crmLead.email,
+        crmLeadId: leadData._id,
+        recipientName: name,
+        recipientEmail: email,
         token: this.generateToken(),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 días
         adminNote: adminNote || null

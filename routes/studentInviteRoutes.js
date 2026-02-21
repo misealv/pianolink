@@ -209,35 +209,85 @@ router.post('/register/:token', async (req, res) => {
  * Body: { crmLeadId, adminNote? }
  * Crea StudentInvite + envía email con enlace
  */
+/**
+ * POST /preview — Genera preview del email para editar en el modal
+ * Body: { crmLeadId }
+ * Retorna: { subject, body, recipientName, recipientEmail }
+ */
+router.post('/preview', protect, adminOnly, async (req, res) => {
+    try {
+        const { crmLeadId } = req.body;
+        if (!crmLeadId) {
+            return res.status(400).json({ success: false, message: 'crmLeadId es obligatorio.' });
+        }
+
+        const crmLead = await CrmLead.findById(crmLeadId).populate('leadRef', 'name email');
+        if (!crmLead || !crmLead.leadRef) {
+            return res.status(404).json({ success: false, message: 'Lead no encontrado.' });
+        }
+
+        const leadEmail = crmLead.leadRef.email;
+        const leadName = crmLead.leadRef.name || leadEmail.split('@')[0];
+
+        return res.json({
+            success: true,
+            recipientName: leadName,
+            recipientEmail: leadEmail,
+            subject: `🎹 ¡Invitación especial a PianoLink! Tu Kit de Bienvenida gratis`,
+            body: _getDefaultEmailBody(leadName)
+        });
+    } catch (error) {
+        console.error('[StudentInvite] Error en preview:', error.message);
+        return res.status(500).json({ success: false, message: 'Error generando preview.' });
+    }
+});
+
+/**
+ * POST /send — Envía invitación a un CrmLead
+ * Body: { crmLeadId, adminNote?, subject?, body? }
+ * Crea StudentInvite + envía email con enlace
+ */
 router.post('/send', protect, adminOnly, async (req, res) => {
     try {
-        const { crmLeadId, adminNote } = req.body;
+        const { crmLeadId, adminNote, subject: customSubject, body: customBody } = req.body;
 
         if (!crmLeadId) {
             return res.status(400).json({ success: false, message: 'crmLeadId es obligatorio.' });
         }
 
-        // Buscar CrmLead
-        const crmLead = await CrmLead.findById(crmLeadId);
-        if (!crmLead) {
+        // Buscar CrmLead con leadRef populado
+        const crmLead = await CrmLead.findById(crmLeadId).populate('leadRef', 'name email');
+        if (!crmLead || !crmLead.leadRef) {
             return res.status(404).json({ success: false, message: 'Lead no encontrado.' });
         }
 
+        const leadEmail = crmLead.leadRef.email;
+        const leadName = crmLead.leadRef.name || leadEmail.split('@')[0];
+
         // Verificar que no esté ya registrado
-        const existingUser = await User.findOne({ email: crmLead.email });
+        const existingUser = await User.findOne({ email: leadEmail });
         if (existingUser) {
             return res.status(400).json({
                 success: false,
-                message: `${crmLead.email} ya tiene una cuenta registrada.`
+                message: `${leadEmail} ya tiene una cuenta registrada.`
             });
         }
 
         // Crear invitación (reutiliza si ya hay una activa)
-        const invite = await StudentInvite.createForCrmLead(crmLead, adminNote);
+        const invite = await StudentInvite.createForCrmLead({
+            _id: crmLead._id,
+            email: leadEmail,
+            name: leadName
+        }, adminNote);
 
         // Construir URL de invitación
         const baseUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'https://pianolink.net';
         const inviteUrl = `${baseUrl}/student-invite/${invite.token}`;
+
+        // Construir email: usar cuerpo personalizado o default
+        const emailSubject = customSubject || '🎹 ¡Invitación especial a PianoLink! Tu Kit de Bienvenida gratis';
+        const emailBody = customBody || _getDefaultEmailBody(invite.recipientName);
+        const html = _buildInviteEmailHtml(invite.recipientName, inviteUrl, emailBody);
 
         // Enviar email
         let emailResult = { success: false, simulated: true };
@@ -246,13 +296,11 @@ router.post('/send', protect, adminOnly, async (req, res) => {
             const resendService = getInstance();
 
             if (resendService && resendService.isConfigured()) {
-                const recipientName = invite.recipientName || 'amigo/a';
-                const html = _buildInviteEmailHtml(recipientName, inviteUrl);
                 emailResult = await resendService.sendEmail(
                     invite.recipientEmail,
-                    '🎹 ¡Invitación especial a PianoLink! Tu Kit de Bienvenida gratis',
+                    emailSubject,
                     html,
-                    { nombre: recipientName }
+                    { nombre: invite.recipientName }
                 );
             }
         } catch (emailErr) {
@@ -271,8 +319,8 @@ router.post('/send', protect, adminOnly, async (req, res) => {
                 crmLeadId: crmLead._id,
                 type: 'email',
                 direction: 'outbound',
-                subject: 'Invitación gratuita al Kit de Bienvenida',
-                content: `Invitación enviada. Link: ${inviteUrl}`,
+                subject: emailSubject,
+                content: `${emailBody}\n\n---\nLink: ${inviteUrl}`,
                 channel: 'email',
                 metadata: {
                     inviteId: invite._id,
@@ -367,10 +415,39 @@ router.delete('/revoke/:id', protect, adminOnly, async (req, res) => {
 
 // ==================== EMAIL HTML ====================
 
+// ==================== EMAIL HELPERS ====================
+
 /**
- * Genera el HTML del email de invitación gratuita
+ * Cuerpo de texto default del email (editable desde el CRM)
  */
-function _buildInviteEmailHtml(name, inviteUrl) {
+function _getDefaultEmailBody(name) {
+    return `¡Hola ${name}! 🎉
+
+Has sido seleccionado para recibir el Kit de Bienvenida de PianoLink totalmente GRATIS.
+
+Esto incluye:
+✅ Entrevista de bienvenida personalizada
+✅ Sesión de Setup técnico (te ayudamos a configurar todo)
+✅ Una clase de prueba con un profesor real
+
+Solo necesitas crear tu cuenta (nombre, email y contraseña) y estarás listo para comenzar.`;
+}
+
+/**
+ * Genera el HTML del email de invitación gratuita.
+ * Recibe el cuerpo como texto plano y lo convierte a HTML.
+ */
+function _buildInviteEmailHtml(name, inviteUrl, bodyText) {
+    // Convertir texto plano a párrafos HTML
+    const bodyHtml = (bodyText || _getDefaultEmailBody(name))
+        .split('\n')
+        .map(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return '';
+            return `<p style="color:#555;font-size:16px;line-height:1.6;margin:0 0 12px;">${trimmed}</p>`;
+        })
+        .join('\n');
+
     return `
 <!DOCTYPE html>
 <html>
@@ -393,23 +470,9 @@ function _buildInviteEmailHtml(name, inviteUrl) {
                     <!-- Body -->
                     <tr>
                         <td style="padding:40px;">
-                            <h2 style="color:#333;margin:0 0 16px;font-size:22px;">¡Hola ${name}! 🎉</h2>
-                            <p style="color:#555;font-size:16px;line-height:1.6;margin:0 0 20px;">
-                                Has sido seleccionado para recibir el <strong>Kit de Bienvenida de PianoLink</strong> totalmente <strong style="color:#ff764d;">GRATIS</strong>.
-                            </p>
-                            <p style="color:#555;font-size:16px;line-height:1.6;margin:0 0 24px;">
-                                Esto incluye:
-                            </p>
-                            <ul style="color:#555;font-size:15px;line-height:1.8;margin:0 0 24px;padding-left:20px;">
-                                <li>✅ Entrevista de bienvenida personalizada</li>
-                                <li>✅ Sesión de Setup técnico (te ayudamos a configurar todo)</li>
-                                <li>✅ Una clase de prueba con un profesor real</li>
-                            </ul>
-                            <p style="color:#555;font-size:16px;line-height:1.6;margin:0 0 30px;">
-                                Solo necesitas crear tu cuenta (nombre, email y contraseña) y estarás listo para comenzar.
-                            </p>
+                            ${bodyHtml}
                             <!-- CTA Button -->
-                            <table width="100%" cellpadding="0" cellspacing="0">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;">
                                 <tr>
                                     <td align="center">
                                         <a href="${inviteUrl}" style="display:inline-block;background:#ff764d;color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:8px;font-size:18px;font-weight:bold;letter-spacing:0.5px;">

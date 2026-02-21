@@ -1880,7 +1880,7 @@
 
 <!-- ========== MODAL INVITACIÓN GRATUITA ESTUDIANTE ========== -->
 <div class="email-modal-overlay" id="studentInviteOverlay" style="display:none;">
-    <div class="email-modal" style="max-width:440px;">
+    <div class="email-modal" style="max-width:560px;">
         <div class="email-modal-hdr" style="background:linear-gradient(135deg,#10b981,#059669);">
             <h3>🎁 Invitar gratis al Kit</h3>
             <button class="email-modal-close" onclick="closeStudentInviteModal()">&times;</button>
@@ -1888,25 +1888,45 @@
         <div class="email-modal-body">
             <div class="email-error" id="siError" style="display:none;"></div>
             <input type="hidden" id="siCrmLeadId">
-            <p style="color:#666;font-size:13px;margin-bottom:16px;">
-                Se enviará un email con un link especial. El lead podrá crear su cuenta y comenzar el Kit de Bienvenida <strong>sin pagar</strong>.
-            </p>
-            <div class="email-field">
-                <label>Nombre</label>
-                <div class="ef-readonly" id="siName"></div>
+
+            <!-- Estado cargando preview -->
+            <div id="siLoading" style="text-align:center;padding:20px;color:#888;">
+                Cargando preview del email...
             </div>
-            <div class="email-field">
-                <label>Email</label>
-                <div class="ef-readonly" id="siEmail"></div>
-            </div>
-            <div class="email-field">
-                <label>Nota interna (opcional)</label>
-                <input type="text" id="siNote" placeholder="Ej: Lead interesado del webinar" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid #ddd;font-size:13px;">
+
+            <!-- Contenido del modal (oculto hasta cargar) -->
+            <div id="siContent" style="display:none;">
+                <p style="color:#666;font-size:13px;margin-bottom:16px;">
+                    Se enviará un email con un link especial. El lead podrá crear su cuenta y comenzar el Kit de Bienvenida <strong>sin pagar</strong>. Puedes editar el email antes de enviarlo.
+                </p>
+                <div class="email-field">
+                    <label>De</label>
+                    <div class="ef-readonly">Miguel Antonio Sepúlveda Alvarez &lt;hola@pianolink.net&gt;</div>
+                </div>
+                <div class="email-field">
+                    <label>Para</label>
+                    <div class="ef-readonly" id="siRecipient"></div>
+                </div>
+                <div class="email-field">
+                    <label>Asunto</label>
+                    <input type="text" id="siSubject" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid #ddd;font-size:13px;">
+                </div>
+                <div class="email-field">
+                    <label>Cuerpo del email</label>
+                    <textarea id="siBody" rows="10" style="width:100%;padding:10px 12px;border-radius:6px;border:1px solid #ddd;font-size:13px;font-family:inherit;line-height:1.5;resize:vertical;"></textarea>
+                    <div style="font-size:11px;color:#999;margin-top:4px;">
+                        ℹ️ El botón "Crear mi cuenta gratis →" y el pie de email se agregan automáticamente.
+                    </div>
+                </div>
+                <div class="email-field">
+                    <label>Nota interna (opcional, no se envía)</label>
+                    <input type="text" id="siNote" placeholder="Ej: Lead interesado del webinar" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid #ddd;font-size:13px;">
+                </div>
             </div>
         </div>
         <div class="email-modal-footer">
             <button class="btn-cancel" onclick="closeStudentInviteModal()">Cancelar</button>
-            <button class="btn-send" id="siBtnSend" onclick="sendStudentInvite()" style="background:linear-gradient(135deg,#10b981,#059669);">
+            <button class="btn-send" id="siBtnSend" onclick="sendStudentInvite()" style="background:linear-gradient(135deg,#10b981,#059669);" disabled>
                 <span class="spinner"></span>
                 <span class="btn-text">🎁 Enviar invitación</span>
             </button>
@@ -3123,15 +3143,52 @@ hola@pianolink.net`
     let _lastTemplateKey = null;  // plantilla actualmente cargada
 
     // === MODAL INVITACIÓN GRATUITA ESTUDIANTE ===
-    window.openStudentInviteModal = function(name, email, crmId) {
+    window.openStudentInviteModal = async function(name, email, crmId) {
+        const overlay = document.getElementById('studentInviteOverlay');
+        const loadingEl = document.getElementById('siLoading');
+        const contentEl = document.getElementById('siContent');
+        const errEl = document.getElementById('siError');
+        const btn = document.getElementById('siBtnSend');
+
+        // Reset estado
         document.getElementById('siCrmLeadId').value = crmId;
-        document.getElementById('siName').textContent = name || '';
-        document.getElementById('siEmail').textContent = email || '';
         document.getElementById('siNote').value = '';
-        document.getElementById('siError').style.display = 'none';
-        document.getElementById('siBtnSend').disabled = false;
-        document.getElementById('siBtnSend').querySelector('.btn-text').textContent = '🎁 Enviar invitación';
-        document.getElementById('studentInviteOverlay').style.display = 'flex';
+        errEl.style.display = 'none';
+        btn.disabled = true;
+        btn.querySelector('.btn-text').textContent = '🎁 Enviar invitación';
+        loadingEl.style.display = 'block';
+        contentEl.style.display = 'none';
+        overlay.style.display = 'flex';
+
+        // Cargar preview del email desde el backend
+        try {
+            const resp = await fetch('/api/student-invite/preview', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({ crmLeadId: crmId })
+            });
+            const data = await resp.json();
+
+            if (!resp.ok || !data.success) {
+                errEl.textContent = data?.message || 'Error cargando preview.';
+                errEl.style.display = 'block';
+                loadingEl.style.display = 'none';
+                return;
+            }
+
+            document.getElementById('siRecipient').textContent = `${data.recipientName} <${data.recipientEmail}>`;
+            document.getElementById('siSubject').value = data.subject;
+            document.getElementById('siBody').value = data.body;
+
+            loadingEl.style.display = 'none';
+            contentEl.style.display = 'block';
+            btn.disabled = false;
+
+        } catch (err) {
+            errEl.textContent = 'Error de conexión al cargar preview.';
+            errEl.style.display = 'block';
+            loadingEl.style.display = 'none';
+        }
     };
 
     window.closeStudentInviteModal = function() {
@@ -3140,9 +3197,17 @@ hola@pianolink.net`
 
     window.sendStudentInvite = async function() {
         const crmLeadId = document.getElementById('siCrmLeadId').value;
+        const subject = document.getElementById('siSubject').value.trim();
+        const body = document.getElementById('siBody').value.trim();
         const adminNote = document.getElementById('siNote').value.trim();
         const btn = document.getElementById('siBtnSend');
         const errEl = document.getElementById('siError');
+
+        if (!subject || !body) {
+            errEl.textContent = 'El asunto y cuerpo del email son obligatorios.';
+            errEl.style.display = 'block';
+            return;
+        }
 
         btn.disabled = true;
         btn.querySelector('.btn-text').textContent = 'Enviando...';
@@ -3151,8 +3216,8 @@ hola@pianolink.net`
         try {
             const resp = await fetch('/api/student-invite/send', {
                 method: 'POST',
-                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-                body: JSON.stringify({ crmLeadId, adminNote: adminNote || undefined })
+                headers: authHeaders(),
+                body: JSON.stringify({ crmLeadId, subject, body, adminNote: adminNote || undefined })
             });
 
             const res = await resp.json();
@@ -3166,7 +3231,7 @@ hola@pianolink.net`
             }
 
             closeStudentInviteModal();
-            showToast('✅ Invitación gratuita enviada correctamente', 'success');
+            showToast('✅ Invitación gratuita enviada a ' + (res.invite?.recipientEmail || ''), 'success');
 
             // Incrementar contador de emails
             dailyActivity.email++;
