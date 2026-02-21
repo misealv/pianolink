@@ -4194,24 +4194,24 @@ hola@pianolink.net`
     }
 
     // === SIDEBAR MOBILE TOGGLE ===
-    function toggleSidebar() {
+    window.toggleSidebar = function() {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
         sidebar.classList.toggle('open');
         overlay.classList.toggle('show');
         // Prevenir scroll del body cuando sidebar está abierta
         document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
-    }
-    function closeSidebar() {
+    };
+    window.closeSidebar = function() {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
         sidebar.classList.remove('open');
         overlay.classList.remove('show');
         document.body.style.overflow = '';
-    }
+    };
     // Cerrar sidebar al navegar (en mobile)
     function closeSidebarOnNav() {
-        if (window.innerWidth <= 768) closeSidebar();
+        if (window.innerWidth <= 768) window.closeSidebar();
     }
 
     // === INIT ===
