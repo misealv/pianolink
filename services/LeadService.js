@@ -96,6 +96,28 @@ class LeadService {
         await lead.save();
         console.log(`[LeadService] 📧 Lead existente actualizado: ${lead.email} (type: ${lead.type})`);
 
+        // Si es creación manual desde CRM, garantizar que exista CrmLead
+        if (isManual) {
+            try {
+                const CrmLeadService = require('../crm/services/CrmLeadService');
+                const result = await CrmLeadService.findOrCreateFromCoreLead(lead._id, {
+                    channel: 'direct',
+                    utmSource: data.source || 'manual'
+                });
+                // Tocar updatedAt para que aparezca arriba en el listado
+                if (result.success && result.data) {
+                    const CrmLead = require('../crm/models/CrmLead');
+                    await CrmLead.updateOne(
+                        { _id: result.data._id },
+                        { $set: { updatedAt: new Date() } }
+                    );
+                }
+                console.log(`[LeadService] ✅ CrmLead garantizado para lead manual: ${lead.email}`);
+            } catch (crmErr) {
+                console.warn(`[LeadService] ⚠️ No se pudo garantizar CrmLead: ${crmErr.message}`);
+            }
+        }
+
         return {
             success: true,
             status: 200,

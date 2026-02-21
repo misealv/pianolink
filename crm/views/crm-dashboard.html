@@ -2996,7 +2996,8 @@ hola@pianolink.net`
             email: document.getElementById('leadEmail').value,
             whatsapp: document.getElementById('leadPhone').value,
             source: document.getElementById('leadSource').value,
-            notes: document.getElementById('leadNotes').value
+            notes: document.getElementById('leadNotes').value,
+            isManual: true
         };
         if (!data.name || !data.email) { alert('Nombre y email son requeridos'); return; }
         
@@ -3006,10 +3007,33 @@ hola@pianolink.net`
             body: JSON.stringify(data)
         });
         if (res.ok) {
-            alert('Lead creado exitosamente');
+            const result = await res.json().catch(() => ({}));
+            const msg = result.isExisting ? 'Lead existente actualizado' : 'Lead creado exitosamente';
             closeModal('modalCreateLead');
             document.getElementById('formCreateLead').reset();
-            loadDashboard();
+
+            // Navegar a la sección correcta y buscar el lead
+            const targetSection = data.type === 'teacher' ? 'leads-profesores' : 'leads-clientes';
+            const targetTable = data.type === 'teacher' ? 'leadsTableProfesores' : 'leadsTableClientes';
+            
+            // Activar la sección
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            const navLink = document.querySelector(`[data-section="${targetSection}"]`);
+            if (navLink) navLink.classList.add('active');
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            const section = document.getElementById(`section-${targetSection}`);
+            if (section) section.classList.add('active');
+
+            // Cargar con búsqueda por email para que aparezca el lead
+            const searchRes = await apiFetch(`/leads?type=${data.type}&search=${encodeURIComponent(data.email)}&limit=50`);
+            if (searchRes?.success && searchRes.data?.length > 0) {
+                renderLeadsTable(searchRes.data, targetTable);
+                alert(`${msg}. Mostrando resultado.`);
+            } else {
+                // Fallback: cargar lista normal
+                loadSectionData(targetSection);
+                alert(msg);
+            }
         } else {
             const err = await res.json().catch(() => ({}));
             alert('Error: ' + (err.message || 'No se pudo crear el lead'));
