@@ -345,6 +345,46 @@
         .es-bounce { opacity:.7; }
         .es-spam { opacity:.5; }
 
+        /* === EMAIL DASHBOARD (Fase 2C) === */
+        .email-dash { background:linear-gradient(135deg,#dfe6e9 0%,#f4f6f9 100%); border:1px solid var(--border); border-radius:10px; padding:16px 20px; margin-bottom:16px; }
+        .email-dash-title { font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:10px; }
+        .email-dash-stats { display:flex; flex-wrap:wrap; gap:16px; font-size:13px; color:var(--text-secondary); }
+        .email-dash-stats .eds { display:flex; align-items:center; gap:4px; }
+        .email-dash-stats .eds strong { color:var(--text-primary); font-size:15px; }
+        .email-dash-actions { margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
+        .email-dash-actions a { font-size:12px; padding:4px 10px; border-radius:5px; background:var(--accent); color:#fff; text-decoration:none; cursor:pointer; }
+        .email-dash-actions a:hover { background:var(--accent-hover); }
+        .email-dash-actions a.eda-warn { background:#e17055; }
+        .email-dash-actions a.eda-warn:hover { background:#d63031; }
+
+        /* === HOT LEADS BANNER (Fase 2B) === */
+        .hot-banner { background:linear-gradient(90deg,#e17055 0%,#d63031 100%); color:#fff; border-radius:10px; padding:12px 20px; margin-bottom:12px; display:none; align-items:center; gap:12px; font-size:14px; animation:bannerPulse 3s infinite; }
+        .hot-banner.show { display:flex; }
+        .hot-banner .hb-icon { font-size:22px; }
+        .hot-banner .hb-text { flex:1; }
+        .hot-banner .hb-text strong { font-size:16px; }
+        .hot-banner .hb-btn { background:rgba(255,255,255,.2); color:#fff; border:1px solid rgba(255,255,255,.4); padding:6px 14px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:500; }
+        .hot-banner .hb-btn:hover { background:rgba(255,255,255,.35); }
+        .hot-banner .hb-close { background:none; border:none; color:rgba(255,255,255,.7); cursor:pointer; font-size:18px; padding:4px; }
+        @keyframes bannerPulse { 0%,100% { box-shadow:0 0 0 0 rgba(214,48,49,.3); } 50% { box-shadow:0 0 20px 4px rgba(214,48,49,.2); } }
+
+        /* === EMAIL TIMELINE MODAL (Fase 2D) === */
+        .tl-modal { max-width:600px; }
+        .tl-email-group { border:1px solid var(--border); border-radius:8px; margin-bottom:12px; overflow:hidden; }
+        .tl-email-header { background:#f8f9fa; padding:10px 14px; font-size:13px; font-weight:600; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+        .tl-email-header:hover { background:#eef1f5; }
+        .tl-events { padding:0 14px 10px; }
+        .tl-event { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #f0f0f0; font-size:13px; }
+        .tl-event:last-child { border-bottom:none; }
+        .tl-event .tle-icon { font-size:16px; min-width:24px; text-align:center; }
+        .tl-event .tle-type { font-weight:500; min-width:80px; }
+        .tl-event .tle-time { color:var(--text-secondary); margin-left:auto; font-size:12px; }
+        .tl-event .tle-detail { color:var(--text-secondary); font-size:12px; }
+        .tl-empty { text-align:center; padding:40px; color:var(--text-secondary); }
+        .tl-summary { display:flex; flex-wrap:wrap; gap:16px; padding:16px; background:#f8f9fa; border-radius:8px; margin-bottom:16px; font-size:13px; }
+        .tl-summary .tls-item { display:flex; align-items:center; gap:4px; }
+        .tl-summary .tls-item strong { font-size:16px; color:var(--text-primary); }
+
         /* === AJUSTES RESPONSIVE TABLA PIANO === */
         @media (max-width: 768px) {
             .quick-btns { flex-wrap: wrap; }
@@ -518,6 +558,35 @@
 
         <!-- ==================== PROSPECTOS PIANO CALIFICADOS ==================== -->
         <section class="section active" id="section-leads-piano">
+
+            <!-- === HOT LEADS BANNER (Fase 2B) === -->
+            <div class="hot-banner" id="hotLeadsBanner">
+                <span class="hb-icon">🔥</span>
+                <div class="hb-text">
+                    <strong id="hotBannerCount">0</strong> leads calientes abrieron tu email y no han respondido
+                    <span style="opacity:.8;">— ¡Contactálos ya!</span>
+                </div>
+                <button class="hb-btn" onclick="scrollToHotLeads()">👀 Ver lista</button>
+                <button class="hb-close" onclick="dismissHotBanner()">&times;</button>
+            </div>
+
+            <!-- === EMAIL DASHBOARD (Fase 2C) === -->
+            <div class="email-dash" id="emailDashboard">
+                <div class="email-dash-title">📊 Emails esta semana</div>
+                <div class="email-dash-stats">
+                    <span class="eds">📤 <strong id="edsSent">--</strong> enviados</span>
+                    <span class="eds">✅ <strong id="edsDelivered">--</strong> entregados</span>
+                    <span class="eds">👁 <strong id="edsOpened">--</strong> abiertos (<span id="edsOpenRate">--</span>%)</span>
+                    <span class="eds">🔗 <strong id="edsClicked">--</strong> clicks</span>
+                    <span class="eds">↩️ <strong id="edsBounced">--</strong> rebotes</span>
+                    <span class="eds">⚠️ <strong id="edsComplained">--</strong> spam</span>
+                </div>
+                <div class="email-dash-actions">
+                    <a onclick="filterHotLeads()">🔥 <span id="edsHotCount">--</span> leads calientes</a>
+                    <a class="eda-warn" onclick="filterBouncedLeads()" id="edsBounceAction" style="display:none;">↩️ <span id="edsBounceCount">0</span> rebotes — limpiar lista</a>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header">
                     <h2>🎹 Prospectos Piano Calificados</h2>
@@ -1471,6 +1540,21 @@
 
 <!-- Modal: Agregar Tarea -->
 <div class="modal" id="modalAddTask">
+
+<!-- Modal: Timeline Email (Fase 2D) -->
+<div class="modal" id="modalEmailTimeline">
+    <div class="modal-content tl-modal">
+        <div class="modal-header">
+            <h3>📧 Timeline de Emails</h3>
+            <button class="modal-close" onclick="closeModal('modalEmailTimeline')">&times;</button>
+        </div>
+        <div class="modal-body" id="emailTimelineBody">
+            <div class="tl-empty">Cargando timeline...</div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="modalAddTask">
     <div class="modal-content" style="max-width:500px;">
         <div class="modal-header">
             <h3>📌 Nueva Tarea</h3>
@@ -1874,19 +1958,180 @@ hola@pianolink.net`
         return `hace ${Math.floor(days / 30)}mes`;
     }
 
-    // === INDICADOR DE ESTADO DE EMAIL ===
+    // === INDICADOR DE ESTADO DE EMAIL (ahora clickeable para timeline) ===
     function getEmailStatusIndicator(lead) {
         const eng = (lead && lead.emailEngagement) || {};
+        const crmId = lead?._id || '';
         if (!eng.totalSent) return '<span class="email-status" title="Sin emails enviados">—</span>';
-        if (eng.complained) return '<span class="email-status es-spam" title="⚠️ Marcó spam">⚠️</span>';
-        if (eng.totalBounced > 0) return '<span class="email-status es-bounce" title="↩️ Email rebotó">↩️</span>';
-        if (eng.totalClicked > 0) return '<span class="email-status es-superhot" title="🔗 Click en link · ' + timeAgo(eng.lastClickedAt) + '">🔗</span>';
-        if (eng.totalOpened >= 3) return '<span class="email-status es-superhot" title="🔥 Abierto ' + eng.totalOpened + 'x · ' + timeAgo(eng.lastOpenedAt) + '">🔥</span>';
-        if (eng.totalOpened >= 2) return '<span class="email-status" title="Abierto ' + eng.totalOpened + 'x · ' + timeAgo(eng.lastOpenedAt) + '">👁‍🗨</span>';
-        if (eng.totalOpened === 1) return '<span class="email-status" title="Abierto 1x · ' + timeAgo(eng.lastOpenedAt) + '">👁</span>';
-        if (eng.totalDelivered > 0) return '<span class="email-status" title="Entregado, sin abrir">✅</span>';
-        return '<span class="email-status" title="Enviado, esperando entrega">📨</span>';
+        // Función onclick para abrir timeline
+        const onclick = crmId ? ` onclick="openEmailTimeline('${crmId}')" style="cursor:pointer;"` : '';
+        if (eng.complained) return `<span class="email-status es-spam" title="⚠️ Marcó spam"${onclick}>⚠️</span>`;
+        if (eng.totalBounced > 0) return `<span class="email-status es-bounce" title="↩️ Email rebotó"${onclick}>↩️</span>`;
+        if (eng.totalClicked > 0) return `<span class="email-status es-superhot" title="🔗 Click en link · ${timeAgo(eng.lastClickedAt)}"${onclick}>🔗</span>`;
+        if (eng.totalOpened >= 3) return `<span class="email-status es-superhot" title="🔥 Abierto ${eng.totalOpened}x · ${timeAgo(eng.lastOpenedAt)}"${onclick}>🔥</span>`;
+        if (eng.totalOpened >= 2) return `<span class="email-status" title="Abierto ${eng.totalOpened}x · ${timeAgo(eng.lastOpenedAt)}"${onclick}>👁‍🗨</span>`;
+        if (eng.totalOpened === 1) return `<span class="email-status" title="Abierto 1x · ${timeAgo(eng.lastOpenedAt)}"${onclick}>👁</span>`;
+        if (eng.totalDelivered > 0) return `<span class="email-status" title="Entregado, sin abrir"${onclick}>✅</span>`;
+        return `<span class="email-status" title="Enviado, esperando entrega"${onclick}>📨</span>`;
     }
+
+    // === EMAIL DASHBOARD — Carga métricas semanales (Fase 2C) ===
+    async function loadEmailDashboard() {
+        try {
+            const res = await apiFetch('/tracking/email/stats');
+            if (!res?.success) return;
+            const s = res.stats;
+            setText('edsSent', s.sent || 0);
+            setText('edsDelivered', s.delivered || 0);
+            setText('edsOpened', s.opened || 0);
+            setText('edsOpenRate', s.openRate || 0);
+            setText('edsClicked', s.clicked || 0);
+            setText('edsBounced', s.bounced || 0);
+            setText('edsComplained', s.complained || 0);
+            setText('edsHotCount', s.hotLeads || 0);
+
+            // Mostrar acción de limpiar rebotes si hay
+            if (s.bounced > 0) {
+                const bounceAction = document.getElementById('edsBounceAction');
+                if (bounceAction) { bounceAction.style.display = ''; setText('edsBounceCount', s.bounced); }
+            }
+
+            // Banner de leads calientes (Fase 2B)
+            if (s.hotLeads > 0) {
+                showHotBanner(s.hotLeads);
+            }
+        } catch (e) {
+            console.error('[EmailDash] Error:', e.message);
+        }
+    }
+
+    // === HOT LEADS BANNER (Fase 2B) ===
+    function showHotBanner(count) {
+        const banner = document.getElementById('hotLeadsBanner');
+        if (!banner) return;
+        // No mostrar si ya fue descartado en esta sesión
+        if (sessionStorage.getItem('hotBannerDismissed')) return;
+        setText('hotBannerCount', count);
+        banner.classList.add('show');
+    }
+
+    window.dismissHotBanner = function() {
+        const banner = document.getElementById('hotLeadsBanner');
+        if (banner) banner.classList.remove('show');
+        sessionStorage.setItem('hotBannerDismissed', '1');
+    };
+
+    window.scrollToHotLeads = function() {
+        dismissHotBanner();
+        filterHotLeads();
+    };
+
+    window.filterHotLeads = function() {
+        if (!pianoLeads || !pianoLeads.length) return;
+        const hotOnly = pianoLeads.filter(l => {
+            const eng = l.emailEngagement || {};
+            return eng.engagementLevel === 'hot' || eng.engagementLevel === 'super_hot';
+        });
+        if (hotOnly.length === 0) {
+            showToast('No hay leads calientes en la lista actual', 'info');
+            return;
+        }
+        renderPianoTable(hotOnly);
+        showToast(`Mostrando ${hotOnly.length} leads calientes 🔥`, 'info');
+    };
+
+    window.filterBouncedLeads = function() {
+        if (!pianoLeads || !pianoLeads.length) return;
+        const bounced = pianoLeads.filter(l => {
+            const eng = l.emailEngagement || {};
+            return eng.totalBounced > 0;
+        });
+        if (bounced.length === 0) {
+            showToast('No hay rebotes en la lista actual', 'info');
+            return;
+        }
+        renderPianoTable(bounced);
+        showToast(`Mostrando ${bounced.length} leads con email rebotado ↩️`, 'info');
+    };
+
+    // === EMAIL TIMELINE MODAL (Fase 2D) ===
+    window.openEmailTimeline = async function(crmLeadId) {
+        const body = document.getElementById('emailTimelineBody');
+        if (!body) return;
+        body.innerHTML = '<div class="tl-empty">Cargando timeline...</div>';
+        document.getElementById('modalEmailTimeline').classList.add('show');
+
+        try {
+            // Buscar datos del lead
+            const lead = (pianoLeads || []).find(l => l._id === crmLeadId) ||
+                          (allLeads || []).find(l => l._id === crmLeadId);
+            const eng = lead?.emailEngagement || {};
+            const name = lead?.leadRef?.name || 'Lead';
+
+            // Cargar timeline
+            const res = await apiFetch(`/tracking/email/timeline/${crmLeadId}`);
+            if (!res?.success) {
+                body.innerHTML = '<div class="tl-empty">Error cargando timeline</div>';
+                return;
+            }
+
+            // Resumen
+            let html = `<div class="tl-summary">
+                <div class="tls-item">📤 <strong>${eng.totalSent || 0}</strong> enviados</div>
+                <div class="tls-item">✅ <strong>${eng.totalDelivered || 0}</strong> entregados</div>
+                <div class="tls-item">👁 <strong>${eng.totalOpened || 0}</strong> abiertos</div>
+                <div class="tls-item">🔗 <strong>${eng.totalClicked || 0}</strong> clicks</div>
+                <div class="tls-item">↩️ <strong>${eng.totalBounced || 0}</strong> rebotes</div>
+                <div class="tls-item">🎯 Nivel: <strong>${eng.engagementLevel || 'none'}</strong></div>
+            </div>`;
+
+            // Actualizar título modal
+            document.querySelector('#modalEmailTimeline .modal-header h3').textContent = `📧 ${esc(name)} — Timeline`;
+
+            if (!res.emails || res.emails.length === 0) {
+                html += '<div class="tl-empty">Sin eventos de email registrados</div>';
+                body.innerHTML = html;
+                return;
+            }
+
+            // Renderizar cada email y sus eventos
+            const eventIcons = { sent: '📤', delivered: '✅', opened: '👁', clicked: '🔗', bounced: '↩️', complained: '⚠️', delivery_delayed: '⏳' };
+            const eventLabels = { sent: 'Enviado', delivered: 'Entregado', opened: 'Abierto', clicked: 'Click', bounced: 'Rebotó', complained: 'Spam', delivery_delayed: 'Demorado' };
+
+            for (const email of res.emails) {
+                const lastEvent = email.events[0];
+                const emailDate = lastEvent?.timestamp ? new Date(lastEvent.timestamp).toLocaleString('es-CL', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '--';
+
+                html += `<div class="tl-email-group">
+                    <div class="tl-email-header">
+                        <span>📧 ${esc(email.recipient || '--')} — ${emailDate}</span>
+                        <span>${email.events.length} eventos</span>
+                    </div>
+                    <div class="tl-events">`;
+
+                for (const ev of email.events) {
+                    const icon = eventIcons[ev.type] || '📌';
+                    const label = eventLabels[ev.type] || ev.type;
+                    const time = ev.timestamp ? timeAgo(ev.timestamp) : '';
+                    const detail = ev.clickedUrl ? `<div class="tle-detail">🔗 ${esc(ev.clickedUrl)}</div>` :
+                                   ev.bounceMessage ? `<div class="tle-detail">⚠ ${esc(ev.bounceMessage)}</div>` : '';
+
+                    html += `<div class="tl-event">
+                        <span class="tle-icon">${icon}</span>
+                        <span class="tle-type">${label}</span>
+                        ${detail}
+                        <span class="tle-time">${time}</span>
+                    </div>`;
+                }
+
+                html += '</div></div>';
+            }
+
+            body.innerHTML = html;
+        } catch (e) {
+            body.innerHTML = `<div class="tl-empty">Error: ${e.message}</div>`;
+        }
+    };
 
     // === AUTH ===
     // Leer token de múltiples fuentes para máxima compatibilidad
@@ -2098,6 +2343,8 @@ hola@pianolink.net`
         const totalEl = document.getElementById('pianoCount');
         if (totalEl) totalEl.textContent = `${res.total || pianoLeads.length} prospectos`;
         renderPianoTable(pianoLeads);
+        // Cargar métricas email (Fase 2C) — no bloquea la tabla
+        loadEmailDashboard();
     }
 
     function renderPianoTable(leads) {

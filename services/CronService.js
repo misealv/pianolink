@@ -73,6 +73,15 @@ function getAbandonedCartService() {
     return CrmAbandonedCartService;
 }
 
+// CRM: Email Follow-Up — tareas automáticas basadas en engagement de email
+let CrmEmailFollowUpService = null;
+function getEmailFollowUpService() {
+    if (!CrmEmailFollowUpService) {
+        try { CrmEmailFollowUpService = require('../crm/services/CrmEmailFollowUpService'); } catch (e) { /* no disponible */ }
+    }
+    return CrmEmailFollowUpService;
+}
+
 class CronService {
     static jobs = [];
 
@@ -325,6 +334,23 @@ class CronService {
             timezone: 'UTC'
         });
         this.jobs.push(abandonedCartJob);
+
+        // 13d. CRM: Email Follow-Up — Tareas automáticas por engagement — Diario 9AM Chile (12:00 UTC)
+        const emailFollowUpJob = cron.schedule('0 12 * * *', async () => {
+            const service = getEmailFollowUpService();
+            if (!service) return;
+            try {
+                const result = await service.runAll();
+                if (result.totalTasks > 0) {
+                    console.log(`[Cron] 📬 Email follow-up: ${result.totalTasks} tareas creadas (R1:${result.rule1} R2:${result.rule2} R3:${result.rule3}) en ${result.duration}ms`);
+                }
+            } catch (error) {
+                console.error('[Cron] ❌ Error email follow-up:', error);
+            }
+        }, {
+            timezone: 'UTC'
+        });
+        this.jobs.push(emailFollowUpJob);
 
         // ============================================
         // JOBS FASE 3: PERMISOS Y PLANES
@@ -613,6 +639,7 @@ class CronService {
                 { name: 'trackingDispatch', schedule: '5,20,35,50 * * * *', description: 'CRM: Despachar conversiones a Meta/Google/GA4' },
                 { name: 'adsSpendSync', schedule: '0 4 * * *', description: 'CRM: Sync gasto publicitario' },
                 { name: 'alertCheck', schedule: '0 8 * * *', description: 'CRM: Alertas campañas' },
+                { name: 'emailFollowUp', schedule: '0 12 * * *', description: 'CRM: Tareas automáticas por email engagement (9AM Chile)' },
                 { name: 'planDowngrade', schedule: '30 0 * * *', description: 'Downgrade automático planes expirados' },
                 { name: 'cleanInvites', schedule: '0 2 * * *', description: 'Limpiar invitaciones expiradas' }
             ]

@@ -11,6 +11,15 @@ const CrmLead = require('../models/CrmLead');
 const CrmInteraction = require('../models/CrmInteraction');
 const EmailTrackingEvent = require('../models/EmailTrackingEvent');
 
+// Lazy-load para no romper si no existe
+let CrmEmailFollowUpService = null;
+function getFollowUpService() {
+    if (!CrmEmailFollowUpService) {
+        try { CrmEmailFollowUpService = require('../services/CrmEmailFollowUpService'); } catch (e) { /* no disponible */ }
+    }
+    return CrmEmailFollowUpService;
+}
+
 /**
  * POST /api/crm/webhooks/resend/events
  * Recibe eventos de Resend. SIN AUTH — Resend llama directamente.
@@ -106,8 +115,8 @@ exports.receiveResendEvent = async (req, res) => {
             timestamp: data.created_at ? new Date(data.created_at) : new Date()
         });
 
-        // Actualizar emailEngagement en CrmLead
-        const crmLead = await CrmLead.findById(crmLeadId);
+        // Actualizar emailEngagement en CrmLead (populate leadRef para tareas automáticas)
+        const crmLead = await CrmLead.findById(crmLeadId).populate('leadRef', 'name whatsapp');
         if (!crmLead) {
             console.warn(`[Email Tracking] CrmLead no encontrado: ${crmLeadId}`);
             return;
@@ -212,6 +221,12 @@ exports.receiveResendEvent = async (req, res) => {
                     timestamp: new Date()
                 });
                 console.log(`[Email Tracking] ↩️ Bounce registrado para lead ${crmLeadId}`);
+
+                // Crear tarea automática de bounce (Regla 4)
+                const followUp = getFollowUpService();
+                if (followUp) {
+                    await followUp.createBounceTask(crmLeadId, data.bounce?.type, crmLead.leadRef);
+                }
                 break;
 
             case 'complained':
@@ -225,6 +240,12 @@ exports.receiveResendEvent = async (req, res) => {
                     crmLead.tags.push('spam_complaint');
                 }
                 console.log(`[Email Tracking] ⚠️ Spam complaint para lead ${crmLeadId}`);
+
+                // Crear tarea automática de complaint (Regla 4b)
+                const followUpSvc = getFollowUpService();
+                if (followUpSvc) {
+                    await followUpSvc.createComplaintTask(crmLeadId);
+                }
                 break;
 
             case 'delivery_delayed':
