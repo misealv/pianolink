@@ -29,7 +29,7 @@ const welcomeKitSchema = new mongoose.Schema({
     payment: {
         provider: {
             type: String,
-            enum: ['paypal', 'mercadopago', 'stripe'],
+            enum: ['paypal', 'mercadopago', 'stripe', 'gift_invite'],
             required: true
         },
         externalOrderId: { type: String, required: true },

@@ -205,6 +205,9 @@ app.use('/api/invite', require('./routes/invite')); // Generar, listar, revocar,
 // === INVITACIONES PROFESORES FUNDADORES ===
 app.use('/api/founder-invite', require('./routes/founderInviteRoutes')); // Enviar, validar, registrar
 
+// === INVITACIONES GRATUITAS ESTUDIANTES (CRM) ===
+app.use('/api/student-invite', require('./routes/studentInviteRoutes')); // Enviar, validar, registrar gratis
+
 // === CHECKOUT MEMBRESÍA PROFESOR (Fase 4 v5.0) ===
 app.use('/api/membership', require('./routes/membershipCheckout')); // Checkout premium/founder + estado
 
@@ -252,6 +255,11 @@ app.get('/invite/:code', (req, res) => {
 // Ruta de invitación de profesor fundador
 app.get('/founder-invite/:token', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'founder-invite.html'));
+});
+
+// Ruta de invitación gratuita de estudiante
+app.get('/student-invite/:token', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'student-invite.html'));
 });
 
 // Ruta para Mi Kit (dashboard del cliente)

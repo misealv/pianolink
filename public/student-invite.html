@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu Kit de Bienvenida Gratis — PianoLink</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .page-wrapper {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .header .logo { font-size: 2.4rem; margin-bottom: 8px; }
+        .header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+        .header .badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            color: #1a1a2e;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 20px;
+        }
+        .card h2 { font-size: 1.15rem; margin-bottom: 14px; color: #fff; }
+        .card p { color: #ccc; font-size: 0.95rem; line-height: 1.7; margin-bottom: 12px; }
+        .card p:last-child { margin-bottom: 0; }
+
+        /* Beneficios */
+        .benefit-list { list-style: none; padding: 0; }
+        .benefit-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.95rem;
+            color: #ddd;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .benefit-list li:last-child { border-bottom: none; }
+        .benefit-list li .icon { font-size: 1.1rem; flex-shrink: 0; }
+
+        /* Free badge */
+        .free-box {
+            background: linear-gradient(135deg, rgba(74,222,128,0.15), rgba(34,197,94,0.08));
+            border: 1px solid rgba(74,222,128,0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 12px;
+        }
+        .free-box .price {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #4ade80;
+        }
+        .free-box .subtitle {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        /* Formulario */
+        .form-card { background: rgba(255,255,255,0.08); }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #ccc;
+            margin-bottom: 4px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.07);
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .form-group input:focus { border-color: #4ade80; }
+        .form-group input::placeholder { color: #666; }
+
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #ff764d, #ff5733);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: opacity 0.2s, transform 0.1s;
+            box-shadow: 0 4px 15px rgba(255, 87, 51, 0.3);
+        }
+        .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .error-msg {
+            background: rgba(239,68,68,0.15);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #fca5a5;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .success-card {
+            text-align: center;
+            padding: 40px 28px;
+            display: none;
+        }
+        .success-card h2 { font-size: 1.6rem; margin-bottom: 12px; }
+        .success-card p { color: #ccc; font-size: 1rem; line-height: 1.6; }
+        .success-card .check { font-size: 3rem; margin-bottom: 16px; }
+        .success-card .btn-go {
+            display: inline-block;
+            margin-top: 20px;
+            background: linear-gradient(135deg, #ff764d, #ff5733);
+            color: #fff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .loading { text-align: center; padding: 60px 20px; }
+        .loading p { color: #aaa; font-size: 1rem; }
+
+        .invalid-state { text-align: center; padding: 60px 20px; }
+        .invalid-state h2 { margin-bottom: 12px; font-size: 1.3rem; }
+        .invalid-state p { color: #aaa; font-size: 0.95rem; }
+        .invalid-state a { color: #4ade80; text-decoration: none; }
+
+        .password-hint {
+            font-size: 0.78rem;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 480px) {
+            .page-wrapper { padding: 20px 12px; }
+            .card { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+
+        <!-- Header siempre visible -->
+        <div class="header">
+            <div class="logo">🎹</div>
+            <h1>PianoLink</h1>
+            <div class="badge">🎁 Kit de Bienvenida Gratis</div>
+        </div>
+
+        <!-- Estado: cargando -->
+        <div id="loadingState" class="loading">
+            <p>Verificando invitación...</p>
+        </div>
+
+        <!-- Estado: invitación inválida -->
+        <div id="invalidState" class="card invalid-state" style="display:none;">
+            <h2>😔 Invitación no válida</h2>
+            <p>Este enlace ha expirado o ya fue utilizado.</p>
+            <p style="margin-top:16px;"><a href="https://pianolink.net">Ir a PianoLink →</a></p>
+        </div>
+
+        <!-- Estado: formulario de registro -->
+        <div id="formState" style="display:none;">
+
+            <!-- Qué incluye -->
+            <div class="card">
+                <h2>¿Qué incluye tu Kit gratuito?</h2>
+                <ul class="benefit-list">
+                    <li><span class="icon">🎤</span> Entrevista de bienvenida personalizada</li>
+                    <li><span class="icon">🖥️</span> Sesión de Setup técnico (te ayudamos con todo)</li>
+                    <li><span class="icon">🎵</span> Una clase de prueba con un profesor real</li>
+                    <li><span class="icon">📱</span> Acceso a tu panel personal Mi Kit</li>
+                </ul>
+                <div class="free-box">
+                    <div class="price">$0 USD</div>
+                    <div class="subtitle">Totalmente gratis, sin tarjeta de crédito</div>
+                </div>
+            </div>
+
+            <!-- Formulario -->
+            <div class="card form-card">
+                <h2>Crea tu cuenta</h2>
+                <p style="margin-bottom:20px;">Solo toma un minuto. Después podrás agendar tu entrevista de bienvenida.</p>
+
+                <div id="errorMsg" class="error-msg"></div>
+
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label>Nombre completo</label>
+                        <input type="text" id="inputName" placeholder="Ej: María García" required autocomplete="name">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="inputEmail" placeholder="tu@email.com" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="inputPassword" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+                        <div class="password-hint">Con esta contraseña accederás a tu panel Mi Kit</div>
+                    </div>
+                    <button type="submit" class="btn-primary" id="btnSubmit">
+                        Crear mi cuenta gratis →
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Estado: registro exitoso -->
+        <div id="successState" class="card success-card" style="display:none;">
+            <div class="check">🎉</div>
+            <h2>¡Bienvenido/a a PianoLink!</h2>
+            <p>Tu cuenta fue creada. Tu Kit de Bienvenida ya está listo.</p>
+            <p style="margin-top:8px;">El siguiente paso es agendar tu entrevista de bienvenida.</p>
+            <a href="/mi-kit" class="btn-go" id="goToKit">Ir a Mi Kit →</a>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        // Extraer token de la URL
+        const pathParts = window.location.pathname.split('/');
+        const token = pathParts[pathParts.length - 1];
+
+        const loadingEl = document.getElementById('loadingState');
+        const invalidEl = document.getElementById('invalidState');
+        const formEl = document.getElementById('formState');
+        const successEl = document.getElementById('successState');
+        const errorEl = document.getElementById('errorMsg');
+        const form = document.getElementById('registerForm');
+        const btnSubmit = document.getElementById('btnSubmit');
+
+        if (!token || token === 'student-invite') {
+            showInvalid();
+            return;
+        }
+
+        // Validar token al cargar
+        validateToken();
+
+        async function validateToken() {
+            try {
+                const resp = await fetch(`/api/student-invite/validate/${token}`);
+                const data = await resp.json();
+
+                if (!data.valid) {
+                    showInvalid();
+                    return;
+                }
+
+                // Prellenar campos con datos de la invitación
+                document.getElementById('inputName').value = data.recipientName || '';
+                document.getElementById('inputEmail').value = data.recipientEmail || '';
+
+                showForm();
+            } catch (err) {
+                console.error('Error validando:', err);
+                showInvalid();
+            }
+        }
+
+        // Manejar envío del formulario
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            hideError();
+
+            const name = document.getElementById('inputName').value.trim();
+            const email = document.getElementById('inputEmail').value.trim().toLowerCase();
+            const password = document.getElementById('inputPassword').value;
+
+            if (!name || !email || !password) {
+                showError('Todos los campos son obligatorios.');
+                return;
+            }
+            if (password.length < 6) {
+                showError('La contraseña debe tener al menos 6 caracteres.');
+                return;
+            }
+
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Creando cuenta...';
+
+            try {
+                const resp = await fetch(`/api/student-invite/register/${token}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok || !data.success) {
+                    showError(data.message || 'Error al crear la cuenta.');
+                    btnSubmit.disabled = false;
+                    btnSubmit.textContent = 'Crear mi cuenta gratis →';
+                    return;
+                }
+
+                // Guardar JWT para auto-login
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                }
+
+                showSuccess();
+
+            } catch (err) {
+                console.error('Error registrando:', err);
+                showError('Error de conexión. Intenta de nuevo.');
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Crear mi cuenta gratis →';
+            }
+        });
+
+        function showForm() {
+            loadingEl.style.display = 'none';
+            invalidEl.style.display = 'none';
+            formEl.style.display = 'block';
+        }
+
+        function showInvalid() {
+            loadingEl.style.display = 'none';
+            formEl.style.display = 'none';
+            invalidEl.style.display = 'block';
+        }
+
+        function showSuccess() {
+            loadingEl.style.display = 'none';
+            formEl.style.display = 'none';
+            invalidEl.style.display = 'none';
+            successEl.style.display = 'block';
+        }
+
+        function showError(msg) {
+            errorEl.textContent = msg;
+            errorEl.style.display = 'block';
+        }
+
+        function hideError() {
+            errorEl.style.display = 'none';
+        }
+    })();
+    </script>
+</body>
+</html>

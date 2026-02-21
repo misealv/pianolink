@@ -278,6 +278,8 @@
         .qb-email { background: #0984e3; color: #fff; }
         .qb-result { background: #fdcb6e; color: #2d3436; position: relative; }
         .qb-result:hover { background: #f0b429; }
+        .qb-invite { background: #10b981; color: #fff; }
+        .qb-invite:hover { background: #059669; }
 
         /* === MEJORA: MENÚ DE RESULTADO === */
         .result-menu { display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.15); min-width: 210px; z-index: 300; padding: 4px 0; }
@@ -1876,6 +1878,42 @@
 <!-- Toast container -->
 <div class="toast-container" id="toastContainer"></div>
 
+<!-- ========== MODAL INVITACIÓN GRATUITA ESTUDIANTE ========== -->
+<div class="email-modal-overlay" id="studentInviteOverlay" style="display:none;">
+    <div class="email-modal" style="max-width:440px;">
+        <div class="email-modal-hdr" style="background:linear-gradient(135deg,#10b981,#059669);">
+            <h3>🎁 Invitar gratis al Kit</h3>
+            <button class="email-modal-close" onclick="closeStudentInviteModal()">&times;</button>
+        </div>
+        <div class="email-modal-body">
+            <div class="email-error" id="siError" style="display:none;"></div>
+            <input type="hidden" id="siCrmLeadId">
+            <p style="color:#666;font-size:13px;margin-bottom:16px;">
+                Se enviará un email con un link especial. El lead podrá crear su cuenta y comenzar el Kit de Bienvenida <strong>sin pagar</strong>.
+            </p>
+            <div class="email-field">
+                <label>Nombre</label>
+                <div class="ef-readonly" id="siName"></div>
+            </div>
+            <div class="email-field">
+                <label>Email</label>
+                <div class="ef-readonly" id="siEmail"></div>
+            </div>
+            <div class="email-field">
+                <label>Nota interna (opcional)</label>
+                <input type="text" id="siNote" placeholder="Ej: Lead interesado del webinar" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid #ddd;font-size:13px;">
+            </div>
+        </div>
+        <div class="email-modal-footer">
+            <button class="btn-cancel" onclick="closeStudentInviteModal()">Cancelar</button>
+            <button class="btn-send" id="siBtnSend" onclick="sendStudentInvite()" style="background:linear-gradient(135deg,#10b981,#059669);">
+                <span class="spinner"></span>
+                <span class="btn-text">🎁 Enviar invitación</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 /* =======================================================================
  *  PianoLink CRM v2.0 — Dashboard Rediseñado
@@ -2584,6 +2622,7 @@ hola@pianolink.net`
             const quickBtns = `<div class="quick-btns">
                 <a href="${esc(waHref)}" target="_blank" rel="noopener" class="${waBtnClass}" ${waOnclick}title="${hasPhone ? 'Abrir WhatsApp' : 'Sin teléfono'}">💬</a>
                 ${email ? `<button class="qb qb-email" onclick="openEmailModal('${_eName}','${_eEmail}','${crmId}',${!!isEx},'${_eSource}')" title="Enviar email a ${esc(email)}">📧</button>` : '<span class="qb" style="background:#eee;cursor:not-allowed;opacity:.4;" title="Sin email">📧</span>'}
+                ${email ? `<button class="qb qb-invite" onclick="openStudentInviteModal('${_eName}','${_eEmail}','${crmId}')" title="Invitar gratis al Kit">🎁</button>` : ''}
                 <div style="position:relative;display:inline-block;">
                     <button class="qb qb-result" onclick="toggleResultMenu(event, '${crmId}')" title="Registrar resultado">📋</button>
                     <div class="result-menu" id="rm-${crmId}">
@@ -2665,6 +2704,7 @@ hola@pianolink.net`
             const quickBtns = `<div class="quick-btns">
                 <a href="${esc(waLink || '#')}" target="_blank" rel="noopener" class="${waBtnClass}" ${hasPhone ? 'onclick="trackWaClick()"' : ''} title="${hasPhone ? 'WhatsApp' : 'Sin teléfono'}">💬</a>
                 ${email ? `<button class="qb qb-email" onclick="openEmailModal('${_eName2}','${_eEmail2}','${crmId}',${!!isEx},'${_eSource2}')" title="Email: ${esc(email)}">📧</button>` : ''}
+                ${email ? `<button class="qb qb-invite" onclick="openStudentInviteModal('${_eName2}','${_eEmail2}','${crmId}')" title="Invitar gratis al Kit">🎁</button>` : ''}
                 <div style="position:relative;display:inline-block;">
                     <button class="qb qb-result" onclick="toggleResultMenu(event, '${crmId}')" title="Registrar resultado">📋</button>
                     <div class="result-menu" id="rm-${crmId}">
@@ -3081,6 +3121,64 @@ hola@pianolink.net`
     // === MODAL DE EMAIL: Funciones globales ===
     let _currentEmailLead = null; // guarda datos del lead actual en el modal
     let _lastTemplateKey = null;  // plantilla actualmente cargada
+
+    // === MODAL INVITACIÓN GRATUITA ESTUDIANTE ===
+    window.openStudentInviteModal = function(name, email, crmId) {
+        document.getElementById('siCrmLeadId').value = crmId;
+        document.getElementById('siName').textContent = name || '';
+        document.getElementById('siEmail').textContent = email || '';
+        document.getElementById('siNote').value = '';
+        document.getElementById('siError').style.display = 'none';
+        document.getElementById('siBtnSend').disabled = false;
+        document.getElementById('siBtnSend').querySelector('.btn-text').textContent = '🎁 Enviar invitación';
+        document.getElementById('studentInviteOverlay').style.display = 'flex';
+    };
+
+    window.closeStudentInviteModal = function() {
+        document.getElementById('studentInviteOverlay').style.display = 'none';
+    };
+
+    window.sendStudentInvite = async function() {
+        const crmLeadId = document.getElementById('siCrmLeadId').value;
+        const adminNote = document.getElementById('siNote').value.trim();
+        const btn = document.getElementById('siBtnSend');
+        const errEl = document.getElementById('siError');
+
+        btn.disabled = true;
+        btn.querySelector('.btn-text').textContent = 'Enviando...';
+        errEl.style.display = 'none';
+
+        try {
+            const resp = await fetch('/api/student-invite/send', {
+                method: 'POST',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ crmLeadId, adminNote: adminNote || undefined })
+            });
+
+            const res = await resp.json();
+
+            if (!resp.ok || !res.success) {
+                errEl.textContent = res?.message || 'Error al enviar la invitación.';
+                errEl.style.display = 'block';
+                btn.disabled = false;
+                btn.querySelector('.btn-text').textContent = '🎁 Enviar invitación';
+                return;
+            }
+
+            closeStudentInviteModal();
+            showToast('✅ Invitación gratuita enviada correctamente', 'success');
+
+            // Incrementar contador de emails
+            dailyActivity.email++;
+            saveDailyActivity();
+
+        } catch (err) {
+            errEl.textContent = 'Error de conexión. Intenta de nuevo.';
+            errEl.style.display = 'block';
+            btn.disabled = false;
+            btn.querySelector('.btn-text').textContent = '🎁 Enviar invitación';
+        }
+    };
 
     window.openEmailModal = function(name, email, crmId, isEx, source) {
         _currentEmailLead = { name, email, crmId, isEx, source };
