@@ -110,38 +110,25 @@ async function updateFounderMessagesBadge() {
 // ==================== DASHBOARD ====================
 async function loadDashboard() {
     try {
-        // Cargar stats de leads
+        // Actualizar badge de leads nuevos
         const leadsRes = await fetch('/api/leads/export');
         const leadsData = await leadsRes.json();
-        
-        document.getElementById('stat-leads-new').textContent = leadsData.stats?.new || 0;
-        document.getElementById('stat-leads-contacted').textContent = leadsData.stats?.contacted || 0;
-        document.getElementById('stat-leads-qualified').textContent = leadsData.stats?.qualified || 0;
-        document.getElementById('stat-leads-converted').textContent = leadsData.stats?.converted || 0;
-        
-        // Actualizar badge de leads nuevos
         const newCount = leadsData.stats?.new || 0;
         const badge = document.getElementById('leads-badge');
         if (badge) {
             badge.textContent = newCount;
             badge.style.display = newCount > 0 ? 'block' : 'none';
         }
-        
-        // Cargar stats de profesores
-        const teachersRes = await fetch('/api/auth/teachers');
-        const teachers = await teachersRes.json();
-        document.getElementById('stat-teachers').textContent = teachers.length || 0;
-        
-        // Actualizar badge de mensajes fundadores
-        updateFounderMessagesBadge();
-
-        // Cargar entrevistas próximas y pipeline de onboarding
-        loadDashboardInterviews();
-        loadDashboardOnboarding();
-        
     } catch (e) {
-        console.error('Error loading dashboard:', e);
+        console.error('Error loading dashboard stats:', e);
     }
+
+    // Actualizar badge de mensajes fundadores
+    try { updateFounderMessagesBadge(); } catch(e) {}
+
+    // Cargar entrevistas próximas y pipeline de onboarding
+    loadDashboardInterviews();
+    loadDashboardOnboarding();
 }
 
 /**
