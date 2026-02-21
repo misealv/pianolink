@@ -38,6 +38,7 @@ async function _getAdminEmailData() {
         return {
             adminName: profile.name || 'Equipo PianoLink',
             adminEmail: profile.email || 'hola@pianolink.net',
+            notificationEmail: profile.notificationEmail || profile.email || 'hola@pianolink.net',
             whatsappNumber: profile.whatsapp || '+56959089770',
             adminWhatsapp: profile.whatsapp || '+56959089770'
         };
@@ -46,6 +47,7 @@ async function _getAdminEmailData() {
         return {
             adminName: 'Equipo PianoLink',
             adminEmail: 'hola@pianolink.net',
+            notificationEmail: 'hola@pianolink.net',
             whatsappNumber: '+56959089770',
             adminWhatsapp: '+56959089770'
         };
@@ -3397,6 +3399,32 @@ router.post('/v2/:id/schedule-interview', protect, async (req, res) => {
             html: emailHtml
         });
 
+        // Notificar al admin por email
+        try {
+            const notifEmail = adminData.notificationEmail || adminData.adminEmail || 'hola@pianolink.net';
+            const clientName = kit.clientName || req.user.name;
+            const clientEmail = kit.clientEmail || req.user.email;
+            await EmailService.sendSafe({
+                to: notifEmail,
+                subject: `📅 Nueva entrevista agendada — ${clientName}`,
+                html: `
+                <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+                    <h2 style="color:#3b82f6;margin-bottom:20px;">📅 Entrevista Agendada</h2>
+                    <table style="width:100%;border-collapse:collapse;">
+                        <tr><td style="padding:8px 0;color:#888;width:120px;">Cliente:</td><td style="padding:8px 0;color:#333;font-weight:600;">${clientName}</td></tr>
+                        <tr><td style="padding:8px 0;color:#888;">Email:</td><td style="padding:8px 0;color:#333;">${clientEmail}</td></tr>
+                        <tr><td style="padding:8px 0;color:#888;">Fecha:</td><td style="padding:8px 0;color:#333;font-weight:600;">${interviewDate}</td></tr>
+                        <tr><td style="padding:8px 0;color:#888;">Hora:</td><td style="padding:8px 0;color:#333;font-weight:600;">${interviewTime} (${timezoneLabel})</td></tr>
+                        <tr><td style="padding:8px 0;color:#888;">Kit ID:</td><td style="padding:8px 0;color:#333;">${kitId}</td></tr>
+                    </table>
+                    <p style="color:#888;font-size:12px;margin-top:20px;">Revisa tu panel de admin para más detalles.</p>
+                </div>`
+            });
+            console.log(`[Interview] 📧 Notificación enviada a admin: ${notifEmail}`);
+        } catch (notifErr) {
+            console.warn('[Interview] ⚠️ Error enviando notificación al admin:', notifErr.message);
+        }
+
         console.log(`[Interview] ✅ Entrevista agendada: Kit ${kitId} → Slot ${slotId} → ${interviewDate} ${interviewTime}`);
 
         res.json({
@@ -3703,7 +3731,7 @@ router.get('/v2/admin-profile', protect, adminOnly, async (req, res) => {
  */
 router.put('/v2/admin-profile', protect, adminOnly, async (req, res) => {
     try {
-        const { name, whatsapp, email, role, timezone, meetingLink, socialMedia, businessHours, signature } = req.body;
+        const { name, whatsapp, email, notificationEmail, role, timezone, meetingLink, socialMedia, businessHours, signature } = req.body;
 
         let config = await GlobalConfig.findOne({ isDefault: true });
         if (!config) {
@@ -3715,6 +3743,7 @@ router.put('/v2/admin-profile', protect, adminOnly, async (req, res) => {
         if (name !== undefined) config.adminProfile.name = name;
         if (whatsapp !== undefined) config.adminProfile.whatsapp = whatsapp;
         if (email !== undefined) config.adminProfile.email = email;
+        if (notificationEmail !== undefined) config.adminProfile.notificationEmail = notificationEmail;
         if (role !== undefined) config.adminProfile.role = role;
         if (timezone !== undefined) config.adminProfile.timezone = timezone;
         if (meetingLink !== undefined) config.adminProfile.meetingLink = meetingLink;

@@ -179,6 +179,34 @@ router.post('/register/:token', async (req, res) => {
             { expiresIn: '30d' }
         );
 
+        // === Notificar al admin por email ===
+        try {
+            const GlobalConfig = require('../models/GlobalConfig');
+            const EmailService = require('../services/EmailService');
+            const profile = await GlobalConfig.getAdminProfile();
+            const notifEmail = profile.notificationEmail || profile.email || 'hola@pianolink.net';
+
+            await EmailService.sendSafe({
+                to: notifEmail,
+                subject: `🎉 Nueva cuenta creada — ${name}`,
+                html: `
+                <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+                    <h2 style="color:#22c55e;margin-bottom:20px;">🎉 Nuevo estudiante registrado</h2>
+                    <table style="width:100%;border-collapse:collapse;">
+                        <tr><td style="padding:8px 0;color:#888;width:120px;">Nombre:</td><td style="padding:8px 0;color:#333;font-weight:600;">${name}</td></tr>
+                        <tr><td style="padding:8px 0;color:#888;">Email:</td><td style="padding:8px 0;color:#333;">${cleanEmail}</td></tr>
+                        <tr><td style="padding:8px 0;color:#888;">Origen:</td><td style="padding:8px 0;color:#333;">Invitación gratuita</td></tr>
+                        <tr><td style="padding:8px 0;color:#888;">Kit:</td><td style="padding:8px 0;color:#333;">${welcomeKit._id}</td></tr>
+                        <tr><td style="padding:8px 0;color:#888;">Estado:</td><td style="padding:8px 0;color:#f59e0b;font-weight:600;">Entrevista pendiente</td></tr>
+                    </table>
+                    <p style="color:#888;font-size:12px;margin-top:20px;">El estudiante necesita agendar su entrevista de bienvenida.</p>
+                </div>`
+            });
+            console.log(`[StudentInvite] 📧 Notificación enviada a admin: ${notifEmail}`);
+        } catch (notifErr) {
+            console.warn('[StudentInvite] ⚠️ Error notificando al admin:', notifErr.message);
+        }
+
         return res.status(201).json({
             success: true,
             message: '¡Cuenta creada! Tu Kit de Bienvenida está listo.',

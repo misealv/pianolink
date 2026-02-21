@@ -147,6 +147,36 @@
                     <h3 style="color:var(--accent-orange); margin-bottom:15px;">🎹 Bienvenido al Panel de Administración</h3>
                     <p style="color:var(--text-secondary);">Usa el menú lateral para navegar entre los módulos.</p>
                 </div>
+
+                <!-- Entrevistas y Onboarding pendiente -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+                    
+                    <!-- Próximas Entrevistas -->
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:24px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <h3 style="color:#3b82f6; margin:0; font-size:16px;">📅 Próximas Entrevistas</h3>
+                            <span class="badge" id="dash-interview-count" style="background:#3b82f6; color:#fff; padding:3px 10px; border-radius:10px; font-size:12px;">0</span>
+                        </div>
+                        <div id="dash-upcoming-interviews" style="display:grid; gap:8px; max-height:300px; overflow-y:auto;">
+                            <div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:13px;">
+                                Cargando...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Onboarding Pipeline -->
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:24px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <h3 style="color:#f59e0b; margin:0; font-size:16px;">🎯 Pipeline Onboarding</h3>
+                            <button class="btn btn-secondary" onclick="switchModule('welcome-kits')" style="padding:4px 12px; font-size:11px;">Ver todo →</button>
+                        </div>
+                        <div id="dash-onboarding-pipeline" style="display:grid; gap:8px;">
+                            <div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:13px;">
+                                Cargando...
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- ==================== PROFESORES ==================== -->
@@ -1029,6 +1059,16 @@
                                 background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
                             <small style="color:var(--text-secondary); display:block; margin-top:5px;">
                                 Email público que ven los alumnos en los correos.
+                            </small>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px; color:var(--text-primary);">🔔 Email de notificaciones</label>
+                            <input type="email" id="admin-profile-notification-email" placeholder="hola@pianolink.net"
+                                style="width:100%; padding:12px; border-radius:8px; border:1px solid var(--border-color); 
+                                background:var(--bg-dark); color:var(--text-primary); font-size:16px;">
+                            <small style="color:var(--text-secondary); display:block; margin-top:5px;">
+                                Recibirás notificaciones aquí cuando: un estudiante cree su cuenta, agende entrevista, etc.
                             </small>
                         </div>
 

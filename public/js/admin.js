@@ -134,9 +134,130 @@ async function loadDashboard() {
         
         // Actualizar badge de mensajes fundadores
         updateFounderMessagesBadge();
+
+        // Cargar entrevistas próximas y pipeline de onboarding
+        loadDashboardInterviews();
+        loadDashboardOnboarding();
         
     } catch (e) {
         console.error('Error loading dashboard:', e);
+    }
+}
+
+/**
+ * Carga las próximas entrevistas agendadas en el dashboard
+ */
+async function loadDashboardInterviews() {
+    const container = document.getElementById('dash-upcoming-interviews');
+    const countEl = document.getElementById('dash-interview-count');
+    if (!container) return;
+
+    try {
+        const res = await fetch('/api/welcome-kit/v2/interview-calendar', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        const now = new Date();
+        const upcoming = (data.slots || []).filter(s => s.status === 'booked' && new Date(s.startTime) > now);
+        
+        if (countEl) countEl.textContent = upcoming.length;
+
+        if (upcoming.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:13px;">
+                    <div style="font-size:32px; margin-bottom:8px;">📅</div>
+                    Sin entrevistas agendadas
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = upcoming.slice(0, 8).map(slot => {
+            const date = new Date(slot.startTime);
+            const isSetup = slot.purpose === 'setup';
+            const icon = isSetup ? '⚙️' : '📞';
+            const label = isSetup ? 'Setup' : 'Entrevista';
+            const color = isSetup ? '#f97316' : '#3b82f6';
+            const clientName = slot.booking?.clientName || 'Cliente';
+            const clientEmail = slot.booking?.clientEmail || '';
+            const isToday = date.toDateString() === now.toDateString();
+            const isTomorrow = date.toDateString() === new Date(now.getTime() + 86400000).toDateString();
+            const dateLabel = isToday ? 'HOY' : isTomorrow ? 'MAÑANA' : date.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
+            const time = date.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const urgentStyle = isToday ? 'border:1px solid ' + color + ';' : '';
+
+            return `
+                <div style="display:flex; align-items:center; gap:12px; background:var(--bg-dark); padding:10px 14px; border-radius:8px; border-left:3px solid ${color}; ${urgentStyle}">
+                    <div style="min-width:55px; text-align:center;">
+                        <div style="font-size:10px; font-weight:700; color:${isToday ? '#ef4444' : color}; text-transform:uppercase;">${dateLabel}</div>
+                        <div style="font-size:13px; color:var(--text-primary);">${time}</div>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:13px; color:var(--text-primary); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${icon} ${clientName}</div>
+                        <div style="font-size:11px; color:var(--text-secondary);">${label}${clientEmail ? ' · ' + clientEmail : ''}</div>
+                    </div>
+                </div>`;
+        }).join('');
+    } catch (err) {
+        console.error('Error cargando entrevistas dashboard:', err);
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:#888; font-size:12px;">Error al cargar</div>';
+    }
+}
+
+/**
+ * Carga el pipeline de onboarding en el dashboard
+ */
+async function loadDashboardOnboarding() {
+    const container = document.getElementById('dash-onboarding-pipeline');
+    if (!container) return;
+
+    try {
+        const res = await fetch('/api/welcome-kit/v2/orders', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        const kits = data.kits || data.orders || [];
+        
+        // Contar por estado
+        const stages = [
+            { key: 'entrevista_pendiente', label: '📞 Entrevista Pendiente', color: '#f59e0b' },
+            { key: 'entrevista_agendada', label: '📅 Entrevista Agendada', color: '#3b82f6' },
+            { key: 'esperando_equipo', label: '🛒 Esperando Equipo', color: '#f97316' },
+            { key: 'setup_pending', label: '⚙️ Setup Pendiente', color: '#8b5cf6' },
+            { key: 'setup_scheduled', label: '⚙️ Setup Agendado', color: '#6366f1' },
+            { key: 'trial_available', label: '🎓 Clase Disponible', color: '#10b981' },
+            { key: 'trial_scheduled', label: '🎓 Clase Agendada', color: '#14b8a6' }
+        ];
+
+        const counts = {};
+        kits.forEach(k => {
+            const s = k.overallStatus || 'unknown';
+            counts[s] = (counts[s] || 0) + 1;
+        });
+
+        const activeStages = stages.filter(s => counts[s.key] > 0);
+
+        if (activeStages.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:13px;">
+                    <div style="font-size:32px; margin-bottom:8px;">🎯</div>
+                    Sin estudiantes en pipeline
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = activeStages.map(stage => `
+            <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-dark); padding:10px 14px; border-radius:8px; border-left:3px solid ${stage.color};">
+                <span style="font-size:13px; color:var(--text-primary);">${stage.label}</span>
+                <span style="font-size:18px; font-weight:700; color:${stage.color};">${counts[stage.key]}</span>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Error cargando pipeline dashboard:', err);
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:#888; font-size:12px;">Error al cargar</div>';
     }
 }
 
@@ -7804,6 +7925,7 @@ async function loadAdminProfile() {
         document.getElementById('admin-profile-name').value = p.name || '';
         document.getElementById('admin-profile-whatsapp').value = p.whatsapp || '';
         document.getElementById('admin-profile-email').value = p.email || '';
+        document.getElementById('admin-profile-notification-email').value = p.notificationEmail || p.email || 'hola@pianolink.net';
         document.getElementById('admin-profile-role').value = p.role || '';
         document.getElementById('admin-profile-meeting').value = p.meetingLink || '';
         document.getElementById('admin-profile-timezone').value = p.timezone || 'America/Santiago';
@@ -7851,6 +7973,7 @@ async function saveAdminProfile() {
             name: document.getElementById('admin-profile-name').value.trim(),
             whatsapp: document.getElementById('admin-profile-whatsapp').value.trim(),
             email: document.getElementById('admin-profile-email').value.trim(),
+            notificationEmail: document.getElementById('admin-profile-notification-email').value.trim(),
             role: document.getElementById('admin-profile-role').value.trim(),
             meetingLink: document.getElementById('admin-profile-meeting').value.trim(),
             timezone: document.getElementById('admin-profile-timezone').value,

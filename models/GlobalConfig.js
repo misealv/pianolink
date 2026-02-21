@@ -10,6 +10,7 @@ const globalConfigSchema = new mongoose.Schema({
         name: { type: String, default: 'PianoLink' },
         whatsapp: { type: String, default: '+56959089770' },
         email: { type: String, default: 'hola@pianolink.net' },
+        notificationEmail: { type: String, default: 'hola@pianolink.net' },  // Email donde recibe notificaciones el admin
         role: { type: String, default: 'Director Musical' },
         timezone: { type: String, default: 'America/Santiago' },
         meetingLink: { type: String, default: '' },              // Link por defecto para videollamadas
@@ -201,6 +202,7 @@ globalConfigSchema.statics.getAdminProfile = async function() {
         name: 'PianoLink',
         whatsapp: '+56959089770',
         email: 'hola@pianolink.net',
+        notificationEmail: 'hola@pianolink.net',
         role: 'Director Musical',
         timezone: 'America/Santiago',
         meetingLink: '',
