@@ -146,6 +146,99 @@ class CrmLeadService {
     }
 
     /**
+     * Vista "🎹 Prospectos Piano Calificados" — filtro guardado.
+     * Incluye: rol=prospecto_estudiante, source=ex_alumno_resonancias, segment=ex_estudiantes_resonancias
+     * Excluye: emails de sistema, score < 20
+     * Ordena: ex_alumno DESC → tiene_teléfono DESC → score DESC
+     */
+    static async listPianoCalificados(filters = {}) {
+        try {
+            const { search, page = 1, limit = 500 } = filters;
+
+            // Patrones de email a excluir (sistema / no-persona)
+            const excludeEmailRegex = /noreply|no-reply|no_reply|mailer-daemon|postmaster|donotreply|do-not-reply|bounce|notifications@|daemon@|auto-confirm/i;
+
+            // Paso 1: Buscar Leads que cumplan criterios de inclusión
+            const leadQuery = {
+                $or: [
+                    { rol: 'prospecto_estudiante' },
+                    { source: 'ex_alumno_resonancias' },
+                    { fuente: { $regex: /resonancias|ex.?alumno/i } },
+                    { lista: 'ex_estudiantes_resonancias' }
+                ]
+            };
+
+            if (search) {
+                leadQuery.$and = [{
+                    $or: [
+                        { name: { $regex: search, $options: 'i' } },
+                        { email: { $regex: search, $options: 'i' } }
+                    ]
+                }];
+            }
+
+            const matchingLeadIds = (await Lead.find(leadQuery).select('_id').lean()).map(l => l._id);
+
+            // Paso 2: CrmLeads con score >= 20 y que coincidan por leadRef O por segment directo
+            const crmQuery = {
+                score: { $gte: 20 },
+                $or: [
+                    { leadRef: { $in: matchingLeadIds } },
+                    { segment: 'ex_estudiantes_resonancias' }
+                ]
+            };
+
+            // Campos extendidos del Lead core para esta vista
+            const populateFields = 'name email whatsapp whatsappLink type source fuente prioridad rol estadoPipeline cursoOriginal lista anioInscripcionResonancias';
+
+            let leads = await CrmLead.find(crmQuery)
+                .populate('leadRef', populateFields)
+                .lean();
+
+            // Paso 3: Filtrar emails de sistema y leads sin referencia
+            leads = leads.filter(l => {
+                if (!l.leadRef) return false;
+                const email = l.leadRef.email || '';
+                return !excludeEmailRegex.test(email);
+            });
+
+            // Paso 4: Agregar campos computados
+            leads.forEach(l => {
+                const ref = l.leadRef || {};
+                l._isExAlumno = ref.source === 'ex_alumno_resonancias' || l.segment === 'ex_estudiantes_resonancias';
+                l._hasPhone = !!(ref.whatsapp && ref.whatsapp.trim());
+            });
+
+            // Paso 5: Ordenar → ex_alumno DESC, tiene_telefono DESC, score DESC
+            leads.sort((a, b) => {
+                if (a._isExAlumno !== b._isExAlumno) return b._isExAlumno ? 1 : -1;
+                if (a._hasPhone !== b._hasPhone) return b._hasPhone ? 1 : -1;
+                return (b.score || 0) - (a.score || 0);
+            });
+
+            // Paso 6: Paginación en memoria (post-filter)
+            const total = leads.length;
+            const skip = (Number(page) - 1) * Number(limit);
+            const paginated = leads.slice(skip, skip + Number(limit));
+
+            return {
+                success: true,
+                data: paginated,
+                total,
+                pagination: {
+                    page: Number(page),
+                    limit: Number(limit),
+                    total,
+                    pages: Math.ceil(total / Number(limit))
+                }
+            };
+        } catch (error) {
+            console.error('[CRM] Error en listPianoCalificados:', error);
+            return { success: false, message: error.message, status: 500 };
+        }
+    }
+
+    /**
      * Lista leads con filtros avanzados, paginación y ordenamiento
      */
     static async list(filters = {}) {
@@ -159,6 +252,7 @@ class CrmLeadService {
                 minScore,
                 maxScore,
                 search,
+                type,
                 page = 1,
                 limit = 25,
                 sortBy = 'createdAt',
@@ -178,16 +272,25 @@ class CrmLeadService {
             const skip = (Number(page) - 1) * Number(limit);
             const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
 
+            // Filtro por tipo de lead (teacher/client) — busca en el Lead core
+            if (type) {
+                const typedLeads = await Lead.find({ type }).select('_id').lean();
+                const typedIds = typedLeads.map(l => l._id);
+                query.leadRef = { $in: typedIds };
+            }
+
             // Si hay búsqueda, buscar en el Lead original (nombre/email)
-            let leadRefIds = null;
             if (search) {
-                const coreLeads = await Lead.find({
+                const searchQuery = {
                     $or: [
                         { name: { $regex: search, $options: 'i' } },
                         { email: { $regex: search, $options: 'i' } }
                     ]
-                }).select('_id').lean();
-                leadRefIds = coreLeads.map(l => l._id);
+                };
+                // Si ya hay filtro por tipo, combinar ambos
+                if (type) searchQuery.type = type;
+                const coreLeads = await Lead.find(searchQuery).select('_id').lean();
+                const leadRefIds = coreLeads.map(l => l._id);
                 query.leadRef = { $in: leadRefIds };
             }
 
@@ -499,6 +602,127 @@ class CrmLeadService {
             return { success: true, data: crmLead, previousStage };
         } catch (error) {
             console.error('[CRM] Error en advancePipeline:', error);
+            return { success: false, message: error.message, status: 500 };
+        }
+    }
+
+    /**
+     * Registra resultado de intento de contacto rápido.
+     * Actualiza pipeline, tags, notas según resultado.
+     */
+    static async markContactResult(crmLeadId, result) {
+        try {
+            const crmLead = await CrmLead.findById(crmLeadId)
+                .populate('leadRef', 'type name email estadoPipeline')
+                .lean(false);
+            if (!crmLead) return { success: false, message: 'CrmLead no encontrado', status: 404 };
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
+
+            // Mapeo resultado → cambios
+            const resultMap = {
+                respondio_interesado: {
+                    pipeline: 'contacted',
+                    estadoPipeline: 'contactado',
+                    tag: 'respondio_interesado',
+                    note: `✅ Respondió interesado — ${dateStr}`,
+                    scoreBonus: 15
+                },
+                demo_agendada: {
+                    pipeline: 'demo_scheduled',
+                    estadoPipeline: 'en_seguimiento',
+                    tag: 'demo_agendada',
+                    note: `📅 Demo agendada — ${dateStr}`,
+                    scoreBonus: 20
+                },
+                no_responde: {
+                    pipeline: 'contacted',
+                    estadoPipeline: 'contactado',
+                    tag: 'no_responde',
+                    note: `❌ No responde — ${dateStr}`,
+                    scoreBonus: 0
+                },
+                no_interesa: {
+                    pipeline: 'lost',
+                    estadoPipeline: 'descartado',
+                    tag: 'no_interesa',
+                    note: `🚫 No le interesa — ${dateStr}`,
+                    scoreBonus: -10
+                },
+                whatsapp_invalido: {
+                    pipeline: null, // No cambiar pipeline
+                    estadoPipeline: null,
+                    tag: 'whatsapp_invalido',
+                    note: `📵 WhatsApp inválido — ${dateStr}. Cambiar a email.`,
+                    scoreBonus: 0,
+                    addTag: 'pendiente_email'
+                },
+                prefiere_email: {
+                    pipeline: null,
+                    estadoPipeline: null,
+                    tag: 'prefiere_email',
+                    note: `📧 Prefiere email — ${dateStr}`,
+                    scoreBonus: 0
+                }
+            };
+
+            const action = resultMap[result];
+            if (!action) return { success: false, message: 'Resultado no válido', status: 400 };
+
+            // Actualizar pipeline del CrmLead si corresponde
+            if (action.pipeline) {
+                const leadType = crmLead.leadRef?.type;
+                if (leadType === 'teacher') {
+                    const validTeacher = ['lead','contacted','application_review','interview','onboarding','active','rejected'];
+                    if (validTeacher.includes(action.pipeline)) crmLead.pipelineTeacher = action.pipeline;
+                } else {
+                    crmLead.pipelineStudent = action.pipeline;
+                }
+            }
+
+            // Actualizar estadoPipeline en el Lead core
+            if (action.estadoPipeline && crmLead.leadRef) {
+                await Lead.findByIdAndUpdate(crmLead.leadRef._id, {
+                    $set: { estadoPipeline: action.estadoPipeline }
+                });
+            }
+
+            // Agregar tags
+            const tagsToAdd = [action.tag, `contactado_${now.toISOString().slice(0,10)}`];
+            if (action.addTag) tagsToAdd.push(action.addTag);
+            tagsToAdd.forEach(t => {
+                if (!crmLead.tags.includes(t)) crmLead.tags.push(t);
+            });
+
+            // Score bonus
+            if (action.scoreBonus) {
+                crmLead.score = Math.max(0, Math.min(100, crmLead.score + action.scoreBonus));
+                crmLead.scoreHistory.push({
+                    date: now,
+                    score: crmLead.score,
+                    reason: `contact_result:${result}`
+                });
+            }
+
+            await crmLead.save();
+
+            // Registrar interacción
+            await CrmInteraction.create({
+                leadRef: crmLeadId,
+                type: 'note',
+                channel: 'system',
+                metadata: { notes: action.note }
+            });
+
+            // Re-populate para devolver datos frescos
+            const updated = await CrmLead.findById(crmLeadId)
+                .populate('leadRef', 'name email whatsapp whatsappLink type source fuente prioridad rol estadoPipeline')
+                .lean();
+
+            return { success: true, data: updated };
+        } catch (error) {
+            console.error('[CRM] Error en markContactResult:', error);
             return { success: false, message: error.message, status: 500 };
         }
     }

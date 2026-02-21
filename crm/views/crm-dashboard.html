@@ -268,6 +268,45 @@
         .auth-error h2 { font-size: 24px; margin-bottom: 10px; }
         .auth-error p { color: var(--text-secondary); margin-bottom: 20px; max-width: 400px; }
         .auth-error a { display: inline-block; padding: 12px 24px; background: var(--accent); color: #fff; text-decoration: none; border-radius: 8px; font-weight: 500; }
+
+        /* === MEJORA: BOTONES RÁPIDOS DE CONTACTO === */
+        .quick-btns { display: flex; gap: 4px; align-items: center; }
+        .qb { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; transition: all .15s; text-decoration: none; }
+        .qb:hover { transform: scale(1.1); }
+        .qb-wa { background: #25D366; color: #fff; }
+        .qb-wa.disabled { background: #ccc; cursor: not-allowed; pointer-events: none; opacity: .5; }
+        .qb-email { background: #0984e3; color: #fff; }
+        .qb-result { background: #fdcb6e; color: #2d3436; position: relative; }
+        .qb-result:hover { background: #f0b429; }
+
+        /* === MEJORA: MENÚ DE RESULTADO === */
+        .result-menu { display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.15); min-width: 210px; z-index: 300; padding: 4px 0; }
+        .result-menu.open { display: block; }
+        .result-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 14px; border: none; background: none; cursor: pointer; font-size: 13px; color: var(--text-primary); text-align: left; transition: background .1s; white-space: nowrap; }
+        .result-menu button:hover { background: #f0f0f5; }
+        .result-menu hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+        /* === MEJORA: INDICADOR DE CANAL === */
+        .channel-ind { font-size: 16px; text-align: center; cursor: help; }
+
+        /* === MEJORA: CONTADOR DE ACTIVIDAD DIARIA === */
+        .activity-bar { display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%); border-radius: 10px; margin-bottom: 16px; color: #fff; font-size: 13px; flex-wrap: wrap; }
+        .activity-bar .act-stat { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,.2); padding: 4px 12px; border-radius: 20px; font-weight: 500; }
+        .activity-bar .act-stat .act-num { font-size: 18px; font-weight: 700; }
+        .activity-bar .act-title { font-weight: 600; font-size: 14px; }
+
+        /* === MEJORA: FILTRO DE CALIDAD === */
+        .quality-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); cursor: pointer; user-select: none; margin-left: auto; }
+        .quality-toggle input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+        .quality-toggle:hover { color: var(--text-primary); }
+
+        /* === AJUSTES RESPONSIVE TABLA PIANO === */
+        @media (max-width: 768px) {
+            .quick-btns { flex-wrap: wrap; }
+            .activity-bar { font-size: 12px; gap: 8px; }
+            .activity-bar .act-stat { padding: 3px 8px; }
+            .result-menu { right: auto; left: 0; }
+        }
     </style>
 </head>
 <body>
@@ -281,11 +320,12 @@
 
     <p class="sidebar-section">Principal</p>
     <ul class="sidebar-nav">
-        <li><a class="nav-link active" data-section="dashboard"><span class="icon">📊</span> Dashboard</a></li>
+        <li><a class="nav-link" data-section="dashboard"><span class="icon">📊</span> Dashboard</a></li>
     </ul>
 
     <p class="sidebar-section">Leads</p>
     <ul class="sidebar-nav">
+        <li><a class="nav-link active" data-section="leads-piano"><span class="icon">🎹</span> Prospectos Calificados</a></li>
         <li><a class="nav-link" data-section="leads-all"><span class="icon">👥</span> Todos los Leads</a></li>
         <li><a class="nav-link" data-section="leads-profesores"><span class="icon">👨‍🏫</span> Profesores</a></li>
         <li><a class="nav-link" data-section="leads-clientes"><span class="icon">👨‍🎓</span> Estudiantes/Clientes</a></li>
@@ -341,7 +381,7 @@
     <div class="content" id="mainContent">
         
         <!-- ==================== DASHBOARD ==================== -->
-        <section class="section active" id="section-dashboard">
+        <section class="section" id="section-dashboard">
             <div class="kpi-grid" id="kpiGrid">
                 <div class="kpi-card">
                     <div class="kpi-icon blue">👥</div>
@@ -430,6 +470,56 @@
             </div>
         </section>
 
+        <!-- ==================== PROSPECTOS PIANO CALIFICADOS ==================== -->
+        <section class="section active" id="section-leads-piano">
+            <div class="card">
+                <div class="card-header">
+                    <h2>🎹 Prospectos Piano Calificados</h2>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span id="pianoCount" style="font-size:13px;color:var(--text-secondary);"></span>
+                        <button class="btn btn-outline" id="btnRefreshPiano" style="font-size:13px;padding:6px 12px;">🔄 Actualizar</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Contador de actividad diaria (MEJORA 5) -->
+                    <div class="activity-bar" id="activityBar">
+                        <span class="act-title">📊 Actividad Hoy:</span>
+                        <span class="act-stat">💬 <span class="act-num" id="actWa">0</span> WhatsApp</span>
+                        <span class="act-stat">📧 <span class="act-num" id="actEmail">0</span> Emails</span>
+                        <span class="act-stat">✅ <span class="act-num" id="actResult">0</span> Resultados</span>
+                        <span class="act-stat">📋 <span class="act-num" id="actTotal">0</span> Total</span>
+                    </div>
+                    <div class="filters">
+                        <input type="text" class="filter-search" id="filterSearchPiano" placeholder="Buscar por nombre o email..." style="max-width:320px;">
+                        <!-- Filtro de calidad (MEJORA 6) -->
+                        <label class="quality-toggle" title="Ocultar emails genéricos (booking, noreply, facebookmail, etc.)">
+                            <input type="checkbox" id="qualityFilterPiano" checked> 🛡️ Filtro calidad
+                        </label>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Score</th>
+                                    <th>Segmento</th>
+                                    <th>Ex-Alumno</th>
+                                    <th>Canal</th>
+                                    <th>Pipeline</th>
+                                    <th>Contactar</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pianoTableBody">
+                                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando prospectos calificados...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ==================== TODOS LOS LEADS ==================== -->
         <section class="section" id="section-leads-all">
             <div class="card">
@@ -469,7 +559,7 @@
                                     <th>Origen</th>
                                     <th>Score</th>
                                     <th>Etapa</th>
-                                    <th>WhatsApp</th>
+                                    <th>Contactar</th>
                                     <th>Seguimiento</th>
                                     <th>Fecha</th>
                                     <th>Acciones</th>
@@ -1468,9 +1558,101 @@
 
     const API = '/api/crm';
     let allLeads = [];
+    let pianoLeads = []; // Prospectos Piano Calificados
+    let teacherLeads = []; // Cache de profesores cargados del server
+    let clientLeads = []; // Cache de clientes cargados del server
     let allCampaigns = [];
     let allSequences = [];
     let allLandings = [];
+
+    // === MEJORA 5: Contadores de actividad diaria ===
+    let dailyActivity = { wa: 0, email: 0, result: 0 };
+    const ACTIVITY_KEY = 'plk_daily_activity';
+    (function loadDailyActivity() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '{}');
+            const today = new Date().toISOString().slice(0, 10);
+            if (saved.date === today) {
+                dailyActivity = saved.counts || { wa: 0, email: 0, result: 0 };
+            } else {
+                localStorage.setItem(ACTIVITY_KEY, JSON.stringify({ date: today, counts: dailyActivity }));
+            }
+        } catch(e) {}
+    })();
+    function saveDailyActivity() {
+        const today = new Date().toISOString().slice(0, 10);
+        localStorage.setItem(ACTIVITY_KEY, JSON.stringify({ date: today, counts: dailyActivity }));
+        updateActivityBar();
+    }
+    function updateActivityBar() {
+        const wa = document.getElementById('actWa');
+        const em = document.getElementById('actEmail');
+        const re = document.getElementById('actResult');
+        const to = document.getElementById('actTotal');
+        if (wa) wa.textContent = dailyActivity.wa;
+        if (em) em.textContent = dailyActivity.email;
+        if (re) re.textContent = dailyActivity.result;
+        if (to) to.textContent = dailyActivity.wa + dailyActivity.email + dailyActivity.result;
+    }
+
+    // === MEJORA 6: Filtro de calidad — dominios basura ===
+    const JUNK_PATTERNS = [
+        /@booking\.com$/i, /@facebookmail\.com$/i, /@marketplace\.facebook\.com$/i,
+        /noreply@/i, /no-reply@/i, /donotreply@/i, /mailer-daemon@/i,
+        /@reply\./i, /@notifications?\./i, /@bounce\./i,
+        /@.*\.gob\.mx$/i, /@government\./i,
+        /^info@/i, /^admin@/i, /^webmaster@/i, /^postmaster@/i,
+        /@example\.(com|org|net)$/i, /@test\./i, /@localhost$/i,
+        /@.*craigslist/i, /@protonemail/i
+    ];
+    function isJunkEmail(email) {
+        if (!email) return false;
+        return JUNK_PATTERNS.some(p => p.test(email));
+    }
+    function applyQualityFilter(leads) {
+        const cb = document.getElementById('qualityFilterPiano');
+        if (!cb || !cb.checked) return leads;
+        return leads.filter(l => {
+            const email = (l.leadRef || {}).email || '';
+            return !isJunkEmail(email);
+        });
+    }
+
+    // === MEJORA 3: Indicador de canal recomendado ===
+    function getChannelIndicator(lead) {
+        const ref = lead.leadRef || {};
+        const tags = lead.tags || [];
+        const hasPhone = lead._hasPhone || !!(ref.whatsapp && ref.whatsapp.trim());
+        // Si ya respondió interesado o demo agendada
+        if (tags.includes('respondio_interesado') || tags.includes('demo_agendada')) {
+            return '<span class="channel-ind" title="Ya contactado con éxito">✅</span>';
+        }
+        // Si WhatsApp inválido → solo email
+        if (tags.includes('whatsapp_invalido') || tags.includes('pendiente_email')) {
+            return '<span class="channel-ind" title="WhatsApp inválido — contactar por email">📧</span>';
+        }
+        // Si tiene teléfono → WhatsApp primero
+        if (hasPhone) {
+            return '<span class="channel-ind" title="Contactar por WhatsApp">📱</span>';
+        }
+        // Sin teléfono → solo email
+        return '<span class="channel-ind" title="Sin teléfono — solo email">📵</span>';
+    }
+
+    // === MEJORA 2: Templates de email precargados ===
+    function buildMailtoLink(name, email, isExAlumno) {
+        if (!email) return '';
+        const firstName = (name || '').split(' ')[0] || 'Hola';
+        let subject, body;
+        if (isExAlumno) {
+            subject = '¡Te extrañamos en PianoLink! 🎹';
+            body = `Hola ${firstName},\n\nSoy Miguel Antonio de PianoLink (antes Escuela Resonancias).\n\n¿Recuerdas las clases de piano? Ahora con PianoLink puedes retomar desde donde dejaste, con la misma calidad pero más flexible.\n\nMe encantaría platicarte las novedades. ¿Tienes 5 min esta semana?\n\nUn abrazo musical,\nMiguel Antonio\nPianoLink 🎹`;
+        } else {
+            subject = '¿Te gustaría aprender piano? 🎹 PianoLink';
+            body = `Hola ${firstName},\n\nSoy Miguel Antonio de PianoLink, escuela de piano en línea.\n\nVi que podrías estar interesado/a en clases de piano. Ofrecemos clases personalizadas con profesores certificados, desde principiante hasta avanzado.\n\n¿Te gustaría agendar una clase demo gratuita?\n\nQuedo atento,\nMiguel Antonio\nPianoLink 🎹`;
+        }
+        return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
 
     // === AUTH ===
     // Leer token de múltiples fuentes para máxima compatibilidad
@@ -1552,9 +1734,10 @@
             return;
         }
         switch(sectionId) {
-            case 'leads-all': renderLeadsTable(allLeads, 'leadsTableAll'); break;
-            case 'leads-profesores': renderLeadsTable(allLeads.filter(l => l.leadRef?.type === 'teacher'), 'leadsTableProfesores'); break;
-            case 'leads-clientes': renderLeadsTable(allLeads.filter(l => l.leadRef?.type === 'client'), 'leadsTableClientes'); break;
+            case 'leads-piano': loadPianoCalificados(); break;
+            case 'leads-all': loadAllLeadsView(); break;
+            case 'leads-profesores': loadLeadsByType('teacher', 'leadsTableProfesores'); break;
+            case 'leads-clientes': loadLeadsByType('client', 'leadsTableClientes'); break;
             case 'campaigns': loadCampaigns(); break;
             case 'sequences': loadSequences(); break;
             case 'landings': loadLandings(); break;
@@ -1647,6 +1830,163 @@
         }).join('');
     }
 
+    // === CARGA POR TIPO (server-side) ===
+    async function loadLeadsByType(type, tableId) {
+        const tbody = document.getElementById(tableId);
+        if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>';
+        const res = await apiFetch(`/leads?type=${type}&limit=200&sortBy=createdAt&sortOrder=desc`);
+        if (!res?.success) return;
+        const data = res.data || [];
+        // Guardar en cache para que los filtros client-side funcionen
+        if (type === 'teacher') teacherLeads = data;
+        if (type === 'client') clientLeads = data;
+        renderLeadsTable(data, tableId);
+    }
+
+    async function loadAllLeadsView() {
+        if (allLeads.length > 0) {
+            renderLeadsTable(allLeads, 'leadsTableAll');
+            return;
+        }
+        const res = await apiFetch('/leads?limit=500&sortBy=createdAt&sortOrder=desc');
+        if (res?.success) {
+            allLeads = res.data || [];
+            renderLeadsTable(allLeads, 'leadsTableAll');
+        }
+    }
+
+    // === PROSPECTOS PIANO CALIFICADOS ===
+    async function loadPianoCalificados(search) {
+        const qs = search ? `?search=${encodeURIComponent(search)}&limit=500` : '?limit=500';
+        const res = await apiFetch(`/leads/views/piano-calificados${qs}`);
+        if (!res?.success) return;
+        pianoLeads = res.data || [];
+        const totalEl = document.getElementById('pianoCount');
+        if (totalEl) totalEl.textContent = `${res.total || pianoLeads.length} prospectos`;
+        renderPianoTable(pianoLeads);
+    }
+
+    function renderPianoTable(leads) {
+        const tbody = document.getElementById('pianoTableBody');
+        if (!tbody) return;
+
+        // Aplicar filtro de calidad (MEJORA 6)
+        const filtered = applyQualityFilter(leads);
+
+        // Actualizar barra de actividad (MEJORA 5)
+        updateActivityBar();
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-secondary);">Sin prospectos calificados</td></tr>';
+            return;
+        }
+        tbody.innerHTML = filtered.map(lead => {
+            const ref = lead.leadRef || {};
+            const name = ref.name || 'Sin nombre';
+            const email = ref.email || '';
+            const score = lead.score || 0;
+
+            // Segmento con color
+            const segMap = {
+                ex_estudiantes_resonancias: { label: 'Ex-Alumno Res.', css: 'background:#6c5ce7;color:#fff' },
+                hot: { label: 'Caliente', css: 'background:#e17055;color:#fff' },
+                warm: { label: 'Tibio', css: 'background:#fdcb6e;color:#2d3436' },
+                cold: { label: 'Frío', css: 'background:#74b9ff;color:#2d3436' },
+                customer: { label: 'Cliente', css: 'background:#00b894;color:#fff' }
+            };
+            const seg = segMap[lead.segment] || { label: lead.segment || '--', css: 'background:#dfe6e9;color:#636e72' };
+            const segBadge = `<span class="badge" style="${seg.css};font-size:11px;padding:2px 8px;border-radius:4px;">${seg.label}</span>`;
+
+            // Ex-alumno
+            const isEx = lead._isExAlumno || ref.source === 'ex_alumno_resonancias' || lead.segment === 'ex_estudiantes_resonancias';
+            const exBadge = isEx
+                ? '<span style="color:#6c5ce7;font-weight:600;">✅ Sí</span>'
+                : '<span style="color:var(--text-secondary);">—</span>';
+
+            // WhatsApp link
+            const hasPhone = lead._hasPhone || !!(ref.whatsapp && ref.whatsapp.trim());
+            const waLink = ref.whatsappLink || (ref.whatsapp ? `https://wa.me/${ref.whatsapp.replace(/[^0-9]/g, '')}` : '');
+
+            // Canal recomendado (MEJORA 3)
+            const channelInd = getChannelIndicator(lead);
+
+            // Pipeline
+            const pipeline = ref.estadoPipeline || lead.pipelineStudent || lead.lifecycleStage || 'nuevo';
+            const pipeMap = {
+                nuevo: { label: 'Nuevo', css: 'badge-nuevo' },
+                contactado: { label: 'Contactado', css: 'badge-contactado' },
+                en_seguimiento: { label: 'En Seguimiento', css: 'badge-contactado' },
+                convertido: { label: 'Convertido', css: 'badge-convertido' },
+                descartado: { label: 'Descartado', css: 'badge-draft' },
+                lead: { label: 'Nuevo', css: 'badge-nuevo' },
+                contacted: { label: 'Contactado', css: 'badge-contactado' },
+                demo_scheduled: { label: 'Demo Agendada', css: 'badge-contactado' },
+                enrolled: { label: 'Inscrito ✓', css: 'badge-convertido' },
+                lost: { label: 'Perdido', css: 'badge-draft' }
+            };
+            const pipe = pipeMap[pipeline] || { label: pipeline, css: 'badge-nuevo' };
+
+            // Score con barra visual
+            const scoreColor = score >= 70 ? '#00b894' : score >= 40 ? '#fdcb6e' : '#74b9ff';
+            const scoreBar = `<div style="display:flex;align-items:center;gap:6px;">
+                <strong style="min-width:28px;">${score}</strong>
+                <div style="flex:1;height:6px;background:#eee;border-radius:3px;min-width:40px;">
+                    <div style="width:${score}%;height:100%;background:${scoreColor};border-radius:3px;"></div>
+                </div>
+            </div>`;
+
+            const leadId = ref._id || lead._id;
+            const crmId = lead._id;
+
+            // Mailto con template (MEJORA 2)
+            const mailtoHref = buildMailtoLink(name, email, isEx);
+
+            // Botones rápidos de contacto (MEJORA 1)
+            const waBtnClass = hasPhone ? 'qb qb-wa' : 'qb qb-wa disabled';
+            const waOnclick = hasPhone ? `onclick="trackWaClick()" ` : '';
+            const waHref = waLink || '#';
+
+            const quickBtns = `<div class="quick-btns">
+                <a href="${esc(waHref)}" target="_blank" rel="noopener" class="${waBtnClass}" ${waOnclick}title="${hasPhone ? 'Abrir WhatsApp' : 'Sin teléfono'}">💬</a>
+                ${email ? `<a href="${mailtoHref}" class="qb qb-email" onclick="trackEmailClick()" title="Enviar email a ${esc(email)}">📧</a>` : '<span class="qb" style="background:#eee;cursor:not-allowed;opacity:.4;" title="Sin email">📧</span>'}
+                <div style="position:relative;display:inline-block;">
+                    <button class="qb qb-result" onclick="toggleResultMenu(event, '${crmId}')" title="Registrar resultado">📋</button>
+                    <div class="result-menu" id="rm-${crmId}">
+                        <button onclick="markResult('${crmId}','respondio_interesado')">✅ Respondió interesado</button>
+                        <button onclick="markResult('${crmId}','demo_agendada')">📅 Demo agendada</button>
+                        <hr>
+                        <button onclick="markResult('${crmId}','no_responde')">😶 No responde</button>
+                        <button onclick="markResult('${crmId}','no_interesa')">👎 No le interesa</button>
+                        <hr>
+                        <button onclick="markResult('${crmId}','whatsapp_invalido')">📵 WhatsApp inválido</button>
+                        <button onclick="markResult('${crmId}','prefiere_email')">📧 Prefiere email</button>
+                    </div>
+                </div>
+            </div>`;
+
+            return `<tr>
+                <td><div class="lead-name">${esc(name)}</div></td>
+                <td><div class="lead-email" style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(email)}">${esc(email)}</div></td>
+                <td style="min-width:100px;">${scoreBar}</td>
+                <td>${segBadge}</td>
+                <td style="text-align:center;">${exBadge}</td>
+                <td style="text-align:center;">${channelInd}</td>
+                <td><span class="badge ${pipe.css}">${pipe.label}</span></td>
+                <td>${quickBtns}</td>
+                <td>
+                    <div class="action-dropdown">
+                        <button class="action-dropdown-btn" onclick="toggleActionMenu(event)">⋮</button>
+                        <div class="action-dropdown-menu">
+                            <button onclick="editLead('${leadId}', '${crmId}')">✏️ Editar</button>
+                            <button onclick="showPipelineModal('${crmId}', '${ref.type || 'client'}')">📋 Pipeline</button>
+                            <button onclick="showAddTaskModal('${crmId}')">📌 Nueva Tarea</button>
+                        </div>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
     // === LEADS ===
     function renderLeadsTable(leads, tableId) {
         const tbody = document.getElementById(tableId);
@@ -1675,11 +2015,33 @@
             const isOverdue = lead.nextFollowUp && new Date(lead.nextFollowUp) < new Date();
             
             const leadId = ref._id || lead._id;
-            // WhatsApp: usar whatsappLink o construir desde whatsapp
+            const crmId = lead._id;
+            // WhatsApp
+            const hasPhone = !!(ref.whatsapp && ref.whatsapp.trim());
             const waLink = ref.whatsappLink || (ref.whatsapp ? `https://wa.me/${ref.whatsapp.replace(/[^0-9]/g, '')}` : '');
-            const waBtn = waLink
-                ? `<a href="${esc(waLink)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#25D366;color:#fff;border-radius:6px;font-size:12px;text-decoration:none;font-weight:500;" title="Abrir WhatsApp">💬 WhatsApp</a>`
-                : '';
+            const isEx = lead._isExAlumno || ref.source === 'ex_alumno_resonancias' || lead.segment === 'ex_estudiantes_resonancias';
+            const mailtoHref = buildMailtoLink(name, email, isEx);
+
+            // Botones rápidos contacto (MEJORA 1)
+            const waBtnClass = hasPhone ? 'qb qb-wa' : 'qb qb-wa disabled';
+            const quickBtns = `<div class="quick-btns">
+                <a href="${esc(waLink || '#')}" target="_blank" rel="noopener" class="${waBtnClass}" ${hasPhone ? 'onclick="trackWaClick()"' : ''} title="${hasPhone ? 'WhatsApp' : 'Sin teléfono'}">💬</a>
+                ${email ? `<a href="${mailtoHref}" class="qb qb-email" onclick="trackEmailClick()" title="Email: ${esc(email)}">📧</a>` : ''}
+                <div style="position:relative;display:inline-block;">
+                    <button class="qb qb-result" onclick="toggleResultMenu(event, '${crmId}')" title="Registrar resultado">📋</button>
+                    <div class="result-menu" id="rm-${crmId}">
+                        <button onclick="markResult('${crmId}','respondio_interesado')">✅ Respondió interesado</button>
+                        <button onclick="markResult('${crmId}','demo_agendada')">📅 Demo agendada</button>
+                        <hr>
+                        <button onclick="markResult('${crmId}','no_responde')">😶 No responde</button>
+                        <button onclick="markResult('${crmId}','no_interesa')">👎 No le interesa</button>
+                        <hr>
+                        <button onclick="markResult('${crmId}','whatsapp_invalido')">📵 WhatsApp inválido</button>
+                        <button onclick="markResult('${crmId}','prefiere_email')">📧 Prefiere email</button>
+                    </div>
+                </div>
+            </div>`;
+
             return `<tr>
                 <td>
                     <div class="lead-name">${esc(name)}</div>
@@ -1690,18 +2052,18 @@
                 <td>${esc(origin)}</td>
                 <td><strong>${score}</strong></td>
                 <td><span class="badge ${stage.css}">${stage.label}</span></td>
-                <td>${waBtn}</td>
+                <td>${quickBtns}</td>
                 <td style="${isOverdue ? 'color:var(--danger);font-weight:600;' : ''}">${followUp}</td>
                 <td>${date}</td>
                 <td>
                     <div class="action-dropdown">
                         <button class="action-dropdown-btn" onclick="toggleActionMenu(event)">⋮</button>
                         <div class="action-dropdown-menu">
-                            <button onclick="editLead('${leadId}', '${lead._id}')">✏️ Editar</button>
-                            <button onclick="showPipelineModal('${lead._id}', '${ref.type}')">📋 Pipeline</button>
-                            <button onclick="showAddTaskModal('${lead._id}')">📌 Nueva Tarea</button>
+                            <button onclick="editLead('${leadId}', '${crmId}')">✏️ Editar</button>
+                            <button onclick="showPipelineModal('${crmId}', '${ref.type}')">📋 Pipeline</button>
+                            <button onclick="showAddTaskModal('${crmId}')">📌 Nueva Tarea</button>
                             ${ref.type === 'teacher' ? `<button onclick="showScheduleInterview('${leadId}','${esc(name)}','${esc(email)}','${esc(ref.availability?.join(',') || '')}')">📅 Agendar Entrevista</button>` : ''}
-                            ${ref.type === 'teacher' ? `<button onclick="tiInviteFromLead('${leadId}','${lead._id}','${esc(name)}','${esc(email)}','${esc(ref.country||'')}')">🎫 Invitar Profesor</button>` : ''}
+                            ${ref.type === 'teacher' ? `<button onclick="tiInviteFromLead('${leadId}','${crmId}','${esc(name)}','${esc(email)}','${esc(ref.country||'')}')">🎫 Invitar Profesor</button>` : ''}
                             <hr>
                             <button class="danger" onclick="deleteLead('${leadId}', '${esc(name)}')">🗑️ Eliminar</button>
                         </div>
@@ -2008,7 +2370,74 @@
     // Cerrar dropdown al hacer clic fuera o al elegir una opción
     document.addEventListener('click', () => {
         document.querySelectorAll('.action-dropdown.open').forEach(d => d.classList.remove('open'));
+        // También cerrar menús de resultado
+        document.querySelectorAll('.result-menu.open').forEach(m => m.classList.remove('open'));
     });
+
+    // === MEJORA 1: Menú de resultado de contacto ===
+    window.toggleResultMenu = function(e, crmId) {
+        e.stopPropagation();
+        // Cerrar otros menús de resultado abiertos
+        document.querySelectorAll('.result-menu.open').forEach(m => {
+            if (m.id !== 'rm-' + crmId) m.classList.remove('open');
+        });
+        const menu = document.getElementById('rm-' + crmId);
+        if (menu) menu.classList.toggle('open');
+    };
+
+    // Llamar al API para registrar resultado y actualizar UI
+    window.markResult = async function(crmId, result) {
+        // Cerrar menú
+        document.querySelectorAll('.result-menu.open').forEach(m => m.classList.remove('open'));
+
+        const res = await apiFetch(`/leads/${crmId}/contact-result`, {
+            method: 'POST',
+            body: JSON.stringify({ result })
+        });
+        if (!res?.success) {
+            alert('Error al registrar resultado: ' + (res?.message || 'Error desconocido'));
+            return;
+        }
+
+        // Incrementar contador de actividad diaria
+        dailyActivity.result++;
+        saveDailyActivity();
+
+        // Feedback visual
+        const labels = {
+            respondio_interesado: '✅ Respondió interesado',
+            demo_agendada: '📅 Demo agendada',
+            no_responde: '😶 No responde',
+            no_interesa: '👎 No le interesa',
+            whatsapp_invalido: '📵 WhatsApp inválido',
+            prefiere_email: '📧 Prefiere email'
+        };
+        // Notificación temporal en la fila
+        const row = document.querySelector(`[id="rm-${crmId}"]`)?.closest('tr');
+        if (row) {
+            row.style.transition = 'background .3s';
+            row.style.background = '#d4edda';
+            setTimeout(() => { row.style.background = ''; }, 2000);
+        }
+
+        // MEJORA 4: Si whatsapp_invalido → recargar para que cambie el indicador
+        if (result === 'whatsapp_invalido' || result === 'prefiere_email') {
+            // Recargar tabla Piano si está visible
+            if (pianoLeads.length > 0) loadPianoCalificados();
+        }
+
+        console.log(`[CRM] Resultado registrado: ${labels[result] || result} para ${crmId}`);
+    };
+
+    // === MEJORA 5: Tracking de clics de WhatsApp y Email ===
+    window.trackWaClick = function() {
+        dailyActivity.wa++;
+        saveDailyActivity();
+    };
+    window.trackEmailClick = function() {
+        dailyActivity.email++;
+        saveDailyActivity();
+    };
 
     // === EDITAR LEAD ===
     window.editLead = async function(id, crmLeadId) {
@@ -2915,7 +3344,16 @@
     // =========================================================================
 
     function applyLeadFilters(tableId, typeFilter) {
-        let filtered = typeFilter ? allLeads.filter(l => l.leadRef?.type === typeFilter) : allLeads;
+        // Usar cache por tipo si existe, si no filtrar de allLeads
+        let baseData;
+        if (typeFilter === 'teacher' && teacherLeads.length > 0) {
+            baseData = teacherLeads;
+        } else if (typeFilter === 'client' && clientLeads.length > 0) {
+            baseData = clientLeads;
+        } else {
+            baseData = typeFilter ? allLeads.filter(l => l.leadRef?.type === typeFilter) : allLeads;
+        }
+        let filtered = [...baseData];
 
         // Filtro por lista (Resonancias, etc.)
         const listaEl = document.getElementById('filterLista');
@@ -2957,6 +3395,24 @@
 
         // Refresh button
         document.getElementById('btnRefresh')?.addEventListener('click', loadDashboard);
+
+        // Refresh + búsqueda para vista Piano Calificados
+        document.getElementById('btnRefreshPiano')?.addEventListener('click', () => loadPianoCalificados());
+        {
+            let pianoTimer;
+            document.getElementById('filterSearchPiano')?.addEventListener('input', (e) => {
+                clearTimeout(pianoTimer);
+                pianoTimer = setTimeout(() => {
+                    const q = e.target.value.trim();
+                    loadPianoCalificados(q || undefined);
+                }, 400);
+            });
+        }
+
+        // Filtro de calidad: al cambiar, re-renderizar la tabla Piano
+        document.getElementById('qualityFilterPiano')?.addEventListener('change', () => {
+            if (pianoLeads.length > 0) renderPianoTable(pianoLeads);
+        });
 
         // Logout
         document.getElementById('btnLogout')?.addEventListener('click', (e) => {
@@ -3010,6 +3466,20 @@
             return;
         }
         loadDashboard();
+
+        // Activar vista "Prospectos Piano Calificados" por defecto
+        {
+            const pianoLink = document.querySelector('.nav-link[data-section="leads-piano"]');
+            if (pianoLink) {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                pianoLink.classList.add('active');
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                const pianoSection = document.getElementById('section-leads-piano');
+                if (pianoSection) pianoSection.classList.add('active');
+                document.getElementById('pageTitle').textContent = '🎹 Prospectos Calificados';
+                loadPianoCalificados();
+            }
+        }
 
         // Cargar badges al iniciar
         loadInboxBadge();

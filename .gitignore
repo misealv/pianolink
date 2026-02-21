@@ -47,3 +47,7 @@ deploy-fly.sh
 # Credenciales OAuth y datos extraídos
 secrets/
 data/
+_exchange_token.js
+scripts/_exchange_token.js
+scripts/_oauth_server.js
+scripts/_oauth_server_miseal.js

@@ -18,6 +18,17 @@ exports.list = async (req, res) => {
     }
 };
 
+// Vista guardada: Prospectos Piano Calificados
+exports.pianoCalificados = async (req, res) => {
+    try {
+        const result = await CrmLeadService.listPianoCalificados(req.query);
+        res.status(result.success ? 200 : result.status || 500).json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en pianoCalificados:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
 exports.getById = async (req, res) => {
     try {
         const result = await CrmLeadService.getById(req.params.id);
@@ -135,6 +146,18 @@ exports.advancePipeline = async (req, res) => {
         res.status(result.success ? 200 : result.status || 500).json(result);
     } catch (error) {
         console.error('[CRM Controller] Error en advancePipeline:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
+exports.markContactResult = async (req, res) => {
+    try {
+        const { result } = req.body;
+        if (!result) return res.status(400).json({ success: false, message: 'Se requiere campo result' });
+        const data = await CrmLeadService.markContactResult(req.params.id, result);
+        res.status(data.success ? 200 : data.status || 500).json(data);
+    } catch (error) {
+        console.error('[CRM Controller] Error en markContactResult:', error);
         res.status(500).json({ success: false, message: 'Error interno del servidor' });
     }
 };

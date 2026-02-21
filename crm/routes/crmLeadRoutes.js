@@ -51,6 +51,9 @@ router.get('/tasks/no-followup', ctrl.getLeadsWithoutFollowUp);
 // === MIGRACIÓN ===
 router.post('/migrate', ctrl.migrateExistingLeads);
 
+// === VISTAS GUARDADAS (antes de :id para evitar conflicto) ===
+router.get('/views/piano-calificados', ctrl.pianoCalificados);
+
 // === BÚSQUEDA POR REF ===
 router.get('/by-ref/:leadRefId', ctrl.getByLeadRef);
 
@@ -71,6 +74,7 @@ router.put('/:id/lifecycle', ctrl.updateLifecycleStage);
 // === PIPELINE ===
 router.post('/:id/pipeline/advance', ctrl.advancePipeline);
 router.post('/:id/pipeline/lost', ctrl.markLost);
+router.post('/:id/contact-result', ctrl.markContactResult);
 
 // === TAREAS POR LEAD ===
 router.get('/:id/tasks', ctrl.getLeadTasks);
