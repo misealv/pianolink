@@ -1636,12 +1636,15 @@ router.put('/:id/confirm-receipt', async (req, res) => {
             return res.status(404).json({ success: false, error: 'Kit no encontrado' });
         }
         
+        // Actualizar datos de envío antes de la transición
         welcomeKit.shipping.clientConfirmedReceipt = true;
         welcomeKit.shipping.clientConfirmedAt = new Date();
-        welcomeKit.overallStatus = 'setup';
         welcomeKit.setupSession.status = 'not_scheduled';
         
-        await welcomeKit.save();
+        // Sprint 3 fix: usar TransitionService en vez de cambio directo
+        const result = await WelcomeKitTransitionService.transition(welcomeKit, 'setup', {
+            notes: 'Cliente confirmó recepción de equipo'
+        });
         
         console.log(`[WelcomeKit] ✅ Cliente confirmó recepción: ${welcomeKit._id}`);
         

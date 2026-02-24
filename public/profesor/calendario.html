@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mi Agenda | Piano Link</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/profesor-dashboard.css">
+    <style>
+    /* ==================== CALENDARIO SEMANAL ==================== */
+    .weekly-calendar-section {
+        background: var(--panel-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 30px;
+    }
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .calendar-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .calendar-title h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #fff;
+    }
+    .calendar-title .week-label {
+        font-size: 13px;
+        color: var(--text-muted);
+        font-weight: 400;
+    }
+    .calendar-nav {
+        display: flex;
+        gap: 8px;
+    }
+    .calendar-nav button {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--border);
+        color: var(--text-main);
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+    .calendar-nav button:hover {
+        background: var(--accent);
+        color: #000;
+        border-color: var(--accent);
+    }
+    .calendar-nav .btn-today {
+        width: auto;
+        padding: 0 16px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .weekly-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 12px;
+    }
+    .day-column {
+        background: rgba(255,255,255,0.02);
+        border-radius: 10px;
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+    }
+    .day-header {
+        padding: 12px 10px;
+        text-align: center;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255,255,255,0.03);
+        border-radius: 10px 10px 0 0;
+    }
+    .day-name {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+    .day-number {
+        font-size: 20px;
+        font-weight: 700;
+        color: #fff;
+        margin-top: 4px;
+    }
+    .day-column.today .day-header {
+        background: linear-gradient(135deg, rgba(255,118,77,0.15) 0%, rgba(255,118,77,0.05) 100%);
+    }
+    .day-column.today .day-number {
+        color: var(--accent);
+    }
+    .day-classes {
+        flex: 1;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        overflow-y: auto;
+        max-height: 280px;
+    }
+    .class-card {
+        background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(99,102,241,0.05) 100%);
+        border: 1px solid rgba(99,102,241,0.3);
+        border-radius: 8px;
+        padding: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .class-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99,102,241,0.2);
+    }
+    .class-card.trial {
+        background: linear-gradient(135deg, rgba(34,197,94,0.15) 0%, rgba(34,197,94,0.05) 100%);
+        border-color: rgba(34,197,94,0.3);
+    }
+    .class-card.trial:hover {
+        box-shadow: 0 4px 12px rgba(34,197,94,0.2);
+    }
+    .class-time {
+        font-size: 13px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 4px;
+    }
+    .class-student {
+        font-size: 12px;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .class-type {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .class-type .badge {
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+    .class-type .badge-trial {
+        background: rgba(34,197,94,0.2);
+        color: #22c55e;
+    }
+    .class-type .badge-regular {
+        background: rgba(99,102,241,0.2);
+        color: #818cf8;
+    }
+    .empty-day {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-style: italic;
+    }
+    .calendar-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px;
+        color: var(--text-muted);
+        gap: 10px;
+    }
+    /* ==================== MODAL DETALLE CLASE ==================== */
+    .class-detail-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(8px);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+    }
+    .class-detail-overlay.active { display: flex; }
+    .class-detail-modal {
+        background: var(--panel-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 28px;
+        width: 90%;
+        max-width: 420px;
+        animation: slideDown 0.3s ease;
+    }
+    .class-detail-modal h3 {
+        margin: 0 0 18px;
+        font-size: 18px;
+        color: #fff;
+        font-weight: 700;
+    }
+    .class-detail-info {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .class-detail-info .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+    }
+    .class-detail-info .detail-row .label { color: var(--text-muted); }
+    .class-detail-info .detail-row .value { color: #fff; font-weight: 600; }
+    .class-detail-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .class-detail-actions button {
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+    }
+    .btn-enter-room { background: var(--accent); color: #000; }
+    .btn-enter-room:hover { filter: brightness(1.15); }
+    .btn-cancel-class { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3) !important; }
+    .btn-cancel-class:hover { background: rgba(239,68,68,0.25); }
+    .btn-close-detail { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border) !important; }
+    .btn-close-detail:hover { color: #fff; }
+    .cancel-reason-wrap { margin-top: 10px; display: none; }
+    .cancel-reason-wrap.active { display: block; }
+    .cancel-reason-wrap textarea {
+        width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+        border-radius: 8px; color: #fff; padding: 10px; font-size: 13px; resize: none;
+        min-height: 70px; margin-bottom: 10px; box-sizing: border-box;
+    }
+    .cancel-reason-wrap textarea:focus { outline: none; border-color: #ef4444; }
+    .cancel-reason-wrap .btn-confirm-cancel {
+        width: 100%; padding: 10px; background: #ef4444; color: #fff; border: none;
+        border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;
+    }
+    .cancel-reason-wrap .btn-confirm-cancel:hover { background: #dc2626; }
+
+    /* Responsive */
+    @media (max-width: 1200px) { .weekly-grid { grid-template-columns: repeat(4, 1fr); } }
+    @media (max-width: 900px) { .weekly-grid { grid-template-columns: repeat(2, 1fr); } .day-column { min-height: 200px; } }
+    </style>
+</head>
+<body>
+    <!-- Sidebar se inyecta por JS -->
+
+    <main class="main">
+        <div class="main-header">
+            <div>
+                <h1>📅 Mi Agenda</h1>
+                <div class="subtitle">Calendario semanal de clases programadas</div>
+            </div>
+        </div>
+
+        <!-- Mensajes admin -->
+        <div id="adminMessagesSection" class="admin-msg-box" style="display:none;">
+            <div class="admin-msg-title">📨 Mensajes de la Administración</div>
+            <div id="messagesList" style="max-height: 150px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- Modal detalle clase -->
+        <div class="class-detail-overlay" id="classDetailOverlay" onclick="if(event.target===this)closeClassDetail()">
+            <div class="class-detail-modal">
+                <h3 id="classDetailTitle">📋 Detalle de clase</h3>
+                <div class="class-detail-info" id="classDetailInfo"></div>
+                <div class="class-detail-actions">
+                    <button class="btn-enter-room" id="btnEnterRoom" onclick="enterRoomFromDetail()">🎹 Entrar a la sala</button>
+                    <button class="btn-cancel-class" id="btnCancelClass" onclick="showCancelReason()">✕ Cancelar esta clase</button>
+                    <div class="cancel-reason-wrap" id="cancelReasonWrap">
+                        <textarea id="cancelReasonInput" placeholder="Motivo de cancelación (opcional)..."></textarea>
+                        <button class="btn-confirm-cancel" id="btnConfirmCancel" onclick="confirmCancelClass()">Confirmar cancelación — se reembolsa al alumno</button>
+                    </div>
+                    <button class="btn-close-detail" onclick="closeClassDetail()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendario semanal -->
+        <div class="weekly-calendar-section">
+            <div class="calendar-header">
+                <div class="calendar-title">
+                    <h2>📅 Mi Agenda</h2>
+                    <span class="week-label" id="weekLabel">Semana del 1 al 7 de enero</span>
+                </div>
+                <div class="calendar-nav">
+                    <button onclick="changeWeek(-1)" title="Semana anterior">←</button>
+                    <button class="btn-today" onclick="goToToday()">Hoy</button>
+                    <button onclick="changeWeek(1)" title="Semana siguiente">→</button>
+                </div>
+            </div>
+            <div id="calendarContent">
+                <div class="calendar-loading">
+                    <div class="spinner"></div>
+                    <span>Cargando agenda...</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JS compartido -->
+    <script src="/js/profesor-common.js"></script>
+    <script>
+    // ============================================
+    // CALENDARIO SEMANAL — Lógica específica
+    // ============================================
+
+    let currentWeekStart = getWeekStart(new Date());
+    let currentClassDetail = null;
+
+    function getWeekStart(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = day === 0 ? -6 : 1 - day;
+        d.setDate(d.getDate() + diff);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+
+    function formatWeekLabel(start) {
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+        if (start.getMonth() === end.getMonth()) {
+            return `Semana del ${start.getDate()} al ${end.getDate()} de ${months[start.getMonth()]}`;
+        }
+        return `${start.getDate()} ${months[start.getMonth()].substring(0,3)} - ${end.getDate()} ${months[end.getMonth()].substring(0,3)}`;
+    }
+
+    function changeWeek(delta) {
+        currentWeekStart.setDate(currentWeekStart.getDate() + (delta * 7));
+        loadWeeklyCalendar();
+    }
+
+    function goToToday() {
+        currentWeekStart = getWeekStart(new Date());
+        loadWeeklyCalendar();
+    }
+
+    async function loadWeeklyCalendar() {
+        const container = document.getElementById('calendarContent');
+        const weekLabel = document.getElementById('weekLabel');
+        weekLabel.textContent = formatWeekLabel(currentWeekStart);
+
+        container.innerHTML = '<div class="calendar-loading"><div class="spinner"></div><span>Cargando agenda...</span></div>';
+
+        try {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 7);
+
+            const res = await fetch(`/api/bookings/teacher?from=${currentWeekStart.toISOString()}&to=${weekEnd.toISOString()}`, {
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            if (!res.ok) throw new Error('Error cargando clases');
+            const bookings = await res.json();
+            renderWeeklyCalendar(bookings);
+        } catch (error) {
+            console.error('Error cargando calendario:', error);
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+                    <div>Error cargando la agenda</div>
+                    <button onclick="loadWeeklyCalendar()" style="margin-top: 10px; padding: 8px 16px; background: var(--accent); color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Reintentar</button>
+                </div>`;
+        }
+    }
+
+    function renderWeeklyCalendar(bookings) {
+        const container = document.getElementById('calendarContent');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dayNames = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+
+        // Agrupar por día
+        const bookingsByDay = {};
+        for (let i = 0; i < 7; i++) {
+            const dayDate = new Date(currentWeekStart);
+            dayDate.setDate(dayDate.getDate() + i);
+            bookingsByDay[dayDate.toISOString().split('T')[0]] = [];
+        }
+        bookings.forEach(b => {
+            const key = new Date(b.scheduledStart).toISOString().split('T')[0];
+            if (bookingsByDay[key]) bookingsByDay[key].push(b);
+        });
+
+        let html = '<div class="weekly-grid">';
+        for (let i = 0; i < 7; i++) {
+            const dayDate = new Date(currentWeekStart);
+            dayDate.setDate(dayDate.getDate() + i);
+            const key = dayDate.toISOString().split('T')[0];
+            const isToday = dayDate.getTime() === today.getTime();
+            const dayBookings = (bookingsByDay[key] || []).sort((a, b) => new Date(a.scheduledStart) - new Date(b.scheduledStart));
+
+            html += `<div class="day-column ${isToday ? 'today' : ''}">
+                <div class="day-header"><div class="day-name">${dayNames[i]}</div><div class="day-number">${dayDate.getDate()}</div></div>
+                <div class="day-classes">`;
+
+            if (dayBookings.length === 0) {
+                html += '<div class="empty-day">Sin clases</div>';
+            } else {
+                dayBookings.forEach(booking => {
+                    const startTime = new Date(booking.scheduledStart);
+                    const timeStr = startTime.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                    const isTrial = booking.classType === 'trial';
+                    const studentName = booking.studentId?.name || booking.studentName || 'Alumno';
+                    const endTime = new Date(booking.scheduledEnd || new Date(startTime.getTime() + 3600000));
+                    const endStr = endTime.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                    const bkgData = encodeURIComponent(JSON.stringify({
+                        id: booking._id, student: studentName, time: timeStr, endTime: endStr,
+                        date: startTime.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }),
+                        type: isTrial ? 'Clase de prueba' : 'Clase regular', status: booking.status
+                    }));
+                    html += `<div class="class-card ${isTrial ? 'trial' : ''}" onclick="openClassDetail('${bkgData}')">
+                        <div class="class-time">${timeStr}</div>
+                        <div class="class-student">${escHtml(studentName)}</div>
+                        <div class="class-type"><span class="badge ${isTrial ? 'badge-trial' : 'badge-regular'}">${isTrial ? '🎯 Prueba' : '🎹 Clase'}</span></div>
+                    </div>`;
+                });
+            }
+            html += '</div></div>';
+        }
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    // ==================== DETALLE DE CLASE ====================
+
+    function openClassDetail(encodedData) {
+        const data = JSON.parse(decodeURIComponent(encodedData));
+        currentClassDetail = data;
+        document.getElementById('classDetailInfo').innerHTML = `
+            <div class="detail-row"><span class="label">Estudiante</span><span class="value">${escHtml(data.student)}</span></div>
+            <div class="detail-row"><span class="label">Fecha</span><span class="value">${data.date}</span></div>
+            <div class="detail-row"><span class="label">Horario</span><span class="value">${data.time} — ${data.endTime}</span></div>
+            <div class="detail-row"><span class="label">Tipo</span><span class="value">${data.type}</span></div>
+            <div class="detail-row"><span class="label">Estado</span><span class="value">${data.status}</span></div>`;
+        document.getElementById('cancelReasonWrap').classList.remove('active');
+        document.getElementById('cancelReasonInput').value = '';
+        document.getElementById('btnCancelClass').style.display = '';
+        document.getElementById('btnConfirmCancel').disabled = false;
+        document.getElementById('btnConfirmCancel').textContent = 'Confirmar cancelación — se reembolsa al alumno';
+        document.getElementById('classDetailOverlay').classList.add('active');
+    }
+
+    function closeClassDetail() {
+        document.getElementById('classDetailOverlay').classList.remove('active');
+        currentClassDetail = null;
+    }
+
+    function enterRoomFromDetail() {
+        if (!currentClassDetail) return;
+        window.open(`/c/${user.slug}?booking=${currentClassDetail.id}`, '_blank');
+        closeClassDetail();
+    }
+
+    function showCancelReason() {
+        document.getElementById('cancelReasonWrap').classList.add('active');
+        document.getElementById('btnCancelClass').style.display = 'none';
+        document.getElementById('cancelReasonInput').focus();
+    }
+
+    async function confirmCancelClass() {
+        if (!currentClassDetail) return;
+        const reason = document.getElementById('cancelReasonInput').value.trim();
+        const btn = document.getElementById('btnConfirmCancel');
+        btn.disabled = true;
+        btn.textContent = '⏳ Cancelando...';
+        try {
+            const res = await fetch(`/api/bookings/${currentClassDetail.id}/teacher`, {
+                method: 'DELETE',
+                headers: authHeaders(),
+                body: JSON.stringify({ reason })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                alert('✅ Clase cancelada. Se reembolsó la clase al alumno.');
+                closeClassDetail();
+                loadWeeklyCalendar();
+            } else {
+                alert('❌ ' + (data.message || 'Error al cancelar la clase'));
+                btn.disabled = false;
+                btn.textContent = 'Confirmar cancelación — se reembolsa al alumno';
+            }
+        } catch (error) {
+            console.error('Error cancelando clase:', error);
+            alert('❌ Error de conexión. Intenta de nuevo.');
+            btn.disabled = false;
+            btn.textContent = 'Confirmar cancelación — se reembolsa al alumno';
+        }
+    }
+
+    // ==================== INICIALIZACIÓN ====================
+    (async () => {
+        await initProfesorCommon('calendario');
+        loadWeeklyCalendar();
+    })();
+    </script>
+</body>
+</html>

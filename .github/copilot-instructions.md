@@ -22,3 +22,17 @@
 - Highlight risks: **[BUSINESS LOGIC RISK]** for payments/scheduling.
 - Highlight breaking changes: **[BREAKING CHANGE]**.
 - If a request is too vague, ask **one** clarifying question instead of guessing.
+
+## Memory Protection Rule (Low-RAM Environments)
+5. **Chunked Execution Protocol:**
+   - **NEVER** generate or process more than **150 lines of code per response**.
+   - If a task requires more, **split it automatically** into numbered steps:
+     `[PASO 1/N] → [PASO 2/N] → ...`
+   - After each step, **wait for explicit confirmation** ("ok", "continúa", "siguiente") before proceeding.
+   - **NEVER** run multiple file generations in the same response.
+   - If a file exceeds 150 lines, deliver it in **chunks with merge instructions**.
+
+6. **Pre-Execution Warning:**
+   - Before any heavy operation (scaffold, migration, seed), output:
+     `⚠️ [MEMORIA] Esta operación genera ~X líneas. ¿Procedo en pasos?`
+   - Let the user decide before executing.

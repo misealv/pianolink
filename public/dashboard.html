@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Mi Estudio | Piano Link</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/profesor-dashboard.css">
   
   <style>
     :root {
@@ -1603,15 +1604,20 @@
             <button onclick="window.location.href='/teacher-availability.html'" class="action-btn btn-secondary">
                 📅 MI DISPONIBILIDAD
             </button>
-            <button onclick="scrollToStudents()" class="action-btn btn-secondary" id="btnMyStudents" style="position: relative;">
-                👥 MIS ESTUDIANTES
-                <span id="studentsCountSidebar" style="display: none; position: absolute; top: -5px; right: -5px; background: #6366f1; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px;">0</span>
-            </button>
-            <button onclick="toggleValidationsSection()" class="action-btn btn-secondary" id="btnValidations" style="position: relative;">
-                ✅ VALIDAR CLASES
-                <span id="validationsCount" style="display: none; position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px;">0</span>
-            </button>
-            <button onclick="openHelpPanel()" class="action-btn btn-secondary" style="background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(79,70,229,0.1) 100%); border-color: #6366f1; color: #818cf8;">
+
+            <!-- Navegación a sub-vistas (Sprint 4) -->
+            <nav class="profesor-nav" style="flex-direction: column; gap: 4px; margin-top: 10px;">
+                <a href="/dashboard.html" class="active">🏠 Resumen</a>
+                <a href="/profesor/calendario.html">📅 Mi Agenda</a>
+                <a href="/profesor/estudiantes.html">👥 Mis Estudiantes</a>
+                <a href="/profesor/validar.html" style="position: relative;">
+                    ✅ Validar Clases
+                    <span id="validationsCountNav" style="display: none; background: #ef4444; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px;">0</span>
+                </a>
+                <a href="/profesor/perfil.html">🌐 Mi Perfil Público</a>
+            </nav>
+
+            <button onclick="openHelpPanel()" class="action-btn btn-secondary" style="margin-top: 10px; background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(79,70,229,0.1) 100%); border-color: #6366f1; color: #818cf8;">
                 📚 MANUAL DE OPERACIONES
             </button>
             <div id="copyFeedback" style="font-size: 10px; color: #b4e080; text-align: center; margin-top: 5px; min-height: 15px;"></div>
@@ -1641,8 +1647,8 @@
     
     <div class="main-header">
         <div>
-            <h1>Configuración del Estudio</h1>
-            <div class="subtitle">Personaliza la experiencia de tu aula virtual</div>
+            <h1>🏠 Mi Estudio — Resumen</h1>
+            <div class="subtitle">Vista general de tu actividad. Usa el menú lateral para acceder a cada sección.</div>
         </div>
     </div>
 
@@ -5066,10 +5072,11 @@
 
     function updateValidationsCount() {
         const count = pendingValidations.length;
-        const badge = document.getElementById('validationsCount');
-        if (badge) {
-            badge.textContent = count;
-            badge.style.display = count > 0 ? 'block' : 'none';
+        // Actualizar badge en la nav de sub-vistas
+        const badgeNav = document.getElementById('validationsCountNav');
+        if (badgeNav) {
+            badgeNav.textContent = count;
+            badgeNav.style.display = count > 0 ? 'inline-block' : 'none';
         }
     }
 

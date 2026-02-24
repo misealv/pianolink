@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mis Estudiantes | Piano Link</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/profesor-dashboard.css">
+  <style>
+    /* === ESTUDIANTES === */
+    .students-section {
+        background: var(--panel-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 30px;
+    }
+    .students-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .students-header h2 { margin: 0; font-size: 18px; font-weight: 700; color: white; }
+    .students-header .count-badge {
+        background: rgba(99, 102, 241, 0.2); color: #818cf8;
+        padding: 2px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-left: 8px;
+    }
+    .students-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .students-filter-btn {
+        background: transparent; border: 1px solid #333; color: #888;
+        padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; transition: all 0.2s;
+    }
+    .students-filter-btn:hover { border-color: #555; color: #ccc; }
+    .students-filter-btn.active { background: rgba(99, 102, 241, 0.15); border-color: #6366f1; color: #818cf8; }
+    .students-search {
+        background: #1a1a1a; border: 1px solid #333; border-radius: 20px;
+        padding: 6px 14px; color: #e0e0e0; font-size: 12px; width: 160px; outline: none; transition: border-color 0.2s;
+    }
+    .students-search:focus { border-color: #6366f1; }
+
+    .student-card {
+        background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px;
+        padding: 16px; margin-bottom: 10px; transition: all 0.2s; cursor: default;
+    }
+    .student-card:hover { border-color: #444; }
+    .student-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .student-info { display: flex; align-items: center; gap: 12px; }
+    .student-avatar {
+        width: 40px; height: 40px; border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 14px; color: white; flex-shrink: 0;
+    }
+    .student-name { font-weight: 600; color: white; font-size: 14px; }
+    .student-meta { color: #888; font-size: 12px; margin-top: 2px; }
+    .student-badges { display: flex; gap: 6px; align-items: center; }
+    .badge-source { padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+    .badge-platform { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .badge-private { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+    .badge-active { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+    .badge-paused { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .student-details { display: flex; align-items: center; gap: 16px; color: #888; font-size: 12px; flex-wrap: wrap; }
+    .student-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .student-action-btn {
+        background: transparent; border: 1px solid #333; color: #aaa;
+        padding: 5px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.2s;
+    }
+    .student-action-btn:hover { background: rgba(99, 102, 241, 0.1); border-color: #6366f1; color: #818cf8; }
+    .students-empty { text-align: center; padding: 50px 20px; background: #1a1a1a; border-radius: 12px; border: 2px dashed #333; }
+    .students-empty .icon { font-size: 48px; margin-bottom: 12px; }
+    .students-empty .title { font-size: 16px; font-weight: 600; color: white; margin-bottom: 6px; }
+    .students-empty .subtitle { color: #888; font-size: 13px; }
+
+    /* === BITÁCORA MODAL === */
+    .journal-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.7); z-index: 10000;
+        display: none; justify-content: center; align-items: flex-start; padding-top: 5vh; overflow-y: auto;
+    }
+    .journal-overlay.show { display: flex; }
+    .journal-modal {
+        background: #1e1e1e; border: 1px solid #333; border-radius: 16px;
+        width: 95%; max-width: 650px; max-height: 85vh; display: flex; flex-direction: column; margin-bottom: 30px;
+    }
+    .journal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 20px 24px; border-bottom: 1px solid #333;
+    }
+    .journal-header h3 { margin: 0; font-size: 16px; color: white; }
+    .journal-close { background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
+    .journal-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+    .journal-form {
+        background: #252525; border: 1px solid #333; border-radius: 12px; padding: 16px; margin-bottom: 20px;
+    }
+    .journal-form-row { margin-bottom: 12px; }
+    .journal-form-row label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; font-weight: 500; }
+    .journal-form-row input, .journal-form-row textarea, .journal-form-row select {
+        width: 100%; background: #1a1a1a; border: 1px solid #333; border-radius: 8px;
+        padding: 8px 12px; color: #e0e0e0; font-size: 13px; box-sizing: border-box;
+    }
+    .journal-form-row textarea { resize: vertical; min-height: 60px; }
+    .journal-topics-input { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .journal-topic-tag {
+        background: rgba(99, 102, 241, 0.15); color: #818cf8;
+        padding: 3px 10px; border-radius: 12px; font-size: 11px; display: flex; align-items: center; gap: 4px;
+    }
+    .journal-topic-tag .remove { cursor: pointer; font-weight: 700; }
+    .progress-selector { display: flex; gap: 8px; }
+    .progress-option {
+        font-size: 24px; cursor: pointer; opacity: 0.4; transition: all 0.2s;
+        padding: 4px; border-radius: 8px; border: 2px solid transparent;
+    }
+    .progress-option:hover, .progress-option.selected { opacity: 1; }
+    .progress-option.selected { border-color: #6366f1; background: rgba(99, 102, 241, 0.1); }
+    .journal-save-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .journal-save-btn {
+        background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none;
+        padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;
+    }
+    .journal-save-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+    .journal-entry {
+        background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 16px; margin-bottom: 12px;
+    }
+    .journal-entry-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .journal-entry-date { font-size: 13px; color: #888; }
+    .journal-entry-progress { font-size: 20px; }
+    .journal-entry-topics { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .journal-entry-content { color: #ccc; font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
+    .journal-entry-homework {
+        background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 8px; padding: 10px; font-size: 12px; color: #f59e0b; margin-bottom: 8px;
+    }
+    .journal-entry-visibility { font-size: 11px; color: #555; }
+    .journal-entry-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .journal-entry-actions button {
+        background: none; border: none; color: #666; font-size: 11px; cursor: pointer; padding: 2px 6px;
+    }
+    .journal-entry-actions button:hover { color: #aaa; }
+  </style>
+</head>
+<body>
+  <!-- Sidebar se inyecta por JS -->
+  <aside class="sidebar" id="sidebarContainer"></aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <h1>👥 Mis Estudiantes</h1>
+        <div class="subtitle">Gestiona tus alumnos y sus bitácoras de aprendizaje</div>
+      </div>
+    </div>
+
+    <!-- Sección de estudiantes -->
+    <div class="students-section" id="myStudentsSection">
+      <div class="students-header">
+        <div style="display: flex; align-items: center;">
+          <h2>👥 Mis Estudiantes</h2>
+          <span class="count-badge" id="studentsCountBadge">0</span>
+        </div>
+        <div class="students-filters">
+          <button class="students-filter-btn active" data-filter="all" onclick="filterStudents('all')">Todos</button>
+          <button class="students-filter-btn" data-filter="platform" onclick="filterStudents('platform')">🏫 Plataforma</button>
+          <button class="students-filter-btn" data-filter="private_invite" onclick="filterStudents('private_invite')">🔒 Privados</button>
+          <input type="text" class="students-search" id="studentsSearch" placeholder="🔍 Buscar..." oninput="filterStudents()">
+        </div>
+      </div>
+      <div id="studentsList">
+        <div style="text-align: center; padding: 40px; color: #666;">
+          <div class="spinner" style="margin: 0 auto 10px;"></div>
+          Cargando estudiantes...
+        </div>
+      </div>
+    </div>
+
+    <!-- Bitácora Modal -->
+    <div class="journal-overlay" id="journalOverlay">
+      <div class="journal-modal">
+        <div class="journal-header">
+          <h3>📓 Bitácora — <span id="journalStudentName">Estudiante</span></h3>
+          <button class="journal-close" onclick="closeJournal()">&times;</button>
+        </div>
+        <div class="journal-body">
+          <div class="journal-form" id="journalForm">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <span style="font-size: 13px; font-weight: 600; color: #818cf8;">+ Nueva entrada</span>
+              <select id="journalEntryType" style="background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 4px 8px; color: #ccc; font-size: 11px;">
+                <option value="class_notes">📝 Notas de clase</option>
+                <option value="homework">📚 Tarea</option>
+                <option value="progress">📊 Progreso</option>
+                <option value="general">💬 Nota general</option>
+              </select>
+            </div>
+            <div class="journal-form-row">
+              <label>Temas</label>
+              <div class="journal-topics-input" id="journalTopicsContainer">
+                <input type="text" id="journalTopicInput" placeholder="Escribe y presiona Enter..."
+                  style="flex:1; min-width: 120px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 6px 10px; color: #e0e0e0; font-size: 12px;"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();addJournalTopic()}">
+              </div>
+            </div>
+            <div class="journal-form-row">
+              <label>Notas</label>
+              <textarea id="journalContent" placeholder="¿Qué se trabajó en la clase?..."></textarea>
+            </div>
+            <div class="journal-form-row">
+              <label>Tarea asignada (opcional)</label>
+              <input type="text" id="journalHomework" placeholder="Ej: Practicar Sol mayor 15 min/día">
+            </div>
+            <div class="journal-form-row">
+              <label>Progreso</label>
+              <div class="progress-selector" id="journalProgressSelector">
+                <span class="progress-option" data-value="needs_work" onclick="selectProgress('needs_work')" title="Necesita práctica">😕</span>
+                <span class="progress-option" data-value="progressing" onclick="selectProgress('progressing')" title="Progresando">🙂</span>
+                <span class="progress-option" data-value="good" onclick="selectProgress('good')" title="Bien">😊</span>
+                <span class="progress-option" data-value="excellent" onclick="selectProgress('excellent')" title="Excelente">🌟</span>
+              </div>
+            </div>
+            <div class="journal-save-row">
+              <label style="font-size: 12px; color: #888; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="checkbox" id="journalShared" checked> Visible para alumno
+              </label>
+              <button class="journal-save-btn" onclick="saveJournalEntry()">Guardar en Bitácora</button>
+            </div>
+          </div>
+          <div id="journalEntries">
+            <div style="text-align: center; padding: 30px; color: #666;">Cargando bitácora...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- JS compartido -->
+  <script src="/js/profesor-common.js"></script>
+
+  <!-- JS de Estudiantes -->
+  <script>
+    // === Variables globales ===
+    let allStudents = [];
+    let currentStudentFilter = 'all';
+
+    // === Cargar lista de estudiantes ===
+    async function loadMyStudents() {
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch('/api/teacher/my-students', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                allStudents = data.students || [];
+                const total = allStudents.length;
+                const badge = document.getElementById('studentsCountBadge');
+                if (badge) badge.textContent = total;
+                renderStudents();
+            }
+        } catch (err) {
+            console.error('Error cargando estudiantes:', err);
+            document.getElementById('studentsList').innerHTML =
+                '<div style="text-align: center; padding: 40px; color: #ef4444;">Error de conexión</div>';
+        }
+    }
+
+    // === Filtrar por tipo y búsqueda ===
+    function filterStudents(filter) {
+        if (filter) {
+            currentStudentFilter = filter;
+            document.querySelectorAll('.students-filter-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.filter === filter);
+            });
+        }
+        renderStudents();
+    }
+
+    // === Render de tarjetas de estudiantes ===
+    function renderStudents() {
+        const container = document.getElementById('studentsList');
+        const searchTerm = (document.getElementById('studentsSearch')?.value || '').toLowerCase();
+        let filtered = allStudents;
+
+        if (currentStudentFilter !== 'all') {
+            filtered = filtered.filter(s => s.source === currentStudentFilter);
+        }
+        if (searchTerm) {
+            filtered = filtered.filter(s =>
+                s.student.name.toLowerCase().includes(searchTerm) ||
+                s.student.email.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        if (filtered.length === 0 && allStudents.length === 0) {
+            container.innerHTML = `
+                <div class="students-empty">
+                    <div class="icon">👥</div>
+                    <div class="title">Aún no tienes estudiantes</div>
+                    <div class="subtitle">Cuando alumnos se inscriban o los invites, aparecerán aquí.</div>
+                </div>`;
+            return;
+        }
+        if (filtered.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 30px; color: #666;">No se encontraron estudiantes con ese filtro.</div>';
+            return;
+        }
+
+        container.innerHTML = filtered.map(s => {
+            const initials = getStudentInitials(s.student.name);
+            const sourceBadge = s.source === 'private_invite'
+                ? '<span class="badge-source badge-private">🔒 Privado</span>'
+                : '<span class="badge-source badge-platform">🏫 Plataforma</span>';
+            const statusBadge = s.status === 'active'
+                ? '<span class="badge-source badge-active">Activo</span>'
+                : '<span class="badge-source badge-paused">Pausado</span>';
+            const levelLabels = { beginner:'Principiante', elementary:'Elemental', intermediate:'Intermedio', advanced:'Avanzado', professional:'Profesional' };
+            const levelText = levelLabels[s.level] || 'Principiante';
+
+            let nextClassText = '';
+            if (s.nextClass) {
+                const d = new Date(s.nextClass.date);
+                nextClassText = '📅 Próxima: ' + d.toLocaleDateString('es-CL', { weekday:'short', day:'numeric', month:'short' }) + ' ' + d.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
+            } else if (s.lastClassAt) {
+                const d = new Date(s.lastClassAt);
+                nextClassText = '🕐 Última: ' + d.toLocaleDateString('es-CL', { day:'numeric', month:'short', year:'numeric' });
+            } else {
+                nextClassText = '📅 Sin clases aún';
+            }
+
+            const logBadge = s.logCount > 0 ? ' (' + s.logCount + ')' : '';
+            const lastProgress = s.lastLog?.progress ? getProgressEmoji(s.lastLog.progress) : '';
+
+            return '<div class="student-card">' +
+                '<div class="student-card-top">' +
+                    '<div class="student-info">' +
+                        '<div class="student-avatar">' + initials + '</div>' +
+                        '<div><div class="student-name">' + escHtml(s.student.name) + ' ' + lastProgress + '</div>' +
+                        '<div class="student-meta">' + escHtml(s.student.email) + '</div></div>' +
+                    '</div>' +
+                    '<div class="student-badges">' + statusBadge + sourceBadge + '</div>' +
+                '</div>' +
+                '<div class="student-details">' +
+                    '<span>🎹 ' + levelText + '</span>' +
+                    '<span>📦 ' + s.classesRemaining + ' clases restantes</span>' +
+                    '<span>✅ ' + s.classesCompleted + ' completadas</span>' +
+                    '<span>' + nextClassText + '</span>' +
+                '</div>' +
+                '<div class="student-actions">' +
+                    '<button class="student-action-btn" onclick="openJournal(\'' + s.enrollmentId + '\', \'' + escAttr(s.student.name) + '\')">📓 Bitácora' + logBadge + '</button>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    // === Helpers (getStudentInitials es local, el resto se hereda de profesor-common.js) ===
+    function getStudentInitials(name) {
+        return (name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
+    function getProgressEmoji(progress) {
+        const map = { needs_work:'😕', progressing:'🙂', good:'😊', excellent:'🌟' };
+        return map[progress] || '';
+    }
+
+    // === Inicialización — sidebar dinámico + datos comunes + estudiantes ===
+    (async () => {
+        await initProfesorCommon('estudiantes');
+        loadMyStudents();
+    })();
+  </script>
+
+  <!-- JS de Bitácora -->
+  <script>
+    // === Variables bitácora ===
+    let currentJournalEnrollmentId = null;
+    let journalTopics = [];
+    let selectedProgress = null;
+
+    // === Abrir/cerrar bitácora ===
+    async function openJournal(enrollmentId, studentName) {
+        currentJournalEnrollmentId = enrollmentId;
+        document.getElementById('journalStudentName').textContent = studentName;
+        clearJournalForm();
+        document.getElementById('journalOverlay').classList.add('show');
+        await loadJournalEntries();
+    }
+
+    function closeJournal() {
+        document.getElementById('journalOverlay').classList.remove('show');
+        currentJournalEnrollmentId = null;
+    }
+
+    // Cerrar al clic fuera
+    document.getElementById('journalOverlay')?.addEventListener('click', function(e) {
+        if (e.target === this) closeJournal();
+    });
+
+    function clearJournalForm() {
+        document.getElementById('journalEntryType').value = 'class_notes';
+        document.getElementById('journalContent').value = '';
+        document.getElementById('journalHomework').value = '';
+        document.getElementById('journalTopicInput').value = '';
+        document.getElementById('journalShared').checked = true;
+        journalTopics = [];
+        selectedProgress = null;
+        renderJournalTopics();
+        document.querySelectorAll('.progress-option').forEach(o => o.classList.remove('selected'));
+    }
+
+    // === Temas (tags) ===
+    function addJournalTopic() {
+        const input = document.getElementById('journalTopicInput');
+        const val = input.value.trim();
+        if (val && !journalTopics.includes(val)) {
+            journalTopics.push(val);
+            renderJournalTopics();
+        }
+        input.value = '';
+    }
+
+    function removeJournalTopic(idx) {
+        journalTopics.splice(idx, 1);
+        renderJournalTopics();
+    }
+
+    function renderJournalTopics() {
+        const container = document.getElementById('journalTopicsContainer');
+        const input = document.getElementById('journalTopicInput');
+        container.querySelectorAll('.journal-topic-tag').forEach(t => t.remove());
+        journalTopics.forEach((topic, i) => {
+            const tag = document.createElement('span');
+            tag.className = 'journal-topic-tag';
+            tag.innerHTML = escHtml(topic) + ' <span class="remove" onclick="removeJournalTopic(' + i + ')">&times;</span>';
+            container.insertBefore(tag, input);
+        });
+    }
+
+    // === Progreso ===
+    function selectProgress(value) {
+        selectedProgress = selectedProgress === value ? null : value;
+        document.querySelectorAll('.progress-option').forEach(o => {
+            o.classList.toggle('selected', o.dataset.value === selectedProgress);
+        });
+    }
+
+    // === Guardar entrada ===
+    async function saveJournalEntry() {
+        if (!currentJournalEnrollmentId) return;
+        const content = document.getElementById('journalContent').value.trim();
+        const homework = document.getElementById('journalHomework').value.trim();
+
+        if (!content && journalTopics.length === 0) {
+            alert('Agrega al menos un tema o una nota.');
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch('/api/teacher/journal/' + currentJournalEnrollmentId, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: document.getElementById('journalEntryType').value,
+                    topics: journalTopics,
+                    content: content,
+                    homework: homework,
+                    progress: selectedProgress,
+                    visibility: document.getElementById('journalShared').checked ? 'shared' : 'teacher_only'
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                clearJournalForm();
+                await loadJournalEntries();
+                loadMyStudents();
+            } else {
+                alert('Error: ' + (data.error || 'No se pudo guardar'));
+            }
+        } catch (err) {
+            console.error('Error guardando bitácora:', err);
+            alert('Error de conexión');
+        }
+    }
+
+    // === Cargar entradas ===
+    async function loadJournalEntries() {
+        if (!currentJournalEnrollmentId) return;
+        const token = localStorage.getItem('token');
+        const container = document.getElementById('journalEntries');
+
+        try {
+            const res = await fetch('/api/teacher/journal/' + currentJournalEnrollmentId, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+
+            if (!data.success || !data.entries || data.entries.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">' +
+                    '<div style="font-size: 40px; margin-bottom: 10px;">📓</div>' +
+                    '<div style="font-weight: 500; color: #aaa; margin-bottom: 4px;">Sin entradas aún</div>' +
+                    '<div style="font-size: 12px;">Agrega la primera nota usando el formulario de arriba.</div></div>';
+                return;
+            }
+
+            const typeLabels = { class_notes:'📝 Clase', homework:'📚 Tarea', progress:'📊 Progreso', general:'💬 Nota' };
+
+            container.innerHTML = data.entries.map(function(entry) {
+                const dateStr = new Date(entry.date).toLocaleDateString('es-CL', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+                const progressEmoji = getProgressEmoji(entry.progress);
+                const typeLabel = typeLabels[entry.type] || '📝';
+                const visIcon = entry.visibility === 'shared' ? '👁️ Visible' : '🔒 Solo tú';
+                const topicsHtml = (entry.topics || []).map(function(t) {
+                    return '<span class="journal-topic-tag">' + escHtml(t) + '</span>';
+                }).join('');
+
+                return '<div class="journal-entry">' +
+                    '<div class="journal-entry-header">' +
+                        '<div class="journal-entry-date">' + typeLabel + ' · ' + dateStr + '</div>' +
+                        '<div class="journal-entry-progress">' + progressEmoji + '</div>' +
+                    '</div>' +
+                    (topicsHtml ? '<div class="journal-entry-topics">' + topicsHtml + '</div>' : '') +
+                    (entry.content ? '<div class="journal-entry-content">' + escHtml(entry.content) + '</div>' : '') +
+                    (entry.homework ? '<div class="journal-entry-homework">📝 Tarea: ' + escHtml(entry.homework) + '</div>' : '') +
+                    '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+                        '<span class="journal-entry-visibility">' + visIcon + '</span>' +
+                        '<div class="journal-entry-actions">' +
+                            '<button onclick="deleteJournalEntry(\'' + entry._id + '\')">🗑️ Eliminar</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        } catch (err) {
+            console.error('Error cargando bitácora:', err);
+            container.innerHTML = '<div style="text-align: center; padding: 30px; color: #ef4444;">Error de conexión</div>';
+        }
+    }
+
+    // === Eliminar entrada ===
+    async function deleteJournalEntry(entryId) {
+        if (!confirm('¿Eliminar esta entrada de la bitácora?')) return;
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch('/api/teacher/journal/entry/' + entryId, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (data.success) {
+                await loadJournalEntries();
+                loadMyStudents();
+            } else {
+                alert('Error: ' + (data.error || 'No se pudo eliminar'));
+            }
+        } catch (err) {
+            alert('Error de conexión');
+        }
+    }
+  </script>
+</body>
+</html>

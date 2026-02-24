@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Validar Clases | Piano Link</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/profesor-dashboard.css">
+  <style>
+    /* === VALIDACIÓN DE CLASES === */
+    .validation-card {
+        background: #1e1e1e; border: 1px solid #333; border-radius: 12px;
+        padding: 20px; transition: all 0.2s;
+    }
+    .validation-card:hover { border-color: #444; }
+    .validation-card-header {
+        display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;
+    }
+    .validation-student-info { display: flex; align-items: center; gap: 12px; }
+    .validation-student-avatar {
+        width: 48px; height: 48px; border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 16px; color: white;
+    }
+    .validation-student-name { font-weight: 600; color: white; font-size: 15px; }
+    .validation-student-meta { color: #888; font-size: 13px; margin-top: 2px; }
+    .validation-status-badge {
+        padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    }
+    .validation-status-badge.pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .validation-status-badge.completed { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .validation-status-badge.disputed { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .validation-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+    .btn-mark-complete {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white;
+        padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-mark-complete:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); }
+    .btn-mark-noshow {
+        background: transparent; border: 1px solid #ef4444; color: #ef4444;
+        padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-mark-noshow:hover { background: rgba(239, 68, 68, 0.1); }
+    .validation-notes-input {
+        width: 100%; background: #252525; border: 1px solid #333; border-radius: 8px;
+        padding: 12px; color: #e0e0e0; font-size: 14px; margin-bottom: 12px;
+        resize: vertical; min-height: 60px; box-sizing: border-box; font-family: inherit;
+    }
+    .validation-history-item {
+        background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;
+        padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .validation-history-item .student { font-weight: 500; color: #e0e0e0; }
+    .validation-history-item .date { color: #888; font-size: 12px; }
+    .validation-history-item .amount { color: #22c55e; font-weight: 600; }
+
+    /* === POST-VALIDACIÓN PROMPT === */
+    .post-validation-prompt {
+        background: linear-gradient(135deg, #1e2e1e 0%, #2d442d 100%);
+        border: 1px solid #3d5c3d; border-radius: 12px; padding: 20px; margin-top: 15px;
+        animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .post-validation-prompt h4 { margin: 0 0 12px; color: #22c55e; font-size: 14px; }
+    .journal-form-row { margin-bottom: 12px; }
+    .journal-form-row label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; font-weight: 500; }
+    .journal-form-row input, .journal-form-row textarea {
+        width: 100%; background: #1a1a1a; border: 1px solid #333; border-radius: 8px;
+        padding: 8px 12px; color: #e0e0e0; font-size: 13px; box-sizing: border-box; font-family: inherit;
+    }
+    .journal-form-row textarea { resize: vertical; min-height: 60px; }
+    .progress-selector { display: flex; gap: 8px; }
+    .progress-option {
+        font-size: 24px; cursor: pointer; opacity: 0.4; transition: all 0.2s;
+        padding: 4px; border-radius: 8px; border: 2px solid transparent;
+    }
+    .progress-option:hover, .progress-option.selected { opacity: 1; }
+    .progress-option.selected { border-color: #6366f1; background: rgba(99, 102, 241, 0.1); }
+    .journal-save-btn {
+        background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none;
+        padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;
+    }
+    .journal-save-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebarContainer"></aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <h1>✅ Validar Clases</h1>
+        <div class="subtitle">Clases completadas pendientes de validación</div>
+      </div>
+    </div>
+
+    <!-- Info flujo -->
+    <div style="background: linear-gradient(135deg, #1e2e1e 0%, #2d442d 100%); border: 1px solid #3d5c3d; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="font-size: 24px;">💡</div>
+        <div>
+          <div style="color: white; font-weight: 600;">Flujo de validación</div>
+          <div style="color: #888; font-size: 12px;">Marca las clases como completadas. El estudiante tiene 48h para confirmar. Después se liberan los fondos a tu cuenta.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista de validaciones pendientes -->
+    <div id="validationsList" style="display: flex; flex-direction: column; gap: 15px;">
+      <div style="text-align: center; padding: 40px; color: #666;">
+        <div class="spinner" style="margin: 0 auto 10px;"></div>
+        Cargando clases...
+      </div>
+    </div>
+
+    <!-- Historial reciente -->
+    <div style="margin-top: 30px;">
+      <h3 style="color: #888; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">Historial Reciente</h3>
+      <div id="validationsHistory" style="display: flex; flex-direction: column; gap: 10px;"></div>
+    </div>
+  </main>
+
+  <script src="/js/profesor-common.js"></script>
+
+  <!-- JS Validaciones -->
+  <script>
+    let pendingValidations = [];
+    let validationsHistory = [];
+
+    // getInitials y escHtml se heredan de profesor-common.js
+
+    // === Cargar validaciones pendientes + historial ===
+    async function loadPendingValidations() {
+        var token = localStorage.getItem('token');
+        try {
+            var results = await Promise.all([
+                fetch('/api/class-sessions/pending', { headers: { 'Authorization': 'Bearer ' + token } }),
+                fetch('/api/class-sessions/my?limit=10', { headers: { 'Authorization': 'Bearer ' + token } })
+            ]);
+            var pendingData = await results[0].json();
+            var historyData = await results[1].json();
+
+            pendingValidations = pendingData.sessions || [];
+            validationsHistory = (historyData.sessions || []).filter(function(s) {
+                return s.status === 'validated' || s.status === 'confirmed';
+            });
+
+            renderPendingValidations();
+            renderValidationsHistory();
+        } catch (err) {
+            console.error('Error cargando validaciones:', err);
+            document.getElementById('validationsList').innerHTML =
+                '<div style="text-align: center; padding: 40px; color: #ef4444;">Error de conexión</div>';
+        }
+    }
+
+    // === Render pendientes ===
+    function renderPendingValidations() {
+        var container = document.getElementById('validationsList');
+        if (!pendingValidations || pendingValidations.length === 0) {
+            container.innerHTML =
+                '<div style="text-align: center; padding: 60px 20px; background: #1e1e1e; border-radius: 12px; border: 2px dashed #333;">' +
+                '<div style="font-size: 48px; margin-bottom: 15px;">✅</div>' +
+                '<div style="font-size: 18px; font-weight: 600; color: white; margin-bottom: 8px;">¡Todo al día!</div>' +
+                '<div style="color: #888; font-size: 14px;">No hay clases pendientes de validar</div></div>';
+            return;
+        }
+
+        container.innerHTML = pendingValidations.map(function(session) {
+            var student = session.studentId || {};
+            var d = new Date(session.scheduledAt);
+            var statusClass = session.status === 'disputed' ? 'disputed' : 'pending';
+            var statusText = session.status === 'disputed' ? '⚠️ Disputada' : '⏳ Esperando';
+            var dateStr = d.toLocaleDateString('es-CL', { weekday:'short', day:'numeric', month:'short' });
+            var timeStr = d.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
+            var dur = session.durationMinutes ? ' · ' + session.durationMinutes + ' min' : '';
+
+            var html = '<div class="validation-card" id="validation-' + session._id + '">' +
+                '<div class="validation-card-header">' +
+                    '<div class="validation-student-info">' +
+                        '<div class="validation-student-avatar">' + getInitials(student.name) + '</div>' +
+                        '<div><div class="validation-student-name">' + (student.name || 'Estudiante') + '</div>' +
+                        '<div class="validation-student-meta">📅 ' + dateStr + ' · ⏰ ' + timeStr + dur + '</div></div>' +
+                    '</div>' +
+                    '<span class="validation-status-badge ' + statusClass + '">' + statusText + '</span>' +
+                '</div>';
+
+            if (session.status !== 'disputed') {
+                html += '<textarea class="validation-notes-input" id="notes-' + session._id + '" placeholder="Notas sobre la clase...">' + (session.teacherNotes || '') + '</textarea>' +
+                    '<div class="validation-actions">' +
+                        '<button class="btn-mark-complete" onclick="markClassComplete(\'' + session._id + '\')">✅ Marcar Completada</button>' +
+                        '<button class="btn-mark-noshow" onclick="markStudentNoShow(\'' + session._id + '\')">❌ No se presentó</button>' +
+                    '</div>';
+            } else {
+                html += '<div style="padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; color: #ef4444;">' +
+                    '<strong>Disputa abierta:</strong> ' + (session.disputeReason || 'El estudiante reportó un problema') +
+                    '<div style="margin-top: 8px; font-size: 12px; color: #888;">El equipo de PianoLink revisará este caso.</div></div>';
+            }
+            return html + '</div>';
+        }).join('');
+    }
+
+    // === Render historial ===
+    function renderValidationsHistory() {
+        var container = document.getElementById('validationsHistory');
+        if (!validationsHistory || validationsHistory.length === 0) {
+            container.innerHTML = '<div style="color: #666; font-size: 13px; text-align: center; padding: 20px;">Sin historial reciente</div>';
+            return;
+        }
+        container.innerHTML = validationsHistory.slice(0, 5).map(function(session) {
+            var student = session.studentId || {};
+            var d = new Date(session.scheduledAt);
+            return '<div class="validation-history-item">' +
+                '<div><span class="student">' + (student.name || 'Estudiante') + '</span>' +
+                '<span class="date"> · ' + d.toLocaleDateString('es-CL', { day:'numeric', month:'short' }) + '</span></div>' +
+                '<span class="amount">+$' + ((session.teacherPayoutUSD || 0) / 100).toFixed(2) + '</span></div>';
+        }).join('');
+    }
+
+    // === Marcar clase completada ===
+    async function markClassComplete(sessionId) {
+        var notes = (document.getElementById('notes-' + sessionId) || {}).value || '';
+        var token = localStorage.getItem('token');
+        var session = pendingValidations.find(function(s) { return s._id === sessionId; });
+        var studentName = (session && session.studentId) ? session.studentId.name : 'Estudiante';
+        var studentId = (session && session.studentId) ? session.studentId._id : null;
+
+        try {
+            var res = await fetch('/api/class-sessions/' + sessionId + '/teacher-complete', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes: notes })
+            });
+            if (!res.ok) { var data = await res.json(); throw new Error(data.error || 'Error al marcar'); }
+
+            // Animar remoción
+            var card = document.getElementById('validation-' + sessionId);
+            if (card) {
+                card.style.transition = 'all 0.3s';
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(20px)';
+                setTimeout(function() {
+                    card.remove();
+                    pendingValidations = pendingValidations.filter(function(s) { return s._id !== sessionId; });
+                    if (pendingValidations.length === 0) renderPendingValidations();
+                }, 300);
+            }
+
+            // Mostrar prompt post-validación
+            showPostValidationPrompt(sessionId, studentId, studentName, notes);
+        } catch (error) {
+            console.error('Error marcando clase:', error);
+            alert('Error: ' + error.message);
+        }
+    }
+
+    // === Marcar no-show ===
+    async function markStudentNoShow(sessionId) {
+        if (!confirm('¿Confirmas que el estudiante no se presentó a la clase?')) return;
+        var token = localStorage.getItem('token');
+        try {
+            var res = await fetch('/api/class-sessions/' + sessionId + '/student-noshow', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+            });
+            if (!res.ok) { var data = await res.json(); throw new Error(data.error || 'Error al reportar'); }
+
+            var card = document.getElementById('validation-' + sessionId);
+            if (card) {
+                card.style.transition = 'all 0.3s';
+                card.style.opacity = '0';
+                setTimeout(function() {
+                    card.remove();
+                    pendingValidations = pendingValidations.filter(function(s) { return s._id !== sessionId; });
+                    if (pendingValidations.length === 0) renderPendingValidations();
+                }, 300);
+            }
+            alert('❌ No-show registrado. La clase se cobra al estudiante.');
+        } catch (error) {
+            console.error('Error reportando no-show:', error);
+            alert('Error: ' + error.message);
+        }
+    }
+
+    // Inicializar — sidebar dinámico + datos comunes + validaciones
+    (async () => {
+        await initProfesorCommon('validar');
+        loadPendingValidations();
+    })();
+  </script>
+
+  <!-- JS Post-validación -->
+  <script>
+    var pvProgressValues = {};
+
+    // === Prompt post-validación ===
+    function showPostValidationPrompt(sessionId, studentId, studentName, existingNotes) {
+        // Intentar buscar enrollment (si profesor-common.js expone allStudents)
+        var enrollment = null;
+        if (typeof window.allStudents !== 'undefined') {
+            enrollment = window.allStudents.find(function(s) { return s.student._id === studentId; });
+        }
+        if (!enrollment) {
+            // Cargar estudiantes para buscar enrollment
+            var token = localStorage.getItem('token');
+            fetch('/api/teacher/my-students', { headers: { 'Authorization': 'Bearer ' + token } })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success && data.students) {
+                        enrollment = data.students.find(function(s) { return s.student._id === studentId; });
+                        if (enrollment) {
+                            insertPostPrompt(sessionId, enrollment.enrollmentId, studentName, existingNotes);
+                        } else {
+                            alert('✅ Clase marcada como completada. Esperando confirmación del estudiante.');
+                        }
+                    }
+                })
+                .catch(function() {
+                    alert('✅ Clase marcada como completada.');
+                });
+            return;
+        }
+        insertPostPrompt(sessionId, enrollment.enrollmentId, studentName, existingNotes);
+    }
+
+    function insertPostPrompt(sessionId, enrollmentId, studentName, existingNotes) {
+        var container = document.getElementById('validationsList');
+        var promptId = 'post-prompt-' + sessionId;
+
+        var html = '<div class="post-validation-prompt" id="' + promptId + '">' +
+            '<h4>✅ Clase de ' + escHtml(studentName) + ' validada — ¿Agregar a la bitácora?</h4>' +
+            '<div class="journal-form-row"><label>Temas cubiertos</label>' +
+                '<input type="text" id="pvTopics-' + sessionId + '" placeholder="Ej: Escalas, Für Elise (separar por comas)"></div>' +
+            '<div class="journal-form-row"><label>Notas de la clase</label>' +
+                '<textarea id="pvContent-' + sessionId + '" rows="2" placeholder="¿Cómo estuvo la clase?">' + escHtml(existingNotes) + '</textarea></div>' +
+            '<div class="journal-form-row"><label>Tarea (opcional)</label>' +
+                '<input type="text" id="pvHomework-' + sessionId + '" placeholder="Practicar 15 min/día..."></div>' +
+            '<div class="journal-form-row"><label>Progreso</label>' +
+                '<div class="progress-selector" id="pvProgress-' + sessionId + '">' +
+                    '<span class="progress-option" data-value="needs_work" onclick="selectPvProgress(\'' + sessionId + '\',\'needs_work\')" title="Necesita práctica">😕</span>' +
+                    '<span class="progress-option" data-value="progressing" onclick="selectPvProgress(\'' + sessionId + '\',\'progressing\')" title="Progresando">🙂</span>' +
+                    '<span class="progress-option" data-value="good" onclick="selectPvProgress(\'' + sessionId + '\',\'good\')" title="Bien">😊</span>' +
+                    '<span class="progress-option" data-value="excellent" onclick="selectPvProgress(\'' + sessionId + '\',\'excellent\')" title="Excelente">🌟</span>' +
+                '</div></div>' +
+            '<div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">' +
+                '<button onclick="dismissPostPrompt(\'' + promptId + '\')" style="background: transparent; border: 1px solid #555; color: #888; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px;">Saltar</button>' +
+                '<button onclick="savePostValidationEntry(\'' + sessionId + '\', \'' + enrollmentId + '\')" class="journal-save-btn">📓 Guardar en Bitácora</button>' +
+            '</div></div>';
+
+        container.insertAdjacentHTML('afterbegin', html);
+    }
+
+    function selectPvProgress(sessionId, value) {
+        pvProgressValues[sessionId] = pvProgressValues[sessionId] === value ? null : value;
+        var container = document.getElementById('pvProgress-' + sessionId);
+        if (container) {
+            container.querySelectorAll('.progress-option').forEach(function(o) {
+                o.classList.toggle('selected', o.dataset.value === pvProgressValues[sessionId]);
+            });
+        }
+    }
+
+    function dismissPostPrompt(promptId) {
+        var el = document.getElementById(promptId);
+        if (el) {
+            el.style.transition = 'all 0.3s';
+            el.style.opacity = '0';
+            setTimeout(function() { el.remove(); }, 300);
+        }
+        alert('✅ Clase marcada como completada. Esperando confirmación del estudiante.');
+    }
+
+    async function savePostValidationEntry(sessionId, enrollmentId) {
+        var topicsRaw = (document.getElementById('pvTopics-' + sessionId) || {}).value || '';
+        var content = ((document.getElementById('pvContent-' + sessionId) || {}).value || '').trim();
+        var homework = ((document.getElementById('pvHomework-' + sessionId) || {}).value || '').trim();
+        var progress = pvProgressValues[sessionId] || null;
+        var topics = topicsRaw.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
+
+        if (!content && topics.length === 0) {
+            alert('Agrega al menos un tema o una nota.');
+            return;
+        }
+
+        var token = localStorage.getItem('token');
+        try {
+            var res = await fetch('/api/teacher/journal/' + enrollmentId, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'class_notes', topics: topics, content: content,
+                    homework: homework, progress: progress, visibility: 'shared'
+                })
+            });
+            var data = await res.json();
+            if (data.success) {
+                var el = document.getElementById('post-prompt-' + sessionId);
+                if (el) {
+                    el.innerHTML = '<div style="text-align: center; color: #22c55e; padding: 10px;">✅ Guardado en bitácora</div>';
+                    setTimeout(function() { el.remove(); }, 2000);
+                }
+            } else {
+                alert('Error: ' + (data.error || 'No se pudo guardar'));
+            }
+        } catch (err) {
+            alert('Error de conexión');
+        }
+    }
+  </script>
+</body>
+</html>

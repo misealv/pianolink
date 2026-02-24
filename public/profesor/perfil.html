@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mi Perfil Público | Piano Link</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/profesor-dashboard.css">
+  <style>
+    .tag-item {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 12px; border-radius: 20px; font-size: 13px;
+    }
+    .tag-specialty { background: rgba(99,102,241,0.2); color: #818cf8; }
+    .tag-language { background: rgba(34,197,94,0.2); color: #4ade80; }
+    .tag-item button {
+        background: none; border: none; cursor: pointer; font-size: 16px; line-height: 1; color: inherit;
+    }
+    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .profile-grid { grid-template-columns: 1fr; } }
+    .field-group { margin-bottom: 15px; }
+    .field-group label { display: block; font-weight: 600; margin-bottom: 8px; }
+    .field-group textarea, .field-group input[type="url"], .field-group input[type="text"] {
+        width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333;
+        border-radius: 8px; color: white; resize: vertical; box-sizing: border-box; font-family: inherit;
+    }
+    .toggle-row {
+        background: #1a1a1a; border-radius: 10px; padding: 15px; margin-bottom: 15px;
+    }
+    .toggle-row label {
+        display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600;
+    }
+    .toggle-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: #6366f1; }
+    .toggle-row .hint { font-size: 12px; color: #888; margin-top: 8px; margin-left: 30px; }
+    .rate-box {
+        background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(79,70,229,0.1) 100%);
+        border-radius: 12px; padding: 20px; border: 1px solid rgba(99,102,241,0.2);
+    }
+    .rate-input {
+        font-size: 32px; font-weight: 700; width: 100px; background: transparent;
+        border: none; border-bottom: 2px solid var(--accent); color: white; text-align: center;
+    }
+    .preview-box {
+        margin-top: 20px; padding: 20px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 12px; border: 1px solid #6366f1;
+    }
+    .save-status {
+        margin-top: 15px; padding: 10px; border-radius: 8px;
+        text-align: center; display: none;
+    }
+    .pkg-row {
+        display: flex; align-items: center; gap: 10px; padding: 12px;
+        background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid #333; flex-wrap: wrap;
+    }
+    .pkg-input {
+        width: 45px; padding: 8px; background: #1a1a1a; border: 1px solid #333;
+        border-radius: 4px; color: white; text-align: center;
+    }
+    .pkg-input-wide { width: 50px; }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebarContainer"></aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <h1>🌐 Mi Perfil Público</h1>
+        <div class="subtitle">Configura cómo te ven los estudiantes en el catálogo</div>
+      </div>
+    </div>
+
+    <!-- Visibilidad y clase de prueba -->
+    <div class="toggle-row">
+      <label>
+        <input type="checkbox" id="profileIsPublic" onchange="savePublicProfile()">
+        <span>Visible en catálogo de profesores</span>
+      </label>
+      <div class="hint">Los estudiantes podrán encontrarte y reservar clases</div>
+    </div>
+    <div class="toggle-row">
+      <label>
+        <input type="checkbox" id="profileAcceptsTrialClass" onchange="savePublicProfile()">
+        <span>Acepto clases de prueba</span>
+      </label>
+      <div class="hint">Estudiantes con kit de bienvenida pueden agendar su clase de prueba contigo</div>
+    </div>
+
+    <!-- Perfil público -->
+    <div class="panel" style="margin-top: 20px;">
+      <div class="profile-grid">
+        <!-- Columna izquierda -->
+        <div>
+          <div class="field-group">
+            <label>🎯 Especialidades</label>
+            <div id="specialtiesContainer" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;"></div>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="newSpecialty" placeholder="Ej: Jazz, Clásico, Niños..." style="flex:1; padding:10px; background:#1a1a1a; border:1px solid #333; border-radius:8px; color:white;">
+              <button type="button" onclick="addSpecialty()" style="padding:10px 15px; background:#6366f1; color:white; border:none; border-radius:8px; cursor:pointer;">+ Agregar</button>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>🗣️ Idiomas</label>
+            <div id="languagesContainer" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;"></div>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="newLanguage" placeholder="Ej: Español, Inglés..." style="flex:1; padding:10px; background:#1a1a1a; border:1px solid #333; border-radius:8px; color:white;">
+              <button type="button" onclick="addLanguage()" style="padding:10px 15px; background:#6366f1; color:white; border:none; border-radius:8px; cursor:pointer;">+ Agregar</button>
+            </div>
+          </div>
+        </div>
+        <!-- Columna derecha -->
+        <div>
+          <div class="field-group">
+            <label>📝 Biografía corta</label>
+            <textarea id="profileBio" placeholder="Cuéntale a tus futuros estudiantes sobre ti..." rows="4" onchange="savePublicProfile()"></textarea>
+            <div style="font-size:11px; color:#666; text-align:right;">Máx. 500 caracteres</div>
+          </div>
+          <div class="field-group">
+            <label>📜 Experiencia</label>
+            <textarea id="profileExperience" placeholder="Tu experiencia como profesor/músico..." rows="3" onchange="savePublicProfile()"></textarea>
+          </div>
+          <div class="field-group">
+            <label>🎓 Formación</label>
+            <textarea id="profileEducation" placeholder="Tu formación académica musical..." rows="3" onchange="savePublicProfile()"></textarea>
+          </div>
+          <div class="field-group">
+            <label>🎬 Video de presentación (YouTube)</label>
+            <input type="url" id="profileVideoUrl" placeholder="https://youtube.com/watch?v=..." onchange="savePublicProfile()">
+            <div style="font-size:11px; color:#666;">Pega el link de un video tuyo tocando o presentándote</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista previa -->
+      <div class="preview-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <span style="font-size:12px; color:#818cf8; text-transform:uppercase; letter-spacing:1px;">Vista previa de tu perfil</span>
+          <a id="profilePreviewLink" href="#" target="_blank" style="font-size:13px; color:#6366f1; text-decoration:none;">Ver perfil público →</a>
+        </div>
+        <div id="profilePreview" style="color:#888; font-size:14px;">Completa tu perfil para ver la vista previa</div>
+      </div>
+      <div id="profileSaveStatus" class="save-status"></div>
+    </div>
+
+    <!-- Tarifas y Paquetes -->
+    <div class="panel" style="margin-top: 30px;">
+      <h2 style="margin-top:0; color:var(--accent); font-size:14px; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:20px;">💰 Tarifas y Paquetes</h2>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+        <!-- Tarifa -->
+        <div>
+          <div class="rate-box">
+            <div style="font-size:12px; color:#888; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Tu tarifa por clase</div>
+            <div style="display:flex; align-items:center; gap:15px;">
+              <span style="font-size:24px;">$</span>
+              <input type="number" id="hourlyRateInput" min="15" step="1" value="25" class="rate-input">
+              <span style="font-size:14px; color:#888;">USD</span>
+            </div>
+            <div style="margin-top:15px; font-size:11px; color:#666;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <span>Tú recibes (<span id="teacherFeeLabel">--</span>%):</span>
+                <span id="teacherEarnsDisplay" style="color:#4ade80; font-weight:600;">$20.00</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span>Estudiante paga:</span>
+                <span id="studentPaysDisplay" style="color:#fbbf24; font-weight:600;">$31.25</span>
+              </div>
+            </div>
+            <div id="rateInfoLabel" style="margin-top:10px; font-size:9px; color:#555; text-align:center;">Mínimo: $15 USD</div>
+          </div>
+          <button type="button" onclick="saveHourlyRate()" style="width:100%; margin-top:15px; padding:12px; background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%); color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;">💾 Guardar Tarifa</button>
+        </div>
+        <!-- Paquetes -->
+        <div>
+          <div style="font-size:12px; color:#888; text-transform:uppercase; letter-spacing:1px; margin-bottom:15px;">Paquetes con Descuento</div>
+          <div id="packagesContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+          <button type="button" onclick="addPackage()" style="width:100%; margin-top:15px; padding:10px; background:rgba(255,255,255,0.05); color:#888; border:1px dashed #444; border-radius:8px; cursor:pointer;">➕ Agregar Paquete</button>
+          <button type="button" onclick="savePackages()" style="width:100%; margin-top:10px; padding:12px; background:linear-gradient(135deg,#10b981 0%,#059669 100%); color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;">💾 Guardar Paquetes</button>
+        </div>
+      </div>
+      <div style="margin-top:20px; padding:15px; background:rgba(251,191,36,0.1); border-radius:8px; border:1px solid rgba(251,191,36,0.2);">
+        <div style="font-size:11px; color:#fbbf24;">💡 <strong>Política de tarifas:</strong> Tu nueva tarifa aplica solo a nuevos estudiantes. Los estudiantes actuales mantienen su tarifa congelada por 1 año.</div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/profesor-common.js"></script>
+
+  <!-- FASE B: Perfil público + Tarifas -->
+  <script>
+    // Variables globales
+    var publicProfile = {
+      isPublic: true,
+      specialties: [],
+      languages: ['Español'],
+      experience: '',
+      education: '',
+      videoUrl: '',
+      acceptsTrialClass: true
+    };
+    var currentPackages = [];
+    var dashboardPlatformFee = 25;
+    var dashboardTeacherFee = 75;
+    var dashboardMinRate = 15;
+    var saveProfileTimeout = null;
+
+    // ==================== PERFIL PÚBLICO ====================
+
+    async function loadPublicProfile() {
+      try {
+        var response = await fetch('/api/teacher-profile/my-profile', {
+          headers: { 'Authorization': 'Bearer ' + user.token }
+        });
+        var data = await response.json();
+        if (data.success && data.profile) {
+          publicProfile = Object.assign({}, publicProfile, data.profile);
+          renderPublicProfileForm();
+        }
+      } catch (error) {
+        console.error('[Perfil] Error cargando perfil público:', error);
+      }
+    }
+
+    function renderPublicProfileForm() {
+      document.getElementById('profileIsPublic').checked = publicProfile.isPublic !== false;
+      document.getElementById('profileAcceptsTrialClass').checked = publicProfile.acceptsTrialClass !== false;
+      document.getElementById('profileBio').value = user.bio || '';
+      document.getElementById('profileExperience').value = publicProfile.experience || '';
+      document.getElementById('profileEducation').value = publicProfile.education || '';
+      document.getElementById('profileVideoUrl').value = publicProfile.videoUrl || '';
+      renderSpecialties();
+      renderLanguages();
+      updateProfilePreview();
+    }
+
+    // ---- Especialidades ----
+    function renderSpecialties() {
+      var container = document.getElementById('specialtiesContainer');
+      var arr = publicProfile.specialties || [];
+      var html = '';
+      for (var i = 0; i < arr.length; i++) {
+        html += '<span class="tag-item tag-specialty">' + arr[i] +
+          ' <button onclick="removeSpecialty(' + i + ')">×</button></span>';
+      }
+      container.innerHTML = html;
+    }
+
+    function addSpecialty() {
+      var input = document.getElementById('newSpecialty');
+      var value = input.value.trim();
+      if (value && !publicProfile.specialties.includes(value)) {
+        publicProfile.specialties.push(value);
+        renderSpecialties();
+        savePublicProfile();
+        input.value = '';
+      }
+    }
+
+    function removeSpecialty(index) {
+      publicProfile.specialties.splice(index, 1);
+      renderSpecialties();
+      savePublicProfile();
+    }
+
+    // ---- Idiomas ----
+    function renderLanguages() {
+      var container = document.getElementById('languagesContainer');
+      var arr = publicProfile.languages || [];
+      var html = '';
+      for (var i = 0; i < arr.length; i++) {
+        html += '<span class="tag-item tag-language">' + arr[i] +
+          ' <button onclick="removeLanguage(' + i + ')">×</button></span>';
+      }
+      container.innerHTML = html;
+    }
+
+    function addLanguage() {
+      var input = document.getElementById('newLanguage');
+      var value = input.value.trim();
+      if (value && !publicProfile.languages.includes(value)) {
+        publicProfile.languages.push(value);
+        renderLanguages();
+        savePublicProfile();
+        input.value = '';
+      }
+    }
+
+    function removeLanguage(index) {
+      publicProfile.languages.splice(index, 1);
+      renderLanguages();
+      savePublicProfile();
+    }
+
+    // ---- Guardar perfil (debounce 500ms) ----
+    async function savePublicProfile() {
+      clearTimeout(saveProfileTimeout);
+      saveProfileTimeout = setTimeout(async function() {
+        var statusEl = document.getElementById('profileSaveStatus');
+        statusEl.style.display = 'block';
+        statusEl.style.background = 'rgba(99,102,241,0.2)';
+        statusEl.style.color = '#818cf8';
+        statusEl.textContent = '⏳ Guardando...';
+        try {
+          var profileData = {
+            isPublic: document.getElementById('profileIsPublic').checked,
+            acceptsTrialClass: document.getElementById('profileAcceptsTrialClass').checked,
+            specialties: publicProfile.specialties,
+            languages: publicProfile.languages,
+            experience: document.getElementById('profileExperience').value,
+            education: document.getElementById('profileEducation').value,
+            videoUrl: document.getElementById('profileVideoUrl').value
+          };
+          var response = await fetch('/api/teacher-profile/my-profile', {
+            method: 'PUT',
+            headers: {
+              'Authorization': 'Bearer ' + user.token,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(profileData)
+          });
+          var data = await response.json();
+          if (data.success) {
+            statusEl.style.background = 'rgba(34,197,94,0.2)';
+            statusEl.style.color = '#4ade80';
+            statusEl.textContent = '✅ Perfil guardado';
+            updateProfilePreview();
+            setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
+          } else {
+            throw new Error(data.error);
+          }
+        } catch (error) {
+          console.error('[Perfil] Error guardando perfil:', error);
+          statusEl.style.background = 'rgba(239,68,68,0.2)';
+          statusEl.style.color = '#ef4444';
+          statusEl.textContent = '❌ Error al guardar';
+        }
+      }, 500);
+    }
+
+    // ---- Vista previa ----
+    function updateProfilePreview() {
+      var preview = document.getElementById('profilePreview');
+      var link = document.getElementById('profilePreviewLink');
+      var isPublic = document.getElementById('profileIsPublic').checked;
+      link.href = '/profesor/' + user.slug;
+      if (!isPublic) {
+        preview.innerHTML = '<span style="color:#f59e0b;">⚠️ Tu perfil está oculto. Activa "Visible en catálogo" para aparecer.</span>';
+        return;
+      }
+      var specialties = publicProfile.specialties.length > 0
+        ? publicProfile.specialties.slice(0, 3).join(', ')
+        : 'Sin especialidades';
+      var rate = document.getElementById('hourlyRateInput').value || 25;
+      preview.innerHTML = '<div style="display:flex;gap:15px;align-items:center;">' +
+        '<div style="width:60px;height:60px;background:linear-gradient(135deg,#6366f1,#818cf8);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold;color:white;">' +
+        user.name.charAt(0) + '</div>' +
+        '<div><div style="font-weight:700;font-size:16px;color:white;">' + user.name + '</div>' +
+        '<div style="font-size:13px;color:#888;">' + specialties + '</div>' +
+        '<div style="font-size:14px;color:#4ade80;margin-top:4px;">$' + rate + '/clase</div></div></div>';
+    }
+
+    // ==================== TARIFAS Y PAQUETES ====================
+
+    async function loadRatesAndPackages() {
+      try {
+        var response = await fetch('/api/teacher-profile/my-rates', {
+          headers: { 'Authorization': 'Bearer ' + user.token }
+        });
+        var data = await response.json();
+        if (data.success) {
+          var rates = data.rates;
+          document.getElementById('hourlyRateInput').value = rates.teacherEarns;
+          if (rates.platformFee !== undefined) dashboardPlatformFee = rates.platformFee;
+          if (rates.teacherFee !== undefined) dashboardTeacherFee = rates.teacherFee;
+          if (rates.minRate !== undefined) {
+            dashboardMinRate = rates.minRate;
+            document.getElementById('hourlyRateInput').min = rates.minRate;
+          }
+          var teacherFeeLabel = document.getElementById('teacherFeeLabel');
+          if (teacherFeeLabel) teacherFeeLabel.textContent = dashboardTeacherFee;
+          var rateInfoLabel = document.getElementById('rateInfoLabel');
+          if (rateInfoLabel) rateInfoLabel.textContent = 'Mínimo: $' + dashboardMinRate + ' USD | PianoLink cobra ' + dashboardPlatformFee + '% de comisión';
+          updateRateDisplay(rates.teacherEarns);
+          currentPackages = rates.packages || [];
+          renderRatePackages();
+        }
+      } catch (error) {
+        console.error('[Perfil] Error cargando tarifas:', error);
+      }
+    }
+
+    function updateRateDisplay(teacherRate) {
+      var teacherFraction = dashboardTeacherFee / 100;
+      var studentPrice = (teacherRate / teacherFraction).toFixed(2);
+      document.getElementById('teacherEarnsDisplay').textContent = '$' + teacherRate.toFixed(2);
+      document.getElementById('studentPaysDisplay').textContent = '$' + studentPrice;
+    }
+
+    async function saveHourlyRate() {
+      var rate = parseFloat(document.getElementById('hourlyRateInput').value);
+      if (rate < dashboardMinRate) {
+        alert('⚠️ La tarifa mínima es $' + dashboardMinRate + ' USD');
+        return;
+      }
+      try {
+        var response = await fetch('/api/teacher-profile/my-rates', {
+          method: 'PUT',
+          headers: {
+            'Authorization': 'Bearer ' + user.token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ hourlyRate: rate })
+        });
+        var data = await response.json();
+        if (data.success) {
+          alert('✅ Tarifa actualizada correctamente');
+        } else {
+          alert('❌ ' + (data.error || 'Error al guardar'));
+        }
+      } catch (error) {
+        console.error('[Perfil] Error guardando tarifa:', error);
+        alert('❌ Error de conexión');
+      }
+    }
+
+    // ---- Paquetes ----
+    function renderRatePackages() {
+      var container = document.getElementById('packagesContainer');
+      var teacherRate = parseFloat(document.getElementById('hourlyRateInput').value) || 25;
+      var teacherFraction = dashboardTeacherFee / 100;
+      var studentPrice = teacherRate / teacherFraction;
+      if (currentPackages.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:20px;color:#666;font-size:12px;">' +
+          'No hay paquetes configurados.<br>Los paquetes permiten ofrecer descuentos por compra de múltiples clases.</div>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < currentPackages.length; i++) {
+        var pkg = currentPackages[i];
+        var pricePerClass = studentPrice * (1 - pkg.discountPercent / 100);
+        var total = pricePerClass * pkg.classes;
+        var validDays = pkg.validDays || 30;
+        html += '<div class="pkg-row">' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<input type="number" value="' + pkg.classes + '" min="2" max="50" onchange="updatePackage(' + i + ',\'classes\',this.value)" class="pkg-input">' +
+          '<span style="color:#888;font-size:11px;">clases</span></div>' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<input type="number" value="' + pkg.discountPercent + '" min="0" max="50" onchange="updatePackage(' + i + ',\'discountPercent\',this.value)" class="pkg-input">' +
+          '<span style="color:#888;font-size:11px;">% off</span></div>' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<input type="number" value="' + validDays + '" min="7" max="365" onchange="updatePackage(' + i + ',\'validDays\',this.value)" class="pkg-input pkg-input-wide">' +
+          '<span style="color:#888;font-size:11px;">días</span></div>' +
+          '<div style="flex:1;text-align:right;min-width:80px;">' +
+          '<div style="font-size:14px;font-weight:600;color:#4ade80;">$' + total.toFixed(0) + '</div>' +
+          '<div style="font-size:10px;color:#666;">($' + pricePerClass.toFixed(2) + '/clase)</div></div>' +
+          '<button onclick="removePackage(' + i + ')" style="background:none;border:none;color:#ff4d4d;cursor:pointer;font-size:16px;">✕</button></div>';
+      }
+      container.innerHTML = html;
+    }
+
+    function addPackage() {
+      currentPackages.push({ classes: 4, discountPercent: 10, validDays: 30, isActive: true });
+      renderRatePackages();
+    }
+
+    function updatePackage(index, field, value) {
+      currentPackages[index][field] = parseInt(value);
+      renderRatePackages();
+    }
+
+    function removePackage(index) {
+      currentPackages.splice(index, 1);
+      renderRatePackages();
+    }
+
+    async function savePackages() {
+      try {
+        var response = await fetch('/api/teacher-profile/packages', {
+          method: 'PUT',
+          headers: {
+            'Authorization': 'Bearer ' + user.token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ packages: currentPackages })
+        });
+        var data = await response.json();
+        if (data.success) {
+          alert('✅ Paquetes guardados correctamente');
+        } else {
+          alert('❌ ' + (data.error || 'Error al guardar'));
+        }
+      } catch (error) {
+        console.error('[Perfil] Error guardando paquetes:', error);
+        alert('❌ Error de conexión');
+      }
+    }
+  </script>
+
+  <!-- FASE C: Event listeners e inicialización -->
+  <script>
+    // Listener de cambio de tarifa en tiempo real
+    document.getElementById('hourlyRateInput').addEventListener('input', function() {
+      var rate = parseFloat(this.value) || 15;
+      updateRateDisplay(rate);
+      renderRatePackages();
+    });
+
+    // Enter para agregar especialidad/idioma
+    document.getElementById('newSpecialty').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); addSpecialty(); }
+    });
+    document.getElementById('newLanguage').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); addLanguage(); }
+    });
+
+    // Inicialización — sidebar dinámico + datos comunes + perfil
+    (async () => {
+        await initProfesorCommon('perfil');
+        loadPublicProfile();
+        loadRatesAndPackages();
+    })();
+  </script>
+</body>
+</html>
