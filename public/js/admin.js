@@ -4453,6 +4453,17 @@ async function updateV2Status(orderId, newStatus) {
 }
 
 function openChangeStatusModal(orderId, currentStatus) {
+    // Normalizar estados legacy al sistema simplificado
+    const legacyMap = {
+        'paid': 'onboarding', 'entrevista_pendiente': 'onboarding', 'entrevista_agendada': 'onboarding',
+        'esperando_equipo': 'onboarding', 'shipping': 'onboarding', 'delivered': 'onboarding',
+        'setup_pending': 'setup', 'setup_scheduled': 'setup',
+        'trial_available': 'trial_ready', 'trial_scheduled': 'trial_ready',
+        'trial_completed': 'trial_done',
+        'completed': 'active', 'disputed': 'refunded'
+    };
+    const normalizedStatus = legacyMap[currentStatus] || currentStatus;
+
     // V3: estados simplificados
     const statuses = [
         { value: 'onboarding',  label: '📋 Onboarding' },
@@ -4464,7 +4475,7 @@ function openChangeStatusModal(orderId, currentStatus) {
     ];
     
     const options = statuses.map(s => 
-        `<option value="${s.value}" ${s.value === currentStatus ? 'selected' : ''}>${s.label}</option>`
+        `<option value="${s.value}" ${s.value === normalizedStatus ? 'selected' : ''}>${s.label}</option>`
     ).join('');
     
     const modalHtml = `

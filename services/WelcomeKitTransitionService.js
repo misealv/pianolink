@@ -272,7 +272,16 @@ class WelcomeKitTransitionService {
      * @returns {Object} { success, previousStatus, newStatus, effects, error }
      */
     static async transition(kit, toStatus, options = {}) {
-        const previousStatus = kit.overallStatus;
+        const rawStatus = kit.overallStatus;
+        
+        // Normalizar estado legacy → nuevo antes de validar
+        const previousStatus = LEGACY_TO_NEW[rawStatus] || rawStatus;
+        
+        // Si el kit tiene estado legacy, actualizarlo al normalizado antes de continuar
+        if (rawStatus !== previousStatus) {
+            console.log(`[WKTransition] 🔄 Normalizando estado legacy: ${rawStatus} → ${previousStatus}`);
+            kit.overallStatus = previousStatus;
+        }
 
         // Validar que el estado destino es válido
         if (!ALL_STATUSES.includes(toStatus)) {
