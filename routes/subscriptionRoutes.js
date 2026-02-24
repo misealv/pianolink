@@ -148,9 +148,10 @@ router.post('/purchase', authMiddleware, async (req, res) => {
                 );
                 if (embeddedPkg) {
                     // Calcular precio al alumno desde hourlyRate + descuento
+                    const CurrencyHelper = require('../services/CurrencyHelper');
                     const hourlyRate = teacher.teacherData?.hourlyRate || 25;
                     const teacherFee = teacher.teacherData?.plan === 'founder' ? 85 : 75;
-                    const studentPricePerClass = Math.round((hourlyRate / (teacherFee / 100)) * 100); // centavos USD
+                    const studentPricePerClass = CurrencyHelper.studentPriceCents(hourlyRate, teacherFee);
                     const totalPrice = Math.round(studentPricePerClass * embeddedPkg.classes * (1 - (embeddedPkg.discountPercent || 0) / 100));
 
                     // Construir objeto compatible con TeacherPackage

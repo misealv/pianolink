@@ -64,6 +64,8 @@ const enrollmentSchema = new mongoose.Schema({
     // Clases pre-pagadas al profesor fuera de la plataforma
     // Se asignan al registrar alumno con invitación privada
     preloadedClasses: { type: Number, default: 0, min: 0 },
+    // ⚠️ DEPRECADO (Sprint 2): Usar StudentSubscription.classesRemaining como fuente de verdad.
+    // Este campo se mantiene por retrocompatibilidad. Ver BalanceService.
     classesRemaining: { type: Number, default: 0, min: 0 },
 
     // Comisión aplicada en esta relación (se calcula al crear enrollment)

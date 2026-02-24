@@ -109,8 +109,8 @@ router.post('/register/:token', async (req, res) => {
                 subscriptionStatus: 'trial',
                 plan: 'free',
                 planActivatedAt: new Date(),
-                hourlyRate: 2500, // $25 USD default
-                trialPrice: 1500, // $15 USD clase de prueba
+                hourlyRate: 25, // $25 USD default (en DÓLARES, no centavos)
+                trialPrice: 1500, // $15.00 USD clase de prueba (en CENTAVOS)
                 permissions: {
                     canInvitePrivateStudents: false,
                     hasPriorityQueue: false,

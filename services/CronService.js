@@ -9,6 +9,7 @@ const SubscriptionService = require('./SubscriptionService');
 const PayoutCronService = require('./PayoutCronService');
 const MembershipReminderService = require('./MembershipReminderService');
 const packageExpirationJob = require('../jobs/package-expiration');
+const balanceReconciliationJob = require('../jobs/balance-reconciliation');
 const PlanPermissionService = require('./PlanPermissionService');
 const TeacherInvite = require('../models/TeacherInvite');
 const User = require('../models/User');
@@ -391,6 +392,25 @@ class CronService {
         });
         this.jobs.push(cleanInvitesJob);
 
+        // 18. Reconciliación de saldo de clases - Diario a las 3:00 AM UTC
+        const balanceReconciliationCron = cron.schedule('0 3 * * *', async () => {
+            console.log('[Cron] 🔄 Ejecutando reconciliación de saldo de clases...');
+            try {
+                const result = await balanceReconciliationJob({ silent: false });
+                const s = result.summary;
+                if (s.discrepancies > 0 || s.orphanedBalances > 0) {
+                    console.log(`[Cron] ⚠️ Reconciliación: ${s.discrepancies} discrepancias, ${s.orphanedBalances} saldos huérfanos`);
+                } else {
+                    console.log('[Cron] ✅ Reconciliación: sin discrepancias encontradas');
+                }
+            } catch (error) {
+                console.error('[Cron] ❌ Error en reconciliación de saldo:', error);
+            }
+        }, {
+            timezone: 'UTC'
+        });
+        this.jobs.push(balanceReconciliationCron);
+
         console.log(`[CronService] ✅ ${this.jobs.length} tareas programadas iniciadas`);
     }
 
@@ -641,7 +661,8 @@ class CronService {
                 { name: 'alertCheck', schedule: '0 8 * * *', description: 'CRM: Alertas campañas' },
                 { name: 'emailFollowUp', schedule: '0 12 * * *', description: 'CRM: Tareas automáticas por email engagement (9AM Chile)' },
                 { name: 'planDowngrade', schedule: '30 0 * * *', description: 'Downgrade automático planes expirados' },
-                { name: 'cleanInvites', schedule: '0 2 * * *', description: 'Limpiar invitaciones expiradas' }
+                { name: 'cleanInvites', schedule: '0 2 * * *', description: 'Limpiar invitaciones expiradas' },
+                { name: 'balanceReconciliation', schedule: '0 3 * * *', description: 'Reconciliación saldo de clases' }
             ]
         };
     }

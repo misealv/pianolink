@@ -93,10 +93,11 @@ router.get('/teacher/:teacherId', async (req, res) => {
 
         // Fallback: si no hay paquetes en TeacherPackage, usar teacherData.packages
         if (packages.length === 0 && teacher.teacherData?.packages?.length > 0) {
+            const CurrencyHelper = require('../services/CurrencyHelper');
             const hourlyRate = teacher.teacherData?.hourlyRate || 25;
-            // Calcular fracción del profesor para obtener precio al alumno
+            // Calcular precio al alumno: tarifa profesor / (teacherPercent/100) → en centavos USD
             const teacherFee = teacher.teacherData?.plan === 'founder' ? 85 : 75;
-            const studentPricePerClass = Math.round((hourlyRate / (teacherFee / 100)) * 100); // en centavos USD
+            const studentPricePerClass = CurrencyHelper.studentPriceCents(hourlyRate, teacherFee);
             
             packages = teacher.teacherData.packages
                 .filter(p => p.isActive !== false)

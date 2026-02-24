@@ -17,7 +17,10 @@ const userSchema = mongoose.Schema({
   },
   
   // ==================== CLASES (para estudiantes) ====================
-  classesRemaining: { type: Number, default: 0 },  // Clases disponibles
+  // ⚠️ DEPRECADO (Sprint 2): Usar StudentSubscription.classesRemaining como fuente de verdad.
+  // Este campo se mantiene por retrocompatibilidad con flujos legacy.
+  // Consultar saldo via BalanceService.getBalance() en vez de leer este campo directamente.
+  classesRemaining: { type: Number, default: 0 },  // LEGACY — ver BalanceService
   classesCompleted: { type: Number, default: 0 },  // Clases realizadas
   
   // ==================== DATOS DE PROFESOR ====================
@@ -36,10 +39,13 @@ const userSchema = mongoose.Schema({
     stripePriceId: { type: String, default: '' },
     
     // ==================== TARIFA Y PAQUETES ====================
-    // Tarifa por clase en USD (mínimo $15)
+    // Tarifa por clase en DÓLARES USD (mínimo $15).
+    // ⚠️ UNIDAD: DÓLARES (no centavos). Usar CurrencyHelper.rateToCents(hourlyRate) para convertir.
+    // Ejemplo: hourlyRate=25 significa $25.00 USD.
     hourlyRate: { type: Number, default: 25, min: 15 },
     
-    // Precio clase de prueba en centavos USD (default $15)
+    // Precio clase de prueba en CENTAVOS USD (default $15.00 = 1500 centavos).
+    // ⚠️ UNIDAD: CENTAVOS. Diferente a hourlyRate que está en dólares.
     trialPrice: { type: Number, default: 1500, min: 500 },
     
     // Paquetes de clases con descuento
@@ -165,7 +171,9 @@ const userSchema = mongoose.Schema({
     managedStudents: [{
       name: { type: String, required: true },
       age: { type: Number },
-      classesRemaining: { type: Number, default: 1 },  // Clases disponibles
+      // ⚠️ DEPRECADO (Sprint 2): Usar StudentSubscription.classesRemaining como fuente de verdad.
+      // Consultar saldo via BalanceService.getBalance() en vez de leer este campo directamente.
+      classesRemaining: { type: Number, default: 1 },  // LEGACY — ver BalanceService
       classesUsed: { type: Number, default: 0 }        // Clases tomadas
     }],
     

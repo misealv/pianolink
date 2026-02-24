@@ -12,6 +12,7 @@ const router = express.Router();
 const User = require('../models/User');
 const GlobalConfig = require('../models/GlobalConfig');
 const CommissionService = require('../services/CommissionService');
+const CurrencyHelper = require('../services/CurrencyHelper');
 const StudentEnrollment = require('../models/StudentEnrollment');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -57,7 +58,9 @@ router.get('/my-rates', protect, async (req, res) => {
         const minRate = await getMinHourlyRate();
         
         // Calcular precio para el estudiante (con comisión dinámica)
-        const studentPrice = Math.round(hourlyRate / (1 - platformPercent) * 100) / 100;
+        // hourlyRate está en DÓLARES, studentPrice también se devuelve en dólares para display
+        const studentPriceCents = CurrencyHelper.studentPriceCents(hourlyRate, commission.teacherPercent);
+        const studentPrice = CurrencyHelper.centsToDollars(studentPriceCents);
         
         res.json({
             success: true,
