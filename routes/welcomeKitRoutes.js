@@ -2962,6 +2962,21 @@ router.put('/v2/:id/status', protect, adminOnly, async (req, res) => {
 
         await kit.save();
 
+        // Enviar email automático cuando se marca trial_available (caso admin bypass)
+        if (status === 'trial_available') {
+            try {
+                const adminData = await _getAdminEmailData();
+                await WelcomeKitEmailService.sendTrialClassInvitation({
+                    to: kit.clientEmail,
+                    clientName: kit.clientName || 'Estudiante',
+                    adminName: adminData.adminName
+                });
+                console.log(`[WelcomeKit V2] 📧 Email de trial enviado automáticamente a ${kit.clientEmail} (admin bypass)`);
+            } catch (emailErr) {
+                console.error('[WelcomeKit V2] Error enviando email trial (admin bypass):', emailErr.message);
+            }
+        }
+
         console.log(`[WelcomeKit V2] 📝 Estado actualizado a: ${status} para ${kit.clientEmail}`);
 
         res.json({ 

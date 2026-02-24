@@ -9,6 +9,22 @@ const Enrollment = require('../models/Enrollment');
 const eventService = require('./EventService');
 
 /**
+ * Valida que un string sea una timezone IANA válida.
+ * Usa Intl.DateTimeFormat para verificar sin dependencias externas.
+ * @param {string} tz - Timezone a validar
+ * @returns {boolean}
+ */
+function isValidTimezone(tz) {
+    if (!tz || typeof tz !== 'string') return false;
+    try {
+        Intl.DateTimeFormat(undefined, { timeZone: tz });
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
  * Servicio para gestionar reservas de clases.
  * Implementa transacciones atómicas para prevenir double-booking.
  */
@@ -25,6 +41,12 @@ class BookingService {
      * @returns {Object} { booking, slot, joinUrl }
      */
     static async bookSlot(slotId, studentId, clientId = null, studentTimezone = 'America/Santiago') {
+        // Validar timezone antes de iniciar transacción
+        if (!isValidTimezone(studentTimezone)) {
+            console.warn(`[BookingService] Timezone inválida recibida: "${studentTimezone}", usando fallback America/Santiago`);
+            studentTimezone = 'America/Santiago';
+        }
+
         const session = await mongoose.startSession();
         session.startTransaction();
         
@@ -54,6 +76,18 @@ class BookingService {
             }
             
             const teacherId = slot.teacherId._id;
+
+            // Validación: un profesor no puede reservar su propio slot
+            if (teacherId.equals(studentId)) {
+                // Revertir el status del slot a 'available' antes de abortar
+                await TimeSlot.findByIdAndUpdate(slotId, { $set: { status: 'available' } }, { session });
+                throw new Error('CANNOT_BOOK_OWN_SLOT');
+            }
+            if (clientId && teacherId.equals(clientId)) {
+                await TimeSlot.findByIdAndUpdate(slotId, { $set: { status: 'available' } }, { session });
+                throw new Error('CANNOT_BOOK_OWN_SLOT');
+            }
+
             const payerId = clientId || studentId;
             const payer = await User.findById(payerId).session(session);
             

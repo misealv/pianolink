@@ -69,4 +69,16 @@ const teacherOrAdmin = (req, res, next) => {
     }
 };
 
-module.exports = { protect, adminOnly, teacherOrAdmin };
+/**
+ * Middleware para verificar que el usuario sea student, client o admin
+ * Usado en rutas de booking para prevenir que profesores reserven
+ */
+const studentOrClient = (req, res, next) => {
+    if (req.user && ['student', 'client', 'admin'].includes(req.user.role)) {
+        next();
+    } else {
+        return res.status(403).json({ message: 'Solo estudiantes o clientes pueden realizar esta acción.' });
+    }
+};
+
+module.exports = { protect, adminOnly, teacherOrAdmin, studentOrClient };

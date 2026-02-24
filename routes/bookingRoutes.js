@@ -1,7 +1,7 @@
 /* routes/bookingRoutes.js */
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
+const { protect, studentOrClient } = require('../middleware/authMiddleware');
 const BookingService = require('../services/BookingService');
 const EmailService = require('../services/EmailService');
 const Booking = require('../models/Booking');
@@ -37,8 +37,16 @@ router.get('/recovery-requests', protect, async (req, res) => {
  * POST /api/bookings
  * Crear una nueva reserva
  */
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, studentOrClient, async (req, res) => {
     try {
+        // Validación de rol (doble capa con middleware studentOrClient)
+        if (!['student', 'client'].includes(req.user.role) && req.user.role !== 'admin') {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Solo estudiantes o clientes pueden reservar clases' 
+            });
+        }
+
         const { slotId, studentId, timezone } = req.body;
         
         // Determinar quién es el estudiante y quién paga
@@ -62,6 +70,9 @@ router.post('/', protect, async (req, res) => {
         }
         if (error.message === 'INSUFFICIENT_CLASSES') {
             return res.status(402).json({ message: 'No tienes clases disponibles' });
+        }
+        if (error.message === 'CANNOT_BOOK_OWN_SLOT') {
+            return res.status(403).json({ message: 'No puedes reservar tu propio horario' });
         }
         
         res.status(500).json({ message: error.message });
@@ -835,8 +846,16 @@ const User = require('../models/User');
  * 4. Reservar slot directamente (status: confirmed)
  * 5. Generar sesión MIDI
  */
-router.post('/trial-class', protect, async (req, res) => {
+router.post('/trial-class', protect, studentOrClient, async (req, res) => {
     try {
+        // Validación de rol (doble capa con middleware studentOrClient)
+        if (!['student', 'client'].includes(req.user.role) && req.user.role !== 'admin') {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Solo estudiantes o clientes pueden reservar clases de prueba' 
+            });
+        }
+
         const { teacherId, slotId, timezone, studentId: requestedStudentId, studentName } = req.body;
         
         // Determinar estudiante: si es guardian, puede especificar un managedStudent
@@ -893,6 +912,13 @@ router.post('/trial-class', protect, async (req, res) => {
         }
         if (slot.teacherId.toString() !== teacherId) {
             return res.status(400).json({ success: false, message: 'El slot no pertenece al profesor' });
+        }
+        // Prevenir que un profesor reserve su propio slot como trial
+        if (teacherId === req.user._id.toString()) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'No puedes reservar tu propio horario como clase de prueba' 
+            });
         }
         
         // Verificar que el estudiante no haya tomado clase de prueba con este profesor
