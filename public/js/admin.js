@@ -208,21 +208,32 @@ async function loadDashboardOnboarding() {
 
         const kits = data.kits || data.orders || [];
         
-        // Contar por estado
+        // Mapeo legacy → nuevo para conteo correcto del pipeline
+        const legacyToNew = {
+            'paid': 'onboarding', 'entrevista_pendiente': 'onboarding',
+            'entrevista_agendada': 'onboarding', 'esperando_equipo': 'onboarding',
+            'shipping': 'onboarding', 'delivered': 'onboarding',
+            'setup_pending': 'setup', 'setup_scheduled': 'setup',
+            'trial_available': 'trial_ready', 'trial_scheduled': 'trial_ready',
+            'trial_completed': 'trial_done',
+            'completed': 'active', 'disputed': 'refunded'
+        };
+
+        // Contar por estado (V3 simplificado)
         const stages = [
-            { key: 'entrevista_pendiente', label: '📞 Entrevista Pendiente', color: '#f59e0b' },
-            { key: 'entrevista_agendada', label: '📅 Entrevista Agendada', color: '#3b82f6' },
-            { key: 'esperando_equipo', label: '🛒 Esperando Equipo', color: '#f97316' },
-            { key: 'setup_pending', label: '⚙️ Setup Pendiente', color: '#8b5cf6' },
-            { key: 'setup_scheduled', label: '⚙️ Setup Agendado', color: '#6366f1' },
-            { key: 'trial_available', label: '🎓 Clase Disponible', color: '#10b981' },
-            { key: 'trial_scheduled', label: '🎓 Clase Agendada', color: '#14b8a6' }
+            { key: 'onboarding', label: '📋 Onboarding', color: '#f59e0b' },
+            { key: 'setup', label: '⚙️ Setup Técnico', color: '#8b5cf6' },
+            { key: 'trial_ready', label: '🎹 Clase de Prueba', color: '#10b981' },
+            { key: 'trial_done', label: '⭐ Prueba Completada', color: '#14b8a6' },
+            { key: 'active', label: '✅ Activo', color: '#22c55e' },
+            { key: 'refunded', label: '💸 Reembolsado', color: '#ef4444' }
         ];
 
         const counts = {};
         kits.forEach(k => {
-            const s = k.overallStatus || 'unknown';
-            counts[s] = (counts[s] || 0) + 1;
+            const raw = k.overallStatus || 'unknown';
+            const normalized = legacyToNew[raw] || raw;
+            counts[normalized] = (counts[normalized] || 0) + 1;
         });
 
         const activeStages = stages.filter(s => counts[s.key] > 0);
@@ -1226,15 +1237,26 @@ function renderKitsTable(kits) {
     }
     
     const statusLabels = {
-        'paid': { text: '💳 Pagado', class: 'status-new' },
-        'shipping': { text: '📦 Enviado', class: 'status-contacted' },
-        'delivered': { text: '✅ Entregado', class: 'status-qualified' },
-        'setup_pending': { text: '🔧 Setup', class: 'status-qualified' },
-        'setup_scheduled': { text: '📅 Setup', class: 'status-contacted' },
+        // V3 simplificado
+        'onboarding': { text: '📋 Onboarding', class: 'status-new' },
+        'setup': { text: '⚙️ Setup', class: 'status-qualified' },
+        'trial_ready': { text: '🎹 Prueba', class: 'status-contacted' },
+        'trial_done': { text: '⭐ Completada', class: 'status-contacted' },
+        'active': { text: '✅ Activo', class: 'status-converted' },
+        'refunded': { text: '💸 Reembolsado', class: 'status-rejected' },
+        // Legacy (compatibilidad temporal)
+        'paid': { text: '📋 Onboarding', class: 'status-new' },
+        'entrevista_pendiente': { text: '📋 Onboarding', class: 'status-new' },
+        'entrevista_agendada': { text: '📋 Onboarding', class: 'status-new' },
+        'esperando_equipo': { text: '📋 Onboarding', class: 'status-new' },
+        'shipping': { text: '📋 Onboarding', class: 'status-new' },
+        'delivered': { text: '📋 Onboarding', class: 'status-new' },
+        'setup_pending': { text: '⚙️ Setup', class: 'status-qualified' },
+        'setup_scheduled': { text: '⚙️ Setup', class: 'status-qualified' },
         'trial_available': { text: '🎹 Prueba', class: 'status-contacted' },
-        'trial_scheduled': { text: '📅 Prueba', class: 'status-contacted' },
-        'completed': { text: '🎉 Completado', class: 'status-converted' },
-        'refunded': { text: '↩️ Reembolsado', class: 'status-rejected' }
+        'trial_scheduled': { text: '🎹 Prueba', class: 'status-contacted' },
+        'trial_completed': { text: '⭐ Completada', class: 'status-contacted' },
+        'completed': { text: '✅ Activo', class: 'status-converted' }
     };
     
     const countryFlags = {
@@ -4023,9 +4045,23 @@ function filterV2Orders(status) {
 function renderV2Orders() {
     const container = document.getElementById('v2-orders-list');
     
+    // Mapeo legacy → nuevo para filtrado correcto
+    const legacyToNew = {
+        'paid': 'onboarding', 'entrevista_pendiente': 'onboarding',
+        'entrevista_agendada': 'onboarding', 'esperando_equipo': 'onboarding',
+        'shipping': 'onboarding', 'delivered': 'onboarding',
+        'setup_pending': 'setup', 'setup_scheduled': 'setup',
+        'trial_available': 'trial_ready', 'trial_scheduled': 'trial_ready',
+        'trial_completed': 'trial_done',
+        'completed': 'active', 'disputed': 'refunded'
+    };
+
     let filtered = v2Orders;
     if (currentV2Filter !== 'all') {
-        filtered = v2Orders.filter(o => o.overallStatus === currentV2Filter);
+        filtered = v2Orders.filter(o => {
+            const normalized = legacyToNew[o.overallStatus] || o.overallStatus;
+            return normalized === currentV2Filter;
+        });
     }
     
     if (filtered.length === 0) {
@@ -4080,15 +4116,24 @@ function renderV2Orders() {
 
 function getV2StatusInfo(status) {
     const statuses = {
-        'paid': { label: 'Pagado', icon: '💳', color: '#3b82f6', bgColor: 'rgba(59,130,246,0.15)' },
-        'entrevista_pendiente': { label: 'Entrevista Pendiente', icon: '📞', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.15)' },
-        'entrevista_agendada': { label: 'Entrevista Agendada', icon: '📅', color: '#3b82f6', bgColor: 'rgba(59,130,246,0.15)' },
-        'esperando_equipo': { label: 'Esperando Equipo', icon: '🛒', color: '#8b5cf6', bgColor: 'rgba(139,92,246,0.15)' },
-        'setup_pending': { label: 'Setup Pendiente', icon: '⚙️', color: '#f97316', bgColor: 'rgba(249,115,22,0.15)' },
-        'setup_scheduled': { label: 'Setup Agendado', icon: '📅', color: '#06b6d4', bgColor: 'rgba(6,182,212,0.15)' },
-        'trial_available': { label: 'Clase Disponible', icon: '🎓', color: '#10b981', bgColor: 'rgba(16,185,129,0.15)' },
-        'trial_scheduled': { label: 'Clase Agendada', icon: '📆', color: '#14b8a6', bgColor: 'rgba(20,184,166,0.15)' },
-        'completed': { label: 'Completado', icon: '✅', color: '#22c55e', bgColor: 'rgba(34,197,94,0.15)' }
+        // V3 simplificado
+        'onboarding':   { label: 'Onboarding',        icon: '📋', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.15)' },
+        'setup':        { label: 'Setup Técnico',      icon: '⚙️', color: '#8b5cf6', bgColor: 'rgba(139,92,246,0.15)' },
+        'trial_ready':  { label: 'Clase de Prueba',    icon: '🎹', color: '#10b981', bgColor: 'rgba(16,185,129,0.15)' },
+        'trial_done':   { label: 'Prueba Completada',  icon: '⭐', color: '#14b8a6', bgColor: 'rgba(20,184,166,0.15)' },
+        'active':       { label: 'Activo',             icon: '✅', color: '#22c55e', bgColor: 'rgba(34,197,94,0.15)' },
+        'refunded':     { label: 'Reembolsado',        icon: '💸', color: '#ef4444', bgColor: 'rgba(239,68,68,0.15)' },
+        // Legacy (compatibilidad temporal)
+        'paid':                 { label: 'Onboarding',       icon: '📋', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.15)' },
+        'entrevista_pendiente': { label: 'Onboarding',       icon: '📋', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.15)' },
+        'entrevista_agendada':  { label: 'Onboarding',       icon: '📋', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.15)' },
+        'esperando_equipo':     { label: 'Onboarding',       icon: '📋', color: '#f59e0b', bgColor: 'rgba(245,158,11,0.15)' },
+        'setup_pending':        { label: 'Setup Técnico',    icon: '⚙️', color: '#8b5cf6', bgColor: 'rgba(139,92,246,0.15)' },
+        'setup_scheduled':      { label: 'Setup Técnico',    icon: '⚙️', color: '#8b5cf6', bgColor: 'rgba(139,92,246,0.15)' },
+        'trial_available':      { label: 'Clase de Prueba',  icon: '🎹', color: '#10b981', bgColor: 'rgba(16,185,129,0.15)' },
+        'trial_scheduled':      { label: 'Clase de Prueba',  icon: '🎹', color: '#10b981', bgColor: 'rgba(16,185,129,0.15)' },
+        'trial_completed':      { label: 'Prueba Completada',icon: '⭐', color: '#14b8a6', bgColor: 'rgba(20,184,166,0.15)' },
+        'completed':            { label: 'Activo',           icon: '✅', color: '#22c55e', bgColor: 'rgba(34,197,94,0.15)' }
     };
     return statuses[status] || { label: status, icon: '❓', color: '#888', bgColor: 'rgba(136,136,136,0.15)' };
 }
@@ -4097,7 +4142,7 @@ function renderV2Actions(order) {
     const status = order.overallStatus;
     const orderId = order._id;
     
-    // Acciones según estado
+    // Acciones según estado (V3 simplificado)
     let actions = [];
     
     // WhatsApp siempre disponible
@@ -4106,32 +4151,35 @@ function renderV2Actions(order) {
         actions.push(`<a href="https://wa.me/${phone}" target="_blank" class="btn btn-secondary" style="font-size:11px; padding:6px 12px;">💬 WhatsApp</a>`);
     }
     
-    // Acciones específicas por estado
-    if (status === 'paid' || status === 'entrevista_pendiente') {
-        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="openSendRecommendationsModal('${orderId}')">📧 Enviar Recomendaciones</button>`);
+    // Acciones por estado simplificado
+    // → onboarding: enviar recomendaciones (o estados legacy equivalentes)
+    if (status === 'onboarding' || status === 'paid' || status === 'entrevista_pendiente') {
+        // Sub-estado: si ya se completó la entrevista, ofrecer reenviar
+        const interviewDone = order.interview?.completedAt;
+        if (interviewDone) {
+            actions.push(`<button class="btn btn-secondary" style="font-size:11px; padding:6px 12px;" onclick="resendRecommendations('${orderId}')">📧 Reenviar Recomendaciones</button>`);
+            actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="updateV2Status('${orderId}', 'setup')">⚙️ Avanzar a Setup</button>`);
+        } else {
+            actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="openSendRecommendationsModal('${orderId}')">📧 Enviar Recomendaciones</button>`);
+        }
     }
     
-    if (status === 'esperando_equipo') {
-        actions.push(`<button class="btn btn-secondary" style="font-size:11px; padding:6px 12px;" onclick="resendRecommendations('${orderId}')">📧 Reenviar Email</button>`);
+    // → setup: avanzar a trial_ready cuando se complete el setup
+    if (status === 'setup' || status === 'setup_pending' || status === 'setup_scheduled') {
+        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="updateV2Status('${orderId}', 'trial_ready')">✅ Setup Completado</button>`);
     }
     
-    if (status === 'setup_pending') {
-        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="updateV2Status('${orderId}', 'setup_scheduled')">📅 Marcar Agendado</button>`);
+    // → trial_ready: avanzar a trial_done o active
+    if (status === 'trial_ready' || status === 'trial_available' || status === 'trial_scheduled') {
+        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="updateV2Status('${orderId}', 'trial_done')">⭐ Clase Completada</button>`);
     }
     
-    if (status === 'setup_scheduled') {
-        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="updateV2Status('${orderId}', 'trial_available')">✅ Setup Completado</button>`);
+    // → trial_done: completar onboarding
+    if (status === 'trial_done' || status === 'trial_completed') {
+        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="updateV2Status('${orderId}', 'active')">✅ Completar Onboarding</button>`);
     }
     
-    if (status === 'trial_available') {
-        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="updateV2Status('${orderId}', 'trial_scheduled')">📅 Clase Agendada</button>`);
-    }
-    
-    if (status === 'trial_scheduled') {
-        actions.push(`<button class="btn btn-primary" style="font-size:11px; padding:6px 12px;" onclick="updateV2Status('${orderId}', 'completed')">✅ Completar</button>`);
-    }
-    
-    // Cambiar estado manual
+    // Cambiar estado manual (siempre disponible)
     actions.push(`<button class="btn" style="font-size:11px; padding:6px 12px; background:#333; color:#888;" onclick="openChangeStatusModal('${orderId}', '${status}')">⚙️ Estado</button>`);
     
     return actions.join('');
@@ -4405,15 +4453,14 @@ async function updateV2Status(orderId, newStatus) {
 }
 
 function openChangeStatusModal(orderId, currentStatus) {
+    // V3: estados simplificados
     const statuses = [
-        { value: 'entrevista_pendiente', label: '📞 Entrevista Pendiente' },
-        { value: 'entrevista_agendada', label: '📅 Entrevista Agendada' },
-        { value: 'esperando_equipo', label: '🛒 Esperando Equipo' },
-        { value: 'setup_pending', label: '⚙️ Setup Pendiente' },
-        { value: 'setup_scheduled', label: '📅 Setup Agendado' },
-        { value: 'trial_available', label: '🎓 Clase Disponible' },
-        { value: 'trial_scheduled', label: '📆 Clase Agendada' },
-        { value: 'completed', label: '✅ Completado' }
+        { value: 'onboarding',  label: '📋 Onboarding' },
+        { value: 'setup',       label: '⚙️ Setup Técnico' },
+        { value: 'trial_ready', label: '🎹 Clase de Prueba' },
+        { value: 'trial_done',  label: '⭐ Prueba Completada' },
+        { value: 'active',      label: '✅ Activo' },
+        { value: 'refunded',    label: '💸 Reembolsado' }
     ];
     
     const options = statuses.map(s => 
@@ -4458,13 +4505,7 @@ async function confirmStatusChange(orderId) {
     const newStatus = document.getElementById('new-v2-status').value;
     const notes = document.getElementById('status-change-notes').value;
     
-    // Si cambia a 'esperando_equipo', redirigir al modal de recomendaciones
-    if (newStatus === 'esperando_equipo') {
-        closeChangeStatusModal();
-        openSendRecommendationsModal(orderId);
-        showNotification('📧 Completa las recomendaciones para enviar el email al alumno', 'info');
-        return;
-    }
+    // Ya no intercept 'esperando_equipo' — el backend maneja side-effects vía WelcomeKitTransitionService
     
     try {
         const res = await fetch(`/api/welcome-kit/v2/${orderId}/status`, {
@@ -4531,10 +4572,10 @@ async function loadWelcomeKitsModule() {
         // Stats de V2 Onboarding
         if (v2Data.success && v2Data.orders) {
             const v2orders = v2Data.orders;
-            const pending = v2orders.filter(o => ['paid', 'entrevista_pendiente'].includes(o.overallStatus)).length;
-            const waitingEquip = v2orders.filter(o => o.overallStatus === 'esperando_equipo').length;
-            const setupReady = v2orders.filter(o => ['setup_pending', 'setup_scheduled'].includes(o.overallStatus)).length;
-            const completed = v2orders.filter(o => o.overallStatus === 'completed').length;
+            const pending = v2orders.filter(o => ['onboarding', 'paid', 'entrevista_pendiente', 'entrevista_agendada', 'esperando_equipo'].includes(o.overallStatus)).length;
+            const waitingEquip = v2orders.filter(o => ['setup', 'setup_pending', 'setup_scheduled'].includes(o.overallStatus)).length;
+            const setupReady = v2orders.filter(o => ['trial_ready', 'trial_available', 'trial_scheduled'].includes(o.overallStatus)).length;
+            const completed = v2orders.filter(o => ['active', 'completed'].includes(o.overallStatus)).length;
             
             document.getElementById('kit-stat-pending').textContent = pending;
             document.getElementById('kit-stat-transit').textContent = waitingEquip;

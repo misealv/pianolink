@@ -2539,35 +2539,39 @@
             // Guardar kit para uso global
             currentUserKit = myKit;
             
-            // ========== ESTADO RESILIENTE ==========
-            // Calcular estado real basándose en datos, no solo en overallStatus
-            // Esto protege contra inconsistencias si alguien modifica el estado manualmente
+            // ========== ESTADO RESILIENTE (V3 simplificado) ==========
+            // El backend ya retorna substep, title, message, icon, color, action, step
+            // desde WelcomeKitTransitionService. Solo corregimos inconsistencias visibles.
             if (myKit) {
                 const hasUpcomingTrialClass = nextClass?.hasNext && nextClass?.bookingType === 'trial';
                 const hasPendingTrialRating = pendingTrial?.hasPendingRating;
                 const storedStatus = myKit.overallStatus;
                 
                 // Corregir inconsistencias:
-                // Si hay clase próxima y el kit está en trial_available → ya agendó, mostrar como trial_scheduled
-                if (nextClass?.hasNext && storedStatus === 'trial_available') {
-                    console.warn('[Estado Resiliente] Hay clase agendada pero overallStatus=trial_available. Mostrando como trial_scheduled.');
-                    myKit._realStatus = 'trial_scheduled';
+                // Si hay clase agendada y el kit está en trial_ready → ya agendó, ajustar substep
+                if (nextClass?.hasNext && (storedStatus === 'trial_ready' || storedStatus === 'trial_available')) {
+                    console.warn('[Estado Resiliente] Clase agendada en trial_ready. Substep: trial_scheduled.');
+                    myKit._realStatus = 'trial_ready';
+                    myKit._realSubstep = 'trial_scheduled';
+                    myKit.title = '¡Clase de Prueba Agendada!';
+                    myKit.message = 'Ya tienes tu clase de prueba agendada. Revisa los detalles abajo.';
                 }
-                // Si hay clase trial próxima pero el estado dice "completed" → debería ser "trial_scheduled"
-                else if (hasUpcomingTrialClass && storedStatus === 'completed') {
-                    console.warn('[Estado Resiliente] Hay clase trial agendada pero overallStatus=completed. Mostrando como trial_scheduled.');
-                    myKit._realStatus = 'trial_scheduled';
+                // Si hay clase trial agendada pero el estado dice active/completed → aún en trial
+                else if (hasUpcomingTrialClass && (storedStatus === 'active' || storedStatus === 'completed')) {
+                    console.warn('[Estado Resiliente] Clase trial agendada en active. Mostrando como trial_ready.');
+                    myKit._realStatus = 'trial_ready';
+                    myKit._realSubstep = 'trial_scheduled';
                 }
-                // Si hay rating pendiente pero el estado dice "completed" → debería ser "trial_completed"
-                else if (hasPendingTrialRating && storedStatus === 'completed') {
-                    console.warn('[Estado Resiliente] Hay rating pendiente pero overallStatus=completed. Mostrando como trial_completed.');
-                    myKit._realStatus = 'trial_completed';
+                // Si hay rating pendiente pero el estado dice active → aún en trial_done
+                else if (hasPendingTrialRating && (storedStatus === 'active' || storedStatus === 'completed')) {
+                    console.warn('[Estado Resiliente] Rating pendiente en active. Mostrando como trial_done.');
+                    myKit._realStatus = 'trial_done';
                 }
             }
             
             // Calcular estado efectivo para usar en condiciones
             const effectiveStatus = myKit?._realStatus || myKit?.overallStatus;
-            const isOnboardingComplete = !myKit || effectiveStatus === 'completed';
+            const isOnboardingComplete = !myKit || effectiveStatus === 'active' || effectiveStatus === 'completed';
 
             const students = user.clientData?.managedStudents || [];
             const isGuardian = students.length > 0;
@@ -2746,11 +2750,13 @@
             }
 
             // Si el kit está en estado de agendar entrevista, cargar slots disponibles
-            if (myKit && ['entrevista_pendiente', 'pending', 'paid'].includes(myKit.overallStatus)) {
+            if (myKit && (myKit.overallStatus === 'onboarding' && !myKit.interview?.scheduledAt) || 
+                ['entrevista_pendiente', 'pending', 'paid'].includes(myKit?.overallStatus)) {
                 setTimeout(() => loadInterviewSlots(myKit._id), 100);
             }
-            // Si el kit está en setup_pending, cargar slots para agendar setup
-            if (myKit && myKit.overallStatus === 'setup_pending') {
+            // Si el kit está en setup (sin agendar), cargar slots para setup
+            if (myKit && ((myKit.overallStatus === 'setup' && myKit.setupSession?.status !== 'scheduled') ||
+                myKit.overallStatus === 'setup_pending')) {
                 setTimeout(() => loadSetupSlots(myKit._id), 100);
             }
         }
@@ -2894,107 +2900,148 @@
         // ============================================
         
         function renderOnboardingStatus(kit, nextClass, students = []) {
-            // Usar estado real calculado si existe, sino usar el almacenado
+            // El backend (WelcomeKitTransitionService) ya calcula:
+            //   kit.title, kit.message, kit.icon, kit.color, kit.step, kit.substep, kit.action
+            // Usamos esos datos directamente, con fallback al statusConfig local.
+            
             const effectiveStatus = kit?._realStatus || kit?.overallStatus;
             
-            // Si no hay kit o está realmente completado, no mostrar nada
-            if (!kit || effectiveStatus === 'completed') return '';
+            // Si no hay kit o está completado, no mostrar nada
+            if (!kit || effectiveStatus === 'active' || effectiveStatus === 'completed') return '';
             
             // Detectar si ya tiene clase próxima agendada
             const hasUpcomingClass = nextClass && nextClass.hasNext;
             
             // Detectar si es guardian con múltiples estudiantes
             const isGuardian = students.length > 0;
+
+            // V3: Usar datos del backend si están disponibles, sino fallback a config local
+            const substep = kit._realSubstep || kit.substep;
             
+            // Mapeo de configuración visual por estado + substep
             const statusConfig = {
+                // === V3 SIMPLIFICADO ===
+                'onboarding': (() => {
+                    // Sub-estados: interview_pending, interview_scheduled, waiting_equipment
+                    if (substep === 'waiting_equipment' || kit.interview?.completedAt) {
+                        return {
+                            icon: '🛒', title: kit.title || 'Adquiere tu equipo',
+                            message: kit.message || 'Te enviamos un email con las recomendaciones. Cuando tengas tu cable/adaptador, haz clic en el botón.',
+                            color: '#f59e0b', step: 2, showButton: true
+                        };
+                    }
+                    if (substep === 'interview_scheduled' || kit.interview?.scheduledAt) {
+                        return {
+                            icon: '✅', title: kit.title || 'Entrevista Agendada',
+                            message: '', color: '#8b5cf6', step: 1, showInterviewDetails: true
+                        };
+                    }
+                    return {
+                        icon: '📅', title: kit.title || 'Agenda tu Entrevista de Bienvenida',
+                        message: kit.message || 'Selecciona un horario disponible para tu entrevista de bienvenida (15 min).',
+                        color: '#3b82f6', step: 1, showCalendar: true
+                    };
+                })(),
+                'setup': (() => {
+                    if (substep === 'setup_scheduled' || kit.setupSession?.status === 'scheduled') {
+                        return {
+                            icon: '✅', title: kit.title || 'Setup Agendado',
+                            message: '', color: '#10b981', step: 3, showSetupDetails: true
+                        };
+                    }
+                    return {
+                        icon: '⚙️', title: kit.title || 'Agenda tu Sesión de Setup',
+                        message: kit.message || 'Selecciona un horario para configurar tu equipo MIDI junto a nosotros (15 min).',
+                        color: '#f97316', step: 3, showSetupCalendar: true
+                    };
+                })(),
+                'trial_ready': (() => {
+                    if (substep === 'trial_scheduled' || hasUpcomingClass || kit.trialClass?.bookingId) {
+                        return {
+                            icon: '📅', title: kit.title || '¡Clase de Prueba Agendada!',
+                            message: kit.message || 'Ya tienes tu clase de prueba agendada. Revisa los detalles abajo.',
+                            color: '#6366f1', step: 4
+                        };
+                    }
+                    return {
+                        icon: '🎹',
+                        title: kit.title || (hasUpcomingClass ? '¡Clase de Prueba Agendada!' : '¡Listo para la Clase de Prueba!'),
+                        message: kit.message || (isGuardian 
+                            ? 'Tu setup técnico está completado. Agenda una clase de prueba para cada estudiante.'
+                            : 'Tu setup técnico está completado. Elige un profesor y agenda tu primera clase de prueba.'),
+                        color: '#6366f1', step: 4,
+                        showTrialAction: !hasUpcomingClass,
+                        showStudentsList: isGuardian && !hasUpcomingClass
+                    };
+                })(),
+                'trial_done': {
+                    icon: '⭐', title: kit.title || '¡Califica tu Clase de Prueba!',
+                    message: kit.message || 'Tu clase de prueba fue completada. Por favor califica tu experiencia.',
+                    color: '#22c55e', step: 4
+                },
+                'refunded': {
+                    icon: '💸', title: 'Reembolsado',
+                    message: 'Tu compra fue reembolsada.',
+                    color: '#ef4444', step: 0
+                },
+                // === LEGACY (compatibilidad pre-migración) ===
                 'pending': {
-                    icon: '�',
-                    title: 'Agenda tu Entrevista de Bienvenida',
-                    message: '¡Bienvenido! El primer paso es agendar una breve entrevista (15 min) para conocer tu equipo y darte recomendaciones.',
-                    color: '#3b82f6',
-                    step: 1,
-                    showCalendar: true
+                    icon: '📅', title: 'Agenda tu Entrevista de Bienvenida',
+                    message: '¡Bienvenido! El primer paso es agendar una breve entrevista (15 min).',
+                    color: '#3b82f6', step: 1, showCalendar: true
                 },
                 'entrevista_pendiente': {
-                    icon: '📅',
-                    title: 'Agenda tu Entrevista de Bienvenida',
-                    message: 'Selecciona un horario disponible para tu entrevista de bienvenida (15 min). Evaluaremos tu equipo y te daremos recomendaciones.',
-                    color: '#3b82f6',
-                    step: 1,
-                    showCalendar: true
+                    icon: '📅', title: 'Agenda tu Entrevista de Bienvenida',
+                    message: 'Selecciona un horario disponible para tu entrevista de bienvenida (15 min).',
+                    color: '#3b82f6', step: 1, showCalendar: true
                 },
                 'entrevista_agendada': {
-                    icon: '✅',
-                    title: 'Entrevista Agendada',
-                    message: '',
-                    color: '#8b5cf6',
-                    step: 1,
-                    showInterviewDetails: true
+                    icon: '✅', title: 'Entrevista Agendada', message: '',
+                    color: '#8b5cf6', step: 1, showInterviewDetails: true
                 },
                 'esperando_equipo': {
-                    icon: '🛒',
-                    title: 'Adquiere tu equipo',
+                    icon: '🛒', title: 'Adquiere tu equipo',
                     message: 'Te enviamos un email con las recomendaciones. Cuando tengas tu cable/adaptador, haz clic en el botón.',
-                    color: '#f59e0b',
-                    step: 2,
-                    showButton: true
+                    color: '#f59e0b', step: 2, showButton: true
                 },
-                'processing': {
-                    icon: '⚙️',
-                    title: 'Setup en proceso',
-                    message: 'Estamos coordinando tu sesión de configuración.',
-                    color: '#10b981',
-                    step: 3
+                'paid': {
+                    icon: '📅', title: 'Agenda tu Entrevista de Bienvenida',
+                    message: '¡Bienvenido! Agenda tu entrevista de bienvenida.',
+                    color: '#3b82f6', step: 1, showCalendar: true
                 },
                 'setup_pending': {
-                    icon: '⚙️',
-                    title: 'Agenda tu Sesión de Setup',
-                    message: 'Selecciona un horario para configurar tu equipo MIDI junto a nosotros (15 min). Verificaremos que todo funcione correctamente.',
-                    color: '#f97316',
-                    step: 3,
-                    showSetupCalendar: true
+                    icon: '⚙️', title: 'Agenda tu Sesión de Setup',
+                    message: 'Selecciona un horario para configurar tu equipo MIDI junto a nosotros (15 min).',
+                    color: '#f97316', step: 3, showSetupCalendar: true
                 },
                 'setup_scheduled': {
-                    icon: '✅',
-                    title: 'Setup Agendado',
-                    message: '',
-                    color: '#10b981',
-                    step: 3,
-                    showSetupDetails: true
+                    icon: '✅', title: 'Setup Agendado', message: '',
+                    color: '#10b981', step: 3, showSetupDetails: true
                 },
                 'trial_available': {
                     icon: '🎹',
                     title: hasUpcomingClass ? '¡Clase de Prueba Agendada!' : '¡Listo para la Clase de Prueba!',
                     message: hasUpcomingClass 
-                        ? 'Ya tienes tu clase de prueba agendada. Revisa los detalles abajo.' 
-                        : isGuardian 
-                            ? `Tu setup técnico está completado. Agenda una clase de prueba para cada estudiante.`
-                            : 'Tu setup técnico está completado. Elige un profesor y agenda tu primera clase de prueba.',
-                    color: '#6366f1',
-                    step: 4,
+                        ? 'Ya tienes tu clase de prueba agendada.' 
+                        : 'Tu setup técnico está completado. Elige un profesor y agenda tu primera clase de prueba.',
+                    color: '#6366f1', step: 4,
                     showTrialAction: !hasUpcomingClass,
                     showStudentsList: isGuardian && !hasUpcomingClass
                 },
                 'trial_scheduled': {
-                    icon: '📅',
-                    title: '¡Clase de Prueba Agendada!',
+                    icon: '📅', title: '¡Clase de Prueba Agendada!',
                     message: 'Ya tienes tu clase de prueba agendada. Revisa los detalles abajo.',
-                    color: '#6366f1',
-                    step: 4
+                    color: '#6366f1', step: 4
                 },
                 'trial_completed': {
-                    icon: '⭐',
-                    title: '¡Califica tu Clase de Prueba!',
-                    message: 'Tu clase de prueba fue completada. Por favor califica tu experiencia arriba.',
-                    color: '#22c55e',
-                    step: 4
+                    icon: '⭐', title: '¡Califica tu Clase de Prueba!',
+                    message: 'Tu clase de prueba fue completada. Por favor califica tu experiencia.',
+                    color: '#22c55e', step: 4
                 },
                 'shipped': {
-                    icon: '🎹',
-                    title: 'Clase de prueba',
+                    icon: '🎹', title: 'Clase de prueba',
                     message: 'Tu setup está listo. Pronto agendaremos tu primera clase.',
-                    color: '#6366f1',
-                    step: 4
+                    color: '#6366f1', step: 4
                 }
             };
             

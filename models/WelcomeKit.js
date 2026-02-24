@@ -172,25 +172,35 @@ const welcomeKitSchema = new mongoose.Schema({
     },
 
     // ==================== ESTADO GENERAL ====================
+    // V3 (Sprint 3): Estados simplificados. 6 estados vs 14 anteriores.
+    // El sub-estado detallado se infiere de los sub-documentos (interview, setupSession, trialClass).
     overallStatus: {
         type: String,
         enum: [
-            'paid',              // Pagó, esperando envío (legacy)
-            'entrevista_pendiente', // V2: Esperando entrevista técnica
-            'entrevista_agendada',  // V2: Entrevista agendada por el cliente
-            'esperando_equipo',  // V2: Email enviado, cliente comprando equipo
-            'shipping',          // En camino (legacy)
-            'delivered',         // Entregado, esperando confirmar (legacy)
-            'setup_pending',     // Confirmó que tiene equipo, agendar setup
-            'setup_scheduled',   // Setup agendado
-            'trial_available',   // Setup completado, puede agendar prueba
-            'trial_scheduled',   // Prueba agendada
-            'trial_completed',   // Clase de prueba completada, pendiente calificación
-            'completed',         // Todo el onboarding completado
-            'refunded',          // Reembolsado
-            'disputed'           // En disputa
+            // === NUEVOS (V3 simplificado) ===
+            'onboarding',    // Todo el pre-setup: entrevista + compra equipo
+            'setup',         // Setup técnico pendiente o agendado
+            'trial_ready',   // Setup completado, clase de prueba pendiente o agendada
+            'trial_done',    // Clase de prueba completada, pendiente calificación/conversión
+            'active',        // Onboarding completado
+            'refunded',      // Reembolsado o en disputa
+
+            // === LEGACY (compatibilidad — la migración los convierte) ===
+            'paid',
+            'entrevista_pendiente',
+            'entrevista_agendada',
+            'esperando_equipo',
+            'shipping',
+            'delivered',
+            'setup_pending',
+            'setup_scheduled',
+            'trial_available',
+            'trial_scheduled',
+            'trial_completed',
+            'completed',
+            'disputed'
         ],
-        default: 'paid'
+        default: 'onboarding'
     },
     
     // ==================== CLASE DE PRUEBA ====================
@@ -247,18 +257,26 @@ welcomeKitSchema.pre('save', function(next) {
     next();
 });
 
-// Método: Avanzar al siguiente estado
+// Método: Avanzar al siguiente estado (V3 simplificado)
 welcomeKitSchema.methods.advanceStatus = function() {
     const transitions = {
-        'entrevista_pendiente': 'entrevista_agendada',
-        'entrevista_agendada': 'esperando_equipo',
-        'paid': 'shipping',
-        'shipping': 'delivered',
-        'delivered': 'setup_pending',
-        'setup_pending': 'setup_scheduled',
-        'setup_scheduled': 'trial_available',
-        'trial_available': 'trial_scheduled',
-        'trial_scheduled': 'completed'
+        'onboarding':  'setup',
+        'setup':       'trial_ready',
+        'trial_ready': 'trial_done',
+        'trial_done':  'active',
+        // Legacy → mapear al nuevo flujo
+        'paid':                 'onboarding',
+        'entrevista_pendiente': 'onboarding',
+        'entrevista_agendada':  'onboarding',
+        'esperando_equipo':     'setup',
+        'shipping':             'onboarding',
+        'delivered':            'setup',
+        'setup_pending':        'setup',
+        'setup_scheduled':      'trial_ready',
+        'trial_available':      'trial_ready',
+        'trial_scheduled':      'trial_done',
+        'trial_completed':      'active',
+        'completed':            'active'
     };
     
     if (transitions[this.overallStatus]) {

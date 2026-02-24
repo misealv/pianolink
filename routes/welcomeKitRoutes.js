@@ -29,6 +29,7 @@ const { generateWelcomeKitEmail } = require('../templates/welcomeKitEmail');
 const moment = require('moment-timezone');
 require('moment/locale/es'); // Cargar locale español para moment
 const DiscountService = require('../services/DiscountService');
+const WelcomeKitTransitionService = require('../services/WelcomeKitTransitionService');
 moment.locale('es');
 
 // Helper: Obtener datos del admin para inyectar en emails
@@ -967,7 +968,7 @@ router.post('/verify', async (req, res) => {
         if (welcomeKit.shipping.status === 'pending_payment') {
             welcomeKit.shipping.status = 'processing';
         }
-        welcomeKit.overallStatus = 'paid';
+        welcomeKit.overallStatus = 'onboarding';
         
         // Obtener datos del checkout
         const checkoutData = welcomeKit.get('_checkoutData') || {};
@@ -1242,7 +1243,7 @@ router.post('/verify-mercadopago', async (req, res) => {
                     status: 'not_required',
                     address: { country: 'CL' }
                 },
-                overallStatus: isApproved ? 'paid' : 'pending_payment'
+                overallStatus: isApproved ? 'onboarding' : 'onboarding'
             };
             
             welcomeKit = await WelcomeKit.create(welcomeKitData);
@@ -1260,7 +1261,7 @@ router.post('/verify-mercadopago', async (req, res) => {
             if (welcomeKit.shipping && welcomeKit.shipping.status === 'pending_payment') {
                 welcomeKit.shipping.status = 'processing';
             }
-            welcomeKit.overallStatus = 'paid';
+            welcomeKit.overallStatus = 'onboarding';
         }
         
         // 4. Obtener datos del checkout guardados
@@ -1425,6 +1426,14 @@ router.get('/status/:id', async (req, res) => {
         }
         
         const statusLabels = {
+            // V3 simplificados
+            'onboarding':  '📋 Onboarding',
+            'setup':       '⚙️ Setup Técnico',
+            'trial_ready': '🎹 Clase de Prueba',
+            'trial_done':  '⭐ Prueba Completada',
+            'active':      '🎉 Activo',
+            'refunded':    '💸 Reembolsado',
+            // Legacy (para kits no migrados)
             'paid': '💳 Pago recibido',
             'shipping': '📦 En camino',
             'delivered': '✅ Entregado',
@@ -1590,10 +1599,11 @@ router.put('/admin/:id/shipping', protect, adminOnly, async (req, res) => {
             // Actualizar overallStatus según shipping status
             if (status === 'shipped') {
                 welcomeKit.shipping.shippedAt = new Date();
-                welcomeKit.overallStatus = 'shipping';
+                // Shipping es sub-estado de onboarding (legacy cable flow)
+                // No cambiamos overallStatus, solo shipping.status
             } else if (status === 'delivered') {
                 welcomeKit.shipping.deliveredAt = new Date();
-                welcomeKit.overallStatus = 'delivered';
+                // Se mantiene en onboarding hasta que confirme recepción
             }
         }
         
@@ -1628,7 +1638,7 @@ router.put('/:id/confirm-receipt', async (req, res) => {
         
         welcomeKit.shipping.clientConfirmedReceipt = true;
         welcomeKit.shipping.clientConfirmedAt = new Date();
-        welcomeKit.overallStatus = 'setup_pending';
+        welcomeKit.overallStatus = 'setup';
         welcomeKit.setupSession.status = 'not_scheduled';
         
         await welcomeKit.save();
@@ -2481,7 +2491,7 @@ router.post('/admin/dsers/import-tracking', protect, adminOnly, async (req, res)
                 kit.shipping.status = 'shipped';
                 kit.shipping.shippedAt = new Date();
                 kit.shipping.estimatedDelivery = delivery.date;
-                kit.overallStatus = 'shipping';
+                // Shipping es sub-estado de onboarding (legacy cable flow)
                 
                 await kit.save();
                 results.updated++;
@@ -2774,8 +2784,8 @@ router.delete('/admin/products/:id', protect, adminOnly, async (req, res) => {
     }
 });
 
-// ==================== FLUJO SIMPLIFICADO V2 ($44 USD servicio) ====================
-// Estados: entrevista_pendiente → esperando_equipo → setup_pendiente → clase_pendiente → completado
+// ==================== FLUJO SIMPLIFICADO V3 ($44 USD servicio) ====================
+// Estados: onboarding → setup → trial_ready → trial_done → active
 
 const WelcomeKitEmailService = require('../services/WelcomeKitEmailService');
 
@@ -2828,8 +2838,11 @@ router.post('/v2/:id/send-recommendations', protect, adminOnly, async (req, res)
             return res.status(500).json({ success: false, error: 'Error enviando email: ' + emailResult.error });
         }
 
-        // Actualizar estado y guardar datos de la entrevista
-        kit.overallStatus = 'esperando_equipo';
+        // Actualizar sub-documentos de entrevista (estado permanece en 'onboarding')
+        // La entrevista se completó, ahora espera equipo
+        kit.interview = kit.interview || {};
+        kit.interview.completedAt = new Date();
+        // overallStatus se mantiene en 'onboarding' — el sub-estado se detecta por interview.completedAt
         kit.cable = kit.cable || {};
         kit.cable.keyboardModel = keyboardBrand;
         kit.cable.type = connectionType === 'USB-B' ? 'USB_B' : 
@@ -2848,7 +2861,8 @@ router.post('/v2/:id/send-recommendations', protect, adminOnly, async (req, res)
             success: true, 
             message: 'Email de recomendaciones enviado',
             emailId: emailResult.messageId,
-            newStatus: 'esperando_equipo'
+            newStatus: 'onboarding',
+            substep: 'waiting_equipment'
         });
     } catch (error) {
         console.error('[WelcomeKit V2] Error enviando recomendaciones:', error);
@@ -2872,30 +2886,18 @@ router.post('/v2/:id/client-ready', protect, async (req, res) => {
             return res.status(403).json({ success: false, error: 'No autorizado' });
         }
 
-        // Actualizar estado
-        kit.overallStatus = 'setup_pending';
-        kit.shipping = kit.shipping || {};
-        kit.shipping.clientConfirmedReceipt = true;
-        kit.shipping.clientConfirmedAt = new Date();
-        
-        await kit.save();
-
-        // Enviar confirmación al cliente
-        const adminData = await _getAdminEmailData();
-        await WelcomeKitEmailService.sendEquipmentReadyConfirmation({
-            to: kit.clientEmail,
-            clientName: kit.clientName,
-            calendarLink: req.body.calendarLink || '',
-            adminName: adminData.adminName,
-            adminWhatsapp: adminData.adminWhatsapp
-        });
+        // Transicionar a 'setup' usando el servicio (dispara email automático)
+        const result = await WelcomeKitTransitionService.transition(kit, 'setup');
+        if (!result.success) {
+            return res.status(400).json({ success: false, error: result.error });
+        }
 
         console.log(`[WelcomeKit V2] ✅ Cliente ${kit.clientEmail} confirmó equipo listo`);
 
         res.json({ 
             success: true, 
             message: 'Confirmación recibida, te contactaremos para agendar el setup',
-            newStatus: 'setup_pending'
+            newStatus: 'setup'
         });
     } catch (error) {
         console.error('[WelcomeKit V2] Error confirmando equipo:', error);
@@ -2905,83 +2907,41 @@ router.post('/v2/:id/client-ready', protect, async (req, res) => {
 
 /**
  * PUT /api/welcome-kit/v2/:id/status
- * Admin actualiza el estado manualmente
+ * Admin actualiza el estado manualmente.
+ * Usa WelcomeKitTransitionService para validar transiciones y disparar side-effects.
  */
 router.put('/v2/:id/status', protect, adminOnly, async (req, res) => {
     try {
-        const { status, notes } = req.body;
-        
-        const validStatuses = [
-            'paid',
-            'entrevista_pendiente',
-            'entrevista_agendada',
-            'esperando_equipo', 
-            'setup_pending',
-            'setup_scheduled',
-            'trial_available',
-            'trial_scheduled',
-            'completed'
-        ];
-
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({ 
-                success: false, 
-                error: `Estado inválido. Válidos: ${validStatuses.join(', ')}` 
-            });
-        }
+        const { status, notes, force } = req.body;
 
         const kit = await WelcomeKit.findById(req.params.id);
         if (!kit) {
             return res.status(404).json({ success: false, error: 'Orden no encontrada' });
         }
 
-        kit.overallStatus = status;
-        
-        // Guardar notas si se proporcionan
-        if (notes) {
-            kit.setupSession = kit.setupSession || {};
-            kit.setupSession.technicianNotes = 
-                (kit.setupSession.technicianNotes || '') + '\n\n---\n' + new Date().toLocaleDateString() + ': ' + notes;
+        // Usar servicio de transiciones (admin puede forzar con force=true)
+        const result = await WelcomeKitTransitionService.transition(kit, status, {
+            notes,
+            force: !!force   // Admin puede saltar validación de transición si es necesario
+        });
+
+        if (!result.success) {
+            return res.status(400).json({
+                success: false,
+                error: result.error,
+                currentStatus: kit.overallStatus,
+                validTargets: WelcomeKitTransitionService.VALID_TRANSITIONS[kit.overallStatus] || []
+            });
         }
 
-        // Si se marca setup como completado, desbloquear clase de prueba
-        if (status === 'trial_available') {
-            kit.setupSession.status = 'completed';
-            kit.setupSession.completedAt = new Date();
-            kit.trialClass = kit.trialClass || {};
-            kit.trialClass.status = 'available';
-            kit.trialClass.unlockedAt = new Date();
-        }
-
-        // Si se marca como completado
-        if (status === 'completed') {
-            kit.trialClass = kit.trialClass || {};
-            kit.trialClass.status = 'completed';
-            kit.trialClass.completedAt = new Date();
-        }
-
-        await kit.save();
-
-        // Enviar email automático cuando se marca trial_available (caso admin bypass)
-        if (status === 'trial_available') {
-            try {
-                const adminData = await _getAdminEmailData();
-                await WelcomeKitEmailService.sendTrialClassInvitation({
-                    to: kit.clientEmail,
-                    clientName: kit.clientName || 'Estudiante',
-                    adminName: adminData.adminName
-                });
-                console.log(`[WelcomeKit V2] 📧 Email de trial enviado automáticamente a ${kit.clientEmail} (admin bypass)`);
-            } catch (emailErr) {
-                console.error('[WelcomeKit V2] Error enviando email trial (admin bypass):', emailErr.message);
-            }
-        }
-
-        console.log(`[WelcomeKit V2] 📝 Estado actualizado a: ${status} para ${kit.clientEmail}`);
+        console.log(`[WelcomeKit V2] 📝 ${result.previousStatus} → ${result.newStatus} para ${kit.clientEmail} (admin)`);
 
         res.json({ 
             success: true, 
-            message: `Estado actualizado a: ${status}`,
+            message: result.message,
+            previousStatus: result.previousStatus,
+            newStatus: result.newStatus,
+            effects: result.effects,
             kit
         });
     } catch (error) {
@@ -3009,19 +2969,9 @@ router.get('/v2/my-kit', protect, async (req, res) => {
             return res.json({ success: true, kit: null });
         }
 
-        // Traducir estados a mensajes amigables
-        const statusMessages = {
-            'paid': { step: 1, message: 'Esperando agendar tu entrevista técnica', action: null },
-            'entrevista_pendiente': { step: 1, message: 'Esperando tu entrevista técnica', action: null },
-            'esperando_equipo': { step: 2, message: 'Revisa tu email para ver las recomendaciones de equipo', action: 'confirm_equipment' },
-            'setup_pending': { step: 3, message: 'Equipo confirmado. Pronto agendaremos tu setup técnico', action: null },
-            'setup_scheduled': { step: 3, message: 'Setup técnico agendado', action: null },
-            'trial_available': { step: 4, message: '¡Listo para tu clase de prueba!', action: 'schedule_trial' },
-            'trial_scheduled': { step: 4, message: 'Clase de prueba agendada', action: null },
-            'completed': { step: 5, message: '¡Onboarding completado!', action: 'view_teachers' }
-        };
-
-        const statusInfo = statusMessages[kit.overallStatus] || { step: 1, message: kit.overallStatus, action: null };
+        // Calcular estado detallado usando el servicio de transiciones
+        const detailedStatus = WelcomeKitTransitionService.getDetailedStatus(kit, {});
+        const progress = WelcomeKitTransitionService.getProgress(kit);
 
         res.json({ 
             success: true, 
@@ -3030,7 +2980,14 @@ router.get('/v2/my-kit', protect, async (req, res) => {
                 id: kit._id,
                 overallStatus: kit.overallStatus,
                 status: kit.overallStatus,
-                ...statusInfo,
+                step: detailedStatus?.step || 1,
+                substep: detailedStatus?.substep || null,
+                message: detailedStatus?.message || kit.overallStatus,
+                action: detailedStatus?.action || null,
+                title: detailedStatus?.title || '',
+                icon: detailedStatus?.icon || '',
+                color: detailedStatus?.color || '#6b7280',
+                progress,
                 createdAt: kit.createdAt,
                 setupSession: kit.setupSession,
                 trialClass: kit.trialClass,
@@ -3344,8 +3301,8 @@ router.post('/v2/:id/schedule-interview', protect, async (req, res) => {
             return res.status(403).json({ success: false, error: 'No tienes permiso para este kit' });
         }
 
-        // Verificar que el estado permite agendar entrevista
-        if (!['entrevista_pendiente', 'paid'].includes(kit.overallStatus)) {
+        // Verificar que el estado permite agendar entrevista (onboarding o legacy)
+        if (!['onboarding', 'entrevista_pendiente', 'paid'].includes(kit.overallStatus)) {
             return res.status(400).json({
                 success: false,
                 error: `No se puede agendar entrevista en estado: ${kit.overallStatus}`
@@ -3387,7 +3344,10 @@ router.post('/v2/:id/schedule-interview', protect, async (req, res) => {
             slotId: slot._id,
             scheduledAt: slot.startTime
         };
-        kit.overallStatus = 'entrevista_agendada';
+        // Se mantiene en 'onboarding' — el sub-estado se detecta por interview.scheduledAt
+        if (!['onboarding'].includes(kit.overallStatus)) {
+            kit.overallStatus = 'onboarding';
+        }
         await kit.save();
 
         // Formatear fecha para el email
@@ -3511,23 +3471,14 @@ router.post('/v2/interview-slots/:slotId/complete', protect, adminOnly, async (r
                     kit.setupSession.status = 'completed';
                     kit.setupSession.completedAt = new Date();
                     if (notes) kit.setupSession.technicianNotes = notes;
-                    kit.overallStatus = 'trial_available';
+                    // Transicionar a trial_ready usando el servicio (dispara email automático)
+                    const transResult = await WelcomeKitTransitionService.transition(kit, 'trial_ready', { deferSave: true });
+                    if (!transResult.success) {
+                        console.error(`[Setup] Error transicionando a trial_ready: ${transResult.error}`);
+                    }
                     await kit.save();
 
-                    // Enviar email invitando a elegir profesor para clase de prueba
-                    const adminData = await _getAdminEmailData();
-                    try {
-                        await WelcomeKitEmailService.sendTrialClassInvitation({
-                            to: kit.clientEmail || slot.booking.clientEmail,
-                            clientName: kit.clientName || slot.booking.clientName,
-                            adminName: adminData.adminName
-                        });
-                        console.log(`[Setup] ✅ Email de clase de prueba enviado a ${kit.clientEmail}`);
-                    } catch (emailErr) {
-                        console.error('[Setup] Error enviando email trial:', emailErr.message);
-                    }
-
-                    console.log(`[Setup] ✅ Setup completado para kit ${kit._id}, avanzando a trial_available`);
+                    console.log(`[Setup] ✅ Setup completado para kit ${kit._id}, avanzando a trial_ready`);
                 } else {
                     // Completar entrevista
                     kit.interview.completedAt = new Date();
@@ -3573,8 +3524,8 @@ router.post('/v2/:id/schedule-setup', protect, async (req, res) => {
             return res.status(403).json({ success: false, error: 'No tienes permiso para este kit' });
         }
 
-        // Solo se puede agendar setup desde setup_pending
-        if (kit.overallStatus !== 'setup_pending') {
+        // Solo se puede agendar setup desde 'setup' o legacy 'setup_pending'
+        if (!['setup', 'setup_pending'].includes(kit.overallStatus)) {
             return res.status(400).json({
                 success: false,
                 error: `No se puede agendar setup en estado: ${kit.overallStatus}`
@@ -3613,10 +3564,12 @@ router.post('/v2/:id/schedule-setup', protect, async (req, res) => {
             });
         }
 
-        // Actualizar el WelcomeKit
+        // Actualizar el WelcomeKit (permanece en 'setup', sub-estado = scheduled)
         kit.setupSession.status = 'scheduled';
         kit.setupSession.scheduledAt = slot.startTime;
-        kit.overallStatus = 'setup_scheduled';
+        if (kit.overallStatus !== 'setup') {
+            kit.overallStatus = 'setup';
+        }
         await kit.save();
 
         // Formatear fecha para el email

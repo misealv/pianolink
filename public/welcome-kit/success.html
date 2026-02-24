@@ -611,6 +611,14 @@
         function updateTimeline(status) {
             const items = document.querySelectorAll('.timeline-item');
             const statusIndex = {
+                // V3 simplificado
+                'onboarding': 0,
+                'setup': 3,
+                'trial_ready': 4,
+                'trial_done': 4,
+                'active': 4,
+                'refunded': -1,
+                // Legacy (compatibilidad)
                 'pending_payment': -1,
                 'paid': 0,
                 'processing': 1,
