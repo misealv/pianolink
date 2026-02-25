@@ -95,6 +95,36 @@
         box-shadow: 0 2px 5px rgba(0,0,0,0.2); border: 1px solid #cfaa56;
     }
     
+    /* --- FASE 4: Sidebar simplificado --- */
+    .sidebar-quick-actions {
+        display: flex; gap: 8px; justify-content: center; margin-top: 8px;
+    }
+    .sidebar-icon-btn {
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+        color: #aaa; width: 36px; height: 36px; border-radius: 8px;
+        cursor: pointer; font-size: 14px; transition: all 0.2s;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .sidebar-icon-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(255,118,77,0.1); }
+    .founder-chat-toggle {
+        width: 100%; background: rgba(179,135,40,0.1); border: 1px solid rgba(179,135,40,0.3);
+        color: #b38728; padding: 10px; border-radius: 8px; font-size: 12px;
+        font-weight: 600; cursor: pointer; text-align: left; transition: all 0.2s;
+    }
+    .founder-chat-toggle:hover { background: rgba(179,135,40,0.2); }
+    .sidebar-footer {
+        margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border);
+        display: flex; flex-direction: column; gap: 4px;
+    }
+    .sidebar-footer-link {
+        background: transparent; border: none; color: #888; font-size: 12px;
+        cursor: pointer; padding: 8px 12px; text-align: left; border-radius: 6px;
+        transition: all 0.2s;
+    }
+    .sidebar-footer-link:hover { color: var(--accent); background: rgba(255,255,255,0.04); }
+    .sidebar-logout { color: #ff4d4d; }
+    .sidebar-logout:hover { color: #ff6b6b; background: rgba(255,77,77,0.1); }
+
     /* Botones de Suscripción */
     #btnActivateSubscription:hover, #btnManageBilling:hover {
         transform: translateY(-2px);
@@ -1396,10 +1426,16 @@
             <div class="welcome-text">Bienvenido</div>
             <div id="welcomeName" class="user-name">Cargando...</div>
             <div id="founderBadge" class="gold-badge">★ PROFESOR FUNDADOR</div>
+            <!-- FASE 4: Íconos de acción rápida (reemplazan botones grandes) -->
+            <div class="sidebar-quick-actions">
+                <button onclick="copyInviteLink()" title="Copiar link de alumno" aria-label="Copiar link de alumno" class="sidebar-icon-btn">🔗</button>
+                <button onclick="openProfileModal()" title="Cuenta y seguridad" aria-label="Cuenta y seguridad" class="sidebar-icon-btn">👤</button>
+            </div>
+            <div id="copyFeedbackNew" style="font-size: 10px; color: #b4e080; text-align: center; margin-top: 4px; min-height: 15px;"></div>
         </div>
 
-        <!-- 💰 MIS GANANCIAS -->
-        <div id="earningsCard" style="background: linear-gradient(135deg, #1e2e1e 0%, #2d442d 100%); border-radius: 10px; padding: 14px; border: 1px solid #3d5c3d; margin-bottom: 15px;">
+        <!-- FASE 4: earningsCard oculto en sidebar, versión compacta en main -->
+        <div id="earningsCard" style="display: none; background: linear-gradient(135deg, #1e2e1e 0%, #2d442d 100%); border-radius: 10px; padding: 14px; border: 1px solid #3d5c3d; margin-bottom: 15px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <div style="color: #4ade80; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">💰 Mis Ganancias</div>
                 <button onclick="toggleEarningsSection()" style="background: rgba(74, 222, 128, 0.2); border: none; color: #4ade80; padding: 4px 8px; border-radius: 4px; font-size: 9px; cursor: pointer;">
@@ -1423,53 +1459,25 @@
 
 
 
-        <!-- 🔔 BANNER DE RENOVACIÓN DE MEMBRESÍA -->
-        <div id="renewalBanner" style="display: none; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 10px; padding: 14px; margin-bottom: 10px; border: 2px solid #fbbf24; animation: pulse-border 2s infinite;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="font-size: 28px;">⏰</div>
-                <div style="flex: 1;">
-                    <div style="color: white; font-size: 13px; font-weight: 700;" id="renewalTitle">Tu membresía vence pronto</div>
-                    <div style="color: rgba(255,255,255,0.9); font-size: 11px;" id="renewalMessage">Renueva ahora para seguir enseñando sin interrupciones</div>
-                </div>
-                <button onclick="handleSubscription()" style="background: white; color: #d97706; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-                    🇨🇱 Renovar Ahora
-                </button>
-            </div>
-            <button onclick="dismissRenewalBanner()" style="position: absolute; top: 8px; right: 8px; background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 16px;">×</button>
-        </div>
-
-        <!-- 🚫 BANNER DE MEMBRESÍA EXPIRADA -->
-        <div id="expiredBanner" style="display: none; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 10px; padding: 16px; margin-bottom: 10px; border: 2px solid #f87171;">
-            <div style="text-align: center;">
-                <div style="font-size: 32px; margin-bottom: 8px;">🔒</div>
-                <div style="color: white; font-size: 15px; font-weight: 700; margin-bottom: 4px;">Membresía Expirada</div>
-                <div style="color: rgba(255,255,255,0.9); font-size: 12px; margin-bottom: 12px;">Renueva tu membresía para volver a recibir estudiantes</div>
-                <button onclick="handleSubscription()" style="background: white; color: #dc2626; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                    🇨🇱 Renovar con MercadoPago
-                </button>
-            </div>
-        </div>
-
-        <style>
-            @keyframes pulse-border {
-                0%, 100% { border-color: #fbbf24; }
-                50% { border-color: #fef3c7; }
-            }
-        </style>
+        <!-- FASE 4: Banners movidos al main content -->
+        <!-- FASE 4 BACKUP: renewalBanner (original en sidebar, ahora en main) -->
+        <div id="renewalBanner_sidebarBackup" style="display: none;"></div>
+        <!-- FASE 4 BACKUP: expiredBanner (original en sidebar, ahora en main) -->
+        <div id="expiredBanner_sidebarBackup" style="display: none;"></div>
 
         <div>
             <button id="btnOpenRoom" class="action-btn btn-primary">
                 ⚡ IR A MI SALA
             </button>
-            <button onclick="copyInviteLink()" class="action-btn btn-secondary">
-                🔗 COPIAR LINK ALUMNO
-            </button>
-            <button onclick="openProfileModal()" class="action-btn btn-secondary">
-                👤 EDITAR PERFIL
-            </button>
+            <!-- FASE 4: Botones convertidos a íconos en user-summary -->
+            <div style="display:none"><!-- FASE 4 BACKUP -->
+            <button onclick="copyInviteLink()" class="action-btn btn-secondary">🔗 COPIAR LINK ALUMNO</button>
+            <button onclick="openProfileModal()" class="action-btn btn-secondary">👤 EDITAR PERFIL</button>
+            </div><!-- FIN FASE 4 BACKUP -->
             
-            <!-- MI PLAN - Fase 4 v5.0 -->
-            <div id="membershipSection" style="margin-top: 15px;">
+            <!-- MI PLAN - FASE 4: Oculto en sidebar, resumen compacto en main -->
+            <div id="membershipSection" style="display: none; margin-top: 15px;">
+            <!-- FASE 4: Contenido original preservado para JS que lo actualiza -->
 
                 <!-- === TARJETA MI PLAN === -->
                 <div id="planCard" style="background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%); border-radius: 10px; padding: 14px; border: 1px solid #3d3d5c; margin-bottom: 10px;">
@@ -1532,113 +1540,69 @@
                     <div id="invitesList" style="margin-top: 10px; max-height: 200px; overflow-y: auto;"></div>
                 </div>
 
-                <!-- === MODAL INVITAR ALUMNO === -->
-                <div id="inviteModal" style="display: none; position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
-                    <div style="background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%); border-radius: 16px; width: 420px; max-width: 92vw; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); overflow: hidden;">
-                        <!-- Header modal -->
-                        <div style="background: linear-gradient(135deg, #0f172a, #1e293b); padding: 22px 24px 18px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.06);">
-                            <div style="font-size: 32px; margin-bottom: 6px;">🎹</div>
-                            <h2 style="margin: 0; color: #fff; font-size: 17px; font-weight: 700;">Invitar Alumno Privado</h2>
-                            <p style="margin: 6px 0 0; color: rgba(255,255,255,0.5); font-size: 11px;">Se enviará una invitación formal por email</p>
-                        </div>
-                        <!-- Body modal -->
-                        <div style="padding: 22px 24px;">
-                            <div style="margin-bottom: 16px;">
-                                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Nombre del alumno</label>
-                                <input id="invStudentName" type="text" placeholder="Ej: María González" 
-                                    style="width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; font-size: 14px; outline: none; transition: border 0.2s; box-sizing: border-box;"
-                                    onfocus="this.style.borderColor='#4ade80'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
-                            </div>
-                            <div style="margin-bottom: 16px;">
-                                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Email del alumno</label>
-                                <input id="invStudentEmail" type="email" placeholder="alumno@email.com" 
-                                    style="width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; font-size: 14px; outline: none; transition: border 0.2s; box-sizing: border-box;"
-                                    onfocus="this.style.borderColor='#4ade80'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
-                            </div>
-                            <div style="margin-bottom: 20px;">
-                                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Clases pre-pagadas <span style="color: rgba(255,255,255,0.35); font-weight: 400;">(opcional, máx. 4)</span></label>
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <input id="invPreloadedClasses" type="range" min="0" max="4" value="0" 
-                                        style="flex: 1; accent-color: #4ade80; cursor: pointer;"
-                                        oninput="document.getElementById('invClassesLabel').textContent = this.value">
-                                    <div id="invClassesLabel" style="background: rgba(74,222,128,0.15); color: #4ade80; padding: 4px 12px; border-radius: 6px; font-size: 16px; font-weight: 700; min-width: 24px; text-align: center;">0</div>
-                                </div>
-                                <p style="margin: 6px 0 0; color: rgba(255,255,255,0.35); font-size: 10px; line-height: 1.4;">Clases que ya cobraste y quieres asignarle al alumno al registrarse.</p>
-                            </div>
-                            <!-- Info box -->
-                            <div style="background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.15); border-radius: 8px; padding: 10px 14px; margin-bottom: 18px;">
-                                <p style="margin: 0; color: rgba(255,255,255,0.5); font-size: 10px; line-height: 1.5;">
-                                    📧 El alumno recibirá un email con tu nombre invitándolo a crear su cuenta en PianoLink. La invitación expira en 7 días.
-                                </p>
-                            </div>
-                            <!-- Botones -->
-                            <div style="display: flex; gap: 10px;">
-                                <button onclick="closeInviteModal()" style="flex: 1; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
-                                    Cancelar
-                                </button>
-                                <button id="sendInviteBtn" onclick="sendInvite()" style="flex: 2; padding: 11px; background: linear-gradient(135deg, #4ade80, #22c55e); border: none; color: #0a1a0a; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 700; letter-spacing: 0.3px; transition: all 0.2s; box-shadow: 0 4px 14px rgba(74,222,128,0.3);">
-                                    ✉️ Enviar Invitación
-                                </button>
-                            </div>
-                            <div id="inviteModalMsg" style="text-align: center; margin-top: 10px; font-size: 11px; min-height: 16px;"></div>
-                        </div>
-                    </div>
-                </div>
+                <!-- FASE 4: inviteModal movido fuera de membershipSection (antes de </body>) para que funcione con display:none del padre -->
 
-                <!-- === NOTIFICACIÓN UPSELL (solo Free con >= 5 alumnos) === -->
-                <div id="upsellBanner" style="display: none; background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 10px; padding: 14px; border: 1px solid #4338ca; margin-bottom: 10px; position: relative;">
-                    <button onclick="dismissUpsell()" style="position: absolute; top: 6px; right: 8px; background: none; border: none; color: rgba(255,255,255,0.4); font-size: 14px; cursor: pointer;">×</button>
-                    <div style="font-size: 13px; color: white; font-weight: 700; margin-bottom: 6px;">💡 ¿Sabías que podrías ahorrar?</div>
-                    <div id="upsellMessage" style="color: rgba(255,255,255,0.8); font-size: 11px; line-height: 1.5; margin-bottom: 10px;">
-                        Has pagado <strong id="upsellPaid">$0</strong> en comisiones. Con Premium ahorrarías <strong id="upsellSave">$0</strong>/mes.
-                    </div>
-                    <button onclick="window.location.href='/pricing'" style="width: 100%; padding: 8px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer;">
-                        Ver planes y ahorros →
-                    </button>
-                </div>
+                <!-- FASE 4 BACKUP: upsellBanner movido al main -->
+                <div id="upsellBanner_sidebarBackup" style="display: none;"></div>
 
-                <!-- Banners legacy de renovación/expiración (se mantienen) -->
-                <div id="legacyRenewalBanner" style="display: none;"></div>
+                <!-- FASE 4 BACKUP: legacyRenewalBanner movido al main -->
+                <div id="legacyRenewalBanner_sidebarBackup" style="display: none;"></div>
             </div>
             
-            <button onclick="window.location.href='/teacher-availability.html'" class="action-btn btn-secondary">
-                📅 MI DISPONIBILIDAD
-            </button>
+            <!-- FASE 4: MI DISPONIBILIDAD movido al nav -->
+            <div style="display:none"><!-- FASE 4 BACKUP -->
+            <button onclick="window.location.href='/teacher-availability.html'" class="action-btn btn-secondary">📅 MI DISPONIBILIDAD</button>
+            </div><!-- FIN FASE 4 BACKUP -->
 
-            <!-- Navegación a sub-vistas (Sprint 4) -->
+            <!-- Navegación a sub-vistas (Sprint 4 + Fase 4 sidebar) -->
             <nav class="profesor-nav" style="flex-direction: column; gap: 4px; margin-top: 10px;">
                 <a href="/dashboard.html" class="active">🏠 Resumen</a>
                 <a href="/profesor/calendario.html">📅 Mi Agenda</a>
+                <a href="/teacher-availability.html">🕐 Disponibilidad</a>
                 <a href="/profesor/estudiantes.html">👥 Mis Estudiantes</a>
                 <a href="/profesor/validar.html" style="position: relative;">
                     ✅ Validar Clases
                     <span id="validationsCountNav" style="display: none; background: #ef4444; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px;">0</span>
                 </a>
+                <a href="/profesor/configuracion.html">⚙️ Configuración</a>
                 <a href="/profesor/perfil.html">🌐 Mi Perfil Público</a>
             </nav>
 
             <button onclick="openHelpPanel()" class="action-btn btn-secondary" style="margin-top: 10px; background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(79,70,229,0.1) 100%); border-color: #6366f1; color: #818cf8;">
-                📚 MANUAL DE OPERACIONES
+                📚 Manual
             </button>
-            <div id="copyFeedback" style="font-size: 10px; color: #b4e080; text-align: center; margin-top: 5px; min-height: 15px;"></div>
+            <!-- FASE 4: copyFeedback original mantenido oculto, nuevo en user-summary -->
+            <div id="copyFeedback" style="display:none; font-size: 10px; color: #b4e080; text-align: center; margin-top: 5px; min-height: 15px;"></div>
         </div>
 
+        <!-- FASE 4: Chat Fundador colapsable -->
         <div id="founderSection" style="display:none; margin-top: auto;">
-            <div class="founder-chat-container">
-                <div class="founder-chat-header">👑 Soporte Directo</div>
-                <div id="founderChatHistory" class="founder-chat-history">
-                    <div style="text-align:center; color:#444; font-size:10px; margin-top:10px;">Cargando historial...</div>
-                </div>
-                <div class="chat-input-box">
-                    <input type="text" id="founderChatInput" placeholder="Escribir..." onkeydown="if(event.key==='Enter') sendFounderMsg()">
-                    <button class="chat-btn-mini" onclick="sendFounderMsg()">➤</button>
+            <button onclick="toggleFounderChat()" class="founder-chat-toggle" aria-label="Abrir chat de fundadores">
+                💬 Chat Fundadores <span id="founderChatToggleIcon">▼</span>
+            </button>
+            <div id="founderChatCollapsible" style="display: none; margin-top: 6px;">
+                <div class="founder-chat-container">
+                    <div class="founder-chat-header">👑 Soporte Directo</div>
+                    <div id="founderChatHistory" class="founder-chat-history">
+                        <div style="text-align:center; color:#444; font-size:10px; margin-top:10px;">Cargando historial...</div>
+                    </div>
+                    <div class="chat-input-box">
+                        <input type="text" id="founderChatInput" placeholder="Escribir..." onkeydown="if(event.key==='Enter') sendFounderMsg()">
+                        <button class="chat-btn-mini" onclick="sendFounderMsg()">➤</button>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <button class="action-btn btn-secondary" onclick="logout()" style="border-color: #ff4d4d; color: #ff4d4d;">
-            Cerrar Sesión
-        </button>
+        <!-- FASE 4: Footer del sidebar -->
+        <div class="sidebar-footer">
+            <button onclick="openProfileModal()" class="sidebar-footer-link">👤 Cuenta y Seguridad</button>
+            <button class="sidebar-footer-link sidebar-logout" onclick="logout()">Cerrar Sesión</button>
+        </div>
+        <!-- FASE 4 BACKUP: Botón original cerrar sesión -->
+        <div style="display:none">
+        <button class="action-btn btn-secondary" onclick="logout()" style="border-color: #ff4d4d; color: #ff4d4d;">Cerrar Sesión</button>
+        </div>
     </div>
   </aside>
 
@@ -1658,6 +1622,83 @@
             <div class="admin-msg-title">📨 Mensajes de la Administración</div>
             <div id="messagesList" style="max-height: 150px; overflow-y: auto;"></div>
         </div>
+
+        <!-- ==================== FASE 4: BANNERS MOVIDOS DEL SIDEBAR ==================== -->
+        <style>
+            @keyframes pulse-border {
+                0%, 100% { border-color: #fbbf24; }
+                50% { border-color: #fef3c7; }
+            }
+        </style>
+
+        <!-- 🚫 BANNER DE MEMBRESÍA EXPIRADA (movido del sidebar — Fase 4) -->
+        <div id="expiredBanner" style="display: none; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 10px; padding: 16px; margin-bottom: 12px; border: 2px solid #f87171; position: relative;">
+            <div style="text-align: center;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🔒</div>
+                <div style="color: white; font-size: 15px; font-weight: 700; margin-bottom: 4px;">Membresía Expirada</div>
+                <div style="color: rgba(255,255,255,0.9); font-size: 12px; margin-bottom: 12px;">Renueva tu membresía para volver a recibir estudiantes</div>
+                <button onclick="handleSubscription()" style="background: white; color: #dc2626; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                    🇨🇱 Renovar con MercadoPago
+                </button>
+            </div>
+        </div>
+
+        <!-- 🔔 BANNER DE RENOVACIÓN (movido del sidebar — Fase 4) -->
+        <div id="renewalBanner" style="display: none; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 10px; padding: 14px; margin-bottom: 12px; border: 2px solid #fbbf24; animation: pulse-border 2s infinite; position: relative;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="font-size: 28px;">⏰</div>
+                <div style="flex: 1;">
+                    <div style="color: white; font-size: 13px; font-weight: 700;" id="renewalTitle">Tu membresía vence pronto</div>
+                    <div style="color: rgba(255,255,255,0.9); font-size: 11px;" id="renewalMessage">Renueva ahora para seguir enseñando sin interrupciones</div>
+                </div>
+                <button onclick="handleSubscription()" style="background: white; color: #d97706; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                    🇨🇱 Renovar Ahora
+                </button>
+            </div>
+            <button onclick="dismissRenewalBanner()" style="position: absolute; top: 8px; right: 8px; background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 16px;">×</button>
+        </div>
+
+        <!-- 💡 UPSELL (movido del sidebar — Fase 4) -->
+        <div id="upsellBanner" style="display: none; background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 10px; padding: 14px; border: 1px solid #4338ca; margin-bottom: 12px; position: relative;">
+            <button onclick="dismissUpsell()" style="position: absolute; top: 6px; right: 8px; background: none; border: none; color: rgba(255,255,255,0.4); font-size: 14px; cursor: pointer;">×</button>
+            <div style="font-size: 13px; color: white; font-weight: 700; margin-bottom: 6px;">💡 ¿Sabías que podrías ahorrar?</div>
+            <div id="upsellMessage" style="color: rgba(255,255,255,0.8); font-size: 11px; line-height: 1.5; margin-bottom: 10px;">
+                Has pagado <strong id="upsellPaid">$0</strong> en comisiones. Con Premium ahorrarías <strong id="upsellSave">$0</strong>/mes.
+            </div>
+            <button onclick="window.location.href='/pricing'" style="width: 100%; padding: 8px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer;">
+                Ver planes y ahorros →
+            </button>
+        </div>
+
+        <!-- Banners legacy (movido del sidebar — Fase 4) -->
+        <div id="legacyRenewalBanner" style="display: none;"></div>
+        <!-- ==================== FIN BANNERS FASE 4 ==================== -->
+
+        <!-- ==================== FASE 4: CARD COMPACTA GANANCIAS + PLAN ==================== -->
+        <div id="earningsCompactCard" class="card" style="margin-bottom: 16px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div>
+                    <div style="color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">💰 Ganancias este mes</div>
+                    <div style="display: flex; align-items: baseline; gap: 12px; margin-top: 4px;">
+                        <span id="earningsCompactEscrow" style="color: #fbbf24; font-size: 20px; font-weight: 800;">$0</span>
+                        <span style="color: var(--text-muted); font-size: 11px;">en escrow</span>
+                        <span style="color: #333; font-size: 11px;">|</span>
+                        <span id="earningsCompactPaid" style="color: #4ade80; font-size: 20px; font-weight: 800;">$0</span>
+                        <span style="color: var(--text-muted); font-size: 11px;">pagado</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="text-align: right;">
+                    <div style="color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Plan</div>
+                    <div id="earningsCompactPlan" style="color: white; font-size: 14px; font-weight: 700; margin-top: 2px;">Free</div>
+                </div>
+                <a href="/profesor/configuracion.html" style="color: var(--accent); font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap;">Ver detalle →</a>
+                <!-- FASE 4: Botón invitar compacto (solo Premium/Founder) -->
+                <button id="inviteCompactBtn" onclick="openInviteModal()" style="display: none; background: linear-gradient(135deg, #4ade80, #22c55e); border: none; color: #0a1a0a; padding: 6px 14px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 700; white-space: nowrap;">+ Invitar</button>
+            </div>
+        </div>
+        <!-- ==================== FIN CARD COMPACTA ==================== -->
 
         <!-- ==================== PRÓXIMAS CLASES — FASE 3 ==================== -->
         <div id="upcomingClassesSection" class="card" style="margin-bottom: 24px;">
@@ -3635,6 +3676,17 @@
         } catch(e) {}
     }
     function logout() { localStorage.removeItem('pianoUser'); window.location.href = 'login.html'; }
+
+    // FASE 4: Toggle del chat de fundadores (colapsable)
+    function toggleFounderChat() {
+        const body = document.getElementById('founderChatCollapsible');
+        const icon = document.getElementById('founderChatToggleIcon');
+        if (!body) return;
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : 'block';
+        if (icon) icon.textContent = isOpen ? '\u25BC' : '\u25B2';
+    }
+
     function resetColors() {
         document.getElementById('colorBase').value = '#ff764d'; 
         document.getElementById('colorBg').value = '#1a1a1a';   
@@ -3644,8 +3696,11 @@
         if(!user || !user.slug) return;
         const link = `${window.location.origin}/?role=student&sala=${user.slug.toLowerCase()}`;
         navigator.clipboard.writeText(link).then(() => {
-            const feedback = document.getElementById('copyFeedback'); feedback.textContent = "✅ Link Copiado";
-            setTimeout(() => feedback.textContent = "", 3000);
+            // FASE 4: Feedback en nuevo contenedor + legacy
+            const feedbackNew = document.getElementById('copyFeedbackNew');
+            const feedbackOld = document.getElementById('copyFeedback');
+            if (feedbackNew) { feedbackNew.textContent = '✅ Link Copiado'; setTimeout(() => feedbackNew.textContent = '', 3000); }
+            if (feedbackOld) { feedbackOld.textContent = '✅ Link Copiado'; setTimeout(() => feedbackOld.textContent = '', 3000); }
         });
     }
 
@@ -3960,6 +4015,9 @@
             // Mostrar panel de invitaciones si tiene permiso
             if (data.permissions?.canInvitePrivateStudents) {
                 document.getElementById('invitePanel').style.display = 'block';
+                // FASE 4: Mostrar botón de invitar en card compacta del main
+                const inviteCompactBtn = document.getElementById('inviteCompactBtn');
+                if (inviteCompactBtn) inviteCompactBtn.style.display = 'inline-block';
                 loadMyInvites();
             }
             
@@ -3997,6 +4055,9 @@
         planBadgeEl.textContent = badge.text;
         planBadgeEl.style.background = badge.bg;
         planBadgeEl.style.color = badge.color;
+        // FASE 4: Actualizar plan en card compacta del main
+        const compactPlan = document.getElementById('earningsCompactPlan');
+        if (compactPlan) compactPlan.textContent = (badge.text === 'SIN COSTO' ? 'Free' : badge.text) + ' — ' + (planNames[plan] || 'Free');
         
         // Comisiones — actualizar variables globales
         const comm = data.commission || { platform: 25, teacher: 75 };
@@ -6113,6 +6174,11 @@
         document.getElementById('earningsEscrow').textContent = `$${escrow}`;
         document.getElementById('earningsPaid').textContent = `$${paid}`;
         document.getElementById('pendingValidationCount').textContent = pending;
+        // FASE 4: Actualizar card compacta en main
+        const compactEscrow = document.getElementById('earningsCompactEscrow');
+        const compactPaid = document.getElementById('earningsCompactPaid');
+        if (compactEscrow) compactEscrow.textContent = `$${escrow}`;
+        if (compactPaid) compactPaid.textContent = `$${paid}`;
     }
 
     function toggleEarningsSection() {
@@ -6874,5 +6940,43 @@
     // ==================== FIN GESTIÓN DE PAQUETES ====================
     
   </script>
+
+<!-- FASE 4: Modal Invitar Alumno extraído de #membershipSection para que funcione con padre oculto -->
+<div id="inviteModal" style="display: none; position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+    <div style="background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%); border-radius: 16px; width: 420px; max-width: 92vw; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #0f172a, #1e293b); padding: 22px 24px 18px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <div style="font-size: 32px; margin-bottom: 6px;">🎹</div>
+            <h2 style="margin: 0; color: #fff; font-size: 17px; font-weight: 700;">Invitar Alumno Privado</h2>
+            <p style="margin: 6px 0 0; color: rgba(255,255,255,0.5); font-size: 11px;">Se enviará una invitación formal por email</p>
+        </div>
+        <div style="padding: 22px 24px;">
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Nombre del alumno</label>
+                <input id="invStudentName" type="text" placeholder="Ej: María González" style="width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; font-size: 14px; outline: none; transition: border 0.2s; box-sizing: border-box;" onfocus="this.style.borderColor='#4ade80'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+            </div>
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Email del alumno</label>
+                <input id="invStudentEmail" type="email" placeholder="alumno@email.com" style="width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #fff; font-size: 14px; outline: none; transition: border 0.2s; box-sizing: border-box;" onfocus="this.style.borderColor='#4ade80'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Clases pre-pagadas <span style="color: rgba(255,255,255,0.35); font-weight: 400;">(opcional, máx. 4)</span></label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input id="invPreloadedClasses" type="range" min="0" max="4" value="0" style="flex: 1; accent-color: #4ade80; cursor: pointer;" oninput="document.getElementById('invClassesLabel').textContent = this.value">
+                    <div id="invClassesLabel" style="background: rgba(74,222,128,0.15); color: #4ade80; padding: 4px 12px; border-radius: 6px; font-size: 16px; font-weight: 700; min-width: 24px; text-align: center;">0</div>
+                </div>
+                <p style="margin: 6px 0 0; color: rgba(255,255,255,0.35); font-size: 10px; line-height: 1.4;">Clases que ya cobraste y quieres asignarle al alumno al registrarse.</p>
+            </div>
+            <div style="background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.15); border-radius: 8px; padding: 10px 14px; margin-bottom: 18px;">
+                <p style="margin: 0; color: rgba(255,255,255,0.5); font-size: 10px; line-height: 1.5;">📧 El alumno recibirá un email con tu nombre invitándolo a crear su cuenta en PianoLink. La invitación expira en 7 días.</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="closeInviteModal()" style="flex: 1; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 600; transition: all 0.2s;">Cancelar</button>
+                <button id="sendInviteBtn" onclick="sendInvite()" style="flex: 2; padding: 11px; background: linear-gradient(135deg, #4ade80, #22c55e); border: none; color: #0a1a0a; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 700; letter-spacing: 0.3px; transition: all 0.2s; box-shadow: 0 4px 14px rgba(74,222,128,0.3);">✉️ Enviar Invitación</button>
+            </div>
+            <div id="inviteModalMsg" style="text-align: center; margin-top: 10px; font-size: 11px; min-height: 16px;"></div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
