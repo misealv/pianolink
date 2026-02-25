@@ -89,7 +89,7 @@ function getInitials(name) {
 /**
  * Genera e inyecta el sidebar del profesor.
  * Reutiliza un <aside id="sidebarContainer"> existente o crea uno nuevo.
- * @param {string} activePage - Identificador de la página activa (dashboard|calendario|estudiantes|validar|perfil)
+ * @param {string} activePage - Identificador de la página activa (dashboard|calendario|estudiantes|validar|configuracion|perfil)
  */
 function renderSidebar(activePage = 'dashboard') {
     // Reutilizar contenedor existente o crear uno nuevo
@@ -140,21 +140,21 @@ function renderSidebar(activePage = 'dashboard') {
             <button onclick="copyInviteLink()" class="action-btn btn-secondary">
                 🔗 COPIAR LINK ALUMNO
             </button>
-            <button onclick="window.location.href='/teacher-availability.html'" class="action-btn btn-secondary">
-                📅 MI DISPONIBILIDAD
-            </button>
         </div>
 
         <!-- Navegación entre sub-vistas -->
         <nav class="profesor-nav" style="flex-direction: column; gap: 4px;">
             <a href="/dashboard.html" class="${activePage === 'dashboard' ? 'active' : ''}">🏠 Resumen</a>
             <a href="/profesor/calendario.html" class="${activePage === 'calendario' ? 'active' : ''}">📅 Mi Agenda</a>
+            <a href="/teacher-availability.html">🕐 Disponibilidad</a>
             <a href="/profesor/estudiantes.html" class="${activePage === 'estudiantes' ? 'active' : ''}">👥 Mis Estudiantes</a>
             <a href="/profesor/validar.html" class="${activePage === 'validar' ? 'active' : ''}">
                 ✅ Validar Clases
                 <span id="validationsCount" style="display: none; background: #ef4444; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px;">0</span>
             </a>
+            <a href="/profesor/configuracion.html" class="${activePage === 'configuracion' ? 'active' : ''}">⚙️ Configuración</a>
             <a href="/profesor/perfil.html" class="${activePage === 'perfil' ? 'active' : ''}">🌐 Mi Perfil Público</a>
+            <a href="/manual.html">📚 Manual</a>
         </nav>
 
         <div id="copyFeedback" style="font-size: 10px; color: #b4e080; text-align: center; margin-top: 5px; min-height: 15px;"></div>

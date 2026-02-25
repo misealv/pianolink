@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Configuración | Piano Link</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/profesor-dashboard.css">
+    <style>
+    /* --- Estilos base compartidos --- */
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 300px; gap: 30px; }
+    @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
+    .card { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 12px; padding: 25px; margin-bottom: 20px; }
+    .card h2 { margin-top: 0; color: var(--accent); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-size: 12px; color: #bbb; font-weight: 600; }
+    input[type="text"], textarea { width: 100%; background: #121212; border: 1px solid #333; color: white; padding: 12px; border-radius: 6px; box-sizing: border-box; font-family: inherit; transition: border 0.3s; }
+    input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    .upload-row { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; background: #161616; padding: 10px; border-radius: 8px; border: 1px dashed #333; }
+    .preview-img { width: 50px; height: 50px; object-fit: contain; background: #000; border-radius: 4px; border: 1px solid #333; }
+    input[type="file"] { font-size: 11px; color: #888; }
+    .color-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+    .color-item { text-align: center; background: #161616; padding: 10px; border-radius: 8px; border: 1px solid #333; }
+    input[type="color"] { width: 40px; height: 40px; border: none; background: none; cursor: pointer; padding: 0; }
+    .save-section { margin-top: 30px; text-align: right; }
+    .btn-save { background: #fff; color: #000; border: none; padding: 12px 30px; font-weight: 800; cursor: pointer; border-radius: 6px; font-size: 14px; transition: 0.2s; }
+    .btn-save:hover { background: var(--accent); transform: scale(1.05); }
+    /* --- Sticky save bar --- */
+    .sticky-save-bar { position: fixed; bottom: 0; left: 280px; right: 0; z-index: 9998; background: #1a1a1a; border-top: 2px solid var(--accent); padding: 14px 30px; display: flex; align-items: center; justify-content: space-between; transform: translateY(100%); transition: transform 0.3s ease; box-shadow: 0 -4px 20px rgba(0,0,0,0.5); }
+    .sticky-save-bar.visible { transform: translateY(0); }
+    .sticky-save-bar .bar-message { color: #f59e0b; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .sticky-save-bar .bar-actions { display: flex; gap: 10px; }
+    .sticky-save-bar .btn-bar-discard { background: transparent; border: 1px solid #555; color: #aaa; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .sticky-save-bar .btn-bar-discard:hover { border-color: #888; color: #fff; }
+    .sticky-save-bar .btn-bar-save { background: var(--accent); color: #000; border: none; padding: 8px 24px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .sticky-save-bar .btn-bar-save:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    @media (max-width: 900px) { .sticky-save-bar { left: 0; } }
+    /* --- Tabs --- */
+    .tab-btn { background: none; border: none; color: var(--text-muted); font-size: 14px; font-weight: 600; padding: 12px 0; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-btn:hover { color: #fff; }
+    .tab-content { padding: 24px 0; overflow-y: auto; max-height: calc(100vh - 120px); }
+    </style>
+</head>
+<body>
+    <aside id="sidebarContainer"></aside>
+    <main style="flex:1; display:flex; flex-direction:column; min-width:0;">
+        <div class="tabs" style="padding:32px 40px 0 40px;">
+            <div class="tab-nav" style="display:flex; gap:24px; border-bottom:1px solid var(--border);">
+                <button class="tab-btn active" data-tab="identidad">⚙️ Identidad</button>
+                <button class="tab-btn" data-tab="tarifas">💰 Tarifas</button>
+                <button class="tab-btn" data-tab="pagos">🏦 Pagos</button>
+                <button class="tab-btn" data-tab="cuenta">👤 Cuenta</button>
+            </div>
+            <div class="tab-content" id="tab-identidad" style="display:block;">
+                <!-- ===== TAB 1: IDENTIDAD DE MARCA (copiado de dashboard.html) ===== -->
+                <form id="profileForm">
+                    <div class="dashboard-grid">
+                        <div class="column-left">
+                            <div class="card">
+                                <h2>📸 Identidad de Marca</h2>
+                                <label>LOGO DE TU ACADEMIA</label>
+                                <div class="upload-row">
+                                    <img id="previewLogo" class="preview-img" src="">
+                                    <div>
+                                        <input type="file" id="logoInput" accept="image/*">
+                                        <div style="font-size:9px; color:#666; margin-top:4px;">Se verá en la cabecera de la clase.</div>
+                                    </div>
+                                </div>
+                                <label>FOTO DE PERFIL</label>
+                                <div class="upload-row">
+                                    <img id="previewPhoto" class="preview-img" src="">
+                                    <div>
+                                        <input type="file" id="photoInput" accept="image/*">
+                                        <div style="font-size:9px; color:#666; margin-top:4px;">Se verá en la bienvenida.</div>
+                                    </div>
+                                </div>
+                                <!-- Biografía: se edita en Mi Perfil Público -->
+                                <div style="background: rgba(99,102,241,0.08); border: 1px dashed rgba(99,102,241,0.3); border-radius: 10px; padding: 14px 16px; margin-top: 4px;">
+                                    <div style="font-weight: 600; font-size: 12px; margin-bottom: 6px;">📝 Biografía</div>
+                                    <div style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Tu biografía pública se edita en <strong style="color:#818cf8;">Mi Perfil Público</strong></div>
+                                    <button type="button" onclick="window.location.href='/profesor/perfil.html'" style="background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); border-radius: 8px; padding: 8px 14px; font-size: 12px; cursor: pointer; transition: background 0.2s;">Ir a Mi Perfil Público →</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column-right">
+                            <div class="card">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+                                    <h2 style="border:none; margin:0; padding:0;">🎨 Tema de Sala</h2>
+                                    <button type="button" onclick="resetColors()" style="background:none; border:none; color:#888; cursor:pointer; font-size:10px; text-decoration:underline;">Restablecer</button>
+                                </div>
+                                <div class="color-grid">
+                                    <div class="color-item"><label>Principal</label><input type="color" id="colorBase"></div>
+                                    <div class="color-item"><label>Fondo</label><input type="color" id="colorBg"></div>
+                                    <div class="color-item"><label>Paneles</label><input type="color" id="colorPanel"></div>
+                                </div>
+                                <p style="font-size:10px; color:#666; margin-top:15px; text-align:center;">Estos colores definirán la atmósfera de tu aula virtual.</p>
+                            </div>
+                            <div class="save-section">
+                                <div id="msg" style="margin-bottom:10px; font-size:12px; font-weight:bold;"></div>
+                                <button type="submit" class="btn-save">💾 GUARDAR CAMBIOS</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="tab-content" id="tab-tarifas" style="display:none;">
+                <!-- ===== TAB 2: TARIFAS Y PAQUETES (copiado de dashboard.html L1930-1993) ===== -->
+                <div class="card">
+                    <h2>💰 Tarifas y Paquetes</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                        <!-- Tarifa por clase -->
+                        <div>
+                            <div style="background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(79,70,229,0.1) 100%); border-radius: 12px; padding: 20px; border: 1px solid rgba(99,102,241,0.2);">
+                                <div style="font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Tu tarifa por clase</div>
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <span style="font-size: 24px;">$</span>
+                                    <input type="number" id="hourlyRateInput" min="15" step="1" value="25"
+                                           style="font-size: 32px; font-weight: 700; width: 100px; background: transparent; border: none; border-bottom: 2px solid var(--accent); color: white; text-align: center;">
+                                    <span style="font-size: 14px; color: #888;">USD</span>
+                                </div>
+                                <div style="margin-top: 15px; font-size: 11px; color: #666;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                        <span>Tú recibes (<span id="teacherFeeLabel">--</span>%):</span>
+                                        <span id="teacherEarnsDisplay" style="color: #4ade80; font-weight: 600;">$20.00</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span>Estudiante paga:</span>
+                                        <span id="studentPaysDisplay" style="color: #fbbf24; font-weight: 600;">$31.25</span>
+                                    </div>
+                                </div>
+                                <div id="rateInfoLabel" style="margin-top: 10px; font-size: 9px; color: #555; text-align: center;">
+                                    Mínimo: $15 USD | PianoLink cobra --% de comisión
+                                </div>
+                            </div>
+                            <button type="button" onclick="saveHourlyRate()" style="width: 100%; margin-top: 15px; padding: 12px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                                💾 Guardar Tarifa
+                            </button>
+                        </div>
+                        <!-- Paquetes con descuento -->
+                        <div>
+                            <div style="font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">Paquetes con Descuento</div>
+                            <div id="packagesContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                                <!-- Los paquetes se cargan dinámicamente -->
+                            </div>
+                            <button type="button" onclick="addPackage()" style="width: 100%; margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.05); color: #888; border: 1px dashed #444; border-radius: 8px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='#444'">
+                                ➕ Agregar Paquete
+                            </button>
+                            <button type="button" onclick="savePackages()" style="width: 100%; margin-top: 10px; padding: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                                💾 Guardar Paquetes
+                            </button>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(251,191,36,0.1); border-radius: 8px; border: 1px solid rgba(251,191,36,0.2);">
+                        <div style="font-size: 11px; color: #fbbf24;">
+                            💡 <strong>Política de tarifas:</strong> Tu nueva tarifa aplica solo a nuevos estudiantes.
+                            Los estudiantes actuales mantienen su tarifa congelada por 1 año desde su primera compra.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-content" id="tab-pagos" style="display:none;">
+                <!-- ===== TAB 3: DATOS DE PAGO (copiado de dashboard.html L2121-2294) ===== -->
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div>
+                            <h2 style="margin: 0; color: white; font-size: 20px; border: none; padding: 0;">💳 Datos de Pago</h2>
+                            <p style="margin: 5px 0 0; color: #888; font-size: 13px;">Configura cómo recibirás tus pagos mensuales</p>
+                        </div>
+                        <div id="paymentVerificationBadge" style="display: none; padding: 6px 12px; background: #166534; border-radius: 20px; font-size: 12px; color: #4ade80;">
+                            ✓ Verificado
+                        </div>
+                    </div>
+
+                    <!-- Aviso importante -->
+                    <div style="background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%); border: 1px solid #6366f1; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="font-size: 24px;">🔒</div>
+                            <div>
+                                <div style="color: white; font-weight: 600;">Pagos seguros el día 5 de cada mes</div>
+                                <div style="color: #888; font-size: 12px;">Recibirás el pago de las clases validadas del mes anterior. Asegúrate de que tus datos estén correctos.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- País y método -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 8px;">🌎 Tu País</label>
+                            <select id="paymentCountry" onchange="updatePaymentMethods()"
+                                    style="width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white;">
+                                <option value="CL">🇨🇱 Chile</option>
+                                <option value="AR">🇦🇷 Argentina</option>
+                                <option value="MX">🇲🇽 México</option>
+                                <option value="CO">🇨🇴 Colombia</option>
+                                <option value="PE">🇵🇪 Perú</option>
+                                <option value="ES">🇪🇸 España</option>
+                                <option value="US">🇺🇸 Estados Unidos</option>
+                                <option value="OTHER">🌍 Otro país</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 8px;">💰 Método de Pago</label>
+                            <select id="paymentMethod" onchange="showPaymentFields()"
+                                    style="width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white;">
+                                <option value="mercadopago">MercadoPago</option>
+                                <option value="bank_transfer">Transferencia Bancaria</option>
+                                <option value="paypal">PayPal</option>
+                                <option value="wise">Wise</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Campos MercadoPago -->
+                    <div id="mpFields" class="payment-fields" style="background: #1a1a1a; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                            <img src="https://www.mercadopago.com/favicon.ico" style="width: 24px; height: 24px;">
+                            <span style="font-weight: 600;">MercadoPago</span>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; color: #888; margin-bottom: 5px;">Email de tu cuenta MercadoPago</label>
+                            <input type="email" id="mpEmail" placeholder="tu@email.com"
+                                   style="width: 100%; padding: 12px; background: #262626; border: 1px solid #333; border-radius: 8px; color: white;">
+                            <div style="font-size: 11px; color: #666; margin-top: 5px;">Debe ser el mismo email con el que tienes cuenta en MercadoPago</div>
+                        </div>
+                    </div>
+
+                    <!-- Campos Transferencia Bancaria -->
+                    <div id="bankFields" class="payment-fields" style="display: none; background: #1a1a1a; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                            <span style="font-size: 24px;">🏦</span>
+                            <span style="font-weight: 600;">Transferencia Bancaria (Chile)</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 5px;">Banco</label>
+                                <select id="bankName" style="width: 100%; padding: 12px; background: #262626; border: 1px solid #333; border-radius: 8px; color: white;">
+                                    <option value="">Selecciona banco...</option>
+                                    <option value="Banco de Chile">Banco de Chile</option>
+                                    <option value="BancoEstado">BancoEstado</option>
+                                    <option value="Santander">Santander</option>
+                                    <option value="BCI">BCI</option>
+                                    <option value="Scotiabank">Scotiabank</option>
+                                    <option value="Itaú">Itaú</option>
+                                    <option value="BICE">BICE</option>
+                                    <option value="Falabella">Banco Falabella</option>
+                                    <option value="Security">Security</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 5px;">Tipo de Cuenta</label>
+                                <select id="bankAccountType" style="width: 100%; padding: 12px; background: #262626; border: 1px solid #333; border-radius: 8px; color: white;">
+                                    <option value="corriente">Cuenta Corriente</option>
+                                    <option value="vista">Cuenta Vista / RUT</option>
+                                    <option value="ahorro">Cuenta de Ahorro</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 5px;">Número de Cuenta</label>
+                                <input type="text" id="bankAccountNumber" placeholder="Ej: 00-123-45678-90"
+                                       style="width: 100%; padding: 12px; background: #262626; border: 1px solid #333; border-radius: 8px; color: white;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 5px;">RUT</label>
+                                <input type="text" id="bankRut" placeholder="12.345.678-9"
+                                       style="width: 100%; padding: 12px; background: #262626; border: 1px solid #333; border-radius: 8px; color: white;">
+                            </div>
+                            <div style="grid-column: 1 / -1;">
+                                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 5px;">Nombre del Titular</label>
+                                <input type="text" id="bankHolderName" placeholder="Nombre completo como aparece en el banco"
+                                       style="width: 100%; padding: 12px; background: #262626; border: 1px solid #333; border-radius: 8px; color: white;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campos PayPal -->
+                    <div id="paypalFields" class="payment-fields" style="display: none; background: #1a1a1a; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                            <img src="https://www.paypalobjects.com/favicon.ico" style="width: 24px; height: 24px;">
+                            <span style="font-weight: 600;">PayPal</span>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; color: #888; margin-bottom: 5px;">Email de PayPal</label>
+                            <input type="email" id="paypalEmail" placeholder="tu@email.com"
+                                   style="width: 100%; padding: 12px; background: #262626; border: 1px solid #333; border-radius: 8px; color: white;">
+                        </div>
+                    </div>
+
+                    <!-- Campos Wise -->
+                    <div id="wiseFields" class="payment-fields" style="display: none; background: #1a1a1a; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                            <span style="font-size: 24px;">🌐</span>
+                            <span style="font-weight: 600;">Wise (TransferWise)</span>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; color: #888; margin-bottom: 5px;">Email de Wise</label>
+                            <input type="email" id="wiseEmail" placeholder="tu@email.com"
+                                   style="width: 100%; padding: 12px; background: #262626; border: 1px solid #333; border-radius: 8px; color: white;">
+                            <div style="font-size: 11px; color: #666; margin-top: 5px;">Recibirás el pago en USD directamente a tu cuenta Wise</div>
+                        </div>
+                    </div>
+
+                    <!-- Datos tributarios -->
+                    <div style="background: #1a1a1a; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <div style="font-weight: 600; margin-bottom: 15px;">📋 Datos Tributarios (para boletas/facturas)</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 5px;">Tipo de Identificación</label>
+                                <select id="taxIdType" style="width: 100%; padding: 12px; background: #262626; border: 1px solid #333; border-radius: 8px; color: white;">
+                                    <option value="RUT">RUT (Chile)</option>
+                                    <option value="CUIT">CUIT (Argentina)</option>
+                                    <option value="RFC">RFC (México)</option>
+                                    <option value="NIF">NIF (España)</option>
+                                    <option value="SSN">SSN/EIN (USA)</option>
+                                    <option value="OTHER">Otro</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; color: #888; margin-bottom: 5px;">Número de Identificación</label>
+                                <input type="text" id="taxId" placeholder="Ej: 12.345.678-9"
+                                       style="width: 100%; padding: 12px; background: #262626; border: 1px solid #333; border-radius: 8px; color: white;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botón guardar -->
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <button type="button" onclick="savePaymentInfo()"
+                                style="flex: 1; padding: 15px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                            💾 Guardar Datos de Pago
+                        </button>
+                        <div id="paymentSaveStatus" style="font-size: 13px; color: #888;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ TAB 4: CUENTA Y SEGURIDAD ═══ -->
+            <div class="tab-content" id="tab-cuenta" style="display:none;">
+                <div class="card" style="padding: 28px 24px;">
+                    <h2 style="margin: 0 0 6px 0; font-size: 22px; color: var(--text-main);">👤 Cuenta y Seguridad</h2>
+                    <p style="margin: 0 0 24px 0; font-size: 14px; color: var(--text-muted);">
+                        Administra tu nombre, correo electrónico y contraseña de acceso.
+                    </p>
+
+                    <!-- Mensaje de estado -->
+                    <div id="profileMsg" style="display:none; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px;"></div>
+
+                    <form id="editProfileForm" autocomplete="off">
+                        <!-- Nombre -->
+                        <div style="margin-bottom: 18px;">
+                            <label for="profileName" style="display:block; font-size: 14px; color: var(--text-main); margin-bottom: 6px; font-weight: 600;">Nombre completo</label>
+                            <input type="text" id="profileName" required
+                                   style="width:100%; padding: 10px 14px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 15px;"
+                                   placeholder="Tu nombre completo">
+                        </div>
+
+                        <!-- Email -->
+                        <div style="margin-bottom: 6px;">
+                            <label for="profileEmail" style="display:block; font-size: 14px; color: var(--text-main); margin-bottom: 6px; font-weight: 600;">Correo electrónico</label>
+                            <input type="email" id="profileEmail" required
+                                   style="width:100%; padding: 10px 14px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 15px;"
+                                   placeholder="tu@email.com">
+                        </div>
+                        <p style="margin: 0 0 18px 0; font-size: 12px; color: #d4a017;">
+                            ⚠️ Al cambiar tu email deberás iniciar sesión nuevamente.
+                        </p>
+
+                        <!-- Separador contraseña -->
+                        <div style="border-top: 1px solid var(--border); margin: 8px 0 18px 0;"></div>
+                        <p style="margin: 0 0 14px 0; font-size: 13px; color: var(--text-muted);">
+                            Deja los campos de contraseña vacíos si no deseas cambiarla.
+                        </p>
+
+                        <!-- Contraseña actual -->
+                        <div style="margin-bottom: 18px;">
+                            <label for="currentPassword" style="display:block; font-size: 14px; color: var(--text-main); margin-bottom: 6px; font-weight: 600;">Contraseña actual</label>
+                            <input type="password" id="currentPassword"
+                                   style="width:100%; padding: 10px 14px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 15px;"
+                                   placeholder="Requerida solo si cambias contraseña">
+                        </div>
+
+                        <!-- Nueva contraseña -->
+                        <div style="margin-bottom: 18px;">
+                            <label for="newPassword" style="display:block; font-size: 14px; color: var(--text-main); margin-bottom: 6px; font-weight: 600;">Nueva contraseña</label>
+                            <input type="password" id="newPassword"
+                                   style="width:100%; padding: 10px 14px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 15px;"
+                                   placeholder="Mínimo 6 caracteres">
+                        </div>
+
+                        <!-- Confirmar nueva contraseña -->
+                        <div style="margin-bottom: 24px;">
+                            <label for="confirmPassword" style="display:block; font-size: 14px; color: var(--text-main); margin-bottom: 6px; font-weight: 600;">Confirmar nueva contraseña</label>
+                            <input type="password" id="confirmPassword"
+                                   style="width:100%; padding: 10px 14px; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-size: 15px;"
+                                   placeholder="Repite la nueva contraseña">
+                        </div>
+
+                        <!-- Botón guardar -->
+                        <button type="submit"
+                                style="width:100%; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                            Guardar cambios
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+        <!-- Sticky Save Bar (copiada exactamente de dashboard.html) -->
+        <div id="stickySaveBar" class="sticky-save-bar">
+            <div class="bar-message">⚠️ Tienes cambios sin guardar</div>
+            <div class="bar-actions">
+                <button type="button" class="btn-bar-discard" onclick="discardBrandingChanges()">Descartar</button>
+                <button type="button" class="btn-bar-save" onclick="saveBrandingFromBar()">💾 Guardar</button>
+            </div>
+        </div>
+    </main>
+    <script src="/js/profesor-common.js"></script>
+    <script>
+    // ==================== INIT SIDEBAR + DATOS COMUNES ====================
+    initProfesorCommon('configuracion');
+    // ==================== TABS + DEEP LINKING ====================
+    const tabMap = {
+        '#identidad': 'identidad',
+        '#tarifas':   'tarifas',
+        '#pagos':     'pagos',
+        '#cuenta':    'cuenta'
+    };
+
+    function activateTab(hash) {
+        const tabName = tabMap[hash] || 'identidad';
+        // Ocultar todos los tabs
+        document.querySelectorAll('.tab-content').forEach(tc => tc.style.display = 'none');
+        // Desactivar todos los botones
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        // Mostrar tab seleccionado
+        const panel = document.getElementById('tab-' + tabName);
+        if (panel) panel.style.display = 'block';
+        // Activar botón correspondiente
+        const btn = document.querySelector('.tab-btn[data-tab="' + tabName + '"]');
+        if (btn) btn.classList.add('active');
+    }
+
+    // Click en tab buttons → actualizar hash + activar
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const hash = '#' + this.dataset.tab;
+            history.replaceState(null, '', hash);
+            activateTab(hash);
+        });
+    });
+
+    // Navegación con botón atrás/adelante del navegador
+    window.addEventListener('hashchange', function() {
+        activateTab(window.location.hash);
+    });
+
+    // Init: activar tab según hash actual o #identidad por defecto
+    activateTab(window.location.hash || '#identidad');
+    // ==================== showToast() global ====================
+    window.showToast = function(msg, type = 'success') {
+        let toast = document.createElement('div');
+        toast.textContent = msg;
+        toast.style.position = 'fixed';
+        toast.style.bottom = '32px';
+        toast.style.right = '32px';
+        toast.style.background = type === 'success' ? 'var(--accent)' : '#e74c3c';
+        toast.style.color = '#000';
+        toast.style.padding = '14px 28px';
+        toast.style.borderRadius = '8px';
+        toast.style.fontWeight = '600';
+        toast.style.boxShadow = '0 4px 16px rgba(0,0,0,0.18)';
+        toast.style.zIndex = 9999;
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.remove(); }, 3200);
+    };
+
+    // ==================== BRANDING — DIRTY FLAG (copiado de dashboard.html) ====================
+    // API_URL ya declarado en profesor-common.js (global)
+    let brandingOriginalValues = {};
+    let brandingIsDirty = false;
+
+    function captureBrandingOriginals() {
+        brandingOriginalValues = {
+            colorBase: document.getElementById('colorBase')?.value || '',
+            colorBg: document.getElementById('colorBg')?.value || '',
+            colorPanel: document.getElementById('colorPanel')?.value || '',
+        };
+        brandingIsDirty = false;
+        hideSaveBar();
+    }
+    function checkBrandingDirty() {
+        const current = {
+            colorBase: document.getElementById('colorBase')?.value || '',
+            colorBg: document.getElementById('colorBg')?.value || '',
+            colorPanel: document.getElementById('colorPanel')?.value || '',
+        };
+        const hasNewLogo = document.getElementById('logoInput')?.files?.length > 0;
+        const hasNewPhoto = document.getElementById('photoInput')?.files?.length > 0;
+        const changed = hasNewLogo || hasNewPhoto ||
+            current.colorBase !== brandingOriginalValues.colorBase ||
+            current.colorBg !== brandingOriginalValues.colorBg ||
+            current.colorPanel !== brandingOriginalValues.colorPanel;
+        if (changed && !brandingIsDirty) { brandingIsDirty = true; showSaveBar(); }
+        else if (!changed && brandingIsDirty) { brandingIsDirty = false; hideSaveBar(); }
+    }
+    function showSaveBar() { document.getElementById('stickySaveBar')?.classList.add('visible'); }
+    function hideSaveBar() { document.getElementById('stickySaveBar')?.classList.remove('visible'); }
+    function saveBrandingFromBar() {
+        const form = document.getElementById('profileForm');
+        if (form) form.requestSubmit();
+    }
+    function discardBrandingChanges() {
+        const cB = document.getElementById('colorBase'), cBg = document.getElementById('colorBg'), cP = document.getElementById('colorPanel');
+        if (cB) cB.value = brandingOriginalValues.colorBase || '';
+        if (cBg) cBg.value = brandingOriginalValues.colorBg || '';
+        if (cP) cP.value = brandingOriginalValues.colorPanel || '';
+        document.getElementById('logoInput').value = '';
+        document.getElementById('photoInput').value = '';
+        brandingIsDirty = false;
+        hideSaveBar();
+        showToast('Cambios descartados', 'info');
+    }
+    function initBrandingDirtyTracking() {
+        ['colorBase','colorBg','colorPanel','logoInput','photoInput'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('input', checkBrandingDirty);
+            el.addEventListener('change', checkBrandingDirty);
+        });
+    }
+    window.addEventListener('beforeunload', (e) => {
+        if (brandingIsDirty) { e.preventDefault(); e.returnValue = 'Tienes cambios sin guardar.'; }
+    });
+    function resetColors() {
+        document.getElementById('colorBase').value = '#ff764d';
+        document.getElementById('colorBg').value = '#1a1a1a';
+        document.getElementById('colorPanel').value = '#262626';
+        checkBrandingDirty();
+    }
+
+    // ==================== SUBMIT FORM — POST /api/teacher/update ====================
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('msg');
+        msg.textContent = '⏳ Guardando...'; msg.style.color = '#aaa';
+        const formData = new FormData();
+        formData.append('email', user.email);
+        formData.append('colorBase', document.getElementById('colorBase').value);
+        formData.append('colorBg', document.getElementById('colorBg').value);
+        formData.append('colorPanel', document.getElementById('colorPanel').value);
+        const logoFile = document.getElementById('logoInput').files[0];
+        const photoFile = document.getElementById('photoInput').files[0];
+        if (logoFile) formData.append('logo', logoFile);
+        if (photoFile) formData.append('photo', photoFile);
+        try {
+            const res = await fetch(`${API_URL}/update`, { method: 'POST', body: formData });
+            const data = await res.json();
+            if (res.ok) {
+                msg.textContent = '';
+                showToast('Cambios guardados correctamente', 'success');
+                if (data.branding.logoUrl) document.getElementById('previewLogo').src = data.branding.logoUrl;
+                if (data.branding.profilePhotoUrl) document.getElementById('previewPhoto').src = data.branding.profilePhotoUrl;
+                captureBrandingOriginals();
+            } else { throw new Error(data.message); }
+        } catch (err) { msg.textContent = ''; showToast('Error al guardar los cambios', 'error'); }
+    });
+
+    // ==================== CARGAR DATOS INICIALES ====================
+    async function loadBrandingData() {
+        try {
+            const res = await fetch(`${API_URL}/me?email=${user.email}`);
+            const data = await res.json();
+            if (data.branding) {
+                document.getElementById('colorBase').value = data.branding.colors?.base || '#ff764d';
+                document.getElementById('colorBg').value = data.branding.colors?.bg || '#1a1a1a';
+                document.getElementById('colorPanel').value = data.branding.colors?.panel || '#262626';
+                if (data.branding.logoUrl) document.getElementById('previewLogo').src = data.branding.logoUrl;
+                if (data.branding.profilePhotoUrl) document.getElementById('previewPhoto').src = data.branding.profilePhotoUrl;
+            }
+        } catch (e) { console.error('[Config] Error cargando branding:', e); }
+        captureBrandingOriginals();
+        initBrandingDirtyTracking();
+    }
+    loadBrandingData();
+
+    // ==================== TARIFAS Y PAQUETES — VARIABLES + CARGA (copiado de dashboard.html L3988-4610) ====================
+    // Variables globales para comisiones y tarifa mínima (se cargan dinámicamente desde my-rates)
+    let dashboardPlatformFee = 25;   // % comisión plataforma (default free plan)
+    let dashboardTeacherFee = 75;    // % profesor
+    let dashboardMinRate = 15;       // Tarifa mínima USD
+    let currentPackages = [];
+
+    // Cargar tarifas y paquetes del profesor
+    async function loadRatesAndPackages() {
+        try {
+            const response = await fetch('/api/teacher-profile/my-rates', {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                const rates = data.rates;
+                document.getElementById('hourlyRateInput').value = rates.teacherEarns;
+
+                // Actualizar comisiones desde la respuesta de my-rates (fuente de verdad del backend)
+                if (rates.platformFee !== undefined) dashboardPlatformFee = rates.platformFee;
+                if (rates.teacherFee !== undefined) dashboardTeacherFee = rates.teacherFee;
+                if (rates.minRate !== undefined) {
+                    dashboardMinRate = rates.minRate;
+                    document.getElementById('hourlyRateInput').min = rates.minRate;
+                }
+
+                // Actualizar labels
+                const teacherFeeLabel = document.getElementById('teacherFeeLabel');
+                if (teacherFeeLabel) teacherFeeLabel.textContent = dashboardTeacherFee;
+                const rateInfoLabel = document.getElementById('rateInfoLabel');
+                if (rateInfoLabel) rateInfoLabel.textContent = `Mínimo: $${dashboardMinRate} USD | PianoLink cobra ${dashboardPlatformFee}% de comisión`;
+
+                updateRateDisplay(rates.teacherEarns);
+
+                currentPackages = rates.packages || [];
+                renderRatePackages();
+            }
+        } catch (error) {
+            console.error('[Config] Error cargando tarifas:', error);
+        }
+    }
+
+    // Actualizar display de tarifa (usa comisión dinámica)
+    function updateRateDisplay(teacherRate) {
+        const teacherFraction = dashboardTeacherFee / 100; // ej: 0.75 o 0.85
+        const studentPrice = (teacherRate / teacherFraction).toFixed(2);
+        document.getElementById('teacherEarnsDisplay').textContent = `$${teacherRate.toFixed(2)}`;
+        document.getElementById('studentPaysDisplay').textContent = `$${studentPrice}`;
+    }
+
+    // Event listener para cambio de tarifa
+    document.getElementById('hourlyRateInput').addEventListener('input', function() {
+        const rate = parseFloat(this.value) || 15;
+        updateRateDisplay(rate);
+        renderRatePackages(); // Actualizar precios de paquetes
+    });
+
+    // Guardar tarifa (usa tarifa mínima dinámica)
+    async function saveHourlyRate() {
+        const rate = parseFloat(document.getElementById('hourlyRateInput').value);
+
+        if (rate < dashboardMinRate) {
+            showToast(`La tarifa mínima es $${dashboardMinRate} USD`, 'warning');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/teacher-profile/my-rates', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${user.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ hourlyRate: rate })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast('Tarifa actualizada correctamente', 'success');
+            } else {
+                showToast(data.error || 'Error al guardar', 'error');
+            }
+        } catch (error) {
+            console.error('[Config] Error guardando tarifa:', error);
+            showToast('Error de conexión', 'error');
+        }
+    }
+
+    // Renderizar paquetes (sección de tarifas)
+    function renderRatePackages() {
+        const container = document.getElementById('packagesContainer');
+        const teacherRate = parseFloat(document.getElementById('hourlyRateInput').value) || 25;
+        const teacherFraction = dashboardTeacherFee / 100;
+        const studentPrice = teacherRate / teacherFraction;
+
+        if (currentPackages.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+                    No hay paquetes configurados.<br>
+                    Los paquetes permiten ofrecer descuentos por compra de múltiples clases.
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = currentPackages.map((pkg, index) => {
+            const pricePerClass = studentPrice * (1 - pkg.discountPercent / 100);
+            const total = pricePerClass * pkg.classes;
+            const validDays = pkg.validDays || 30;
+            return `
+                <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid #333; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <input type="number" value="${pkg.classes}" min="2" max="50"
+                               onchange="updatePackage(${index}, 'classes', this.value)"
+                               style="width: 45px; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: white; text-align: center;">
+                        <span style="color: #888; font-size: 11px;">clases</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <input type="number" value="${pkg.discountPercent}" min="0" max="50"
+                               onchange="updatePackage(${index}, 'discountPercent', this.value)"
+                               style="width: 45px; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: white; text-align: center;">
+                        <span style="color: #888; font-size: 11px;">% off</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <input type="number" value="${validDays}" min="7" max="365"
+                               onchange="updatePackage(${index}, 'validDays', this.value)"
+                               style="width: 50px; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: white; text-align: center;">
+                        <span style="color: #888; font-size: 11px;">días</span>
+                    </div>
+                    <div style="flex: 1; text-align: right; min-width: 80px;">
+                        <div style="font-size: 14px; font-weight: 600; color: #4ade80;">$${total.toFixed(0)}</div>
+                        <div style="font-size: 10px; color: #666;">($${pricePerClass.toFixed(2)}/clase)</div>
+                    </div>
+                    <button onclick="removePackage(${index})" style="background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 16px;">✕</button>
+                </div>`;
+        }).join('');
+    }
+
+    function addPackage() {
+        currentPackages.push({ classes: 4, discountPercent: 10, validDays: 30, isActive: true });
+        renderRatePackages();
+    }
+    function updatePackage(index, field, value) {
+        currentPackages[index][field] = parseInt(value);
+        renderRatePackages();
+    }
+    function removePackage(index) {
+        currentPackages.splice(index, 1);
+        renderRatePackages();
+    }
+
+    // Guardar paquetes
+    async function savePackages() {
+        try {
+            const response = await fetch('/api/teacher-profile/packages', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${user.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ packages: currentPackages })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast('Paquetes guardados correctamente', 'success');
+            } else {
+                showToast(data.error || 'Error al guardar', 'error');
+            }
+        } catch (error) {
+            console.error('[Config] Error guardando paquetes:', error);
+            showToast('Error de conexión', 'error');
+        }
+    }
+
+    // Cargar tarifas al iniciar
+    loadRatesAndPackages();
+
+    // ==================== DATOS DE PAGO — CARGA + HELPERS (copiado de dashboard.html L5942-6060) ====================
+    let paymentInfoData = null;
+
+    async function loadPaymentInfo() {
+        try {
+            const res = await fetch('/api/teacher-profile/my-payment-info', {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                paymentInfoData = data.paymentInfo;
+                populatePaymentFields();
+            }
+        } catch (err) {
+            console.error('[Config] Error cargando datos de pago:', err);
+        }
+    }
+
+    function populatePaymentFields() {
+        if (!paymentInfoData) return;
+        const p = paymentInfoData;
+
+        // País y método
+        document.getElementById('paymentCountry').value = p.country || 'CL';
+        document.getElementById('paymentMethod').value = p.method || 'mercadopago';
+
+        // MercadoPago
+        document.getElementById('mpEmail').value = p.mercadopago?.email || '';
+
+        // Banco
+        if (p.bankTransfer) {
+            document.getElementById('bankName').value = p.bankTransfer.bankName || '';
+            document.getElementById('bankAccountType').value = p.bankTransfer.accountType || 'corriente';
+            document.getElementById('bankAccountNumber').value = p.bankTransfer.accountNumber || '';
+            document.getElementById('bankRut').value = p.bankTransfer.rut || '';
+            document.getElementById('bankHolderName').value = p.bankTransfer.holderName || '';
+        }
+
+        // PayPal
+        document.getElementById('paypalEmail').value = p.paypal?.email || '';
+
+        // Wise
+        document.getElementById('wiseEmail').value = p.wise?.email || '';
+
+        // Datos tributarios
+        document.getElementById('taxIdType').value = p.taxIdType || 'RUT';
+        document.getElementById('taxId').value = p.taxId || '';
+
+        // Badge de verificación (viene del backend: p.isVerified)
+        const badge = document.getElementById('paymentVerificationBadge');
+        if (p.isVerified) {
+            badge.style.display = 'block';
+        } else {
+            badge.style.display = 'none';
+        }
+
+        // Mostrar campos correctos
+        showPaymentFields();
+        updatePaymentMethods();
+    }
+
+    function showPaymentFields() {
+        const method = document.getElementById('paymentMethod').value;
+        // Ocultar todos
+        document.querySelectorAll('.payment-fields').forEach(f => f.style.display = 'none');
+        // Mostrar el seleccionado
+        switch(method) {
+            case 'mercadopago': document.getElementById('mpFields').style.display = 'block'; break;
+            case 'bank_transfer': document.getElementById('bankFields').style.display = 'block'; break;
+            case 'paypal': document.getElementById('paypalFields').style.display = 'block'; break;
+            case 'wise': document.getElementById('wiseFields').style.display = 'block'; break;
+        }
+    }
+
+    function updatePaymentMethods() {
+        const country = document.getElementById('paymentCountry').value;
+        const methodSelect = document.getElementById('paymentMethod');
+        // Países LATAM con MercadoPago (lista estática)
+        const mpCountries = ['CL', 'AR', 'MX', 'CO', 'PE', 'BR', 'UY'];
+        methodSelect.innerHTML = '';
+        if (mpCountries.includes(country)) {
+            methodSelect.innerHTML += '<option value="mercadopago">MercadoPago</option>';
+        }
+        if (country === 'CL') {
+            methodSelect.innerHTML += '<option value="bank_transfer">Transferencia Bancaria</option>';
+        }
+        methodSelect.innerHTML += '<option value="paypal">PayPal</option>';
+        methodSelect.innerHTML += '<option value="wise">Wise</option>';
+        // Mantener selección actual si es válida
+        if (paymentInfoData && methodSelect.querySelector(`option[value="${paymentInfoData.method}"]`)) {
+            methodSelect.value = paymentInfoData.method;
+        }
+        showPaymentFields();
+    }
+
+    // ==================== DATOS DE PAGO — GUARDAR (copiado de dashboard.html L6060-6140) ====================
+    async function savePaymentInfo() {
+        const statusEl = document.getElementById('paymentSaveStatus');
+
+        const data = {
+            country: document.getElementById('paymentCountry').value,
+            method: document.getElementById('paymentMethod').value,
+            mercadopago: {
+                email: document.getElementById('mpEmail').value
+            },
+            bankTransfer: {
+                bankName: document.getElementById('bankName').value,
+                accountType: document.getElementById('bankAccountType').value,
+                accountNumber: document.getElementById('bankAccountNumber').value,
+                rut: document.getElementById('bankRut').value,
+                holderName: document.getElementById('bankHolderName').value
+            },
+            paypal: {
+                email: document.getElementById('paypalEmail').value
+            },
+            wise: {
+                email: document.getElementById('wiseEmail').value
+            },
+            taxIdType: document.getElementById('taxIdType').value,
+            taxId: document.getElementById('taxId').value
+        };
+
+        // Validar que el método seleccionado tenga datos
+        const method = data.method;
+        if (method === 'mercadopago' && !data.mercadopago.email) {
+            showToast('Ingresa tu email de MercadoPago', 'warning');
+            return;
+        }
+        if (method === 'bank_transfer' && (!data.bankTransfer.bankName || !data.bankTransfer.accountNumber || !data.bankTransfer.rut)) {
+            showToast('Completa todos los datos bancarios', 'warning');
+            return;
+        }
+        if (method === 'paypal' && !data.paypal.email) {
+            showToast('Ingresa tu email de PayPal', 'warning');
+            return;
+        }
+        if (method === 'wise' && !data.wise.email) {
+            showToast('Ingresa tu email de Wise', 'warning');
+            return;
+        }
+
+        statusEl.innerHTML = '⏳ Guardando...';
+        statusEl.style.color = '#888';
+
+        try {
+            const res = await fetch('/api/teacher-profile/my-payment-info', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${user.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.success) {
+                statusEl.innerHTML = '';
+                showToast('Datos de pago guardados correctamente', 'success');
+                await loadPaymentInfo();
+            } else {
+                statusEl.innerHTML = '';
+                showToast(result.error || 'Error al guardar', 'error');
+            }
+        } catch (err) {
+            statusEl.innerHTML = '';
+            showToast('Error de conexión', 'error');
+        }
+    }
+
+    // Cargar datos de pago al iniciar
+    loadPaymentInfo();
+
+    // ═══════════════════════════════════════════════
+    // TAB 4 — CUENTA Y SEGURIDAD
+    // ═══════════════════════════════════════════════
+
+    // Carga inicial: rellena nombre/email y limpia campos
+    function loadAccountData() {
+        document.getElementById('profileName').value = user.name || '';
+        document.getElementById('profileEmail').value = user.email || '';
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+        const msg = document.getElementById('profileMsg');
+        if (msg) { msg.style.display = 'none'; msg.innerHTML = ''; }
+    }
+
+    // Guardar cambios de cuenta (nombre, email, contraseña)
+    document.getElementById('editProfileForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const msgEl = document.getElementById('profileMsg');
+        msgEl.style.display = 'none';
+
+        const name = document.getElementById('profileName').value.trim();
+        const email = document.getElementById('profileEmail').value.trim();
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        // Validaciones básicas
+        if (!name || !email) {
+            msgEl.style.display = 'block';
+            msgEl.style.background = 'rgba(255,0,0,0.15)';
+            msgEl.style.color = '#ff6b6b';
+            msgEl.textContent = 'El nombre y el email son obligatorios.';
+            return;
+        }
+
+        // Validación de contraseña (solo si quiere cambiarla)
+        if (newPassword || confirmPassword || currentPassword) {
+            if (!currentPassword) {
+                msgEl.style.display = 'block';
+                msgEl.style.background = 'rgba(255,0,0,0.15)';
+                msgEl.style.color = '#ff6b6b';
+                msgEl.textContent = 'Ingresa tu contraseña actual para cambiarla.';
+                return;
+            }
+            if (newPassword.length < 6) {
+                msgEl.style.display = 'block';
+                msgEl.style.background = 'rgba(255,0,0,0.15)';
+                msgEl.style.color = '#ff6b6b';
+                msgEl.textContent = 'La nueva contraseña debe tener al menos 6 caracteres.';
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                msgEl.style.display = 'block';
+                msgEl.style.background = 'rgba(255,0,0,0.15)';
+                msgEl.style.color = '#ff6b6b';
+                msgEl.textContent = 'Las contraseñas no coinciden.';
+                return;
+            }
+        }
+
+        // Construir body
+        const body = { name, email };
+        if (newPassword) {
+            body.currentPassword = currentPassword;
+            body.newPassword = newPassword;
+        }
+
+        try {
+            const res = await fetch('/api/auth/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + user.token },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                msgEl.style.display = 'block';
+                msgEl.style.background = 'rgba(255,0,0,0.15)';
+                msgEl.style.color = '#ff6b6b';
+                msgEl.textContent = data.message || 'Error al guardar.';
+                return;
+            }
+
+            // Actualizar localStorage con datos nuevos
+            const updatedUser = JSON.parse(localStorage.getItem('pianoUser'));
+            updatedUser.name = data.name || name;
+            updatedUser.email = data.email || email;
+            localStorage.setItem('pianoUser', JSON.stringify(updatedUser));
+
+            // Null-check: #welcomeName no existe en esta página
+            const el = document.getElementById('welcomeName');
+            if (el) el.textContent = data.name;
+
+            if (newPassword) {
+                // Si cambió contraseña → cerrar sesión tras aviso
+                showToast('Contraseña actualizada. Cerrando sesión…', 'success');
+                msgEl.style.display = 'block';
+                msgEl.style.background = 'rgba(76,175,80,0.15)';
+                msgEl.style.color = '#66bb6a';
+                msgEl.textContent = 'Contraseña actualizada. Redirigiendo al login…';
+                setTimeout(() => { logout(); }, 3500);
+            } else {
+                // Solo nombre/email → recargar para reflejar cambios
+                showToast('Datos actualizados correctamente', 'success');
+                setTimeout(() => { location.reload(); }, 1200);
+            }
+        } catch (err) {
+            console.error('Error updateUserProfile:', err);
+            msgEl.style.display = 'block';
+            msgEl.style.background = 'rgba(255,0,0,0.15)';
+            msgEl.style.color = '#ff6b6b';
+            msgEl.textContent = 'Error de conexión. Intenta de nuevo.';
+        }
+    });
+
+    // Init Tab 4
+    loadAccountData();
+
+    </script>
+</body>
+</html>
