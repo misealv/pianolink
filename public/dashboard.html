@@ -1850,6 +1850,15 @@
         </div>
     </form>
 
+    <!-- Sticky Save Bar para formulario de Identidad de Marca -->
+    <div id="stickySaveBar" class="sticky-save-bar">
+        <div class="bar-message">⚠️ Tienes cambios sin guardar</div>
+        <div class="bar-actions">
+            <button type="button" class="btn-bar-discard" onclick="discardBrandingChanges()">Descartar</button>
+            <button type="button" class="btn-bar-save" onclick="saveBrandingFromBar()">💾 Guardar</button>
+        </div>
+    </div>
+
     <!-- ==================== SECCIÓN TARIFAS Y PAQUETES ==================== -->
     <div class="card" style="margin-top: 30px;">
         <h2>💰 Tarifas y Paquetes</h2>
@@ -2857,7 +2866,170 @@
         font-size: 22px;
       }
     }
+
+    /* ============================================
+       SISTEMA DE TOASTS GLOBAL
+       ============================================ */
+    .toast-container {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 10px;
+        pointer-events: none;
+        max-height: 80vh;
+        overflow: hidden;
+    }
+
+    .toast {
+        pointer-events: auto;
+        min-width: 280px;
+        max-width: 420px;
+        padding: 14px 20px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        animation: toastSlideIn 0.3s ease;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    .toast.removing {
+        animation: toastSlideOut 0.3s ease forwards;
+    }
+
+    .toast-success {
+        background: rgba(34, 197, 94, 0.95);
+        border: 1px solid rgba(34, 197, 94, 0.5);
+    }
+
+    .toast-error {
+        background: rgba(239, 68, 68, 0.95);
+        border: 1px solid rgba(239, 68, 68, 0.5);
+    }
+
+    .toast-warning {
+        background: rgba(245, 158, 11, 0.95);
+        border: 1px solid rgba(245, 158, 11, 0.5);
+        color: #000;
+    }
+
+    .toast-info {
+        background: rgba(59, 130, 246, 0.95);
+        border: 1px solid rgba(59, 130, 246, 0.5);
+    }
+
+    .toast-icon { font-size: 18px; flex-shrink: 0; }
+    .toast-message { flex: 1; line-height: 1.4; }
+
+    .toast-close {
+        background: none;
+        border: none;
+        color: inherit;
+        opacity: 0.7;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 0 2px;
+        flex-shrink: 0;
+    }
+    .toast-close:hover { opacity: 1; }
+
+    @keyframes toastSlideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes toastSlideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+
+    /* ============================================
+       STICKY SAVE BAR
+       ============================================ */
+    .sticky-save-bar {
+        position: fixed;
+        bottom: 0;
+        left: 280px;
+        right: 0;
+        z-index: 9998;
+        background: #1a1a1a;
+        border-top: 2px solid var(--accent);
+        padding: 14px 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+    }
+
+    .sticky-save-bar.visible {
+        transform: translateY(0);
+    }
+
+    .sticky-save-bar .bar-message {
+        color: #f59e0b;
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .sticky-save-bar .bar-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .sticky-save-bar .btn-bar-discard {
+        background: transparent;
+        border: 1px solid #555;
+        color: #aaa;
+        padding: 8px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .sticky-save-bar .btn-bar-discard:hover {
+        border-color: #888;
+        color: #fff;
+    }
+
+    .sticky-save-bar .btn-bar-save {
+        background: var(--accent);
+        color: #000;
+        border: none;
+        padding: 8px 24px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .sticky-save-bar .btn-bar-save:hover {
+        filter: brightness(1.15);
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 900px) {
+        .sticky-save-bar {
+            left: 0;
+        }
+    }
   </style>
+
+  <!-- Contenedor de Toasts Global -->
+  <div id="toastContainer" class="toast-container"></div>
 
   <script>
     // Verificar si viene de Stripe ANTES de verificar login
@@ -2877,6 +3049,138 @@
         window.location.href = 'login.html';
     }
     const API_URL = '/api/teacher';
+
+    // ==================== SISTEMA DE TOASTS GLOBAL ====================
+    const TOAST_ICONS = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+    const TOAST_DURATIONS = { success: 3000, error: 5000, warning: 4000, info: 3000 };
+    const MAX_TOASTS = 3;
+
+    function showToast(message, type = 'success', duration = null) {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+        // Limpiar emojis duplicados del inicio del mensaje
+        let cleanMsg = String(message).replace(/^[✅❌⚠️🎉🔄ℹ️💡📨🔔\s]+/, '').trim();
+        if (!cleanMsg) cleanMsg = String(message);
+        duration = duration || TOAST_DURATIONS[type] || 3000;
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <span class="toast-icon">${TOAST_ICONS[type]}</span>
+            <span class="toast-message">${cleanMsg}</span>
+            <button class="toast-close" onclick="this.parentElement.classList.add('removing'); setTimeout(() => this.parentElement.remove(), 300);">&times;</button>
+        `;
+        container.appendChild(toast);
+        // Limitar a MAX_TOASTS visibles
+        const toasts = container.querySelectorAll('.toast:not(.removing)');
+        if (toasts.length > MAX_TOASTS) {
+            const oldest = toasts[0];
+            oldest.classList.add('removing');
+            setTimeout(() => oldest.remove(), 300);
+        }
+        // Auto-remove después de la duración
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.classList.add('removing');
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, duration);
+    }
+
+    // ==================== STICKY SAVE BAR — DIRTY FLAG ====================
+    let brandingOriginalValues = {};
+    let brandingIsDirty = false;
+
+    // Capturar valores originales al cargar datos del profesor
+    function captureBrandingOriginals() {
+        brandingOriginalValues = {
+            bio: document.getElementById('bioInput')?.value || '',
+            colorBase: document.getElementById('colorBase')?.value || '',
+            colorBg: document.getElementById('colorBg')?.value || '',
+            colorPanel: document.getElementById('colorPanel')?.value || '',
+        };
+        brandingIsDirty = false;
+        hideSaveBar();
+    }
+
+    // Comparar valores actuales con originales
+    function checkBrandingDirty() {
+        const current = {
+            bio: document.getElementById('bioInput')?.value || '',
+            colorBase: document.getElementById('colorBase')?.value || '',
+            colorBg: document.getElementById('colorBg')?.value || '',
+            colorPanel: document.getElementById('colorPanel')?.value || '',
+        };
+        // Archivos seleccionados = siempre dirty
+        const hasNewLogo = document.getElementById('logoInput')?.files?.length > 0;
+        const hasNewPhoto = document.getElementById('photoInput')?.files?.length > 0;
+
+        const changed = hasNewLogo || hasNewPhoto ||
+            current.bio !== brandingOriginalValues.bio ||
+            current.colorBase !== brandingOriginalValues.colorBase ||
+            current.colorBg !== brandingOriginalValues.colorBg ||
+            current.colorPanel !== brandingOriginalValues.colorPanel;
+
+        if (changed && !brandingIsDirty) {
+            brandingIsDirty = true;
+            showSaveBar();
+        } else if (!changed && brandingIsDirty) {
+            brandingIsDirty = false;
+            hideSaveBar();
+        }
+    }
+
+    function showSaveBar() {
+        document.getElementById('stickySaveBar')?.classList.add('visible');
+    }
+    function hideSaveBar() {
+        document.getElementById('stickySaveBar')?.classList.remove('visible');
+    }
+
+    // Botón Guardar de la barra: dispara el submit del form existente
+    function saveBrandingFromBar() {
+        const form = document.getElementById('profileForm');
+        if (form) form.requestSubmit();
+    }
+
+    // Botón Descartar: restaurar valores originales
+    function discardBrandingChanges() {
+        const bioEl = document.getElementById('bioInput');
+        const colorBaseEl = document.getElementById('colorBase');
+        const colorBgEl = document.getElementById('colorBg');
+        const colorPanelEl = document.getElementById('colorPanel');
+        const logoEl = document.getElementById('logoInput');
+        const photoEl = document.getElementById('photoInput');
+
+        if (bioEl) bioEl.value = brandingOriginalValues.bio || '';
+        if (colorBaseEl) colorBaseEl.value = brandingOriginalValues.colorBase || '';
+        if (colorBgEl) colorBgEl.value = brandingOriginalValues.colorBg || '';
+        if (colorPanelEl) colorPanelEl.value = brandingOriginalValues.colorPanel || '';
+        if (logoEl) logoEl.value = '';
+        if (photoEl) photoEl.value = '';
+
+        brandingIsDirty = false;
+        hideSaveBar();
+        showToast('Cambios descartados', 'info');
+    }
+
+    // Registrar listeners de cambio en los inputs del branding
+    function initBrandingDirtyTracking() {
+        const ids = ['bioInput', 'colorBase', 'colorBg', 'colorPanel', 'logoInput', 'photoInput'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('input', checkBrandingDirty);
+            el.addEventListener('change', checkBrandingDirty);
+        });
+    }
+
+    // Protección contra cierre accidental
+    window.addEventListener('beforeunload', (e) => {
+        if (brandingIsDirty) {
+            e.preventDefault();
+            e.returnValue = 'Tienes cambios sin guardar. ¿Seguro que quieres salir?';
+        }
+    });
 
     // Función para activar membresía con session pendiente
     async function activatePendingMembership() {
@@ -2915,7 +3219,7 @@
             
             if (data.success) {
                 console.log('[Dashboard] ✅ Membresía activada exitosamente');
-                alert('🎉 ¡Membresía activada exitosamente! Bienvenido a PianoLink.');
+                showToast('¡Membresía activada exitosamente! Bienvenido a PianoLink.', 'success');
                 loadSubscriptionStatus();
                 return true;
             } else {
@@ -2923,16 +3227,16 @@
                 // Intentar sincronización alternativa
                 const synced = await syncSubscriptionFromStripe();
                 if (synced) {
-                    alert('🎉 ¡Suscripción activada exitosamente!');
+                    showToast('¡Suscripción activada exitosamente!', 'success');
                     return true;
                 }
-                alert('⚠️ ' + (data.error || 'Error activando membresía. Intenta recargar la página.'));
+                showToast(data.error || 'Error activando membresía. Intenta recargar la página.', 'warning');
                 return false;
             }
         } catch (error) {
             console.error('[Dashboard] ❌ Error de red:', error);
             localStorage.removeItem('pendingStripeSession');
-            alert('❌ Error de conexión. Por favor recarga la página.');
+            showToast('Error de conexión. Por favor recarga la página.', 'error');
             return false;
         }
     } 
@@ -3169,17 +3473,17 @@
             const data = await res.json();
             
             if (res.ok && data.success) {
-                alert('✅ Clase cancelada. Se reembolsó la clase al alumno.');
+                showToast('Clase cancelada. Se reembolsó la clase al alumno.', 'success');
                 closeClassDetail();
                 loadWeeklyCalendar(); // Recargar calendario
             } else {
-                alert('❌ ' + (data.message || 'Error al cancelar la clase'));
+                showToast(data.message || 'Error al cancelar la clase', 'error');
                 btn.disabled = false;
                 btn.textContent = 'Confirmar cancelación — se reembolsa al alumno';
             }
         } catch (error) {
             console.error('Error cancelando clase:', error);
-            alert('❌ Error de conexión. Intenta de nuevo.');
+            showToast('Error de conexión. Intenta de nuevo.', 'error');
             btn.disabled = false;
             btn.textContent = 'Confirmar cancelación — se reembolsa al alumno';
         }
@@ -3211,6 +3515,9 @@
                 if(data.branding.profilePhotoUrl) document.getElementById('previewPhoto').src = data.branding.profilePhotoUrl;
             }
         } catch (e) { console.error(e); }
+        // Capturar valores originales para dirty flag (después de cargar datos)
+        captureBrandingOriginals();
+        initBrandingDirtyTracking();
     }
 
     // --- LOGO DEL SISTEMA (CARGA OPTIMIZADA) ---
@@ -3258,11 +3565,13 @@
             const res = await fetch(`${API_URL}/update`, { method: 'POST', body: formData });
             const data = await res.json();
             if(res.ok) {
-                msg.textContent = "✅ Cambios guardados"; msg.style.color = "#b4e080";
+                msg.textContent = ''; showToast('Cambios guardados correctamente', 'success');
                 if(data.branding.logoUrl) document.getElementById('previewLogo').src = data.branding.logoUrl;
                 if(data.branding.profilePhotoUrl) document.getElementById('previewPhoto').src = data.branding.profilePhotoUrl;
+                // Resetear dirty flag y capturar nuevos originales
+                captureBrandingOriginals();
             } else { throw new Error(data.message); }
-        } catch (err) { msg.textContent = "❌ Error"; msg.style.color = "#ff4d4d"; }
+        } catch (err) { msg.textContent = ''; showToast('Error al guardar los cambios', 'error'); }
     });
 
     // Chat Logic
@@ -3705,12 +4014,12 @@
             if (data.success && data.checkoutUrl) {
                 window.location.href = data.checkoutUrl;
             } else {
-                alert(data.error || 'Error al crear checkout');
+                showToast(data.error || 'Error al crear checkout', 'error');
                 if (btn) { btn.disabled = false; btn.textContent = originalText; }
             }
         } catch (error) {
             console.error('[Dashboard] Error checkout:', error);
-            alert('Error de conexión');
+            showToast('Error de conexión', 'error');
             if (btn) { btn.disabled = false; btn.textContent = originalText; }
         }
     }
@@ -3733,7 +4042,7 @@
             
             const data = await res.json();
             if (data.success) {
-                alert(`🎉 ¡Plan ${plan} activado exitosamente!`);
+                showToast(`¡Plan ${plan} activado exitosamente!`, 'success');
                 loadSubscriptionStatus(); // Recargar
             }
         } catch (error) {
@@ -3877,7 +4186,7 @@
                 headers: { 'Authorization': `Bearer ${user.token}` }
             });
             const data = await res.json();
-            alert(data.message || 'Email reenviado');
+            showToast(data.message || 'Email reenviado', 'success');
         } catch (e) { console.error(e); }
     }
     
@@ -3939,7 +4248,7 @@
     async function openBillingPortal() {
         try {
             // Portal de MercadoPago no existe, mostrar mensaje
-            alert('Para gestionar tu membresía, contacta a soporte@pianolink.net');
+            showToast('Para gestionar tu membresía, contacta a soporte@pianolink.net', 'info', 5000);
             /* Stripe portal deshabilitado temporalmente
             const response = await fetch('/api/payment/stripe/customer-portal', {
                 headers: { 'Authorization': `Bearer ${user.token}` }
@@ -3956,7 +4265,7 @@
             
         } catch (error) {
             console.error('Error:', error);
-            alert('Error al abrir el portal');
+            showToast('Error al abrir el portal', 'error');
         }
     }
     
@@ -4030,17 +4339,17 @@
             }
             
             if (data.success) {
-                alert('🎉 ¡Membresía sincronizada exitosamente!');
+                showToast('¡Membresía sincronizada exitosamente!', 'success');
                 loadSubscriptionStatus();
             } else {
-                alert('⚠️ ' + (data.error || 'No se encontraron pagos pendientes para tu email. Intenta hacer el pago primero.'));
+                showToast(data.error || 'No se encontraron pagos pendientes para tu email. Intenta hacer el pago primero.', 'warning');
             }
             
             btn.textContent = '🔄 ¿Ya pagaste? Sincronizar';
             btn.disabled = false;
         } catch (error) {
             console.error('[Dashboard] Error en sincronización manual:', error);
-            alert('❌ Error de conexión. Intenta de nuevo.');
+            showToast('Error de conexión. Intenta de nuevo.', 'error');
         }
     }
     
@@ -4054,7 +4363,7 @@
         // Verificar si hay URL de cancelación
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('subscription') === 'cancelled') {
-            alert('La suscripción fue cancelada. Puedes intentarlo nuevamente cuando quieras.');
+            showToast('La suscripción fue cancelada. Puedes intentarlo nuevamente cuando quieras.', 'info', 5000);
             window.history.replaceState({}, document.title, window.location.pathname);
             return;
         }
@@ -4147,7 +4456,7 @@
         const rate = parseFloat(document.getElementById('hourlyRateInput').value);
         
         if (rate < dashboardMinRate) {
-            alert(`⚠️ La tarifa mínima es $${dashboardMinRate} USD`);
+            showToast(`La tarifa mínima es $${dashboardMinRate} USD`, 'warning');
             return;
         }
         
@@ -4164,13 +4473,13 @@
             const data = await response.json();
             
             if (data.success) {
-                alert('✅ Tarifa actualizada correctamente');
+                showToast('Tarifa actualizada correctamente', 'success');
             } else {
-                alert('❌ ' + (data.error || 'Error al guardar'));
+                showToast(data.error || 'Error al guardar', 'error');
             }
         } catch (error) {
             console.error('[Dashboard] Error guardando tarifa:', error);
-            alert('❌ Error de conexión');
+            showToast('Error de conexión', 'error');
         }
     }
     
@@ -4263,13 +4572,13 @@
             const data = await response.json();
             
             if (data.success) {
-                alert('✅ Paquetes guardados correctamente');
+                showToast('Paquetes guardados correctamente', 'success');
             } else {
-                alert('❌ ' + (data.error || 'Error al guardar'));
+                showToast(data.error || 'Error al guardar', 'error');
             }
         } catch (error) {
             console.error('[Dashboard] Error guardando paquetes:', error);
-            alert('❌ Error de conexión');
+            showToast('Error de conexión', 'error');
         }
     }
 
@@ -4407,19 +4716,16 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    statusEl.style.background = 'rgba(34,197,94,0.2)';
-                    statusEl.style.color = '#4ade80';
-                    statusEl.textContent = '✅ Perfil guardado';
+                    statusEl.style.display = 'none';
+                    showToast('Perfil público guardado', 'success');
                     updateProfilePreview();
-                    setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
                 } else {
                     throw new Error(data.error);
                 }
             } catch (error) {
                 console.error('[Dashboard] Error guardando perfil:', error);
-                statusEl.style.background = 'rgba(239,68,68,0.2)';
-                statusEl.style.color = '#ef4444';
-                statusEl.textContent = '❌ Error al guardar';
+                statusEl.style.display = 'none';
+                showToast('Error al guardar perfil público', 'error');
             }
         }, 500);
     }
@@ -4621,17 +4927,17 @@
             
             if (res.ok && data.success) {
                 const msg = approved 
-                    ? '✅ Recuperación aprobada. El crédito de clase fue devuelto al estudiante.'
-                    : '❌ Solicitud denegada. La clase se mantiene como perdida.';
-                alert(msg);
+                    ? 'Recuperación aprobada. El crédito de clase fue devuelto al estudiante.'
+                    : 'Solicitud denegada. La clase se mantiene como perdida.';
+                showToast(msg, approved ? 'success' : 'warning');
                 // Recargar
                 loadRecoveryRequests();
             } else {
-                alert('Error: ' + (data.message || 'No se pudo procesar'));
+                showToast(data.message || 'No se pudo procesar', 'error');
             }
         } catch (err) {
             console.error('[Dashboard] Error respondiendo recuperación:', err);
-            alert('Error de red al procesar la solicitud');
+            showToast('Error de red al procesar la solicitud', 'error');
         }
     }
 
@@ -4897,7 +5203,7 @@
         const homework = document.getElementById('journalHomework').value.trim();
 
         if (!content && journalTopics.length === 0) {
-            alert('Agrega al menos un tema o una nota.');
+            showToast('Agrega al menos un tema o una nota.', 'warning');
             return;
         }
 
@@ -4926,11 +5232,11 @@
                 // Refrescar lista para actualizar conteo de bitácora
                 loadMyStudents();
             } else {
-                alert('Error: ' + (data.error || 'No se pudo guardar'));
+                showToast(data.error || 'No se pudo guardar', 'error');
             }
         } catch (err) {
             console.error('Error guardando bitácora:', err);
-            alert('Error de conexión');
+            showToast('Error de conexión', 'error');
         }
     }
 
@@ -5011,10 +5317,10 @@
                 await loadJournalEntries();
                 loadMyStudents();
             } else {
-                alert('Error: ' + (data.error || 'No se pudo eliminar'));
+                showToast(data.error || 'No se pudo eliminar', 'error');
             }
         } catch (err) {
-            alert('Error de conexión');
+            showToast('Error de conexión', 'error');
         }
     }
 
@@ -5225,7 +5531,7 @@
             showPostValidationPrompt(sessionId, studentId, studentName, notes);
         } catch (error) {
             console.error('Error marcando clase:', error);
-            alert('Error: ' + error.message);
+            showToast(error.message, 'error');
         }
     }
 
@@ -5235,7 +5541,7 @@
         const enrollment = allStudents.find(s => s.student._id === studentId);
         if (!enrollment) {
             // Si no tenemos enrollment, simplemente confirmar
-            alert('✅ Clase marcada como completada. Esperando confirmación del estudiante.');
+            showToast('Clase marcada como completada. Esperando confirmación del estudiante.', 'success');
             return;
         }
 
@@ -5301,7 +5607,7 @@
             el.style.opacity = '0';
             setTimeout(() => el.remove(), 300);
         }
-        alert('✅ Clase marcada como completada. Esperando confirmación del estudiante.');
+        showToast('Clase marcada como completada. Esperando confirmación del estudiante.', 'success');
     }
 
     async function savePostValidationEntry(sessionId, enrollmentId) {
@@ -5312,7 +5618,7 @@
         const topics = topicsRaw.split(',').map(t => t.trim()).filter(Boolean);
 
         if (!content && topics.length === 0) {
-            alert('Agrega al menos un tema o una nota.');
+            showToast('Agrega al menos un tema o una nota.', 'warning');
             return;
         }
 
@@ -5342,10 +5648,10 @@
                 }
                 loadMyStudents(); // Refrescar conteos
             } else {
-                alert('Error: ' + (data.error || 'No se pudo guardar'));
+                showToast(data.error || 'No se pudo guardar', 'error');
             }
         } catch (err) {
-            alert('Error de conexión');
+            showToast('Error de conexión', 'error');
         }
     }
 
@@ -5385,10 +5691,10 @@
                 }, 300);
             }
 
-            alert('❌ No-show registrado. La clase se cobra al estudiante.');
+            showToast('No-show registrado. La clase se cobra al estudiante.', 'warning');
         } catch (error) {
             console.error('Error reportando no-show:', error);
-            alert('Error: ' + error.message);
+            showToast(error.message, 'error');
         }
     }
 
@@ -5559,26 +5865,22 @@
         
         if (method === 'mercadopago' && !data.mercadopago.email) {
             isValid = false;
-            statusEl.innerHTML = '❌ Ingresa tu email de MercadoPago';
-            statusEl.style.color = '#ef4444';
+            showToast('Ingresa tu email de MercadoPago', 'warning');
             return;
         }
         if (method === 'bank_transfer' && (!data.bankTransfer.bankName || !data.bankTransfer.accountNumber || !data.bankTransfer.rut)) {
             isValid = false;
-            statusEl.innerHTML = '❌ Completa todos los datos bancarios';
-            statusEl.style.color = '#ef4444';
+            showToast('Completa todos los datos bancarios', 'warning');
             return;
         }
         if (method === 'paypal' && !data.paypal.email) {
             isValid = false;
-            statusEl.innerHTML = '❌ Ingresa tu email de PayPal';
-            statusEl.style.color = '#ef4444';
+            showToast('Ingresa tu email de PayPal', 'warning');
             return;
         }
         if (method === 'wise' && !data.wise.email) {
             isValid = false;
-            statusEl.innerHTML = '❌ Ingresa tu email de Wise';
-            statusEl.style.color = '#ef4444';
+            showToast('Ingresa tu email de Wise', 'warning');
             return;
         }
         
@@ -5598,22 +5900,18 @@
             const result = await res.json();
             
             if (result.success) {
-                statusEl.innerHTML = '✅ Datos guardados correctamente';
-                statusEl.style.color = '#4ade80';
+                statusEl.innerHTML = '';
+                showToast('Datos de pago guardados correctamente', 'success');
                 
                 // Recargar datos
                 await loadPaymentInfo();
-                
-                setTimeout(() => {
-                    statusEl.innerHTML = '';
-                }, 3000);
             } else {
-                statusEl.innerHTML = '❌ ' + (result.error || 'Error al guardar');
-                statusEl.style.color = '#ef4444';
+                statusEl.innerHTML = '';
+                showToast(result.error || 'Error al guardar', 'error');
             }
         } catch (err) {
-            statusEl.innerHTML = '❌ Error de conexión';
-            statusEl.style.color = '#ef4444';
+            statusEl.innerHTML = '';
+            showToast('Error de conexión', 'error');
         }
     }
 
@@ -5676,7 +5974,7 @@
 
     function createEarningsSection() {
         if (!teacherEarnings) {
-            alert('Cargando datos...');
+            showToast('Cargando datos...', 'info');
             return;
         }
         
@@ -5834,7 +6132,7 @@
             const data = await res.json();
             
             if (!data.success) {
-                alert('Error al cargar opciones de retiro');
+                showToast('Error al cargar opciones de retiro', 'error');
                 return;
             }
             
@@ -5896,7 +6194,7 @@
             modal.style.display = 'block';
         } catch (err) {
             console.error('Error loading withdrawal options:', err);
-            alert('Error de conexión');
+            showToast('Error de conexión', 'error');
         }
     }
 
@@ -5925,12 +6223,12 @@
                 closeWithdrawalModal();
                 await loadTeacherEarnings();
                 createEarningsSection();
-                alert(`✅ Método seleccionado: ${WITHDRAWAL_LABELS[method]}\nRecibirás: $${(data.finalAmountAfterFees/100).toFixed(2)} USD`);
+                showToast(`Método seleccionado: ${WITHDRAWAL_LABELS[method]} — Recibirás: $${(data.finalAmountAfterFees/100).toFixed(2)} USD`, 'success', 5000);
             } else {
-                alert(data.error || 'Error al seleccionar método');
+                showToast(data.error || 'Error al seleccionar método', 'error');
             }
         } catch (err) {
-            alert('Error de conexión');
+            showToast('Error de conexión', 'error');
         }
     }
 
@@ -6097,7 +6395,7 @@
                 // Recargar datos
                 await loadTeacherEarnings();
                 createEarningsSection();
-                alert('✅ Documento enviado correctamente. Te notificaremos cuando sea verificado.');
+                showToast('Documento enviado correctamente. Te notificaremos cuando sea verificado.', 'success', 5000);
             } else {
                 errorEl.textContent = data.error || 'Error al enviar documento';
                 errorEl.style.display = 'block';
@@ -6316,7 +6614,7 @@
         const classes = parseInt(document.getElementById('packageClassCount').value);
         
         if (price / classes < 5) {
-            alert('El precio mínimo es $5 USD por clase');
+            showToast('El precio mínimo es $5 USD por clase', 'warning');
             return;
         }
         
@@ -6352,11 +6650,11 @@
                 closePackageModal();
                 loadPackages();
             } else {
-                alert('Error: ' + result.error);
+                showToast(result.error || 'Error al guardar', 'error');
             }
         } catch (err) {
             console.error('Error guardando paquete:', err);
-            alert('Error de conexión');
+            showToast('Error de conexión', 'error');
         }
     }
     
@@ -6378,10 +6676,10 @@
             if (result.success) {
                 loadPackages();
             } else {
-                alert('Error: ' + result.error);
+                showToast(result.error || 'Error al actualizar', 'error');
             }
         } catch (err) {
-            alert('Error de conexión');
+            showToast('Error de conexión', 'error');
         }
     }
     
@@ -6403,10 +6701,10 @@
             if (result.success) {
                 loadPackages();
             } else {
-                alert('Error: ' + result.error);
+                showToast(result.error || 'Error al eliminar', 'error');
             }
         } catch (err) {
-            alert('Error de conexión');
+            showToast('Error de conexión', 'error');
         }
     }
     // ==================== FIN GESTIÓN DE PAQUETES ====================
