@@ -1810,8 +1810,12 @@
                         </div>
                     </div>
 
-                    <label>BIOGRAFÍA CORTA</label>
-                    <textarea id="bioInput" rows="4" placeholder="Ej: Pianista de jazz y educador..."></textarea>
+                    <!-- Biografía: se edita en Mi Perfil Público -->
+                    <div style="background: rgba(99,102,241,0.08); border: 1px dashed rgba(99,102,241,0.3); border-radius: 10px; padding: 14px 16px; margin-top: 4px;">
+                        <div style="font-weight: 600; font-size: 12px; margin-bottom: 6px;">📝 Biografía</div>
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Tu biografía pública se edita en <strong style="color:#818cf8;">Mi Perfil Público</strong></div>
+                        <button type="button" onclick="document.getElementById('profileBio').scrollIntoView({behavior:'smooth',block:'center'}); document.getElementById('profileBio').focus();" style="background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); border-radius: 8px; padding: 8px 14px; font-size: 12px; cursor: pointer; transition: background 0.2s;">Ir a Mi Perfil Público →</button>
+                    </div>
                 </div>
             </div>
 
@@ -1989,13 +1993,17 @@
 
             <!-- Columna Derecha -->
             <div>
-                <!-- Biografía -->
+                <!-- Biografía (fuente de verdad única) -->
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; font-weight: 600; margin-bottom: 8px;">📝 Biografía corta</label>
                     <textarea id="profileBio" placeholder="Cuéntale a tus futuros estudiantes sobre ti..." 
-                              rows="4" onchange="savePublicProfile()"
+                              rows="4" maxlength="500"
+                              oninput="updateBioCounter()" onchange="saveBioAutoSave()"
                               style="width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white; resize: vertical;"></textarea>
-                    <div style="font-size: 11px; color: #666; text-align: right;">Máx. 500 caracteres</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                        <span id="bioCharCounter" style="font-size: 11px; color: #666;">0/500 caracteres</span>
+                        <span id="bioSaveStatus" style="font-size: 11px; color: #4ade80; display: none;">✅ Guardado automáticamente</span>
+                    </div>
                 </div>
 
                 <!-- Experiencia -->
@@ -3093,7 +3101,6 @@
     // Capturar valores originales al cargar datos del profesor
     function captureBrandingOriginals() {
         brandingOriginalValues = {
-            bio: document.getElementById('bioInput')?.value || '',
             colorBase: document.getElementById('colorBase')?.value || '',
             colorBg: document.getElementById('colorBg')?.value || '',
             colorPanel: document.getElementById('colorPanel')?.value || '',
@@ -3105,7 +3112,6 @@
     // Comparar valores actuales con originales
     function checkBrandingDirty() {
         const current = {
-            bio: document.getElementById('bioInput')?.value || '',
             colorBase: document.getElementById('colorBase')?.value || '',
             colorBg: document.getElementById('colorBg')?.value || '',
             colorPanel: document.getElementById('colorPanel')?.value || '',
@@ -3115,7 +3121,6 @@
         const hasNewPhoto = document.getElementById('photoInput')?.files?.length > 0;
 
         const changed = hasNewLogo || hasNewPhoto ||
-            current.bio !== brandingOriginalValues.bio ||
             current.colorBase !== brandingOriginalValues.colorBase ||
             current.colorBg !== brandingOriginalValues.colorBg ||
             current.colorPanel !== brandingOriginalValues.colorPanel;
@@ -3144,14 +3149,12 @@
 
     // Botón Descartar: restaurar valores originales
     function discardBrandingChanges() {
-        const bioEl = document.getElementById('bioInput');
         const colorBaseEl = document.getElementById('colorBase');
         const colorBgEl = document.getElementById('colorBg');
         const colorPanelEl = document.getElementById('colorPanel');
         const logoEl = document.getElementById('logoInput');
         const photoEl = document.getElementById('photoInput');
 
-        if (bioEl) bioEl.value = brandingOriginalValues.bio || '';
         if (colorBaseEl) colorBaseEl.value = brandingOriginalValues.colorBase || '';
         if (colorBgEl) colorBgEl.value = brandingOriginalValues.colorBg || '';
         if (colorPanelEl) colorPanelEl.value = brandingOriginalValues.colorPanel || '';
@@ -3165,7 +3168,7 @@
 
     // Registrar listeners de cambio en los inputs del branding
     function initBrandingDirtyTracking() {
-        const ids = ['bioInput', 'colorBase', 'colorBg', 'colorPanel', 'logoInput', 'photoInput'];
+        const ids = ['colorBase', 'colorBg', 'colorPanel', 'logoInput', 'photoInput'];
         ids.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -3507,7 +3510,6 @@
                 setInterval(() => { loadFounderChat(); }, 5000); 
             }
             if(data.branding) {
-                document.getElementById('bioInput').value = data.branding.bio || '';
                 document.getElementById('colorBase').value = data.branding.colors.base || '#ff764d';
                 document.getElementById('colorBg').value = data.branding.colors.bg || '#1a1a1a';
                 document.getElementById('colorPanel').value = data.branding.colors.panel || '#262626';
@@ -3553,7 +3555,6 @@
         const msg = document.getElementById('msg'); msg.textContent = "⏳ Guardando..."; msg.style.color = "#aaa";
         const formData = new FormData();
         formData.append('email', user.email);
-        formData.append('bio', document.getElementById('bioInput').value);
         formData.append('colorBase', document.getElementById('colorBase').value);
         formData.append('colorBg', document.getElementById('colorBg').value);
         formData.append('colorPanel', document.getElementById('colorPanel').value);
@@ -4615,7 +4616,8 @@
     function renderPublicProfileForm() {
         document.getElementById('profileIsPublic').checked = publicProfile.isPublic !== false;
         document.getElementById('profileAcceptsTrialClass').checked = publicProfile.acceptsTrialClass !== false;
-        document.getElementById('profileBio').value = user.bio || '';
+        document.getElementById('profileBio').value = (user.branding && user.branding.bio) ? user.branding.bio : '';
+        updateBioCounter();
         document.getElementById('profileExperience').value = publicProfile.experience || '';
         document.getElementById('profileEducation').value = publicProfile.education || '';
         document.getElementById('profileVideoUrl').value = publicProfile.videoUrl || '';
@@ -4681,6 +4683,50 @@
         savePublicProfile();
     }
     
+    // ==================== BIO AUTO-SAVE (fuente de verdad: branding.bio) ====================
+    let saveBioTimeout = null;
+
+    // Contador de caracteres en tiempo real
+    function updateBioCounter() {
+        const bio = document.getElementById('profileBio');
+        const counter = document.getElementById('bioCharCounter');
+        if (bio && counter) {
+            counter.textContent = `${bio.value.length}/500 caracteres`;
+        }
+    }
+
+    // Auto-save de biografía vía POST /update (mismo endpoint del branding)
+    function saveBioAutoSave() {
+        clearTimeout(saveBioTimeout);
+        const statusEl = document.getElementById('bioSaveStatus');
+        saveBioTimeout = setTimeout(async () => {
+            if (statusEl) {
+                statusEl.style.display = 'inline';
+                statusEl.style.color = '#818cf8';
+                statusEl.textContent = '⏳ Guardando...';
+            }
+            try {
+                const formData = new FormData();
+                formData.append('email', user.email);
+                formData.append('bio', document.getElementById('profileBio').value);
+                const res = await fetch(`${API_URL}/update`, { method: 'POST', body: formData });
+                if (!res.ok) throw new Error('Error de red');
+                if (statusEl) {
+                    statusEl.style.color = '#4ade80';
+                    statusEl.textContent = '✅ Guardado automáticamente';
+                }
+                showToast('Biografía guardada', 'success');
+            } catch (err) {
+                console.error('[Bio] Error guardando:', err);
+                if (statusEl) {
+                    statusEl.style.color = '#f87171';
+                    statusEl.textContent = '❌ Error al guardar';
+                }
+                showToast('Error al guardar biografía', 'error');
+            }
+        }, 500);
+    }
+
     // Guardar perfil público
     let saveProfileTimeout = null;
     async function savePublicProfile() {
