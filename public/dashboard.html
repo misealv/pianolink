@@ -1659,6 +1659,25 @@
             <div id="messagesList" style="max-height: 150px; overflow-y: auto;"></div>
         </div>
 
+        <!-- ==================== PRÓXIMAS CLASES — FASE 3 ==================== -->
+        <div id="upcomingClassesSection" class="card" style="margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 style="margin: 0; border: none; padding: 0;">📅 <span id="upcomingDateLabel">Hoy</span></h2>
+                <a href="/profesor/calendario.html" style="color: var(--accent); font-size: 12px; font-weight: 600; text-decoration: none;">Ver agenda completa →</a>
+            </div>
+            <div id="upcomingClassesList">
+                <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
+                    <div class="spinner" style="margin: 0 auto 8px; width: 18px; height: 18px;"></div>
+                    Cargando clases...
+                </div>
+            </div>
+            <div id="upcomingTomorrowInfo" style="display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: var(--text-muted); font-size: 13px;">Mañana: <strong id="tomorrowCount" style="color: #fff;">0</strong> clases</span>
+                <a href="/profesor/calendario.html" style="color: var(--accent); font-size: 12px; text-decoration: none;">Ver agenda completa →</a>
+            </div>
+        </div>
+        <!-- ==================== FIN PRÓXIMAS CLASES ==================== -->
+
         <!-- ==================== MODAL DETALLE CLASE ==================== -->
         <div class="class-detail-overlay" id="classDetailOverlay" onclick="if(event.target===this)closeClassDetail()">
             <div class="class-detail-modal">
@@ -1677,7 +1696,9 @@
         </div>
 
         <!-- ==================== CALENDARIO SEMANAL ==================== -->
-        <div class="weekly-calendar-section">
+        <!-- FASE 3: Contenido movido a /profesor/calendario.html
+             Oculto con display:none — NO eliminar hasta Fase 6 -->
+        <div class="weekly-calendar-section" style="display:none;">
             <div class="calendar-header">
                 <div class="calendar-title">
                     <h2>📅 Mi Agenda</h2>
@@ -1698,7 +1719,9 @@
         </div>
 
         <!-- ==================== MIS ESTUDIANTES ==================== -->
-        <div class="students-section" id="myStudentsSection">
+           <!-- FASE 3: Contenido movido a /profesor/estudiantes.html
+               Oculto con display:none — NO eliminar hasta Fase 6 -->
+           <div class="students-section" id="myStudentsSection" style="display:none;">
             <div class="students-header">
                 <div style="display: flex; align-items: center;">
                     <h2>👥 Mis Estudiantes</h2>
@@ -1814,7 +1837,7 @@
                     <div style="background: rgba(99,102,241,0.08); border: 1px dashed rgba(99,102,241,0.3); border-radius: 10px; padding: 14px 16px; margin-top: 4px;">
                         <div style="font-weight: 600; font-size: 12px; margin-bottom: 6px;">📝 Biografía</div>
                         <div style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Tu biografía pública se edita en <strong style="color:#818cf8;">Mi Perfil Público</strong></div>
-                        <button type="button" onclick="document.getElementById('profileBio').scrollIntoView({behavior:'smooth',block:'center'}); document.getElementById('profileBio').focus();" style="background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); border-radius: 8px; padding: 8px 14px; font-size: 12px; cursor: pointer; transition: background 0.2s;">Ir a Mi Perfil Público →</button>
+                        <button type="button" onclick="window.location.href='/profesor/perfil.html'" style="background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); border-radius: 8px; padding: 8px 14px; font-size: 12px; cursor: pointer; transition: background 0.2s;">Ir a Mi Perfil Público →</button>
                     </div>
                 </div>
             </div>
@@ -1929,7 +1952,9 @@
     <!-- ==================== FIN TARIFAS Y PAQUETES ==================== -->
 
     <!-- ==================== SECCIÓN MI PERFIL PÚBLICO ==================== -->
-    <div class="panel teacher-only" id="publicProfilePanel" style="margin-top: 30px;">
+    <!-- FASE 3: Contenido movido a /profesor/perfil.html
+         Oculto con display:none — NO eliminar hasta Fase 6 -->
+    <div class="panel teacher-only" id="publicProfilePanel" style="display:none; margin-top: 30px;">
         <h2>🌐 Mi Perfil Público</h2>
         <p style="color: #888; font-size: 13px; margin-bottom: 20px;">
             Este perfil será visible para estudiantes que busquen profesores en el catálogo.
@@ -2261,7 +2286,9 @@
     <!-- ==================== FIN SOLICITUDES DE RECUPERACIÓN ==================== -->
 
     <!-- ==================== VALIDAR CLASES ==================== -->
-    <div id="validationsSection" style="display: none; margin-top: 30px;">
+    <!-- FASE 3: Contenido movido a /profesor/validar.html
+         Oculto con display:none — NO eliminar hasta Fase 6 -->
+    <div id="validationsSection" style="display: none !important; margin-top: 30px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <div>
                 <h2 style="margin: 0; color: white; font-size: 20px;">✅ Validar Clases</h2>
@@ -3804,6 +3831,97 @@
     loadMyMessages(); // Cargar mensajes admin si existen
     loadSubscriptionStatus(); // Cargar estado de suscripción
     loadWeeklyCalendar(); // Cargar calendario semanal
+    loadUpcomingClasses(); // FASE 3: Cargar próximas clases del día
+
+    // ==================== PRÓXIMAS CLASES — FASE 3 ====================
+    async function loadUpcomingClasses() {
+        const container = document.getElementById('upcomingClassesList');
+        const dateLabel = document.getElementById('upcomingDateLabel');
+        const tomorrowInfo = document.getElementById('upcomingTomorrowInfo');
+        const tomorrowCount = document.getElementById('tomorrowCount');
+
+        // Fecha de hoy y mañana (inicio y fin del rango)
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const tomorrowStart = new Date(todayStart);
+        tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+        const dayAfterTomorrow = new Date(tomorrowStart);
+        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+        // Etiqueta de fecha dinámica
+        const options = { weekday: 'long', day: 'numeric', month: 'long' };
+        dateLabel.textContent = `Hoy — ${todayStart.toLocaleDateString('es-CL', options)}`;
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(
+                `/api/bookings/teacher?from=${todayStart.toISOString()}&to=${dayAfterTomorrow.toISOString()}`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            if (!res.ok) throw new Error('Error cargando clases');
+            const bookings = await res.json();
+
+            // Separar hoy vs mañana
+            const todayClasses = [];
+            const tomorrowClasses = [];
+            bookings.forEach(b => {
+                const d = new Date(b.scheduledStart);
+                if (d >= todayStart && d < tomorrowStart) todayClasses.push(b);
+                else if (d >= tomorrowStart && d < dayAfterTomorrow) tomorrowClasses.push(b);
+            });
+
+            // Ordenar por hora
+            todayClasses.sort((a, b) => new Date(a.scheduledStart) - new Date(b.scheduledStart));
+
+            // Render clases de hoy (máximo 3)
+            if (todayClasses.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 14px;">
+                        No tienes clases hoy 🎉
+                    </div>`;
+            } else {
+                const visible = todayClasses.slice(0, 3);
+                container.innerHTML = visible.map(b => {
+                    const t = new Date(b.scheduledStart);
+                    const timeStr = t.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                    const name = b.studentId?.name || b.studentName || 'Alumno';
+                    const isTrial = b.classType === 'trial';
+                    return `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 6px; border: 1px solid var(--border);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 15px; font-weight: 700; color: #fff; min-width: 48px;">${timeStr}</span>
+                            <span style="color: var(--text-main); font-size: 14px;">${name}</span>
+                            ${isTrial ? '<span style="font-size:10px; padding:2px 6px; background:rgba(34,197,94,0.2); color:#22c55e; border-radius:4px; font-weight:600;">Prueba</span>' : ''}
+                        </div>
+                        <a href="/c/${user.slug}?booking=${b._id}" target="_blank"
+                           style="color: var(--accent); font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap;">
+                            IR A SALA →
+                        </a>
+                    </div>`;
+                }).join('');
+                if (todayClasses.length > 3) {
+                    container.innerHTML += `<div style="text-align:center; margin-top:6px;">
+                        <a href="/profesor/calendario.html" style="color:var(--accent); font-size:12px;">+${todayClasses.length - 3} clases más</a>
+                    </div>`;
+                }
+            }
+
+            // Mañana
+            if (tomorrowClasses.length > 0) {
+                tomorrowInfo.style.display = 'flex';
+                tomorrowCount.textContent = tomorrowClasses.length;
+            } else {
+                tomorrowInfo.style.display = 'none';
+            }
+
+        } catch (error) {
+            console.error('[Dashboard] Error cargando próximas clases:', error);
+            container.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #ef4444; font-size: 13px;">
+                    Error cargando clases · <a href="#" onclick="loadUpcomingClasses(); return false;" style="color: var(--accent);">Reintentar</a>
+                </div>`;
+        }
+    }
 
     // ============================================
     // FUNCIONALIDAD DE PLAN Y MEMBRESÍA — Fase 4 v5.0
