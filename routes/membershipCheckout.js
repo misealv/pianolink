@@ -417,59 +417,40 @@ async function _createMpCheckout(teacher, plan, priceUSD, resolved, successUrl, 
 
 /**
  * Crea orden PayPal para membresía (USD directo).
+ * Usa PayPalService centralizado con autenticación OAuth2 (Bearer token).
  */
 async function _createPayPalCheckout(teacher, plan, priceUSD, resolved, successUrl, failureUrl) {
-    const priceDecimal = (priceUSD / 100).toFixed(2);
     const planLabels = {
         premium: 'Membresía Premium PianoLink',
         founder: 'Membresía Fundador PianoLink'
     };
 
-    // Crear orden PayPal vía API REST
-    const auth = Buffer.from(`${resolved.credentials.clientId}:${resolved.credentials.clientSecret}`).toString('base64');
-    const mode = resolved.credentials.mode === 'live' ? 'api-m' : 'api-m.sandbox';
-
-    const response = await fetch(`https://${mode}.paypal.com/v2/checkout/orders`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            intent: 'CAPTURE',
-            purchase_units: [{
-                description: planLabels[plan] || 'Membresía PianoLink',
-                custom_id: `membership_${plan}_${teacher._id}`,
-                amount: {
-                    currency_code: 'USD',
-                    value: priceDecimal
-                }
-            }],
-            application_context: {
-                return_url: successUrl,
-                cancel_url: failureUrl,
-                brand_name: 'PianoLink',
-                user_action: 'PAY_NOW'
-            }
-        })
+    // Usar PayPalService con OAuth2 correcto
+    const order = await PayPalService.createOrder({
+        amount: priceUSD,
+        description: planLabels[plan] || 'Membresía PianoLink',
+        externalReference: `membership_${plan}_${teacher._id}_${Date.now()}`,
+        returnUrl: successUrl,
+        cancelUrl: failureUrl,
+        metadata: {
+            type: 'teacher_membership',
+            plan,
+            teacherId: teacher._id.toString()
+        }
     });
 
-    const order = await response.json();
-
-    if (!response.ok) {
-        console.error('[MembershipCheckout] PayPal error:', order);
-        throw new Error('Error al crear orden PayPal');
+    if (!order.approveUrl) {
+        console.error('[MembershipCheckout] PayPal no devolvió URL de aprobación:', order);
+        throw new Error('Error al crear orden PayPal: no se obtuvo URL de pago');
     }
-
-    const approveLink = order.links?.find(l => l.rel === 'approve');
 
     return {
         success: true,
         provider: 'paypal',
-        checkoutUrl: approveLink?.href,
-        orderId: order.id,
+        checkoutUrl: order.approveUrl,
+        orderId: order.orderId,
         currency: 'USD',
-        priceUSD: parseFloat(priceDecimal)
+        priceUSD: priceUSD / 100
     };
 }
 
