@@ -135,18 +135,23 @@ const verifySocketAccess = async ({ token, roomCode, guestName }) => {
                 };
             }
 
-            // 4.1 Verificar membresía activa del profesor (excepto admin)
+            // 4.1 Verificar membresía activa del profesor (excepto admin y plan free)
             if (user.role === 'teacher') {
+                const plan = user.teacherData?.plan || 'free';
                 const membershipStatus = user.teacherData?.subscriptionStatus;
-                const isActive = membershipStatus === 'active';
-                
-                if (!isActive) {
-                    return {
-                        allowed: false,
-                        reason: 'MEMBERSHIP_INACTIVE',
-                        message: 'Tu membresía no está activa. Actívala para acceder a tu sala.',
-                        membershipStatus: membershipStatus || 'none'
-                    };
+
+                // Plan free no requiere membresía activa para usar la sala
+                if (plan !== 'free') {
+                    const isActive = membershipStatus === 'active';
+                    
+                    if (!isActive) {
+                        return {
+                            allowed: false,
+                            reason: 'MEMBERSHIP_INACTIVE',
+                            message: 'Tu membresía no está activa. Actívala para acceder a tu sala.',
+                            membershipStatus: membershipStatus || 'none'
+                        };
+                    }
                 }
             }
 
