@@ -83,6 +83,14 @@
                 </div>
             </div>
             
+            <!-- Bot -->
+            <div class="nav-section">
+                <div class="nav-section-title">Bot WhatsApp</div>
+                <div class="nav-item" data-module="bot-conversations" onclick="switchModule('bot-conversations')">
+                    <span class="icon">🤖</span> Conversaciones
+                </div>
+            </div>
+
             <!-- Sistema -->
             <div class="nav-section">
                 <div class="nav-section-title">Sistema</div>
@@ -1571,6 +1579,57 @@
                         </button>
                         <div id="eb-status" style="display:none; padding:10px; border-radius:8px; margin-top:10px;"></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- ==================== CONVERSACIONES BOT ==================== -->
+            <div id="module-bot-conversations" class="module-view">
+                <div class="dashboard-grid">
+                    <div class="stat-card accent-green">
+                        <div class="stat-icon">🤖</div>
+                        <div class="stat-value" id="stat-bot-total">0</div>
+                        <div class="stat-label">Total Conversaciones</div>
+                    </div>
+                    <div class="stat-card accent-blue">
+                        <div class="stat-icon">🎯</div>
+                        <div class="stat-value" id="stat-bot-with-lead">0</div>
+                        <div class="stat-label">Convertidas a Lead</div>
+                    </div>
+                    <div class="stat-card accent-orange">
+                        <div class="stat-icon">💬</div>
+                        <div class="stat-value" id="stat-bot-no-lead">0</div>
+                        <div class="stat-label">Sin Conversión</div>
+                    </div>
+                </div>
+
+                <div class="filters-bar">
+                    <div class="filter-group">
+                        <button class="filter-btn active" onclick="filterBotConvos('all')">Todas</button>
+                        <button class="filter-btn" onclick="filterBotConvos('with-lead')">Con Lead</button>
+                        <button class="filter-btn" onclick="filterBotConvos('no-lead')">Sin Lead</button>
+                    </div>
+                    <div class="search-box">
+                        <span>🔍</span>
+                        <input type="text" id="search-bot-convos" placeholder="Buscar por teléfono..." oninput="searchBotConvos()">
+                    </div>
+                </div>
+
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Teléfono</th>
+                                <th>Lead</th>
+                                <th>Mensajes</th>
+                                <th>Última Actividad</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bot-convos-table-body">
+                            <tr><td colspan="6" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

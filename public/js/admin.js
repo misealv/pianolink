@@ -49,7 +49,8 @@ function updateContentTitle(moduleName) {
         'welcome-kits': { icon: '📦', text: 'Welcome Kits' },
         'admin-profile': { icon: '👤', text: 'Mi Perfil' },
         'pricing': { icon: '💰', text: 'Configuración de Precios' },
-        'teacher-plans': { icon: '📋', text: 'Planes y Comisiones' }
+        'teacher-plans': { icon: '📋', text: 'Planes y Comisiones' },
+        'bot-conversations': { icon: '🤖', text: 'Conversaciones Bot' }
     };
     
     const titleEl = document.getElementById('content-title');
@@ -74,6 +75,7 @@ function loadModuleData(moduleName) {
         case 'admin-profile': loadAdminProfile(); break;
         case 'pricing': loadPricingConfig(); loadKitV2Price(); loadEarlyBirdConfig(); loadCommissionConfig(); loadMpCredentials(); break;
         case 'teacher-plans': loadTeacherPlans(); loadCommissionReport(); break;
+        case 'bot-conversations': loadBotConversations(); break;
     }
 }
 
@@ -542,6 +544,77 @@ function openStatusModal(leadId) {
     
     document.getElementById('status-lead-name').textContent = lead.name;
     openModal('status-modal');
+}
+
+// ==================== CONVERSACIONES BOT ====================
+let allBotConvos = [];
+let botConvoFilter = 'all';
+
+async function loadBotConversations() {
+    try {
+        const res = await fetch('/api/bot/conversations');
+        if (!res.ok) throw new Error('Error cargando conversaciones');
+        allBotConvos = await res.json();
+
+        const withLead = allBotConvos.filter(c => c.leadRef);
+        document.getElementById('stat-bot-total').textContent = allBotConvos.length;
+        document.getElementById('stat-bot-with-lead').textContent = withLead.length;
+        document.getElementById('stat-bot-no-lead').textContent = allBotConvos.length - withLead.length;
+
+        renderBotConvosTable();
+    } catch (e) {
+        console.error('Error:', e);
+        document.getElementById('bot-convos-table-body').innerHTML =
+            '<tr><td colspan="6" style="text-align:center;padding:40px;color:#c00;">Error cargando conversaciones</td></tr>';
+    }
+}
+
+function filterBotConvos(filter) {
+    botConvoFilter = filter;
+    document.querySelectorAll('#module-bot-conversations .filter-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    renderBotConvosTable();
+}
+
+function searchBotConvos() {
+    renderBotConvosTable();
+}
+
+function renderBotConvosTable() {
+    const search = (document.getElementById('search-bot-convos').value || '').toLowerCase();
+    let filtered = allBotConvos;
+
+    if (botConvoFilter === 'with-lead') filtered = filtered.filter(c => c.leadRef);
+    if (botConvoFilter === 'no-lead') filtered = filtered.filter(c => !c.leadRef);
+    if (search) filtered = filtered.filter(c => c.phone.includes(search));
+
+    const tbody = document.getElementById('bot-convos-table-body');
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#666;">No hay conversaciones</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(c => {
+        const leadName = c.leadRef ? c.leadRef.name : '—';
+        const leadBadge = c.leadRef
+            ? `<span style="color:#10b981;font-weight:600;">${leadName}</span>`
+            : '<span style="color:#999;">Sin lead</span>';
+        const date = new Date(c.lastActivity).toLocaleString('es-CL', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        const statusBadge = c.isActive
+            ? '<span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:6px;font-size:12px;">Activa</span>'
+            : '<span style="background:#f3f4f6;color:#6b7280;padding:2px 8px;border-radius:6px;font-size:12px;">Finalizada</span>';
+        const phoneSafe = c.phone.replace(/'/g, "\\'");
+        const nameSafe = (c.leadRef ? c.leadRef.name : c.phone).replace(/'/g, "\\'");
+
+        return `<tr>
+            <td><strong>${c.phone}</strong></td>
+            <td>${leadBadge}</td>
+            <td style="text-align:center;">${c.messageCount || 0}</td>
+            <td>${date}</td>
+            <td>${statusBadge}</td>
+            <td><button class="btn btn-secondary" style="padding:4px 12px;font-size:12px;" onclick="openChatModal('${phoneSafe}', '${nameSafe}')">💬 Ver Chat</button></td>
+        </tr>`;
+    }).join('');
 }
 
 // Abrir modal de chat del bot
