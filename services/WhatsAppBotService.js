@@ -4,6 +4,8 @@
  * Nombre del bot: "Mía" (Musical Intelligence Assistant)
  */
 const Anthropic = require('@anthropic-ai/sdk');
+const Lead = require('../models/Lead');
+const CrmLead = require('../crm/models/CrmLead');
 
 const SYSTEM_PROMPT = `Eres Mía, la asesora musical de Piano Link. Piano Link es una plataforma de clases de piano online con una sala virtual que usa tecnología MIDI: el profesor ve en tiempo real qué teclas toca el alumno. Es como tener al profesor al lado.
 
@@ -176,7 +178,7 @@ class WhatsAppBotService {
                 const leadData = JSON.parse(leadMatch[1]);
                 convo.leadData = leadData;
                 console.log(`[Bot PL] Lead calificado de ${phone}:`, JSON.stringify(leadData));
-                // TODO: Guardar en Lead + CrmLead
+                await this._saveLead(phone, leadData);
             } catch (e) {
                 console.error('[Bot PL] Error parseando LEAD_DATA:', e.message);
             }
@@ -185,6 +187,60 @@ class WhatsAppBotService {
         // Limpiar LEAD_DATA del texto que se envía al usuario
         const cleanReply = assistantText.replace(/\n?LEAD_DATA:\{.*\}/, '').trim();
         return cleanReply;
+    }
+
+    async _saveLead(phone, data) {
+        try {
+            // Mapear score 1-10 del bot a 0-100 del CRM
+            const crmScore = Math.min(100, (data.score || 5) * 10);
+            const segmentMap = { caliente: 'hot', tibio: 'warm', frio: 'cold' };
+
+            // Crear o actualizar Lead
+            const lead = await Lead.findOneAndUpdate(
+                { whatsapp: phone },
+                {
+                    $set: {
+                        name: data.nombre || 'Sin nombre',
+                        whatsapp: phone,
+                        type: 'client',
+                        source: 'whatsapp_bot',
+                        status: crmScore >= 70 ? 'qualified' : 'new',
+                        notes: `Instrumento: ${data.instrumento || '?'} ${data.modelo || ''} | MIDI: ${data.tipoMidi || '?'} | Nivel: ${data.nivel || '?'} | Motivación: ${data.motivacion || ''}`.trim()
+                    },
+                    $setOnInsert: { email: `wa_${phone.replace(/\D/g, '')}@placeholder.local` }
+                },
+                { upsert: true, new: true }
+            );
+
+            // Crear o actualizar CrmLead
+            await CrmLead.findOneAndUpdate(
+                { leadRef: lead._id },
+                {
+                    $set: {
+                        score: crmScore,
+                        segment: segmentMap[data.segmento] || 'warm',
+                        pipelineStudent: 'lead',
+                        lifecycleStage: crmScore >= 70 ? 'mql' : 'lead',
+                        'studentData.level': data.nivel === 'never' ? 'beginner' : (data.nivel || 'beginner'),
+                        'studentData.goals': data.motivacion || '',
+                        tags: [data.tipoMidi ? `midi_${data.tipoMidi}` : 'midi_unknown', 'whatsapp_bot']
+                    },
+                    $setOnInsert: {
+                        'attribution.firstTouch': {
+                            channel: 'whatsapp',
+                            source: 'twilio_bot',
+                            landingPage: '/api/bot/wa',
+                            timestamp: new Date()
+                        }
+                    }
+                },
+                { upsert: true, new: true }
+            );
+
+            console.log(`[Bot PL] ✅ Lead guardado: ${data.nombre} (score ${crmScore}) — ${lead._id}`);
+        } catch (err) {
+            console.error('[Bot PL] ❌ Error guardando lead:', err.message);
+        }
     }
 
     async _downloadMedia(mediaUrl) {

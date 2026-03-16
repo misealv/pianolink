@@ -102,7 +102,7 @@ const leadSchema = mongoose.Schema({
     // Metadata de captura
     source: {
         type: String,
-        enum: ['landing', 'referral', 'social', 'kit_v2_checkout', 'ex_alumno_resonancias', 'other'],
+        enum: ['landing', 'referral', 'social', 'kit_v2_checkout', 'ex_alumno_resonancias', 'whatsapp_bot', 'other'],
         default: 'landing'
     },
     utmSource: { type: String, default: '' },
