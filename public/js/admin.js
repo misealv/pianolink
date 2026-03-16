@@ -414,6 +414,9 @@ function renderLeadsTable(leads) {
                             <div class="action-item" onclick="openNotesModal('${lead._id}')">
                                 <span>📝</span> Notas
                             </div>
+                            ${lead.source === 'whatsapp_bot' ? `<div class="action-item" onclick="openChatModal('${lead.whatsapp}', '${lead.name.replace(/'/g, "\\'")}')">
+                                <span>💬</span> Ver Chat Bot
+                            </div>` : ''}
                             <div class="action-item danger" onclick="deleteLead('${lead._id}', '${lead.name.replace(/'/g, "\\'")}')">
                                 <span>🗑️</span> Eliminar
                             </div>
@@ -539,6 +542,40 @@ function openStatusModal(leadId) {
     
     document.getElementById('status-lead-name').textContent = lead.name;
     openModal('status-modal');
+}
+
+// Abrir modal de chat del bot
+async function openChatModal(phone, leadName) {
+    document.getElementById('chat-lead-name').textContent = leadName;
+    const container = document.getElementById('chat-messages');
+    container.innerHTML = '<p style="text-align:center;color:#888;padding:40px;">Cargando...</p>';
+    openModal('chat-modal');
+
+    try {
+        const res = await fetch(`/api/bot/conversations/${encodeURIComponent(phone)}`);
+        if (!res.ok) {
+            container.innerHTML = '<p style="text-align:center;color:#888;padding:40px;">No se encontró conversación para este número.</p>';
+            return;
+        }
+        const convo = await res.json();
+        if (!convo.messages || convo.messages.length === 0) {
+            container.innerHTML = '<p style="text-align:center;color:#888;padding:40px;">Sin mensajes.</p>';
+            return;
+        }
+        container.innerHTML = convo.messages.map(m => {
+            const isBot = m.role === 'assistant';
+            const time = new Date(m.timestamp).toLocaleString('es-CL', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+            return `<div style="align-self:${isBot ? 'flex-start' : 'flex-end'}; max-width:80%; padding:8px 12px; border-radius:8px; background:${isBot ? '#fff' : '#dcf8c6'}; box-shadow:0 1px 1px rgba(0,0,0,.1); font-size:14px;">
+                ${m.hasImage ? '<div style="color:#666;font-size:12px;margin-bottom:4px;">📷 Imagen adjunta</div>' : ''}
+                <div style="white-space:pre-wrap;">${m.content.replace(/</g, '&lt;')}</div>
+                <div style="font-size:11px;color:#999;text-align:right;margin-top:4px;">${time}</div>
+            </div>`;
+        }).join('');
+        container.scrollTop = container.scrollHeight;
+    } catch (e) {
+        console.error('Error cargando chat:', e);
+        container.innerHTML = '<p style="text-align:center;color:#c00;padding:40px;">Error cargando conversación.</p>';
+    }
 }
 
 async function changeLeadStatus(newStatus) {

@@ -1633,6 +1633,21 @@
     </div>
 </div>
 
+<!-- Chat Bot Modal -->
+<div id="chat-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width:550px;">
+        <div class="modal-header">
+            <h3>💬 Chat Bot - <span id="chat-lead-name"></span></h3>
+            <button class="modal-close" onclick="closeModal('chat-modal')">×</button>
+        </div>
+        <div class="modal-body" style="padding:0;">
+            <div id="chat-messages" style="max-height:450px; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:8px; background:#e5ddd5;">
+                <p style="text-align:center; color:#888; padding:40px;">Cargando conversación...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Cambiar Estado -->
 <div id="status-modal" class="modal-overlay">
     <div class="modal-content">

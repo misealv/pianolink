@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const WhatsAppBotService = require('../services/WhatsAppBotService');
 const twilio = require('twilio');
+const BotConversation = require('../models/BotConversation');
 
 // POST /api/bot/wa — Twilio envía From=whatsapp:+56x&Body=texto
 router.post('/wa', async (req, res) => {
@@ -40,6 +41,35 @@ router.post('/wa', async (req, res) => {
     }
 
     res.type('text/xml').send(twiml.toString());
+});
+
+// GET /api/bot/conversations — Lista de conversaciones recientes (para CRM)
+router.get('/conversations', async (req, res) => {
+    try {
+        const convos = await BotConversation.find()
+            .sort({ lastActivity: -1 })
+            .limit(100)
+            .select('phone leadRef leadData lastActivity messageCount isActive')
+            .populate('leadRef', 'name email whatsapp status')
+            .lean();
+        res.json({ success: true, data: convos });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// GET /api/bot/conversations/:phone — Historial de chat de un número
+router.get('/conversations/:phone', async (req, res) => {
+    try {
+        const phone = decodeURIComponent(req.params.phone);
+        const convo = await BotConversation.findOne({ phone })
+            .populate('leadRef', 'name email whatsapp status source')
+            .lean();
+        if (!convo) return res.status(404).json({ success: false, message: 'Conversación no encontrada' });
+        res.json({ success: true, data: convo });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
 });
 
 module.exports = router;

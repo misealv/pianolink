@@ -6,6 +6,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const Lead = require('../models/Lead');
 const CrmLead = require('../crm/models/CrmLead');
+const BotConversation = require('../models/BotConversation');
 
 const SYSTEM_PROMPT = `Eres Mía, la asesora musical de Piano Link. Piano Link es una plataforma de clases de piano online con una sala virtual que usa tecnología MIDI: el profesor ve en tiempo real qué teclas toca el alumno. Es como tener al profesor al lado.
 
@@ -109,7 +110,22 @@ class WhatsAppBotService {
         return this.claude;
     }
 
-    _initConvo(phone) {
+    async _initConvo(phone) {
+        // Intentar restaurar conversación de DB
+        try {
+            const saved = await BotConversation.findOne({ phone, isActive: true }).lean();
+            if (saved && saved.messages.length > 0) {
+                const tenMinAgo = Date.now() - 10 * 60 * 1000;
+                if (new Date(saved.lastActivity).getTime() > tenMinAgo) {
+                    const msgs = saved.messages.slice(-20).map(m => ({ role: m.role, content: m.content }));
+                    const convo = { messages: msgs, updatedAt: Date.now(), leadData: saved.leadData || {} };
+                    this.conversations.set(phone, convo);
+                    return convo;
+                }
+            }
+        } catch (err) {
+            console.error('[Bot PL] Error restaurando conversación:', err.message);
+        }
         const convo = { messages: [], updatedAt: Date.now(), leadData: {} };
         this.conversations.set(phone, convo);
         return convo;
@@ -126,7 +142,7 @@ class WhatsAppBotService {
             }
         }
 
-        if (!convo) convo = this._initConvo(phone);
+        if (!convo) convo = await this._initConvo(phone);
         convo.updatedAt = Date.now();
 
         // Construir mensaje del usuario
@@ -186,6 +202,10 @@ class WhatsAppBotService {
 
         // Limpiar LEAD_DATA del texto que se envía al usuario
         const cleanReply = assistantText.replace(/\n?LEAD_DATA:\{.*\}/, '').trim();
+
+        // Persistir en DB (fire-and-forget)
+        this._persistMessages(phone, text, cleanReply, !!mediaUrl).catch(() => {});
+
         return cleanReply;
     }
 
@@ -238,6 +258,9 @@ class WhatsAppBotService {
             );
 
             console.log(`[Bot PL] ✅ Lead guardado: ${data.nombre} (score ${crmScore}) — ${lead._id}`);
+
+            // Vincular conversación al lead
+            BotConversation.updateOne({ phone }, { $set: { leadRef: lead._id, leadData: data } }).catch(() => {});
         } catch (err) {
             console.error('[Bot PL] ❌ Error guardando lead:', err.message);
         }
@@ -255,6 +278,29 @@ class WhatsAppBotService {
         if (!res.ok) throw new Error(`Twilio media download failed: ${res.status}`);
         const arrayBuffer = await res.arrayBuffer();
         return Buffer.from(arrayBuffer);
+    }
+
+    async _persistMessages(phone, userText, botReply, hasImage) {
+        try {
+            await BotConversation.findOneAndUpdate(
+                { phone },
+                {
+                    $push: {
+                        messages: {
+                            $each: [
+                                { role: 'user', content: userText || '(imagen)', hasImage, timestamp: new Date() },
+                                { role: 'assistant', content: botReply, timestamp: new Date() }
+                            ]
+                        }
+                    },
+                    $set: { lastActivity: new Date(), isActive: true },
+                    $inc: { messageCount: 2 }
+                },
+                { upsert: true }
+            );
+        } catch (err) {
+            console.error('[Bot PL] Error persistiendo mensajes:', err.message);
+        }
     }
 }
 
