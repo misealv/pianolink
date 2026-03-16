@@ -50,7 +50,8 @@ function updateContentTitle(moduleName) {
         'admin-profile': { icon: '👤', text: 'Mi Perfil' },
         'pricing': { icon: '💰', text: 'Configuración de Precios' },
         'teacher-plans': { icon: '📋', text: 'Planes y Comisiones' },
-        'bot-conversations': { icon: '🤖', text: 'Conversaciones Bot' }
+        'bot-conversations': { icon: '🤖', text: 'Conversaciones Bot' },
+        'email-campaigns': { icon: '📧', text: 'Email Marketing' }
     };
     
     const titleEl = document.getElementById('content-title');
@@ -76,6 +77,7 @@ function loadModuleData(moduleName) {
         case 'pricing': loadPricingConfig(); loadKitV2Price(); loadEarlyBirdConfig(); loadCommissionConfig(); loadMpCredentials(); break;
         case 'teacher-plans': loadTeacherPlans(); loadCommissionReport(); break;
         case 'bot-conversations': loadBotConversations(); break;
+        case 'email-campaigns': loadEmailCampaigns(); break;
     }
 }
 
@@ -544,6 +546,131 @@ function openStatusModal(leadId) {
     
     document.getElementById('status-lead-name').textContent = lead.name;
     openModal('status-modal');
+}
+
+// ==================== EMAIL CAMPAIGNS ====================
+let allEmailCampaigns = [];
+
+async function loadEmailCampaigns() {
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/crm/emails', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Error cargando campañas');
+        const data = await res.json();
+        allEmailCampaigns = data.data || data;
+
+        // Calcular totales
+        let sent = 0, opened = 0, clicked = 0, bounced = 0;
+        allEmailCampaigns.forEach(c => {
+            const m = c.metricas || {};
+            sent += m.totalEnviados || 0;
+            opened += m.totalAbiertos || 0;
+            clicked += m.totalClicks || 0;
+            bounced += m.totalRebotes || 0;
+        });
+
+        document.getElementById('stat-emails-sent').textContent = sent.toLocaleString();
+        document.getElementById('stat-emails-opened').textContent = opened.toLocaleString();
+        document.getElementById('stat-emails-clicked').textContent = clicked.toLocaleString();
+        document.getElementById('stat-emails-bounced').textContent = bounced.toLocaleString();
+
+        const openRate = sent > 0 ? ((opened / sent) * 100).toFixed(1) : 0;
+        const clickRate = sent > 0 ? ((clicked / sent) * 100).toFixed(1) : 0;
+        const bounceRate = sent > 0 ? ((bounced / sent) * 100).toFixed(1) : 0;
+        document.getElementById('rate-open').textContent = openRate + '%';
+        document.getElementById('rate-click').textContent = clickRate + '%';
+        document.getElementById('rate-bounce').textContent = bounceRate + '%';
+
+        // Color dinámico en tasas
+        document.getElementById('rate-open').style.color = openRate >= 20 ? '#10b981' : openRate >= 10 ? '#f59e0b' : '#ef4444';
+        document.getElementById('rate-bounce').style.color = bounceRate <= 2 ? '#10b981' : bounceRate <= 5 ? '#f59e0b' : '#ef4444';
+
+        document.getElementById('email-subs-count').textContent = `${allEmailCampaigns.length} campañas`;
+
+        renderEmailCampaignsTable();
+    } catch (e) {
+        console.error('Error:', e);
+        document.getElementById('email-campaigns-table-body').innerHTML =
+            '<tr><td colspan="9" style="text-align:center;padding:40px;color:#c00;">Error cargando campañas</td></tr>';
+    }
+}
+
+function renderEmailCampaignsTable() {
+    const tbody = document.getElementById('email-campaigns-table-body');
+    if (allEmailCampaigns.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#666;">No hay campañas</td></tr>';
+        return;
+    }
+
+    const estadoColors = {
+        borrador: '#6b7280', programado: '#3b82f6', enviando: '#f59e0b', enviado: '#10b981', cancelado: '#ef4444'
+    };
+    const tipoLabels = { secuencia: '📩 Secuencia', broadcast: '📡 Broadcast', trigger: '⚡ Trigger', transaccional: '🔔 Trans.' };
+
+    tbody.innerHTML = allEmailCampaigns.map(c => {
+        const m = c.metricas || {};
+        const env = m.totalEnviados || 0;
+        const ab = m.totalAbiertos || 0;
+        const cl = m.totalClicks || 0;
+        const tasa = env > 0 ? ((ab / env) * 100).toFixed(1) + '%' : '—';
+        const color = estadoColors[c.estado] || '#666';
+        const canSend = c.estado === 'borrador';
+
+        return `<tr>
+            <td style="text-align:center;color:#999;">${c.ordenSecuencia || '—'}</td>
+            <td><strong style="font-size:13px;">${c.nombre}</strong><br><span style="font-size:11px;color:#999;">${c.asunto}</span></td>
+            <td>${tipoLabels[c.tipo] || c.tipo}</td>
+            <td><span style="background:${color}20;color:${color};padding:2px 10px;border-radius:6px;font-size:12px;font-weight:600;">${c.estado}</span></td>
+            <td style="text-align:center;">${env.toLocaleString()}</td>
+            <td style="text-align:center;">${ab.toLocaleString()}</td>
+            <td style="text-align:center;">${cl.toLocaleString()}</td>
+            <td style="text-align:center;font-weight:600;color:${parseFloat(tasa) >= 20 ? '#10b981' : parseFloat(tasa) >= 10 ? '#f59e0b' : tasa === '—' ? '#999' : '#ef4444'};">${tasa}</td>
+            <td>
+                ${canSend ? `<button class="btn btn-primary" style="padding:4px 12px;font-size:11px;" onclick="sendCampaignNow('${c._id}', '${c.nombre.replace(/'/g, "\\'")}')">🚀 Enviar</button>` : ''}
+                <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="previewCampaign('${c._id}')">👁 Preview</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function sendCampaignNow(campaignId, campaignName) {
+    if (!confirm(`¿Enviar "${campaignName}" a todos los suscriptores activos?\\n\\nEsta acción no se puede deshacer.`)) return;
+
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/crm/emails/${campaignId}/enviar`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+            showNotification(`✅ Campaña enviada: ${data.totalEnviados || 0} emails`, 'success');
+            loadEmailCampaigns();
+        } else {
+            showNotification(`❌ ${data.error || 'Error enviando'}`, 'error');
+        }
+    } catch (e) {
+        console.error('Error:', e);
+        showNotification('Error de conexión', 'error');
+    }
+}
+
+async function previewCampaign(campaignId) {
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/crm/emails/${campaignId}/preview`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) { showNotification('Error cargando preview', 'error'); return; }
+        const html = await res.text();
+        const w = window.open('', '_blank');
+        w.document.write(html);
+        w.document.close();
+    } catch (e) {
+        console.error('Error:', e);
+    }
 }
 
 // ==================== CONVERSACIONES BOT ====================

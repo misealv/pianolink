@@ -83,6 +83,14 @@
                 </div>
             </div>
             
+            <!-- Email Marketing -->
+            <div class="nav-section">
+                <div class="nav-section-title">Email Marketing</div>
+                <div class="nav-item" data-module="email-campaigns" onclick="switchModule('email-campaigns')">
+                    <span class="icon">📧</span> Campañas
+                </div>
+            </div>
+
             <!-- Bot -->
             <div class="nav-section">
                 <div class="nav-section-title">Bot WhatsApp</div>
@@ -1579,6 +1587,75 @@
                         </button>
                         <div id="eb-status" style="display:none; padding:10px; border-radius:8px; margin-top:10px;"></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- ==================== EMAIL CAMPAIGNS ==================== -->
+            <div id="module-email-campaigns" class="module-view">
+                <!-- Stats -->
+                <div class="dashboard-grid">
+                    <div class="stat-card accent-blue">
+                        <div class="stat-icon">📧</div>
+                        <div class="stat-value" id="stat-emails-sent">0</div>
+                        <div class="stat-label">Enviados</div>
+                    </div>
+                    <div class="stat-card accent-green">
+                        <div class="stat-icon">📨</div>
+                        <div class="stat-value" id="stat-emails-opened">0</div>
+                        <div class="stat-label">Abiertos</div>
+                    </div>
+                    <div class="stat-card accent-orange">
+                        <div class="stat-icon">🔗</div>
+                        <div class="stat-value" id="stat-emails-clicked">0</div>
+                        <div class="stat-label">Clicks</div>
+                    </div>
+                    <div class="stat-card accent-red">
+                        <div class="stat-icon">⚠️</div>
+                        <div class="stat-value" id="stat-emails-bounced">0</div>
+                        <div class="stat-label">Rebotes</div>
+                    </div>
+                </div>
+
+                <!-- Tasas -->
+                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px;">
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; padding:16px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#10b981;" id="rate-open">0%</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Tasa Apertura</div>
+                    </div>
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; padding:16px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#3b82f6;" id="rate-click">0%</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Tasa Clicks</div>
+                    </div>
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; padding:16px; text-align:center;">
+                        <div style="font-size:24px; font-weight:700; color:#ef4444;" id="rate-bounce">0%</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Tasa Rebote</div>
+                    </div>
+                </div>
+
+                <!-- Tabla de campañas -->
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
+                    <div style="padding:16px 20px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="margin:0; font-size:15px; color:var(--text-primary);">Campañas</h3>
+                        <span style="font-size:12px; color:var(--text-secondary);" id="email-subs-count">Cargando...</span>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nombre</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Enviados</th>
+                                <th>Abiertos</th>
+                                <th>Clicks</th>
+                                <th>Tasa Ap.</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="email-campaigns-table-body">
+                            <tr><td colspan="9" style="text-align:center; padding:40px; color:#666;">Cargando...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
