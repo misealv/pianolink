@@ -154,6 +154,13 @@ const timeSlotSchema = mongoose.Schema({
     // Notas del profesor
     teacherNotes: String,
     
+    // Origen del slot
+    source: {
+        type: String,
+        enum: ['template', 'manual', 'quick-block'],
+        default: 'template'
+    },
+
     // Flags
     isRecurring: {
         type: Boolean,

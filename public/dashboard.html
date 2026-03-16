@@ -1693,7 +1693,8 @@
                     <div style="color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Plan</div>
                     <div id="earningsCompactPlan" style="color: white; font-size: 14px; font-weight: 700; margin-top: 2px;">Free</div>
                 </div>
-                <a href="/profesor/configuracion.html" style="color: var(--accent); font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap;">Ver detalle →</a>
+                <!-- Botón de acción de membresía (se actualiza dinámicamente) -->
+                <button id="membershipActionBtn" onclick="window.location.href='/pricing'" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none; color: white; padding: 8px 16px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 8px rgba(99,102,241,0.3); transition: all 0.2s;">⚡ Upgrade</button>
                 <!-- FASE 4: Botón invitar compacto (solo Premium/Founder) -->
                 <button id="inviteCompactBtn" onclick="openInviteModal()" style="display: none; background: linear-gradient(135deg, #4ade80, #22c55e); border: none; color: #0a1a0a; padding: 6px 14px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 700; white-space: nowrap;">+ Invitar</button>
             </div>
@@ -4157,6 +4158,36 @@
             // Plan activo: no mostrar botones de upgrade
             btnUpgrade.style.display = 'none';
             btnRenew.style.display = 'none';
+        }
+        
+        // Actualizar botón compacto de membresía en card principal
+        const membershipBtn = document.getElementById('membershipActionBtn');
+        if (membershipBtn) {
+            if (plan === 'free') {
+                membershipBtn.style.display = 'inline-block';
+                if (data.isFounder) {
+                    membershipBtn.textContent = '⭐ Reactivar';
+                    membershipBtn.style.background = 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)';
+                    membershipBtn.onclick = () => handleMembershipCheckout('founder');
+                } else {
+                    membershipBtn.textContent = '⚡ Upgrade';
+                    membershipBtn.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                    membershipBtn.onclick = () => window.location.href = '/pricing';
+                }
+            } else if (['expired', 'cancelled', 'past_due'].includes(data.subscriptionStatus)) {
+                membershipBtn.style.display = 'inline-block';
+                membershipBtn.textContent = '🔄 Renovar';
+                membershipBtn.style.background = 'linear-gradient(135deg, #00b1ea 0%, #009ee3 100%)';
+                membershipBtn.onclick = () => handleMembershipCheckout(plan);
+            } else if (data.subscriptionStatus === 'trial') {
+                membershipBtn.style.display = 'inline-block';
+                membershipBtn.textContent = '💳 Activar';
+                membershipBtn.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+                membershipBtn.onclick = () => handleMembershipCheckout(plan);
+            } else {
+                // Plan activo: ocultar botón upgrade
+                membershipBtn.style.display = 'none';
+            }
         }
         
         // Verificar país configurado

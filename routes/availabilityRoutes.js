@@ -829,4 +829,263 @@ router.delete('/block-date/:date', protect, async (req, res) => {
     }
 });
 
+// ==================== CALENDAR EVENTS (FULLCALENDAR FORMAT) ====================
+
+/**
+ * GET /api/availability/calendar-events
+ * Retorna slots + bookings en formato compatible con FullCalendar.
+ * Combina datos de my-calendar en objetos {id, title, start, end, color, ...}.
+ */
+router.get('/calendar-events', protect, async (req, res) => {
+    try {
+        const fromDate = req.query.from ? new Date(req.query.from) : new Date();
+        const toDate = req.query.to ? new Date(req.query.to) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+        const slots = await AvailabilityService.getTeacherCalendar(
+            req.user._id, fromDate, toDate
+        );
+
+        const events = slots.map(slot => {
+            const isBooked = ['booked', 'in_progress', 'completed'].includes(slot.status);
+            const studentName = slot.booking?.studentId?.name
+                || slot.booking?.studentName
+                || '';
+
+            return {
+                id: `slot_${slot._id}`,
+                title: isBooked
+                    ? `🎵 ${studentName}`
+                    : (slot.isRecurring ? '↻ Disponible' : 'Disponible'),
+                start: slot.startTime,
+                end: slot.endTime,
+                classNames: [
+                    isBooked ? 'fc-event-booked' : 'fc-event-available',
+                    slot.isRecurring ? 'fc-event-recurring' : ''
+                ].filter(Boolean),
+                editable: !isBooked,
+                durationEditable: !isBooked,
+                extendedProps: {
+                    type: isBooked ? 'booked' : 'available',
+                    slotId: slot._id.toString(),
+                    status: slot.status,
+                    studentName,
+                    isRecurring: !!slot.isRecurring,
+                    recurringGroupId: slot.recurringGroupId || null,
+                    displayStart: slot.displayStart,
+                    displayEnd: slot.displayEnd
+                }
+            };
+        });
+
+        res.json(events);
+    } catch (error) {
+        console.error('Error obteniendo calendar-events:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
+ * PATCH /api/availability/slots/:id/move
+ * Mover un slot a nueva fecha/hora (drag & drop o resize).
+ * Body: { newStart: ISO string, newEnd: ISO string }
+ */
+router.patch('/slots/:id/move', protect, async (req, res) => {
+    try {
+        const { newStart, newEnd } = req.body;
+        if (!newStart || !newEnd) {
+            return res.status(400).json({ message: 'newStart y newEnd son requeridos' });
+        }
+
+        const slot = await TimeSlot.findOne({
+            _id: req.params.id,
+            teacherId: req.user._id
+        });
+
+        if (!slot) {
+            return res.status(404).json({ message: 'Slot no encontrado' });
+        }
+
+        // Solo se pueden mover slots disponibles
+        if (slot.status !== 'available') {
+            return res.status(400).json({ message: 'Solo puedes mover slots disponibles (no reservados)' });
+        }
+
+        const newStartDate = new Date(newStart);
+        const newEndDate = new Date(newEnd);
+
+        // No permitir mover al pasado
+        if (newStartDate < new Date()) {
+            return res.status(400).json({ message: 'No puedes mover un slot al pasado' });
+        }
+
+        // Validar duración mínima 15 min
+        const durationMs = newEndDate - newStartDate;
+        if (durationMs < 15 * 60 * 1000) {
+            return res.status(400).json({ message: 'Duración mínima: 15 minutos' });
+        }
+
+        // Verificar conflictos (excluyendo el slot actual)
+        const conflict = await TimeSlot.findOne({
+            teacherId: req.user._id,
+            _id: { $ne: slot._id },
+            status: { $in: ['available', 'booked'] },
+            $or: [
+                { startTime: { $lt: newEndDate, $gte: newStartDate } },
+                { endTime: { $gt: newStartDate, $lte: newEndDate } },
+                { startTime: { $lte: newStartDate }, endTime: { $gte: newEndDate } }
+            ]
+        });
+
+        if (conflict) {
+            return res.status(409).json({ message: 'Conflicto con otro slot en ese horario' });
+        }
+
+        slot.startTime = newStartDate;
+        slot.endTime = newEndDate;
+        slot.duration = Math.round(durationMs / 60000);
+        slot.updatedAt = new Date();
+        await slot.save();
+
+        res.json({ success: true, message: 'Slot movido', slot });
+    } catch (error) {
+        console.error('Error moviendo slot:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
+ * POST /api/availability/quick-block
+ * Crear bloque recurrente desde el calendario.
+ * Body: { dayOfWeek, startTime, endTime, recurrence, weeksAhead }
+ * recurrence: 'none' | 'weekly' | 'biweekly'
+ */
+router.post('/quick-block', protect, async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({ message: 'Solo profesores pueden crear bloques' });
+        }
+
+        const { dayOfWeek, startTime, endTime, recurrence, weeksAhead } = req.body;
+
+        if (dayOfWeek === undefined || !startTime || !endTime) {
+            return res.status(400).json({ message: 'dayOfWeek, startTime y endTime son requeridos' });
+        }
+
+        const weeks = Math.min(weeksAhead || 12, 48);
+        const isRecurring = recurrence && recurrence !== 'none';
+        const recurringGroupId = isRecurring
+            ? `rg_${req.user._id}_${Date.now()}`
+            : null;
+
+        // Obtener plantilla para duración default
+        const template = await AvailabilityTemplate.findOne({
+            teacherId: req.user._id,
+            isActive: true
+        });
+        const defaultDuration = template?.defaultDuration || 45;
+
+        const createdSlots = [];
+        const errors = [];
+        const now = new Date();
+
+        // Encontrar próxima fecha con ese dayOfWeek
+        const today = new Date();
+        let nextDate = new Date(today);
+        const currentDay = today.getDay();
+        const daysUntil = (dayOfWeek - currentDay + 7) % 7;
+        nextDate.setDate(today.getDate() + (daysUntil === 0 ? 0 : daysUntil));
+        nextDate.setHours(0, 0, 0, 0);
+
+        const step = recurrence === 'biweekly' ? 14 : 7;
+
+        for (let w = 0; w < weeks; w++) {
+            const dateStr = nextDate.toISOString().split('T')[0];
+            const startDT = new Date(`${dateStr}T${startTime}:00`);
+            const endDT = endTime
+                ? new Date(`${dateStr}T${endTime}:00`)
+                : new Date(startDT.getTime() + defaultDuration * 60 * 1000);
+
+            // Saltar fechas pasadas
+            if (startDT < now) {
+                nextDate.setDate(nextDate.getDate() + step);
+                continue;
+            }
+
+            // Verificar conflictos
+            const conflict = await TimeSlot.findOne({
+                teacherId: req.user._id,
+                status: { $in: ['available', 'booked'] },
+                $or: [
+                    { startTime: { $lt: endDT, $gte: startDT } },
+                    { endTime: { $gt: startDT, $lte: endDT } },
+                    { startTime: { $lte: startDT }, endTime: { $gte: endDT } }
+                ]
+            });
+
+            if (conflict) {
+                errors.push({ date: dateStr, error: 'Conflicto con slot existente' });
+                nextDate.setDate(nextDate.getDate() + step);
+                continue;
+            }
+
+            try {
+                const slot = await TimeSlot.create({
+                    teacherId: req.user._id,
+                    startTime: startDT,
+                    endTime: endDT,
+                    duration: Math.round((endDT - startDT) / 60000),
+                    status: 'available',
+                    source: 'quick-block',
+                    isRecurring: !!isRecurring,
+                    recurringGroupId
+                });
+                createdSlots.push(slot);
+            } catch (err) {
+                errors.push({ date: dateStr, error: err.message });
+            }
+
+            nextDate.setDate(nextDate.getDate() + step);
+        }
+
+        res.json({
+            success: true,
+            created: createdSlots.length,
+            errors: errors.length,
+            recurringGroupId,
+            slots: createdSlots,
+            errorDetails: errors
+        });
+    } catch (error) {
+        console.error('Error creando quick-block:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
+ * DELETE /api/availability/slots/series/:groupId
+ * Eliminar todos los slots de una serie recurrente (solo disponibles).
+ */
+router.delete('/slots/series/:groupId', protect, async (req, res) => {
+    try {
+        const result = await TimeSlot.updateMany(
+            {
+                teacherId: req.user._id,
+                recurringGroupId: req.params.groupId,
+                status: 'available',
+                startTime: { $gte: new Date() }
+            },
+            { $set: { status: 'cancelled' } }
+        );
+
+        res.json({
+            success: true,
+            cancelled: result.modifiedCount,
+            message: `${result.modifiedCount} slots de la serie cancelados`
+        });
+    } catch (error) {
+        console.error('Error eliminando serie:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;

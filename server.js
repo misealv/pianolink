@@ -199,6 +199,9 @@ app.use('/api/teacher-packages', require('./routes/teacherPackageRoutes')); // P
 app.use('/api/subscriptions', require('./routes/subscriptionRoutes')); // Suscripciones de estudiantes
 app.use('/api/class-sessions', require('./routes/classSessionRoutes')); // Sesiones y validación
 
+// === BOT WHATSAPP (Twilio) — Calificación de setup ===
+app.use('/api/bot', require('./routes/botRoutes'));
+
 // === INVITACIONES DE ALUMNOS PRIVADOS (Fase 3 v5.0) ===
 app.use('/api/invite', require('./routes/invite')); // Generar, listar, revocar, registrar por invitación
 
@@ -411,10 +414,12 @@ app.get(['/c/:slug'], async (req, res) => {
             const teacher = await User.findById(room.teacherId).select('teacherData role');
             
             if (teacher && teacher.role === 'teacher') {
+                const plan = teacher.teacherData?.plan || 'free';
                 const status = teacher.teacherData?.subscriptionStatus;
                 
-                if (status !== 'active') {
-                    // Profesor sin membresía - servir página de membresía requerida
+                // Plan free no requiere membresía activa
+                if (plan !== 'free' && status !== 'active') {
+                    // Profesor con plan pago sin membresía activa
                     return res.send(`
                         <!DOCTYPE html>
                         <html lang="es">
@@ -663,17 +668,19 @@ io.on("connection", (socket) => {
             
             // Si encontramos un profesor, validar membresía
             if (teacher && teacher.role === 'teacher') {
+                const plan = teacher.teacherData?.plan || 'free';
                 const membershipStatus = teacher.teacherData?.subscriptionStatus;
                 
-                if (membershipStatus !== 'active') {
-                    console.log(`[Auth] ⛔ Profesor sin membresía activa intentó crear sala: ${teacher.email || payload.userId}`);
+                // Plan free no requiere membresía activa
+                if (plan !== 'free' && membershipStatus !== 'active') {
+                    console.log(`[Auth] ⛔ Profesor con plan ${plan} sin membresía activa: ${teacher.email || payload.userId}`);
                     socket.emit("room-error", {
                         code: 'MEMBERSHIP_INACTIVE',
                         message: 'Tu membresía no está activa. Actívala desde tu panel para acceder a tu sala.'
                     });
                     return; // Bloquear creación de sala
                 }
-                console.log(`[Auth] ✅ Membresía activa verificada para: ${teacher.email}`);
+                console.log(`[Auth] ✅ Acceso verificado para: ${teacher.email} (plan: ${plan})`);
             } else if (!teacher && (payload.userId || payload.email)) {
                 // Había credenciales pero no se encontró el usuario
                 console.log(`[Auth] ⚠️ Profesor no encontrado: ${payload.userId || payload.email}`);

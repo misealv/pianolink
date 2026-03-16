@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Disponibilidad | PianoLink</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- FullCalendar v6 CDN (Fase 0 — rediseño disponibilidad) -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <style>
         :root {
             --bg-dark: #121212;
@@ -527,6 +530,233 @@
         .back-link:hover {
             color: var(--accent);
         }
+
+        /* ── FullCalendar dark theme overrides (Fase 0) ── */
+        .fc {
+            --fc-border-color: var(--border);
+            --fc-page-bg-color: var(--bg-dark);
+            --fc-neutral-bg-color: var(--panel-bg);
+            --fc-today-bg-color: rgba(255, 118, 77, 0.06);
+            --fc-event-text-color: #fff;
+            --fc-list-event-hover-bg-color: rgba(255, 118, 77, 0.1);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+        }
+        .fc .fc-col-header-cell {
+            background: var(--panel-bg);
+            color: var(--text-main);
+            padding: 8px 0;
+            font-weight: 600;
+        }
+        .fc .fc-timegrid-slot {
+            border-color: var(--border);
+            height: 2.5em;
+        }
+        .fc .fc-timegrid-slot-label {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+        .fc .fc-scrollgrid {
+            border-color: var(--border);
+        }
+        .fc .fc-toolbar-title {
+            color: var(--text-main);
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .fc .fc-button {
+            background: var(--panel-bg);
+            border-color: var(--border);
+            color: var(--text-main);
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 8px;
+        }
+        .fc .fc-button:hover {
+            background: #2a2a2a;
+            border-color: var(--accent);
+        }
+        .fc .fc-button-active {
+            background: var(--accent) !important;
+            border-color: var(--accent) !important;
+            color: #fff !important;
+        }
+        .fc .fc-day-today .fc-col-header-cell-cushion {
+            color: var(--accent);
+        }
+        .fc .fc-timegrid-now-indicator-line {
+            border-color: var(--accent);
+        }
+        .fc .fc-timegrid-now-indicator-arrow {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        /* Evento disponible */
+        .fc-event-available {
+            background: rgba(34, 197, 94, 0.15) !important;
+            border: 1px dashed #22c55e !important;
+            color: #4ade80 !important;
+            cursor: pointer;
+        }
+        /* Evento reservado */
+        .fc-event-booked {
+            background: rgba(99, 102, 241, 0.2) !important;
+            border: 1px solid #6366f1 !important;
+            color: #a5b4fc !important;
+            cursor: default;
+        }
+        .fc-event-booked .fc-event-title {
+            font-size: 11px;
+        }
+        /* Selección temporal (Fase 2) */
+        .fc .fc-highlight {
+            background: rgba(34, 197, 94, 0.15) !important;
+        }
+        /* Collapsible sections (Fase 2) */
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 14px 20px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            transition: background 0.2s;
+        }
+        .collapsible-header:hover {
+            background: #252530;
+        }
+        .collapsible-header h3 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .collapsible-header .arrow {
+            transition: transform 0.2s;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .collapsible-header.open .arrow {
+            transform: rotate(90deg);
+        }
+        .collapsible-body {
+            display: none;
+            margin-bottom: 10px;
+        }
+        .collapsible-body.open {
+            display: block;
+        }
+
+        /* Fase 4: Badges de config */
+        .config-badge {
+            background: rgba(79, 172, 254, 0.15);
+            color: #4facfe;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Fase 4: Panel de resumen */
+        .summary-panel {
+            display: none;
+            gap: 16px;
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        @media (min-width: 1024px) {
+            .summary-panel { display: flex; }
+        }
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+        .summary-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .summary-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Fase 5: Badge recurrencia en eventos */
+        .fc-event-recurring {
+            border-left: 3px solid #facc15 !important;
+        }
+
+        /* Fase 4: Modal config overlay */
+        .config-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .config-modal-overlay.show {
+            display: flex;
+        }
+
+        /* ── Fase 6: Mobile bottom-sheet + responsive ── */
+        @media (max-width: 768px) {
+            /* Modals → bottom-sheet en mobile */
+            #slotDetailModal > div,
+            #createSlotModal > div,
+            #seriesDeleteModal > div {
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                top: auto !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                border-radius: 16px 16px 0 0 !important;
+                padding: 20px 16px 28px !important;
+                animation: slideUp 0.25s ease-out;
+            }
+            @keyframes slideUp {
+                from { transform: translateY(100%); }
+                to { transform: translateY(0); }
+            }
+
+            /* Calendario: altura mínima */
+            #fullcalendarContainer {
+                min-height: 400px;
+            }
+
+            /* Badges más compactos */
+            .config-badge {
+                font-size: 10px;
+                padding: 3px 7px;
+            }
+
+            /* Collapsible headers más touch-friendly */
+            .collapsible-header {
+                padding: 14px 16px;
+                min-height: 48px;
+            }
+
+            /* Summary panel: 2x2 en mobile si se fuerza visible */
+            .summary-panel {
+                flex-wrap: wrap;
+            }
+            .summary-item {
+                min-width: 45%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -545,14 +775,58 @@
             </div>
         </div>
 
-        <!-- Configuración de Plantilla -->
+        <!-- Fase 4: Calendario como protagonista -->
+        <div class="card" id="fullcalendarCard">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                <h2 style="margin:0;">📅 Mi Calendario</h2>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span id="badgeDuration" class="config-badge">45 min</span>
+                    <span id="badgeBuffer" class="config-badge">10 min buffer</span>
+                    <button onclick="openConfigModal()" class="btn btn-secondary" style="padding:6px 12px; font-size:13px;">⚙️ Config</button>
+                </div>
+            </div>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">
+                <span style="color: #4ade80;">● Verde</span> = Disponible &nbsp;|&nbsp;
+                <span style="color: #8b5cf6;">● Morado</span> = Clase reservada &nbsp;|&nbsp;
+                💡 Click, arrastra o mueve slots directamente
+            </p>
+
+            <!-- Panel de resumen — solo desktop -->
+            <div id="summaryPanel" class="summary-panel">
+                <div class="summary-item">
+                    <span class="summary-value" id="summaryAvailable">—</span>
+                    <span class="summary-label">Disponibles</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-value" id="summaryBooked">—</span>
+                    <span class="summary-label">Reservadas</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-value" id="summaryOccupancy">—</span>
+                    <span class="summary-label">Ocupación</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-value" id="summaryNext">—</span>
+                    <span class="summary-label">Próxima clase</span>
+                </div>
+            </div>
+
+            <div id="fullcalendarContainer"></div>
+        </div>
+
+        <!-- Configuración General (colapsado — Fase 4, accesible también desde botón ⚙) -->
+        <div class="collapsible-header" onclick="toggleCollapsible(this)">
+            <h3>⚙️ Configuración General</h3>
+            <span class="arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
         <div class="card">
             <h2>⚙️ Configuración General</h2>
             
             <div class="config-row">
                 <div class="config-item">
                     <label>Duración de clase</label>
-                    <select id="duration">
+                    <select id="duration" onchange="updateConfigBadges()">
                         <option value="30">30 minutos</option>
                         <option value="45" selected>45 minutos</option>
                         <option value="60">60 minutos</option>
@@ -561,7 +835,7 @@
                 </div>
                 <div class="config-item">
                     <label>Descanso entre clases</label>
-                    <select id="buffer">
+                    <select id="buffer" onchange="updateConfigBadges()">
                         <option value="0">0 minutos (sin descanso)</option>
                         <option value="5">5 minutos</option>
                         <option value="10" selected>10 minutos</option>
@@ -581,8 +855,14 @@
                 </div>
             </div>
         </div>
+        </div> <!-- cierre collapsible-body Configuración -->
 
-        <!-- Horario Semanal -->
+        <!-- Horario Semanal (colapsado — Fase 2) -->
+        <div class="collapsible-header" onclick="toggleCollapsible(this)">
+            <h3>📆 Horario Semanal (generación masiva)</h3>
+            <span class="arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
         <div class="card">
             <h2>📆 Horario Semanal</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
@@ -703,7 +983,14 @@
             </div>
         </div>
 
-        <!-- Bloquear fechas específicas -->
+        </div> <!-- cierre collapsible-body Horario Semanal -->
+
+        <!-- Bloquear fechas específicas (colapsado — Fase 4) -->
+        <div class="collapsible-header" onclick="toggleCollapsible(this)">
+            <h3>🚫 Bloquear Fechas</h3>
+            <span class="arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
         <div class="card">
             <h2>🚫 Bloquear Fechas</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
@@ -727,8 +1014,14 @@
             <!-- Lista de fechas bloqueadas -->
             <div id="blockedDatesList" style="margin-top: 20px;"></div>
         </div>
+        </div> <!-- cierre collapsible-body Bloquear Fechas -->
 
-        <!-- Añadir Disponibilidad Manual -->
+        <!-- Añadir Disponibilidad Manual (colapsado — Fase 2) -->
+        <div class="collapsible-header" onclick="toggleCollapsible(this)">
+            <h3>➕ Añadir Disponibilidad (formulario manual)</h3>
+            <span class="arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
         <div class="card">
             <h2>➕ Añadir Disponibilidad</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
@@ -816,7 +1109,14 @@
             </div>
         </div>
 
-        <!-- Eliminar Disponibilidad en Lote -->
+        </div> <!-- cierre collapsible-body Añadir Disponibilidad -->
+
+        <!-- Eliminar Disponibilidad en Lote (colapsado — Fase 4) -->
+        <div class="collapsible-header" onclick="toggleCollapsible(this)">
+            <h3>🗑️ Eliminar Disponibilidad en Lote</h3>
+            <span class="arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
         <div class="card">
             <h2>🗑️ Eliminar Disponibilidad en Lote</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
@@ -873,31 +1173,62 @@
                 </button>
             </div>
         </div>
+        </div> <!-- cierre collapsible-body Eliminar en Lote -->
 
-        <!-- Próximas Reservas - Vista Calendario Semanal -->
-        <div class="card">
-            <h2>📅 Mi Calendario de Clases</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">
-                <span style="color: #4ade80;">● Verde</span> = Disponible (click para eliminar) &nbsp;|&nbsp;
-                <span style="color: #8b5cf6;">● Morado</span> = Clase reservada (click para cancelar)
-            </p>
-            
-            <!-- Navegación de semanas -->
-            <div class="week-navigation">
-                <button class="week-nav-btn" id="prevWeekBtn" onclick="changeCalendarWeek(-1)">
-                    ← Anterior
-                </button>
-                <span class="week-title" id="calendarWeekTitle">Semana actual</span>
-                <button class="week-nav-btn" id="nextWeekBtn" onclick="changeCalendarWeek(1)">
-                    Siguiente →
-                </button>
+        <!-- Modal de detalle de slot/clase -->
+        <div id="slotDetailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center;">
+            <div style="background:var(--panel-bg); border:1px solid var(--border); border-radius:12px; padding:24px; max-width:360px; width:90%; position:relative;">
+                <button onclick="closeSlotModal()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;">✕</button>
+                <div id="slotDetailContent"></div>
             </div>
-            
-            <!-- Calendario -->
-            <div id="teacherCalendar">
-                <p style="color: var(--text-muted); text-align: center; padding: 30px;">
-                    Cargando calendario...
-                </p>
+        </div>
+
+        <!-- Modal para crear slot desde calendario (Fase 2) -->
+        <div id="createSlotModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center;">
+            <div style="background:var(--panel-bg); border:1px solid var(--border); border-radius:12px; padding:24px; max-width:380px; width:90%; position:relative;">
+                <button onclick="closeCreateSlotModal()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;">✕</button>
+                <h3 style="color: #4ade80; margin-bottom: 16px;">➕ Crear Disponibilidad</h3>
+                <div style="margin-bottom: 12px;">
+                    <label style="display:block; margin-bottom:4px; color:var(--text-muted); font-size:13px;">Fecha</label>
+                    <input type="date" id="createSlotDate" readonly style="width:100%; padding:10px; background:var(--bg-dark); border:1px solid var(--border); border-radius:6px; color:var(--text-main);">
+                </div>
+                <div style="display:flex; gap:12px; margin-bottom:12px;">
+                    <div style="flex:1;">
+                        <label style="display:block; margin-bottom:4px; color:var(--text-muted); font-size:13px;">Inicio</label>
+                        <input type="time" id="createSlotStart" style="width:100%; padding:10px; background:var(--bg-dark); border:1px solid var(--border); border-radius:6px; color:var(--text-main);">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block; margin-bottom:4px; color:var(--text-muted); font-size:13px;">Fin</label>
+                        <input type="time" id="createSlotEnd" style="width:100%; padding:10px; background:var(--bg-dark); border:1px solid var(--border); border-radius:6px; color:var(--text-main);">
+                    </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="display:block; margin-bottom:4px; color:var(--text-muted); font-size:13px;">Repetir</label>
+                    <select id="createSlotRecurrence" style="width:100%; padding:10px; background:var(--bg-dark); border:1px solid var(--border); border-radius:6px; color:var(--text-main);">
+                        <option value="none">No repite (solo este día)</option>
+                        <option value="weekly">↻ Cada semana (12 semanas)</option>
+                        <option value="biweekly">↻ Cada 2 semanas (12 semanas)</option>
+                    </select>
+                </div>
+                <div id="recurrenceWeeksRow" style="display:none; margin-bottom:12px;">
+                    <label style="display:block; margin-bottom:4px; color:var(--text-muted); font-size:13px;">Semanas a futuro</label>
+                    <input type="number" id="createSlotWeeks" value="12" min="2" max="48" style="width:100%; padding:10px; background:var(--bg-dark); border:1px solid var(--border); border-radius:6px; color:var(--text-main);">
+                </div>
+                <button class="btn btn-success" onclick="confirmCreateSlot()" style="width:100%;">✅ Crear Slot</button>
+            </div>
+        </div>
+
+        <!-- Modal confirmar eliminación de serie recurrente (Fase 5) -->
+        <div id="seriesDeleteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1001; justify-content:center; align-items:center;">
+            <div style="background:var(--panel-bg); border:1px solid var(--border); border-radius:12px; padding:24px; max-width:360px; width:90%; position:relative;">
+                <button onclick="closeSeriesDeleteModal()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;">✕</button>
+                <h3 style="color: #f87171; margin-bottom: 12px;">🗑️ Eliminar Slot Recurrente</h3>
+                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">Este slot forma parte de una serie. ¿Qué deseas eliminar?</p>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <button id="deleteOnlyThis" class="btn" style="background:#ef4444; color:white;">Solo este horario</button>
+                    <button id="deleteAllSeries" class="btn" style="background:#dc2626; color:white;">↻ Toda la serie futura</button>
+                    <button onclick="closeSeriesDeleteModal()" class="btn btn-secondary">Cancelar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1085,194 +1416,488 @@
                         }
                     });
                 }
+                updateConfigBadges();
             } catch (error) {
                 console.error('Error cargando plantilla:', error);
             }
         }
 
         // Variables para calendario del profesor
-        const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-        const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        let calendarWeekStart = null;
-        let allBookings = [];
-        let allSlots = [];
+        let fcCalendar = null; // Instancia FullCalendar
 
-        function getWeekStart(date) {
-            const d = new Date(date);
-            const day = d.getDay();
-            d.setDate(d.getDate() - day);
-            d.setHours(0, 0, 0, 0);
-            return d;
+        // Inicializar FullCalendar (Fase 1 — solo lectura)
+        function initFullCalendar() {
+            const calendarEl = document.getElementById('fullcalendarContainer');
+            if (!calendarEl) return;
+
+            fcCalendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
+                locale: 'es',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: window.innerWidth < 768 ? 'timeGridDay,listWeek' : 'timeGridWeek,timeGridDay,listWeek'
+                },
+                buttonText: {
+                    today: 'Hoy',
+                    week: 'Semana',
+                    day: 'Día',
+                    list: 'Lista'
+                },
+                slotMinTime: '07:00:00',
+                slotMaxTime: '22:00:00',
+                allDaySlot: false,
+                nowIndicator: true,
+                height: 'auto',
+                expandRows: true,
+                slotDuration: '00:30:00',
+                firstDay: 1, // Lunes
+                navLinks: true,
+                editable: true, // Fase 3: drag & drop para mover slots
+                eventDurationEditable: true, // Fase 3: resize para cambiar duración
+                selectable: true, // Fase 2: click/drag para crear
+                selectMirror: true, // Muestra preview mientras arrastra
+                dragRevertDuration: 300, // Animación de revert rápida
+
+                // Cargar eventos desde el endpoint
+                events: function(info, successCallback, failureCallback) {
+                    const from = info.startStr;
+                    const to = info.endStr;
+                    fetch(`/api/availability/calendar-events?from=${from}&to=${to}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                    .then(res => res.json())
+                    .then(events => {
+                        successCallback(events);
+                        setTimeout(updateSummaryPanel, 100);
+                    })
+                    .catch(err => {
+                        console.error('Error cargando eventos:', err);
+                        failureCallback(err);
+                    });
+                },
+
+                // Click en evento → modal de detalle
+                eventClick: function(info) {
+                    const props = info.event.extendedProps;
+                    showSlotDetail(info.event, props);
+                },
+
+                // Fase 2: selección en área vacía → abrir modal crear slot
+                select: function(info) {
+                    const now = new Date();
+                    if (info.start < now) {
+                        showToast('No puedes crear slots en el pasado', true);
+                        fcCalendar.unselect();
+                        return;
+                    }
+                    // Pre-llenar modal con fecha y horas seleccionadas
+                    const dateStr = info.start.toISOString().split('T')[0];
+                    const startH = String(info.start.getHours()).padStart(2, '0');
+                    const startM = String(info.start.getMinutes()).padStart(2, '0');
+                    const endH = String(info.end.getHours()).padStart(2, '0');
+                    const endM = String(info.end.getMinutes()).padStart(2, '0');
+
+                    document.getElementById('createSlotDate').value = dateStr;
+                    document.getElementById('createSlotStart').value = `${startH}:${startM}`;
+                    document.getElementById('createSlotEnd').value = `${endH}:${endM}`;
+                    document.getElementById('createSlotModal').style.display = 'flex';
+                },
+
+                // Fase 3: drag & drop → mover slot
+                eventDrop: function(info) {
+                    const props = info.event.extendedProps;
+                    if (props.type === 'booked') {
+                        info.revert();
+                        showToast('No puedes mover clases reservadas', true);
+                        return;
+                    }
+                    moveSlot(props.slotId, info.event.start, info.event.end, info.revert);
+                },
+
+                // Fase 3: resize → cambiar duración
+                eventResize: function(info) {
+                    const props = info.event.extendedProps;
+                    if (props.type === 'booked') {
+                        info.revert();
+                        showToast('No puedes redimensionar clases reservadas', true);
+                        return;
+                    }
+                    moveSlot(props.slotId, info.event.start, info.event.end, info.revert);
+                },
+
+                // Responsive: cambiar vista al redimensionar
+                windowResize: function(arg) {
+                    if (window.innerWidth < 768) {
+                        fcCalendar.changeView('timeGridDay');
+                    }
+                }
+            });
+
+            fcCalendar.render();
+        }
+
+        // Mostrar modal de detalle al clickear un evento
+        function showSlotDetail(event, props) {
+            const modal = document.getElementById('slotDetailModal');
+            const content = document.getElementById('slotDetailContent');
+            const start = event.start;
+            const end = event.end;
+            const timeStr = start.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+                + ' — ' + (end ? end.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) : '');
+            const dateStr = start.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+            const recurBadge = props.isRecurring ? '<span style="color:#facc15; font-size:12px;">↻ Recurrente</span>' : '';
+
+            if (props.type === 'booked') {
+                content.innerHTML = `
+                    <h3 style="color: #a5b4fc; margin-bottom: 12px;">🎵 Clase Agendada</h3>
+                    <p style="margin-bottom: 6px;"><strong>Alumno:</strong> ${props.studentName || 'Sin nombre'}</p>
+                    <p style="margin-bottom: 6px;"><strong>Fecha:</strong> ${dateStr}</p>
+                    <p style="margin-bottom: 6px;"><strong>Hora:</strong> ${timeStr}</p>
+                    <p style="margin-bottom: 16px;"><strong>Estado:</strong> ${props.status}</p>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="cancelBookingTeacher('${props.slotId}', '${(props.studentName || '').replace(/'/g, "\\'")}')" 
+                            class="btn" style="background: #ef4444; color: white; flex: 1;">
+                            Cancelar Clase
+                        </button>
+                        <button onclick="closeSlotModal()" class="btn btn-secondary" style="flex: 1;">Cerrar</button>
+                    </div>
+                `;
+            } else {
+                const deleteAction = props.isRecurring && props.recurringGroupId
+                    ? `openSeriesDeleteModal('${props.slotId}', '${props.recurringGroupId}')`
+                    : `deleteSlotFromModal('${props.slotId}')`;
+                content.innerHTML = `
+                    <h3 style="color: #4ade80; margin-bottom: 12px;">📅 Slot Disponible ${recurBadge}</h3>
+                    <p style="margin-bottom: 6px;"><strong>Fecha:</strong> ${dateStr}</p>
+                    <p style="margin-bottom: 6px;"><strong>Hora:</strong> ${timeStr}</p>
+                    <p style="margin-bottom: 16px; color: var(--text-muted); font-size: 12px;">Este horario está visible para que los alumnos lo reserven.</p>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="${deleteAction}"
+                            class="btn" style="background: #ef4444; color: white; flex: 1;">
+                            🗑️ Eliminar
+                        </button>
+                        <button onclick="closeSlotModal()" class="btn btn-secondary" style="flex: 1;">Cerrar</button>
+                    </div>
+                `;
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeSlotModal() {
+            document.getElementById('slotDetailModal').style.display = 'none';
+        }
+
+        // Cerrar modal haciendo click fuera
+        document.getElementById('slotDetailModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeSlotModal();
+        });
+
+        // === Fase 2: Collapsibles + Click-to-Create ===
+
+        // Alternar secciones colapsables
+        function toggleCollapsible(headerEl) {
+            headerEl.classList.toggle('open');
+            const body = headerEl.nextElementSibling;
+            if (body && body.classList.contains('collapsible-body')) {
+                body.classList.toggle('open');
+            }
+        }
+
+        // Cerrar modal crear slot
+        function closeCreateSlotModal() {
+            document.getElementById('createSlotModal').style.display = 'none';
+        }
+
+        // Cerrar modal crear slot haciendo click fuera
+        document.getElementById('createSlotModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeCreateSlotModal();
+        });
+
+        // Confirmar creación de slot desde modal
+        async function confirmCreateSlot() {
+            const date = document.getElementById('createSlotDate').value;
+            const startTime = document.getElementById('createSlotStart').value;
+            const endTime = document.getElementById('createSlotEnd').value;
+            const recurrence = document.getElementById('createSlotRecurrence').value;
+            const weeksAhead = parseInt(document.getElementById('createSlotWeeks').value) || 12;
+
+            if (!date || !startTime || !endTime) {
+                showToast('Completa todos los campos', true);
+                return;
+            }
+            if (startTime >= endTime) {
+                showToast('La hora de inicio debe ser anterior a la de fin', true);
+                return;
+            }
+
+            try {
+                let res, result;
+
+                if (recurrence !== 'none') {
+                    // Crear bloque recurrente
+                    const dayOfWeek = new Date(date + 'T12:00:00').getDay();
+                    res = await fetch('/api/availability/quick-block', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ dayOfWeek, startTime, endTime, recurrence, weeksAhead })
+                    });
+                    result = await res.json();
+                    if (res.ok && result.success) {
+                        const label = recurrence === 'weekly' ? 'semanal' : 'quincenal';
+                        showToast(`✓ Serie ${label} creada (${result.created} slots)`);
+                        trackEvent('availability_series_created', { recurrence, weeksAhead, created: result.created });
+                        closeCreateSlotModal();
+                        if (fcCalendar) fcCalendar.refetchEvents();
+                    } else {
+                        showToast(result.message || 'Error al crear serie', true);
+                    }
+                } else {
+                    // Crear slot único
+                    res = await fetch('/api/availability/slots', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ date, startTime, endTime })
+                    });
+                    result = await res.json();
+                    if (res.ok && result.success) {
+                        showToast(`✓ Slot creado (${startTime} — ${endTime})`);
+                        trackEvent('availability_slot_created', { date, startTime, endTime });
+                        closeCreateSlotModal();
+                        if (fcCalendar) fcCalendar.refetchEvents();
+                    } else {
+                        showToast(result.message || result.errors?.[0] || 'Error al crear slot', true);
+                    }
+                }
+            } catch (error) {
+                console.error('Error creando slot:', error);
+                showToast('Error de conexión', true);
+            }
+        }
+
+        // Fase 3: Mover slot via PATCH (drag & drop o resize)
+        async function moveSlot(slotId, newStart, newEnd, revertFn) {
+            try {
+                const res = await fetch(`/api/availability/slots/${slotId}/move`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        newStart: newStart.toISOString(),
+                        newEnd: newEnd.toISOString()
+                    })
+                });
+                const result = await res.json();
+                if (res.ok && result.success) {
+                    const timeStr = newStart.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                    showToast(`✓ Slot movido a ${timeStr}`);
+                    trackEvent('availability_slot_moved', { slotId: info.event.id, newStart: newStart.toISOString() });
+                } else {
+                    revertFn();
+                    showToast(result.message || 'Error al mover', true);
+                }
+            } catch (error) {
+                console.error('Error moviendo slot:', error);
+                revertFn();
+                showToast('Error de conexión', true);
+            }
+        }
+
+        // Fase 3: Eliminar slot con opción de deshacer (5 segundos)
+        let undoDeleteTimer = null;
+        let undoDeleteSlotId = null;
+
+        async function deleteSlotFromModal(slotId) {
+            trackEvent('availability_slot_deleted', { slotId });
+            closeSlotModal();
+
+            // Ocultar el evento visualmente de inmediato
+            if (fcCalendar) {
+                const event = fcCalendar.getEventById(`slot_${slotId}`);
+                if (event) event.setProp('display', 'none');
+            }
+
+            undoDeleteSlotId = slotId;
+
+            // Mostrar toast con botón deshacer
+            showUndoToast('Slot eliminado', async () => {
+                // Deshacer: volver a mostrar el evento
+                clearTimeout(undoDeleteTimer);
+                undoDeleteSlotId = null;
+                if (fcCalendar) {
+                    const event = fcCalendar.getEventById(`slot_${slotId}`);
+                    if (event) event.setProp('display', 'auto');
+                    else fcCalendar.refetchEvents();
+                }
+                showToast('✓ Eliminación cancelada');
+            });
+
+            // Después de 5 seg, eliminar definitivamente
+            undoDeleteTimer = setTimeout(async () => {
+                if (undoDeleteSlotId !== slotId) return;
+                undoDeleteSlotId = null;
+                try {
+                    const res = await fetch(`/api/availability/slots/${slotId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const result = await res.json();
+                    if (res.ok) {
+                        if (fcCalendar) fcCalendar.refetchEvents();
+                    } else {
+                        showToast(result.message || 'Error al eliminar', true);
+                        if (fcCalendar) fcCalendar.refetchEvents();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showToast('Error de conexión', true);
+                    if (fcCalendar) fcCalendar.refetchEvents();
+                }
+            }, 5000);
+        }
+
+        // Toast con botón "Deshacer"
+        function showUndoToast(message, undoCallback) {
+            const toast = document.getElementById('toast');
+            toast.innerHTML = `${message} <button onclick="event.stopPropagation(); this.parentElement.undoFn()" style="margin-left:12px; background:#4ade80; color:#000; border:none; padding:4px 12px; border-radius:4px; cursor:pointer; font-weight:600;">Deshacer</button>`;
+            toast.undoFn = () => {
+                undoCallback();
+                toast.classList.remove('show');
+            };
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 5500);
+        }
+
+        // === Fase 5: Recurrencia ===
+
+        // Toggle campo de semanas según selector de recurrencia
+        document.getElementById('createSlotRecurrence')?.addEventListener('change', function() {
+            const row = document.getElementById('recurrenceWeeksRow');
+            row.style.display = this.value !== 'none' ? 'block' : 'none';
+        });
+
+        // Modal de eliminación de serie
+        function openSeriesDeleteModal(slotId, groupId) {
+            closeSlotModal();
+            const modal = document.getElementById('seriesDeleteModal');
+            // Botón "Solo este"
+            document.getElementById('deleteOnlyThis').onclick = () => {
+                closeSeriesDeleteModal();
+                deleteSlotFromModal(slotId);
+            };
+            // Botón "Toda la serie"
+            document.getElementById('deleteAllSeries').onclick = async () => {
+                closeSeriesDeleteModal();
+                try {
+                    const res = await fetch(`/api/availability/slots/series/${encodeURIComponent(groupId)}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const result = await res.json();
+                    if (res.ok && result.success) {
+                        showToast(`✓ ${result.cancelled} slots de la serie eliminados`);
+                        trackEvent('availability_series_deleted', { groupId, cancelled: result.cancelled });
+                        if (fcCalendar) fcCalendar.refetchEvents();
+                    } else {
+                        showToast(result.message || 'Error al eliminar serie', true);
+                    }
+                } catch (error) {
+                    console.error('Error eliminando serie:', error);
+                    showToast('Error de conexión', true);
+                }
+            };
+            modal.style.display = 'flex';
+        }
+
+        function closeSeriesDeleteModal() {
+            document.getElementById('seriesDeleteModal').style.display = 'none';
+        }
+
+        document.getElementById('seriesDeleteModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeSeriesDeleteModal();
+        });
+
+        // === Fase 4: Config modal + badges + resumen ===
+
+        // Abrir config modal (scroll hasta la sección Config colapsable)
+        function openConfigModal() {
+            // Buscar el collapsible de Configuración y abrirlo
+            const headers = document.querySelectorAll('.collapsible-header');
+            for (const h of headers) {
+                if (h.textContent.includes('Configuración')) {
+                    if (!h.classList.contains('open')) {
+                        toggleCollapsible(h);
+                    }
+                    h.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+            }
+        }
+
+        // Actualizar badges cuando cambia duración o buffer
+        function updateConfigBadges() {
+            const dur = document.getElementById('duration');
+            const buf = document.getElementById('buffer');
+            if (dur) document.getElementById('badgeDuration').textContent = dur.value + ' min';
+            if (buf) document.getElementById('badgeBuffer').textContent = buf.value + ' min buffer';
+        }
+
+        // Actualizar panel de resumen con datos del calendario actual
+        function updateSummaryPanel() {
+            if (!fcCalendar) return;
+            const events = fcCalendar.getEvents();
+            const now = new Date();
+            let available = 0, booked = 0, nextClass = null;
+
+            events.forEach(ev => {
+                const type = ev.extendedProps?.type;
+                if (type === 'available') available++;
+                else if (type === 'booked') {
+                    booked++;
+                    if (ev.start > now && (!nextClass || ev.start < nextClass)) {
+                        nextClass = ev.start;
+                    }
+                }
+            });
+
+            const total = available + booked;
+            const occ = total > 0 ? Math.round((booked / total) * 100) + '%' : '—';
+
+            document.getElementById('summaryAvailable').textContent = available;
+            document.getElementById('summaryBooked').textContent = booked;
+            document.getElementById('summaryOccupancy').textContent = occ;
+
+            if (nextClass) {
+                const day = nextClass.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric' });
+                const time = nextClass.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                document.getElementById('summaryNext').textContent = `${day} ${time}`;
+            } else {
+                document.getElementById('summaryNext').textContent = '—';
+            }
+        }
+
+        // Recargar FullCalendar (usado por otras funciones)
+        async function loadCalendarData() {
+            if (fcCalendar) {
+                fcCalendar.refetchEvents();
+            }
         }
 
         function changeCalendarWeek(direction) {
-            const newStart = new Date(calendarWeekStart);
-            newStart.setDate(newStart.getDate() + (direction * 7));
-            
-            const today = getWeekStart(new Date());
-            if (newStart < today) return;
-            
-            const maxWeek = new Date(today);
-            maxWeek.setDate(maxWeek.getDate() + 21);
-            if (newStart > maxWeek) return;
-            
-            calendarWeekStart = newStart;
-            renderTeacherCalendar();
-        }
-
-        // Cargar datos del calendario
-        async function loadCalendarData() {
-            try {
-                // Cargar bookings y calendario del profesor (slots disponibles y reservados)
-                const [bookingsRes, calendarRes] = await Promise.all([
-                    fetch('/api/bookings/teacher', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    }),
-                    fetch('/api/availability/my-calendar', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    })
-                ]);
-
-                allBookings = await bookingsRes.json();
-                const calendarData = await calendarRes.json();
-                // my-calendar devuelve un array de slots directamente
-                allSlots = Array.isArray(calendarData) ? calendarData : [];
-                
-                // Iniciar en la semana actual
-                calendarWeekStart = getWeekStart(new Date());
-                renderTeacherCalendar();
-
-            } catch (error) {
-                console.error('Error cargando calendario:', error);
-                document.getElementById('teacherCalendar').innerHTML = `
-                    <p style="color: #ef4444; text-align: center; padding: 30px;">
-                        Error al cargar el calendario
-                    </p>
-                `;
+            // Compatibilidad: funciones legacy llaman esto
+            if (fcCalendar) {
+                if (direction > 0) fcCalendar.next();
+                else fcCalendar.prev();
             }
-        }
-
-        function renderTeacherCalendar() {
-            const container = document.getElementById('teacherCalendar');
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            // Actualizar título
-            const weekEnd = new Date(calendarWeekStart);
-            weekEnd.setDate(weekEnd.getDate() + 6);
-            document.getElementById('calendarWeekTitle').textContent = 
-                `${calendarWeekStart.getDate()} ${MESES[calendarWeekStart.getMonth()]} - ${weekEnd.getDate()} ${MESES[weekEnd.getMonth()]}`;
-            
-            // Controles de navegación
-            const todayWeek = getWeekStart(new Date());
-            const maxWeek = new Date(todayWeek);
-            maxWeek.setDate(maxWeek.getDate() + 21);
-            document.getElementById('prevWeekBtn').disabled = calendarWeekStart <= todayWeek;
-            document.getElementById('nextWeekBtn').disabled = calendarWeekStart >= maxWeek;
-            
-            // Filtrar items de esta semana
-            const weekEndDate = new Date(calendarWeekStart);
-            weekEndDate.setDate(weekEndDate.getDate() + 7);
-            
-            const weekBookings = (allBookings || []).filter(b => {
-                const d = new Date(b.scheduledStart);
-                return d >= calendarWeekStart && d < weekEndDate;
-            });
-            
-            const weekSlots = (allSlots || []).filter(s => {
-                const d = new Date(s.startTime);
-                return d >= calendarWeekStart && d < weekEndDate && s.status === 'available';
-            });
-            
-            // Obtener todas las horas únicas
-            const allHours = new Set();
-            weekBookings.forEach(b => allHours.add(new Date(b.scheduledStart).getHours()));
-            weekSlots.forEach(s => allHours.add(new Date(s.startTime).getHours()));
-            
-            const hours = [...allHours].sort((a, b) => a - b);
-            
-            if (hours.length === 0) {
-                container.innerHTML = `
-                    <div class="no-classes-msg">
-                        <p>📅 No hay clases ni horarios disponibles esta semana</p>
-                        <p style="font-size: 12px; margin-top: 8px;">Genera horarios en la sección de plantilla o navega a otra semana</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            // Construir grid
-            let html = '<div class="teacher-calendar">';
-            
-            // Headers
-            html += '<div class="cal-header time-col">Hora</div>';
-            for (let i = 0; i < 7; i++) {
-                const dayDate = new Date(calendarWeekStart);
-                dayDate.setDate(dayDate.getDate() + i);
-                const isToday = dayDate.toDateString() === today.toDateString();
-                
-                html += `
-                    <div class="cal-header ${isToday ? 'today' : ''}">
-                        <div class="day-name">${DIAS_SEMANA[i]}</div>
-                        <div class="day-number">${dayDate.getDate()}</div>
-                    </div>
-                `;
-            }
-            
-            // Filas por hora
-            for (const hour of hours) {
-                html += `<div class="cal-time">${hour.toString().padStart(2, '0')}:00</div>`;
-                
-                for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
-                    const dayDate = new Date(calendarWeekStart);
-                    dayDate.setDate(dayDate.getDate() + dayIdx);
-                    
-                    // Buscar bookings en esta hora
-                    const dayBookings = weekBookings.filter(b => {
-                        const bd = new Date(b.scheduledStart);
-                        return bd.getHours() === hour && 
-                               bd.getDate() === dayDate.getDate() &&
-                               bd.getMonth() === dayDate.getMonth();
-                    });
-                    
-                    // Buscar slots disponibles en esta hora
-                    const daySlots = weekSlots.filter(s => {
-                        const sd = new Date(s.startTime);
-                        return sd.getHours() === hour && 
-                               sd.getDate() === dayDate.getDate() &&
-                               sd.getMonth() === dayDate.getMonth();
-                    });
-                    
-                    html += '<div class="cal-cell">';
-                    
-                    // Mostrar bookings primero
-                    for (const booking of dayBookings) {
-                        const time = new Date(booking.scheduledStart).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-                        const studentName = booking.studentName || booking.studentId?.name || 'Estudiante';
-                        html += `
-                            <div class="cal-slot booked" onclick="showBookingDetails('${booking._id}', '${studentName}')">
-                                <div class="student-name">${studentName}</div>
-                                <div class="slot-time">${time}</div>
-                            </div>
-                        `;
-                    }
-                    
-                    // Mostrar slots disponibles (ahora clickeables para eliminar)
-                    for (const slot of daySlots) {
-                        const time = new Date(slot.startTime).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-                        html += `
-                            <div class="cal-slot available" onclick="deleteSlot('${slot._id}', '${time}')">
-                                <div class="slot-time">${time}</div>
-                            </div>
-                        `;
-                    }
-                    
-                    html += '</div>';
-                }
-            }
-            
-            html += '</div>';
-            container.innerHTML = html;
         }
 
         // Eliminar slot disponible
@@ -1329,6 +1954,7 @@
                 
                 if (res.ok) {
                     showToast('✓ Clase cancelada. Se devolvió 1 clase al estudiante.');
+                    closeSlotModal();
                     loadCalendarData(); // Recargar calendario
                 } else {
                     showToast(result.message || 'Error al cancelar', true);
@@ -1623,8 +2249,9 @@
 
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
+            trackEvent('availability_page_opened');
             loadTemplate();
-            loadCalendarData();
+            initFullCalendar();
             loadBlockedDates();
             initBlockDatePicker();
             initBulkDeletePicker();
@@ -1757,6 +2384,32 @@
                 btn.textContent = '🗑️ Eliminar Slots';
                 btn.disabled = false;
             }
+        }
+        // ── Fase 6: Touch swipe para navegar semanas ──
+        (function initSwipeNavigation() {
+            const cal = document.getElementById('fullcalendarContainer');
+            if (!cal) return;
+            let startX = 0, startY = 0;
+            cal.addEventListener('touchstart', e => {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+            }, { passive: true });
+            cal.addEventListener('touchend', e => {
+                const dx = e.changedTouches[0].clientX - startX;
+                const dy = e.changedTouches[0].clientY - startY;
+                // Solo si swipe horizontal significativo y no vertical
+                if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+                    if (fcCalendar) {
+                        if (dx < 0) fcCalendar.next();
+                        else fcCalendar.prev();
+                    }
+                }
+            }, { passive: true });
+        })();
+
+        // ── Fase 6: Analytics ligero ──
+        function trackEvent(name, data) {
+            console.log(`[Analytics] ${name}`, data || {});
         }
     </script>
 </body>
