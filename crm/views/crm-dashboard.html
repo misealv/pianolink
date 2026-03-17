@@ -3253,6 +3253,16 @@ hola@pianolink.net`
         return div.innerHTML;
     }
 
+    // === MODALES ===
+    window.openModal = function(id) {
+        const m = document.getElementById(id);
+        if (m) m.classList.add('show');
+    };
+    window.closeModal = function(id) {
+        const m = document.getElementById(id);
+        if (m) m.classList.remove('show');
+    };
+
     // === DROPDOWN ACCIONES ===
     window.toggleActionMenu = function(e) {
         e.stopPropagation();
