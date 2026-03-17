@@ -141,6 +141,16 @@ exports.receiveResendEvent = async (req, res) => {
             return;
         }
 
+        // Deduplicar: no crear evento si ya existe uno igual (mismo emailId + tipo)
+        const existing = await EmailTrackingEvent.findOne({
+            resendEmailId: resendEmailId,
+            eventType: eventType
+        }).lean();
+        if (existing) {
+            console.log(`[Email Tracking] ⏭ Evento duplicado ignorado: ${eventType} para ${resendEmailId}`);
+            return;
+        }
+
         // Crear evento de tracking
         await EmailTrackingEvent.create({
             crmLead: crmLeadId,

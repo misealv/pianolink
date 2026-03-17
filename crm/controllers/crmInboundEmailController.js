@@ -114,11 +114,11 @@ exports.receiveInbound = async (req, res) => {
 
         console.log(`[CRM Inbound] 📨 Evento recibido: ${eventType || 'sin tipo'} | firma: ${signatureVerified ? '✅' : '⚠️ no verificada'}`);
 
-        // Eventos de tracking → guardar como CrmInteraction + scoring/promoción automática
+        // Eventos de tracking → redirigir al controller dedicado (crmEmailTrackingController)
+        // NO procesar aquí para evitar duplicados
         const trackingEvents = ['email.sent', 'email.delivered', 'email.opened', 'email.clicked', 'email.bounced', 'email.complained'];
         if (eventType && trackingEvents.includes(eventType)) {
-            console.log(`[CRM Inbound] 📊 Evento tracking: ${eventType} | to: ${data.to || '?'} | subject: ${data.subject || '?'}`);
-            await _processTrackingEvent(eventType, data);
+            console.log(`[CRM Inbound] 📊 Evento tracking recibido: ${eventType} — ignorado (procesado por crmEmailTrackingController)`);
             return;
         }
 
