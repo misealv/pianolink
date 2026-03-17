@@ -12,7 +12,7 @@ class TwilioService {
     constructor() {
         const sid = process.env.TWILIO_ACCOUNT_SID;
         const token = process.env.TWILIO_AUTH_TOKEN;
-        this.from = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+15167168719';
+        this.from = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+15703788455';
 
         if (sid && token) {
             this.client = twilio(sid, token);
