@@ -587,6 +587,11 @@
         <li><a class="nav-link" data-section="report"><span class="icon">📊</span> Reporte CRM</a></li>
     </ul>
 
+    <p class="sidebar-section">Bot</p>
+    <ul class="sidebar-nav">
+        <li><a class="nav-link" data-section="bot-mia"><span class="icon">🤖</span> Mía (WhatsApp)</a></li>
+    </ul>
+
     <p class="sidebar-section">Seguimiento</p>
     <ul class="sidebar-nav">
         <li><a class="nav-link" data-section="tasks"><span class="icon">✅</span> Tareas <span class="badge" id="tasksBadge" style="display:none;">0</span></a></li>
@@ -1493,6 +1498,73 @@
             </div>
         </section>
 
+        <!-- ==================== BOT MÍA ==================== -->
+        <section class="section" id="section-bot-mia">
+            <div class="kpi-grid" style="margin-bottom:16px;">
+                <div class="kpi-card">
+                    <div class="kpi-icon purple">🤖</div>
+                    <div><h3 id="botKpiTotal">--</h3><p>Conversaciones</p></div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon green">🎯</div>
+                    <div><h3 id="botKpiLeads">--</h3><p>Con lead vinculado</p></div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon blue">📅</div>
+                    <div><h3 id="botKpiToday">--</h3><p>Últimas 24h</p></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h2>🤖 Conversaciones de Mía</h2>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input type="text" class="filter-search" id="botSearchInput" placeholder="Buscar por teléfono o nombre..." onkeyup="if(event.key==='Enter')loadBotConversations()">
+                        <select class="filter-select" id="botFilterLead" onchange="loadBotConversations()">
+                            <option value="">Todas</option>
+                            <option value="true">Con lead</option>
+                            <option value="false">Sin lead</option>
+                        </select>
+                        <button class="btn btn-outline btn-sm" onclick="loadBotConversations()">↻</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Teléfono</th>
+                                    <th>Nombre</th>
+                                    <th>Lead</th>
+                                    <th>Score</th>
+                                    <th>Mensajes</th>
+                                    <th>Última actividad</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="botConvosTable">
+                                <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="botPagination" style="display:flex;justify-content:center;gap:8px;margin-top:16px;"></div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<!-- ==================== MODAL CHAT MÍA ==================== -->
+<div class="modal" id="modalBotChat">
+    <div class="modal-content" style="max-width:520px;">
+        <div class="modal-header" style="background:#1a1d23;color:#fff;border-radius:12px 12px 0 0;">
+            <h3 style="display:flex;align-items:center;gap:8px;">🤖 Chat con Mía <span id="botChatPhone" style="font-size:13px;color:#aaa;"></span></h3>
+            <button class="modal-close" onclick="closeModal('modalBotChat')" style="color:#aaa;">&times;</button>
+        </div>
+        <div id="botChatLeadInfo" style="padding:10px 16px;background:#f8f9fa;border-bottom:1px solid var(--border);font-size:13px;display:none;"></div>
+        <div class="modal-body" id="botChatMessages" style="max-height:55vh;overflow-y:auto;padding:16px;background:#e5ddd5;">
+            <p style="text-align:center;color:#888;">Cargando conversación...</p>
+        </div>
     </div>
 </div>
 
@@ -2441,6 +2513,7 @@ hola@pianolink.net`
             case 'teacher-invites': loadTeacherInvites(); break;
             case 'tasks': loadTasksSection(); break;
             case 'report': loadReportSection(); break;
+            case 'bot-mia': loadBotConversations(); break;
         }
     }
 
@@ -2675,6 +2748,7 @@ hola@pianolink.net`
                             <button onclick="editLead('${leadId}', '${crmId}')">✏️ Editar</button>
                             <button onclick="showPipelineModal('${crmId}', '${ref.type || 'client'}')">📋 Pipeline</button>
                             <button onclick="showAddTaskModal('${crmId}')">📌 Nueva Tarea</button>
+                            <button onclick="showBotChatByLead('${leadId}')">🤖 Chat Mía</button>
                         </div>
                     </div>
                 </td>
@@ -2763,6 +2837,7 @@ hola@pianolink.net`
                             <button onclick="showAddTaskModal('${crmId}')">📌 Nueva Tarea</button>
                             ${ref.type === 'teacher' ? `<button onclick="showScheduleInterview('${leadId}','${esc(name)}','${esc(email)}','${esc(ref.availability?.join(',') || '')}')">📅 Agendar Entrevista</button>` : ''}
                             ${ref.type === 'teacher' ? `<button onclick="tiInviteFromLead('${leadId}','${crmId}','${esc(name)}','${esc(email)}','${esc(ref.country||'')}')">🎫 Invitar Profesor</button>` : ''}
+                            <button onclick="showBotChatByLead('${leadId}')">🤖 Chat Mía</button>
                             <hr>
                             <button class="danger" onclick="deleteLead('${leadId}', '${esc(name)}')">🗑️ Eliminar</button>
                         </div>
@@ -5207,6 +5282,145 @@ hola@pianolink.net`
     window.fiEditLanding = fiEditLanding;
     window.fiRefreshPreview = fiRefreshPreview;
     window.fiSaveLanding = fiSaveLanding;
+
+    // ========================================================
+    //  BOT MÍA — Conversaciones
+    // ========================================================
+    let botCurrentPage = 1;
+
+    async function loadBotConversations(page) {
+        botCurrentPage = page || 1;
+        const search = document.getElementById('botSearchInput')?.value?.trim() || '';
+        const hasLead = document.getElementById('botFilterLead')?.value || '';
+        let url = `/bot/conversations?page=${botCurrentPage}&limit=30`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (hasLead) url += `&hasLead=${hasLead}`;
+
+        const res = await apiFetch(url);
+        if (!res?.success) return;
+
+        // KPIs
+        setText('botKpiTotal', res.stats?.totalConvos || 0);
+        setText('botKpiLeads', res.stats?.withLead || 0);
+        setText('botKpiToday', res.stats?.activeToday || 0);
+
+        // Tabla
+        const tbody = document.getElementById('botConvosTable');
+        if (!res.data?.length) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);">Sin conversaciones</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = res.data.map(c => {
+            const phone = c.phone || '--';
+            const nombre = c.leadData?.nombre || c.leadRef?.name || '--';
+            const hasLeadRef = !!c.leadRef;
+            const leadBadge = hasLeadRef
+                ? `<span class="badge badge-active">${esc(c.leadRef.name || 'Vinculado')}</span>`
+                : '<span class="badge badge-draft">No</span>';
+            const score = c.leadData?.score != null ? `<strong>${c.leadData.score}</strong>/10` : '--';
+            const msgs = c.messageCount || 0;
+            const lastAct = c.lastActivity
+                ? new Date(c.lastActivity).toLocaleDateString('es-MX', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
+                : '--';
+
+            return `<tr>
+                <td style="font-family:monospace;font-size:13px;">${esc(phone)}</td>
+                <td><div class="lead-name">${esc(nombre)}</div>${c.leadData?.instrumento ? `<div style="font-size:11px;color:var(--text-secondary);">${esc(c.leadData.instrumento)} ${c.leadData.modelo||''}</div>` : ''}</td>
+                <td>${leadBadge}</td>
+                <td style="text-align:center;">${score}</td>
+                <td style="text-align:center;">${msgs}</td>
+                <td>${lastAct}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline" onclick="showBotChat('${c._id}')">💬 Ver chat</button>
+                </td>
+            </tr>`;
+        }).join('');
+
+        // Paginación
+        const pg = res.pagination;
+        const pDiv = document.getElementById('botPagination');
+        if (pg.pages <= 1) { pDiv.innerHTML = ''; return; }
+        let btns = '';
+        for (let i = 1; i <= pg.pages; i++) {
+            btns += `<button class="btn btn-sm ${i === pg.page ? 'btn-primary' : 'btn-outline'}" onclick="loadBotConversations(${i})">${i}</button>`;
+        }
+        pDiv.innerHTML = btns;
+    }
+
+    async function showBotChat(convoId) {
+        openModal('modalBotChat');
+        document.getElementById('botChatMessages').innerHTML = '<p style="text-align:center;color:#888;padding:20px;">Cargando...</p>';
+        document.getElementById('botChatLeadInfo').style.display = 'none';
+
+        const res = await apiFetch(`/bot/conversations/${convoId}`);
+        if (!res?.success) {
+            document.getElementById('botChatMessages').innerHTML = '<p style="text-align:center;color:#d63031;">Error al cargar conversación</p>';
+            return;
+        }
+
+        const c = res.data;
+        document.getElementById('botChatPhone').textContent = c.phone || '';
+
+        // Lead info banner
+        if (c.leadData || c.leadRef) {
+            const info = document.getElementById('botChatLeadInfo');
+            const ld = c.leadData || {};
+            const parts = [];
+            if (ld.nombre) parts.push(`<strong>${esc(ld.nombre)}</strong>`);
+            if (ld.instrumento) parts.push(`🎹 ${esc(ld.instrumento)} ${esc(ld.modelo||'')}`);
+            if (ld.tipoMidi) parts.push(`MIDI: ${esc(ld.tipoMidi)}`);
+            if (ld.nivel) parts.push(`Nivel: ${esc(ld.nivel)}`);
+            if (ld.score != null) parts.push(`Score: <strong>${ld.score}/10</strong>`);
+            if (ld.segmento) parts.push(`Segmento: ${esc(ld.segmento)}`);
+            if (ld.setupReady) parts.push('✅ Setup listo');
+            if (parts.length) {
+                info.innerHTML = parts.join(' · ');
+                info.style.display = 'block';
+            }
+        }
+
+        // Mensajes tipo WhatsApp
+        const msgs = c.messages || [];
+        if (!msgs.length) {
+            document.getElementById('botChatMessages').innerHTML = '<p style="text-align:center;color:#888;padding:20px;">Sin mensajes</p>';
+            return;
+        }
+
+        document.getElementById('botChatMessages').innerHTML = msgs.map(m => {
+            const isBot = m.role === 'assistant';
+            const time = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' }) : '';
+            const align = isBot ? 'margin-right:auto;background:#dcf8c6;' : 'margin-left:auto;background:#fff;';
+            const content = typeof m.content === 'string' ? esc(m.content) : '📷 (imagen)';
+            return `<div style="max-width:80%;padding:8px 12px;border-radius:8px;margin-bottom:6px;font-size:14px;line-height:1.5;box-shadow:0 1px 1px rgba(0,0,0,.1);word-wrap:break-word;white-space:pre-wrap;${align}">
+                ${m.hasImage ? '📷 ' : ''}${content}
+                <div style="font-size:10px;color:#999;text-align:right;margin-top:4px;">${isBot ? '🤖 Mía' : '👤 Lead'} · ${time}</div>
+            </div>`;
+        }).join('');
+
+        // Scroll al final
+        const container = document.getElementById('botChatMessages');
+        container.scrollTop = container.scrollHeight;
+    }
+
+    async function showBotChatByLead(leadId) {
+        openModal('modalBotChat');
+        document.getElementById('botChatMessages').innerHTML = '<p style="text-align:center;color:#888;padding:20px;">Buscando conversación...</p>';
+        document.getElementById('botChatLeadInfo').style.display = 'none';
+        document.getElementById('botChatPhone').textContent = '';
+
+        const res = await apiFetch(`/bot/conversations/by-lead/${leadId}`);
+        if (!res?.success) {
+            document.getElementById('botChatMessages').innerHTML = '<p style="text-align:center;color:#888;padding:20px;">Este lead no tiene conversación con Mía</p>';
+            return;
+        }
+        // Reutilizar showBotChat con el ID obtenido
+        await showBotChat(res.data._id);
+    }
+
+    window.loadBotConversations = loadBotConversations;
+    window.showBotChat = showBotChat;
+    window.showBotChatByLead = showBotChatByLead;
 
 })();
 </script>

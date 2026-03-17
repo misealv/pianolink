@@ -37,6 +37,9 @@ router.get('/tracking/email/stats', _protect, _adminOnly, emailTrackingCtrl.getE
 // === Configuración (Meta Pixel, etc.) ===
 router.use('/config', require('./routes/crmConfigRoutes'));
 
+// === Bot Mía — Conversaciones ===
+router.use('/bot', require('./routes/crmBotRoutes'));
+
 // === Fase 3: Growth Engine ===
 router.use('/growth', require('./routes/crmGrowthRoutes'));
 router.use('/webhooks', require('./routes/crmWebhookRoutes'));

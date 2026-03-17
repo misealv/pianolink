@@ -33,7 +33,7 @@ const sPd = 'font-size:14px;color:#666;line-height:1.6;margin:24px 0 0;border-to
 const sCta = 'background:#c9a84c;color:#0a0a0a;text-decoration:none;padding:16px 40px;border-radius:4px;font-size:16px;font-weight:bold;display:inline-block;';
 const sQuote = 'border-left:4px solid #c9a84c;background:#f5f5f0;padding:20px 24px;border-radius:0 8px 8px 0;';
 function ctaBtn() {
-    return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr><td align="center"><a href="https://pianolink.net/kit-bienvenida-v2" style="${sCta}">Quiero mi Kit — $44</a></td></tr></table>`;
+    return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr><td align="center"><a href="https://pianolink.net/comenzar" style="${sCta}">Quiero mi Kit — $44</a></td></tr></table>`;
 }
 function ctaWhatsApp() {
     return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr><td align="center"><a href="https://wa.me/15703788455?text=Hola%20M%C3%ADa" style="${sCta.replace('#c9a84c','#25D366').replace('#0a0a0a','#ffffff')}">💬 Escribirle a Mía por WhatsApp</a></td></tr></table>`;
@@ -51,7 +51,8 @@ async function main() {
 
     for (const c of campaigns) {
         // Bulk: links y CTA
-        const fix = (h) => h.replace(/https:\/\/pianolink\.net\/oferta-madrugadores/g, 'https://pianolink.net/kit-bienvenida-v2')
+        const fix = (h) => h.replace(/https:\/\/pianolink\.net\/oferta-madrugadores/g, 'https://pianolink.net/comenzar')
+            .replace(/https:\/\/pianolink\.net\/kit-bienvenida-v2/g, 'https://pianolink.net/comenzar')
             .replace(/Quiero mi Kit — \$29/g, 'Quiero mi Kit — $44');
         c.contenidoHtml = fix(c.contenidoHtml);
         if (c.contenidoHtmlActivos) c.contenidoHtmlActivos = fix(c.contenidoHtmlActivos);
