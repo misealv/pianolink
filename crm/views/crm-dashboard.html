@@ -1021,6 +1021,64 @@
 
         <!-- ==================== CAMPAÑAS EMAIL (NUEVO) ==================== -->
         <section class="section" id="section-emails">
+            <!-- Panel de Reactivación -->
+            <div class="card" style="margin-bottom:20px;border-left:4px solid #c9a84c;">
+                <div class="card-header">
+                    <h2>🔄 Reactivación de Leads Fríos</h2>
+                    <button class="btn btn-outline" style="font-size:13px;padding:6px 12px;" onclick="loadReactivationPanel()">↻ Actualizar</button>
+                </div>
+                <div class="card-body">
+                    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:16px;" id="reactivationKPIs">
+                        <div style="text-align:center;padding:12px 20px;background:var(--bg-secondary);border-radius:8px;min-width:100px;">
+                            <div style="font-size:24px;font-weight:700;color:var(--text-primary);" id="rkvSent">--</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">📤 Enviados</div>
+                        </div>
+                        <div style="text-align:center;padding:12px 20px;background:var(--bg-secondary);border-radius:8px;min-width:100px;">
+                            <div style="font-size:24px;font-weight:700;color:#22c55e;" id="rkvDelivered">--</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">✅ Entregados</div>
+                        </div>
+                        <div style="text-align:center;padding:12px 20px;background:var(--bg-secondary);border-radius:8px;min-width:100px;">
+                            <div style="font-size:24px;font-weight:700;color:#3b82f6;" id="rkvOpened">--</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">👁 Abiertos</div>
+                        </div>
+                        <div style="text-align:center;padding:12px 20px;background:var(--bg-secondary);border-radius:8px;min-width:100px;">
+                            <div style="font-size:24px;font-weight:700;color:#c9a84c;" id="rkvOpenRate">--</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">📊 Tasa apertura</div>
+                        </div>
+                        <div style="text-align:center;padding:12px 20px;background:var(--bg-secondary);border-radius:8px;min-width:100px;">
+                            <div style="font-size:24px;font-weight:700;color:#f97316;" id="rkvEngaged">--</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">🔥 Engaged</div>
+                        </div>
+                        <div style="text-align:center;padding:12px 20px;background:var(--bg-secondary);border-radius:8px;min-width:100px;">
+                            <div style="font-size:24px;font-weight:700;color:var(--text-secondary);" id="rkvRemaining">--</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">⏳ Pendientes</div>
+                        </div>
+                        <div style="text-align:center;padding:12px 20px;background:var(--bg-secondary);border-radius:8px;min-width:100px;">
+                            <div style="font-size:24px;font-weight:700;color:#ef4444;" id="rkvBounced">--</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">↩️ Rebotes</div>
+                        </div>
+                    </div>
+                    <h3 style="font-size:15px;margin:16px 0 8px;color:var(--text-primary);">👁 Leads que abrieron el email</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Teléfono</th>
+                                    <th>Aperturas</th>
+                                    <th>Engagement</th>
+                                    <th>Última apertura</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reactivationOpenedTable">
+                                <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-secondary);">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header">
                     <h2>📧 Campañas de Email</h2>
@@ -2288,6 +2346,49 @@ hola@pianolink.net`
 
     // === HOT LEADS BANNER (Fase 2B) ===
     function showHotBanner(count) {
+
+    // === PANEL REACTIVACIÓN ===
+    window.loadReactivationPanel = async function() {
+        try {
+            const res = await apiFetch('/reactivation/stats');
+            if (!res?.success) return;
+            const s = res.stats;
+            setText('rkvSent', s.totalSent || 0);
+            setText('rkvDelivered', s.delivered || 0);
+            setText('rkvOpened', s.opened || 0);
+            setText('rkvOpenRate', (s.openRate || 0) + '%');
+            setText('rkvEngaged', s.totalEngaged || 0);
+            setText('rkvRemaining', s.totalRemaining || 0);
+            setText('rkvBounced', s.bounced || 0);
+
+            const tbody = document.getElementById('reactivationOpenedTable');
+            if (!tbody) return;
+            const leads = res.openedLeads || [];
+            if (leads.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-secondary);">Aún no hay aperturas registradas</td></tr>';
+                return;
+            }
+            tbody.innerHTML = leads.map(l => {
+                const levelColors = { cold: '#94a3b8', warm: '#f59e0b', hot: '#ef4444', super_hot: '#dc2626' };
+                const levelLabels = { cold: 'Frío', warm: 'Tibio', hot: 'Caliente', super_hot: '🔥 Muy caliente' };
+                const color = levelColors[l.engagementLevel] || '#94a3b8';
+                const label = levelLabels[l.engagementLevel] || l.engagementLevel;
+                const waLink = l.phone ? `<a href="https://wa.me/${l.phone.replace(/\D/g,'')}" target="_blank" title="WhatsApp">💬</a>` : '';
+                return `<tr>
+                    <td><strong>${l.name}</strong></td>
+                    <td>${l.email}</td>
+                    <td>${l.phone || '—'} ${waLink}</td>
+                    <td style="text-align:center;font-weight:700;">${l.opens}x</td>
+                    <td><span style="color:${color};font-weight:600;">${label}</span></td>
+                    <td>${l.lastOpenedAt ? timeAgo(l.lastOpenedAt) : '—'}</td>
+                </tr>`;
+            }).join('');
+        } catch (e) {
+            console.error('[Reactivation] Error:', e.message);
+        }
+    };
+
+    function showHotBanner(count) {
         const banner = document.getElementById('hotLeadsBanner');
         if (!banner) return;
         // No mostrar si ya fue descartado en esta sesión
@@ -2506,7 +2607,7 @@ hola@pianolink.net`
             case 'landings': loadLandings(); break;
             case 'funnel': loadFunnel(); break;
             case 'attribution': loadAttribution(); break;
-            case 'emails': loadEmailCampaigns(); break;
+            case 'emails': loadEmailCampaigns(); loadReactivationPanel(); break;
             case 'inbox': loadInbox(); break;
             case 'pixel': loadPixelConfig(); break;
             case 'founder-invites': loadFounderInvites(); break;

@@ -228,7 +228,9 @@ class CrmReactivationService {
      * Estadísticas del proceso de reactivación.
      */
     static async getStats() {
-        const [totalSent, totalEngaged, totalRemaining] = await Promise.all([
+        const EmailTrackingEvent = require('../models/EmailTrackingEvent');
+
+        const [totalSent, totalEngaged, totalRemaining, opened, delivered, clicked, bounced] = await Promise.all([
             CrmLead.countDocuments({ tags: TAG_SENT }),
             CrmLead.countDocuments({ tags: 'reactivation-engaged' }),
             CrmLead.countDocuments({
@@ -240,10 +242,42 @@ class CrmReactivationService {
                     { 'emailEngagement.totalSent': 0 },
                     { 'emailEngagement.totalSent': null }
                 ]
-            })
+            }),
+            EmailTrackingEvent.countDocuments({ eventType: 'opened' }),
+            EmailTrackingEvent.countDocuments({ eventType: 'delivered' }),
+            EmailTrackingEvent.countDocuments({ eventType: 'clicked' }),
+            EmailTrackingEvent.countDocuments({ eventType: 'bounced' })
         ]);
 
-        return { totalSent, totalEngaged, totalRemaining };
+        const openRate = delivered > 0 ? Math.round((opened / delivered) * 1000) / 10 : 0;
+
+        return { totalSent, totalEngaged, totalRemaining, opened, delivered, clicked, bounced, openRate };
+    }
+
+    /**
+     * Leads que abrieron el email de reactivación (para vista CRM).
+     */
+    static async getOpenedLeads(limit = 50) {
+        const leads = await CrmLead.find({
+            tags: TAG_SENT,
+            'emailEngagement.totalOpened': { $gte: 1 }
+        })
+        .populate('leadRef', 'name email phone')
+        .sort({ 'emailEngagement.lastOpenedAt': -1 })
+        .limit(limit)
+        .lean();
+
+        return leads.map(l => ({
+            _id: l._id,
+            name: l.leadRef?.name || '—',
+            email: l.leadRef?.email || '—',
+            phone: l.leadRef?.phone || '',
+            opens: l.emailEngagement?.totalOpened || 0,
+            clicks: l.emailEngagement?.totalClicked || 0,
+            lastOpenedAt: l.emailEngagement?.lastOpenedAt,
+            engagementLevel: l.emailEngagement?.engagementLevel || 'cold',
+            tags: l.tags || []
+        }));
     }
 }
 

@@ -34,6 +34,18 @@ const emailTrackingCtrl = require('./controllers/crmEmailTrackingController');
 router.get('/tracking/email/timeline/:crmLeadId', _protect, _adminOnly, emailTrackingCtrl.getEmailTimeline);
 router.get('/tracking/email/stats', _protect, _adminOnly, emailTrackingCtrl.getEmailStats);
 
+// === Reactivación — stats + lista de leads que abrieron ===
+router.get('/reactivation/stats', _protect, _adminOnly, async (req, res) => {
+    try {
+        const CrmReactivationService = require('./services/CrmReactivationService');
+        const stats = await CrmReactivationService.getStats();
+        const openedLeads = await CrmReactivationService.getOpenedLeads();
+        res.json({ success: true, stats, openedLeads });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // === Configuración (Meta Pixel, etc.) ===
 router.use('/config', require('./routes/crmConfigRoutes'));
 
