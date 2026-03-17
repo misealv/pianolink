@@ -768,6 +768,18 @@
                             <input type="checkbox" id="qualityFilterPiano" checked> 🛡️ Filtro calidad
                         </label>
                     </div>
+                    <!-- Filtros de embudo email -->
+                    <div class="filters" id="funnelFilters" style="gap:6px;margin-bottom:12px;">
+                        <button class="filter-btn active" data-funnel="all">📋 Todos</button>
+                        <button class="filter-btn" data-funnel="sent" style="border-color:#3498db;">📤 Enviados</button>
+                        <button class="filter-btn" data-funnel="opened" style="border-color:#27ae60;">👁 Abrieron</button>
+                        <button class="filter-btn" data-funnel="multi_open" style="border-color:#e67e22;">🔄 Multi-open</button>
+                        <button class="filter-btn" data-funnel="clicked" style="border-color:#e74c3c;">🔗 Click</button>
+                        <button class="filter-btn" data-funnel="engaged" style="border-color:#8e44ad;">🔥 Engaged</button>
+                        <button class="filter-btn" data-funnel="no_interaction" style="border-color:#95a5a6;">❄️ Sin interacción</button>
+                        <button class="filter-btn" data-funnel="not_sent" style="border-color:#bdc3c7;">⏳ Pendientes</button>
+                        <span id="funnelCount" style="font-size:12px;color:var(--text-secondary);margin-left:auto;"></span>
+                    </div>
                     <div class="table-wrapper">
                         <table>
                             <thead>
@@ -2077,6 +2089,7 @@
     const API = '/api/crm';
     let allLeads = [];
     let pianoLeads = []; // Prospectos Piano Calificados
+    let activeFunnelFilter = 'all'; // Filtro de embudo activo
     let teacherLeads = []; // Cache de profesores cargados del server
     let clientLeads = []; // Cache de clientes cargados del server
     let allCampaigns = [];
@@ -2140,6 +2153,30 @@
         return leads.filter(l => {
             const email = (l.leadRef || {}).email || '';
             return !isJunkEmail(email);
+        });
+    }
+
+    // === FILTRO DE EMBUDO EMAIL ===
+    function applyFunnelFilter(leads) {
+        if (activeFunnelFilter === 'all') return leads;
+        return leads.filter(l => {
+            const tags = l.tags || [];
+            const eng = l.emailEngagement || {};
+            const sent = tags.includes('reactivation-sent');
+            const opened = (eng.totalOpened || 0) >= 1;
+            const multiOpen = (eng.totalOpened || 0) >= 2;
+            const clicked = (eng.totalClicked || 0) >= 1;
+            const engaged = tags.includes('reactivation-engaged');
+            switch (activeFunnelFilter) {
+                case 'sent': return sent;
+                case 'opened': return sent && opened;
+                case 'multi_open': return sent && multiOpen;
+                case 'clicked': return sent && clicked;
+                case 'engaged': return engaged;
+                case 'no_interaction': return sent && !opened;
+                case 'not_sent': return !sent;
+                default: return true;
+            }
         });
     }
 
@@ -2719,7 +2756,7 @@ hola@pianolink.net`
 
     // === PROSPECTOS PIANO CALIFICADOS ===
     async function loadPianoCalificados(search) {
-        const qs = search ? `?search=${encodeURIComponent(search)}&limit=500` : '?limit=500';
+        const qs = search ? `?search=${encodeURIComponent(search)}&limit=7000` : '?limit=7000';
         const res = await apiFetch(`/leads/views/piano-calificados${qs}`);
         if (!res?.success) return;
         pianoLeads = res.data || [];
@@ -2735,7 +2772,12 @@ hola@pianolink.net`
         if (!tbody) return;
 
         // Aplicar filtro de calidad (MEJORA 6)
-        const filtered = applyQualityFilter(leads);
+        let filtered = applyQualityFilter(leads);
+
+        // Aplicar filtro de embudo email
+        filtered = applyFunnelFilter(filtered);
+        const funnelCountEl = document.getElementById('funnelCount');
+        if (funnelCountEl) funnelCountEl.textContent = activeFunnelFilter !== 'all' ? `${filtered.length} de ${leads.length}` : '';
 
         // Actualizar barra de actividad (MEJORA 5)
         updateActivityBar();
@@ -4608,6 +4650,16 @@ hola@pianolink.net`
         // Filtro de calidad: al cambiar, re-renderizar la tabla Piano
         document.getElementById('qualityFilterPiano')?.addEventListener('change', () => {
             if (pianoLeads.length > 0) renderPianoTable(pianoLeads);
+        });
+
+        // Filtros de embudo email
+        document.querySelectorAll('#funnelFilters .filter-btn[data-funnel]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#funnelFilters .filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeFunnelFilter = btn.dataset.funnel;
+                if (pianoLeads.length > 0) renderPianoTable(pianoLeads);
+            });
         });
 
         // Logout

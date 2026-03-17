@@ -153,7 +153,7 @@ class CrmLeadService {
      */
     static async listPianoCalificados(filters = {}) {
         try {
-            const { search, page = 1, limit = 500 } = filters;
+            const { search, page = 1, limit = 7000 } = filters;
 
             // Patrones de email a excluir (sistema / no-persona)
             const excludeEmailRegex = /noreply|no-reply|no_reply|mailer-daemon|postmaster|donotreply|do-not-reply|bounce|notifications@|daemon@|auto-confirm/i;
