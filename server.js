@@ -158,7 +158,7 @@ app.get(['/profesores-fundadores', '/ser-profesor', '/ensenar'], (req, res) => {
 });
 
 // Ruta limpia para Welcome Kit (checkout)
-app.get(['/kit', '/welcome-kit', '/kit-bienvenida'], (req, res) => {
+app.get(['/kit', '/welcome-kit', '/kit-bienvenida', '/kit-bienvenida-v2'], (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'kit-bienvenida-v2.html'));
 });
 
