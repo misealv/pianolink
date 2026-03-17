@@ -5,6 +5,9 @@
  */
 const twilio = require('twilio');
 
+// Template aprobado por Meta para mensajes fuera de la ventana de 24h
+const TEMPLATE_MIA_REACTIVACION = 'HX440ba076d6586ed7b0eeeaa2538019a2';
+
 class TwilioService {
     constructor() {
         const sid = process.env.TWILIO_ACCOUNT_SID;
@@ -25,17 +28,43 @@ class TwilioService {
     }
 
     /**
-     * Enviar mensaje WhatsApp a un número.
+     * Enviar mensaje WhatsApp usando Content Template (para mensajes fuera de ventana 24h).
      * @param {string} to - Número destino (ej: "+56912345678")
+     * @param {object} variables - Variables del template (ej: { "1": "Juan" })
+     * @param {string} [templateSid] - SID del template (default: mia_reactivacion)
+     */
+    async sendWhatsAppTemplate(to, variables = {}, templateSid = TEMPLATE_MIA_REACTIVACION) {
+        if (!this.client) {
+            return { success: false, error: 'Twilio no configurado' };
+        }
+
+        const toNum = to.startsWith('whatsapp:') ? to : `whatsapp:${to.startsWith('+') ? to : '+' + to}`;
+
+        try {
+            const msg = await this.client.messages.create({
+                from: this.from,
+                to: toNum,
+                contentSid: templateSid,
+                contentVariables: JSON.stringify(variables)
+            });
+            console.log(`[TwilioService] ✅ WA template enviado a ${to} → SID: ${msg.sid}`);
+            return { success: true, sid: msg.sid };
+        } catch (err) {
+            console.error(`[TwilioService] ❌ Error template a ${to}:`, err.message);
+            return { success: false, error: err.message };
+        }
+    }
+
+    /**
+     * Enviar mensaje WhatsApp libre (solo funciona dentro de ventana 24h o sandbox).
+     * @param {string} to - Número destino
      * @param {string} body - Texto del mensaje
-     * @returns {{ success: boolean, sid?: string, error?: string }}
      */
     async sendWhatsApp(to, body) {
         if (!this.client) {
             return { success: false, error: 'Twilio no configurado' };
         }
 
-        // Normalizar número
         const toNum = to.startsWith('whatsapp:') ? to : `whatsapp:${to.startsWith('+') ? to : '+' + to}`;
 
         try {

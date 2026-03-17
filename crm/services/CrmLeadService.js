@@ -1141,7 +1141,12 @@ class CrmLeadService {
             const nombre = (ref.name || '').split(' ')[0] || 'Hola';
             const msg = `¡Hola ${nombre}! 👋 Soy *Mía*, asesora musical de *Piano Link*.\n\nVi que te interesó nuestra info sobre clases de piano online. ¿Sigues pensando en aprender? 🎹\n\nSi quieres, te cuento cómo funciona nuestra tecnología MIDI — es como tener al profe al lado, pero desde tu casa.`;
 
-            const result = await TwilioService.sendWhatsApp(ref.whatsapp, msg);
+            // Intentar con template (funciona fuera de ventana 24h), fallback a mensaje libre
+            let result = await TwilioService.sendWhatsAppTemplate(ref.whatsapp, { "1": nombre });
+            if (!result.success) {
+                console.log('[CRM] Template falló, intentando mensaje libre:', result.error);
+                result = await TwilioService.sendWhatsApp(ref.whatsapp, msg);
+            }
 
             if (!result.success) {
                 return { success: false, status: 502, message: `Error Twilio: ${result.error}` };
