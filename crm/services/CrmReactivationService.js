@@ -13,7 +13,10 @@ const Lead = require('../../models/Lead');
 let resendService = null;
 function getResendService() {
     if (!resendService) {
-        try { resendService = require('./CrmResendService'); } catch (e) { /* no disponible */ }
+        try {
+            const mod = require('./CrmResendService');
+            resendService = mod.getInstance ? mod.getInstance() : mod;
+        } catch (e) { /* no disponible */ }
     }
     return resendService;
 }
@@ -58,10 +61,10 @@ const TAG_SENT = 'reactivation-sent';
 class CrmReactivationService {
 
     /**
-     * Proceso diario: enviar a 500 leads fríos que no han recibido emails.
-     * Llamado por CronService diariamente.
+     * Proceso diario: enviar a leads fríos que no han recibido emails.
+     * @param {number} [limit=DAILY_BATCH_SIZE] — cantidad de leads a procesar
      */
-    static async processDailyBatch() {
+    static async processDailyBatch(limit = DAILY_BATCH_SIZE) {
         const resend = getResendService();
         if (!resend || !resend.isConfigured()) {
             console.log('[Reactivation] Resend no configurado, saltando');
@@ -81,7 +84,7 @@ class CrmReactivationService {
                 ]
             })
             .populate('leadRef', 'name email')
-            .limit(DAILY_BATCH_SIZE)
+            .limit(limit)
             .lean();
 
             if (candidates.length === 0) {
