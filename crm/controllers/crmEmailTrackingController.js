@@ -20,6 +20,15 @@ function getFollowUpService() {
     return CrmEmailFollowUpService;
 }
 
+// Lazy-load: Reactivation auto-enroll
+let CrmReactivationService = null;
+function getReactivationService() {
+    if (!CrmReactivationService) {
+        try { CrmReactivationService = require('../services/CrmReactivationService'); } catch (e) { /* no disponible */ }
+    }
+    return CrmReactivationService;
+}
+
 /**
  * POST /api/crm/webhooks/resend/events
  * Recibe eventos de Resend. SIN AUTH — Resend llama directamente.
@@ -202,6 +211,16 @@ exports.receiveResendEvent = async (req, res) => {
                         change: 10,
                         reason: 'Email abierto por primera vez'
                     });
+                }
+
+                // Auto-enroll: si el lead tiene tag 'reactivation-sent' y aún no está enrolled
+                if (crmLead.tags?.includes('reactivation-sent') && !crmLead.tags?.includes('reactivation-engaged')) {
+                    const reactivationSvc = getReactivationService();
+                    if (reactivationSvc) {
+                        reactivationSvc.autoEnrollInNurturing(crmLeadId).catch(err => {
+                            console.error('[Email Tracking] Error auto-enroll reactivación:', err.message);
+                        });
+                    }
                 }
                 break;
 

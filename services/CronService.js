@@ -83,6 +83,15 @@ function getEmailFollowUpService() {
     return CrmEmailFollowUpService;
 }
 
+// CRM: Reactivation Service — envío diario de emails a leads fríos
+let CrmReactivationService = null;
+function getReactivationService() {
+    if (!CrmReactivationService) {
+        try { CrmReactivationService = require('../crm/services/CrmReactivationService'); } catch (e) { /* no disponible */ }
+    }
+    return CrmReactivationService;
+}
+
 class CronService {
     static jobs = [];
 
@@ -352,6 +361,23 @@ class CronService {
             timezone: 'UTC'
         });
         this.jobs.push(emailFollowUpJob);
+
+        // 13e. CRM: Reactivation — Envío diario de email a 500 leads fríos — 10AM Chile (13:00 UTC)
+        const reactivationJob = cron.schedule('0 13 * * *', async () => {
+            const service = getReactivationService();
+            if (!service) return;
+            try {
+                const result = await service.processDailyBatch();
+                if (result.sent > 0 || result.errors > 0) {
+                    console.log(`[Cron] 🔄 Reactivación: ${result.sent} enviados, ${result.errors} errores, ${result.remaining} restantes`);
+                }
+            } catch (error) {
+                console.error('[Cron] ❌ Error reactivación:', error);
+            }
+        }, {
+            timezone: 'UTC'
+        });
+        this.jobs.push(reactivationJob);
 
         // ============================================
         // JOBS FASE 3: PERMISOS Y PLANES
