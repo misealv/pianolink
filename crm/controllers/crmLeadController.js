@@ -6,6 +6,17 @@
 const CrmLeadService = require('../services/CrmLeadService');
 const CrmInteraction = require('../models/CrmInteraction');
 
+// === WHATSAPP PROACTIVO MÍA ===
+exports.sendWhatsAppMia = async (req, res) => {
+    try {
+        const result = await CrmLeadService.sendWhatsAppMia(req.params.id);
+        res.status(result.success ? 200 : result.status || 500).json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en sendWhatsAppMia:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
 // === CRUD ===
 
 exports.list = async (req, res) => {

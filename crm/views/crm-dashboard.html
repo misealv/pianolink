@@ -2852,8 +2852,16 @@ hola@pianolink.net`
             const _eEmail = esc(email).replace(/'/g, '\\&#39;');
             const _eSource = esc(String(ref.source || '')).replace(/'/g, '\\&#39;');
 
+            const waAlreadySent = (lead.tags || []).includes('wa_mia_sent');
+            const miaBtn = hasPhone && !waAlreadySent
+                ? `<button class="qb" style="background:#25D366;color:#fff;font-size:13px;" onclick="sendWhatsAppMia('${crmId}','${_eName}')" title="Mía envía WA al lead">🤖</button>`
+                : hasPhone && waAlreadySent
+                ? `<span class="qb" style="background:#dfe6e9;cursor:default;font-size:11px;" title="WA Mía ya enviado">✅🤖</span>`
+                : '';
+
             const quickBtns = `<div class="quick-btns">
                 <a href="${esc(waHref)}" target="_blank" rel="noopener" class="${waBtnClass}" ${waOnclick}title="${hasPhone ? 'Abrir WhatsApp' : 'Sin teléfono'}">💬</a>
+                ${miaBtn}
                 ${email ? `<button class="qb qb-email" onclick="openEmailModal('${_eName}','${_eEmail}','${crmId}',${!!isEx},'${_eSource}')" title="Enviar email a ${esc(email)}">📧</button>` : '<span class="qb" style="background:#eee;cursor:not-allowed;opacity:.4;" title="Sin email">📧</span>'}
                 ${email ? `<button class="qb qb-invite" onclick="openStudentInviteModal('${_eName}','${_eEmail}','${crmId}')" title="Invitar gratis al Kit">🎁</button>` : ''}
                 <div style="position:relative;display:inline-block;">
@@ -4661,6 +4669,34 @@ hola@pianolink.net`
                 if (pianoLeads.length > 0) renderPianoTable(pianoLeads);
             });
         });
+    }
+
+    // === ENVIAR WHATSAPP MÍA ===
+    async function sendWhatsAppMia(crmId, name) {
+        if (!confirm(`¿Enviar WhatsApp de Mía a ${name}?`)) return;
+        const btn = event?.target;
+        if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+        try {
+            const res = await apiFetch(`/leads/${crmId}/send-whatsapp-mia`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (res?.success) {
+                alert(`✅ ${res.message}`);
+                if (btn) { btn.textContent = '✅🤖'; btn.style.background = '#dfe6e9'; btn.style.color = '#333'; }
+                // Actualizar lead local
+                const lead = pianoLeads.find(l => l._id === crmId);
+                if (lead) { if (!lead.tags) lead.tags = []; lead.tags.push('wa_mia_sent'); }
+            } else {
+                alert(`❌ ${res?.message || 'Error al enviar WA'}`);
+                if (btn) { btn.disabled = false; btn.textContent = '🤖'; }
+            }
+        } catch (e) {
+            alert(`❌ Error: ${e.message}`);
+            if (btn) { btn.disabled = false; btn.textContent = '🤖'; }
+        }
+    }
+    window.sendWhatsAppMia = sendWhatsAppMia;
 
         // Logout
         document.getElementById('btnLogout')?.addEventListener('click', (e) => {

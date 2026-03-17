@@ -76,6 +76,9 @@ router.post('/:id/pipeline/advance', ctrl.advancePipeline);
 router.post('/:id/pipeline/lost', ctrl.markLost);
 router.post('/:id/contact-result', ctrl.markContactResult);
 
+// === WHATSAPP PROACTIVO ===
+router.post('/:id/send-whatsapp-mia', ctrl.sendWhatsAppMia);
+
 // === TAREAS POR LEAD ===
 router.get('/:id/tasks', ctrl.getLeadTasks);
 router.post('/:id/tasks', ctrl.addTask);

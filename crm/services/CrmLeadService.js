@@ -1108,6 +1108,87 @@ class CrmLeadService {
             utmCampaign: data.utmCampaign || ''
         };
     }
+
+    // =========================================================================
+    // WHATSAPP PROACTIVO — Mía contacta al lead
+    // =========================================================================
+
+    /**
+     * Enviar mensaje proactivo de Mía a un lead caliente.
+     * Pre-siembra la conversación en WhatsAppBotService para que Mía continúe si el lead responde.
+     */
+    static async sendWhatsAppMia(crmLeadId) {
+        try {
+            const crmLead = await CrmLead.findById(crmLeadId).populate('leadRef', 'name email whatsapp').lean();
+            if (!crmLead) return { success: false, status: 404, message: 'Lead no encontrado' };
+
+            const ref = crmLead.leadRef;
+            if (!ref?.whatsapp || !ref.whatsapp.trim()) {
+                return { success: false, status: 400, message: 'Lead sin número WhatsApp' };
+            }
+
+            // Verificar que no se haya enviado ya
+            if (crmLead.tags?.includes('wa_mia_sent')) {
+                return { success: false, status: 409, message: 'Ya se envió WA de Mía a este lead' };
+            }
+
+            const TwilioService = require('../../services/TwilioService').getInstance();
+            if (!TwilioService.isConfigured()) {
+                return { success: false, status: 503, message: 'Twilio no configurado' };
+            }
+
+            // Construir mensaje personalizado
+            const nombre = (ref.name || '').split(' ')[0] || 'Hola';
+            const msg = `¡Hola ${nombre}! 👋 Soy *Mía*, asesora musical de *Piano Link*.\n\nVi que te interesó nuestra info sobre clases de piano online. ¿Sigues pensando en aprender? 🎹\n\nSi quieres, te cuento cómo funciona nuestra tecnología MIDI — es como tener al profe al lado, pero desde tu casa.`;
+
+            const result = await TwilioService.sendWhatsApp(ref.whatsapp, msg);
+
+            if (!result.success) {
+                return { success: false, status: 502, message: `Error Twilio: ${result.error}` };
+            }
+
+            // Tagear lead
+            await CrmLead.findByIdAndUpdate(crmLeadId, {
+                $addToSet: { tags: 'wa_mia_sent' }
+            });
+
+            // Registrar interacción
+            await CrmInteraction.create({
+                leadRef: crmLeadId,
+                type: 'whatsapp_sent',
+                channel: 'whatsapp',
+                direction: 'outbound',
+                metadata: {
+                    twilioSid: result.sid,
+                    message: msg,
+                    from: 'mia_proactive',
+                    to: ref.whatsapp
+                },
+                timestamp: new Date()
+            });
+
+            // Pre-siembra en WhatsAppBotService para continuidad
+            try {
+                const WhatsAppBotService = require('../../services/WhatsAppBotService');
+                const phone = ref.whatsapp.replace(/[^0-9+]/g, '');
+                if (WhatsAppBotService.conversations) {
+                    WhatsAppBotService.conversations.set(phone, {
+                        messages: [
+                            { role: 'assistant', content: msg }
+                        ],
+                        lastActivity: Date.now(),
+                        proactive: true
+                    });
+                }
+            } catch (_) { /* Si falla la pre-siembra, no es crítico */ }
+
+            console.log(`[CRM] 📱 WA Mía enviado a ${nombre} (${ref.whatsapp})`);
+            return { success: true, message: `WhatsApp enviado a ${nombre}` };
+        } catch (error) {
+            console.error('[CRM] Error sendWhatsAppMia:', error);
+            return { success: false, status: 500, message: error.message };
+        }
+    }
 }
 
 module.exports = CrmLeadService;
