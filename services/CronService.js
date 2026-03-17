@@ -362,8 +362,8 @@ class CronService {
         });
         this.jobs.push(emailFollowUpJob);
 
-        // 13e. CRM: Reactivation — Envío diario de email a 500 leads fríos — 13:00 Chile
-        const reactivationJob = cron.schedule('0 13 * * *', async () => {
+        // 13e. CRM: Reactivation — Envío diario de email a 500 leads fríos — 10:00 Chile
+        const reactivationJob = cron.schedule('0 10 * * *', async () => {
             const service = getReactivationService();
             if (!service) return;
             try {
