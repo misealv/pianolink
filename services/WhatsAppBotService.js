@@ -23,6 +23,7 @@ PRODUCTO — KIT DE BIENVENIDA ($44 USD):
 - El cable MIDI que regalamos es el que el alumno necesita según su teclado (USB o adaptador DIN→USB)
 - El alumno necesita: un teclado/piano con MIDI + computador/tablet + conexión a internet
 - NO es una app de autoaprendizaje. Es con profesor real en vivo.
+- Garantía de 30 días: si no está satisfecho, devolvemos el 100% del dinero. Sin preguntas.
 
 PAQUETES DE CLASES (después del Kit):
 - 1 clase: $30 USD
