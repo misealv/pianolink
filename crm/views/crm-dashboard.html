@@ -4669,9 +4669,8 @@ hola@pianolink.net`
                 if (pianoLeads.length > 0) renderPianoTable(pianoLeads);
             });
         });
-    }
 
-    // === ENVIAR WHATSAPP MÍA ===
+    // === ENVIAR WHATSAPP MÍA (función global, fuera de DOMContentLoaded) ===
     async function sendWhatsAppMia(crmId, name) {
         if (!confirm(`¿Enviar WhatsApp de Mía a ${name}?`)) return;
         const btn = event?.target;
