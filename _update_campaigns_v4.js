@@ -36,7 +36,7 @@ function ctaBtn() {
     return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr><td align="center"><a href="https://pianolink.net/kit-bienvenida-v2" style="${sCta}">Quiero mi Kit — $44</a></td></tr></table>`;
 }
 function ctaWhatsApp() {
-    return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr><td align="center"><a href="https://wa.me/15167168719?text=Hola%20M%C3%ADa" style="${sCta.replace('#c9a84c','#25D366').replace('#0a0a0a','#ffffff')}">💬 Escribirle a Mía por WhatsApp</a></td></tr></table>`;
+    return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr><td align="center"><a href="https://wa.me/15703788455?text=Hola%20M%C3%ADa" style="${sCta.replace('#c9a84c','#25D366').replace('#0a0a0a','#ffffff')}">💬 Escribirle a Mía por WhatsApp</a></td></tr></table>`;
 }
 function firma() {
     return `<p style="font-size:16px;color:#333;margin:0;">Miguel Antonio<br><span style="color:#c9a84c;">Fundador, PianoLink</span></p>`;
