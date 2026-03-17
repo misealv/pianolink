@@ -362,7 +362,7 @@ class CronService {
         });
         this.jobs.push(emailFollowUpJob);
 
-        // 13e. CRM: Reactivation — Envío diario de email a 500 leads fríos — 10AM Chile (13:00 UTC)
+        // 13e. CRM: Reactivation — Envío diario de email a 500 leads fríos — 13:00 Chile
         const reactivationJob = cron.schedule('0 13 * * *', async () => {
             const service = getReactivationService();
             if (!service) return;
@@ -375,7 +375,7 @@ class CronService {
                 console.error('[Cron] ❌ Error reactivación:', error);
             }
         }, {
-            timezone: 'UTC'
+            timezone: 'America/Santiago'
         });
         this.jobs.push(reactivationJob);
 
