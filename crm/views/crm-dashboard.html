@@ -2899,7 +2899,7 @@ hola@pianolink.net`
                             <button onclick="showPipelineModal('${crmId}', '${ref.type || 'client'}')">📋 Pipeline</button>
                             <button onclick="showAddTaskModal('${crmId}')">📌 Nueva Tarea</button>
                             <button onclick="showBotChatByLead('${leadId}')">🤖 Chat Mía</button>
-                            ${lead.emailPreferences?.unsubscribed ? `<button style="color:#d63031;" onclick="deleteCrmLead('${crmId}','${_eName}')">🗑️ Eliminar (unsub)</button>` : ''}
+                            <button style="color:#d63031;" onclick="deleteCrmLead('${crmId}','${_eName}')">🗑️ Eliminar</button>
                         </div>
                     </div>
                 </td>
