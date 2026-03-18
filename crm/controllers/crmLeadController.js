@@ -70,6 +70,16 @@ exports.update = async (req, res) => {
     }
 };
 
+exports.deleteCrmLead = async (req, res) => {
+    try {
+        const result = await CrmLeadService.deleteCrmLead(req.params.id);
+        res.status(result.success ? 200 : result.status || 500).json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en deleteCrmLead:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
 // === SCORING ===
 
 exports.recalculateScore = async (req, res) => {

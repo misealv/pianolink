@@ -361,6 +361,22 @@ class CrmLeadService {
         }
     }
 
+    /**
+     * Elimina un CrmLead (soft: solo el CrmLead, el Lead core se mantiene)
+     */
+    static async deleteCrmLead(crmLeadId) {
+        try {
+            const lead = await CrmLead.findById(crmLeadId);
+            if (!lead) return { success: false, message: 'CrmLead no encontrado', status: 404 };
+            await CrmLead.deleteOne({ _id: crmLeadId });
+            console.log(`[CRM] 🗑️ CrmLead ${crmLeadId} eliminado`);
+            return { success: true, message: 'Lead eliminado del CRM' };
+        } catch (error) {
+            console.error('[CRM] Error en deleteCrmLead:', error);
+            return { success: false, message: error.message, status: 500 };
+        }
+    }
+
     // =========================================================================
     // SCORING
     // =========================================================================

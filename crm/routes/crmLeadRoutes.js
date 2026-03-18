@@ -61,6 +61,7 @@ router.get('/by-ref/:leadRefId', ctrl.getByLeadRef);
 router.get('/', ctrl.list);
 router.get('/:id', ctrl.getById);
 router.put('/:id', ctrl.update);
+router.delete('/:id', ctrl.deleteCrmLead);
 
 // === SCORING ===
 router.post('/:id/score/recalculate', ctrl.recalculateScore);

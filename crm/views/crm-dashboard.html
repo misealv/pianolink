@@ -2338,6 +2338,8 @@ hola@pianolink.net`
     function getEmailStatusIndicator(lead) {
         const eng = (lead && lead.emailEngagement) || {};
         const crmId = lead?._id || '';
+        // Detectar unsubscribed
+        if (lead?.emailPreferences?.unsubscribed) return '<span class="email-status" style="color:#d63031;cursor:default;" title="🚫 Se desuscribió">🚫</span>';
         if (!eng.totalSent) return '<span class="email-status" title="Sin emails enviados">—</span>';
         // Función onclick para abrir timeline
         const onclick = crmId ? ` onclick="openEmailTimeline('${crmId}')" style="cursor:pointer;"` : '';
@@ -2897,6 +2899,7 @@ hola@pianolink.net`
                             <button onclick="showPipelineModal('${crmId}', '${ref.type || 'client'}')">📋 Pipeline</button>
                             <button onclick="showAddTaskModal('${crmId}')">📌 Nueva Tarea</button>
                             <button onclick="showBotChatByLead('${leadId}')">🤖 Chat Mía</button>
+                            ${lead.emailPreferences?.unsubscribed ? `<button style="color:#d63031;" onclick="deleteCrmLead('${crmId}','${_eName}')">🗑️ Eliminar (unsub)</button>` : ''}
                         </div>
                     </div>
                 </td>
@@ -4696,6 +4699,23 @@ hola@pianolink.net`
         }
     }
     window.sendWhatsAppMia = sendWhatsAppMia;
+
+    // === ELIMINAR CRM LEAD (para leads unsubscribed) ===
+    window.deleteCrmLead = async function(crmId, name) {
+        if (!confirm(`¿Eliminar a "${name}" del CRM?\n\nSe eliminará solo del CRM (el lead base se mantiene).`)) return;
+        try {
+            const res = await apiFetch(`/leads/${crmId}`, { method: 'DELETE' });
+            if (res?.success) {
+                alert('✅ Lead eliminado del CRM');
+                pianoLeads = pianoLeads.filter(l => l._id !== crmId);
+                renderPianoTable(pianoLeads);
+            } else {
+                alert(`❌ ${res?.message || 'Error al eliminar'}`);
+            }
+        } catch (e) {
+            alert(`❌ Error: ${e.message}`);
+        }
+    };
 
         // Logout
         document.getElementById('btnLogout')?.addEventListener('click', (e) => {
