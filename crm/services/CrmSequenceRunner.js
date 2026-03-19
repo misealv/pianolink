@@ -344,19 +344,21 @@ class CrmSequenceRunner {
             // 3. Inyectar pixel de tracking de apertura (1x1 GIF)
             html = injectTrackingPixel(html, trackingId);
 
-            // Enviar via EmailService
-            await emailService.send({
+            // Enviar via EmailService — capturar el ID de Resend
+            const sendResult = await emailService.send({
                 to: leadData.email,
                 subject,
                 html
             });
+            const resendEmailId = sendResult?.id || '';
 
-            // Registrar interacción
+            // Registrar interacción con emailId de Resend vinculado
             await CrmInteraction.create({
                 leadRef: lead._id,
                 type: 'email_sent',
                 channel: 'email',
                 metadata: {
+                    emailId: resendEmailId,
                     emailSubject: subject,
                     emailSequenceId: sequence._id,
                     emailStepNumber: step.order,

@@ -1133,7 +1133,7 @@ class CrmLeadService {
      * Enviar mensaje proactivo de Mía a un lead caliente.
      * Pre-siembra la conversación en WhatsAppBotService para que Mía continúe si el lead responde.
      */
-    static async sendWhatsAppMia(crmLeadId) {
+    static async sendWhatsAppMia(crmLeadId, { force = false } = {}) {
         try {
             const crmLead = await CrmLead.findById(crmLeadId).populate('leadRef', 'name email whatsapp').lean();
             if (!crmLead) return { success: false, status: 404, message: 'Lead no encontrado' };
@@ -1143,8 +1143,8 @@ class CrmLeadService {
                 return { success: false, status: 400, message: 'Lead sin número WhatsApp' };
             }
 
-            // Verificar que no se haya enviado ya
-            if (crmLead.tags?.includes('wa_mia_sent')) {
+            // Verificar que no se haya enviado ya (saltar si es reenvío forzado)
+            if (!force && crmLead.tags?.includes('wa_mia_sent')) {
                 return { success: false, status: 409, message: 'Ya se envió WA de Mía a este lead' };
             }
 

@@ -2858,7 +2858,7 @@ hola@pianolink.net`
             const miaBtn = hasPhone && !waAlreadySent
                 ? `<button class="qb" style="background:#25D366;color:#fff;font-size:13px;" onclick="sendWhatsAppMia('${crmId}','${_eName}')" title="Mía envía WA al lead">🤖</button>`
                 : hasPhone && waAlreadySent
-                ? `<span class="qb" style="background:#dfe6e9;cursor:default;font-size:11px;" title="WA Mía ya enviado">✅🤖</span>`
+                ? `<button class="qb" style="background:#ff9800;color:#fff;font-size:11px;" onclick="resendWhatsAppMia('${crmId}','${_eName}')" title="Reenviar WA de Mía">🔄🤖</button>`
                 : '';
 
             const quickBtns = `<div class="quick-btns">
@@ -4699,6 +4699,29 @@ hola@pianolink.net`
         }
     }
     window.sendWhatsAppMia = sendWhatsAppMia;
+
+    async function resendWhatsAppMia(crmId, name) {
+        if (!confirm(`¿Reenviar WhatsApp de Mía a ${name}?`)) return;
+        const btn = event?.target;
+        if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+        try {
+            const res = await apiFetch(`/leads/${crmId}/resend-whatsapp-mia`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (res?.success) {
+                alert(`✅ ${res.message}`);
+                if (btn) { btn.textContent = '✅🤖'; btn.style.background = '#dfe6e9'; btn.style.color = '#333'; btn.disabled = true; }
+            } else {
+                alert(`❌ ${res?.message || 'Error al reenviar WA'}`);
+                if (btn) { btn.disabled = false; btn.textContent = '🔄🤖'; }
+            }
+        } catch (e) {
+            alert(`❌ Error: ${e.message}`);
+            if (btn) { btn.disabled = false; btn.textContent = '🔄🤖'; }
+        }
+    }
+    window.resendWhatsAppMia = resendWhatsAppMia;
 
     // === ELIMINAR CRM LEAD (para leads unsubscribed) ===
     window.deleteCrmLead = async function(crmId, name) {

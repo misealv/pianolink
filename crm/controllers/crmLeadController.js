@@ -17,6 +17,16 @@ exports.sendWhatsAppMia = async (req, res) => {
     }
 };
 
+exports.resendWhatsAppMia = async (req, res) => {
+    try {
+        const result = await CrmLeadService.sendWhatsAppMia(req.params.id, { force: true });
+        res.status(result.success ? 200 : result.status || 500).json(result);
+    } catch (error) {
+        console.error('[CRM Controller] Error en resendWhatsAppMia:', error);
+        res.status(500).json({ success: false, message: 'Error interno del servidor' });
+    }
+};
+
 // === CRUD ===
 
 exports.list = async (req, res) => {

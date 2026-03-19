@@ -79,6 +79,7 @@ router.post('/:id/contact-result', ctrl.markContactResult);
 
 // === WHATSAPP PROACTIVO ===
 router.post('/:id/send-whatsapp-mia', ctrl.sendWhatsAppMia);
+router.post('/:id/resend-whatsapp-mia', ctrl.resendWhatsAppMia);
 
 // === TAREAS POR LEAD ===
 router.get('/:id/tasks', ctrl.getLeadTasks);
