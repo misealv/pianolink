@@ -270,6 +270,58 @@ router.get('/email/click/:trackingId', async (req, res) => {
 });
 
 /**
+ * GET /api/crm/tracking/email/unsubscribe?e=<base64email>
+ * Desuscribe al lead por email (usado en emails de reactivación/broadcast).
+ */
+router.get('/email/unsubscribe', async (req, res) => {
+    try {
+        const encoded = req.query.e;
+        if (!encoded) {
+            return res.status(400).send(buildUnsubPageHtml(false, 'Enlace inválido'));
+        }
+        const email = Buffer.from(encoded, 'base64url').toString('utf-8');
+        if (!email || !email.includes('@')) {
+            return res.status(400).send(buildUnsubPageHtml(false, 'Email inválido'));
+        }
+
+        // Buscar Lead core por email
+        const Lead = require('../../models/Lead');
+        const coreLead = await Lead.findOne({ email: email.toLowerCase() }).lean();
+        if (!coreLead) {
+            return res.send(buildUnsubPageHtml(true)); // No revelar si existe
+        }
+
+        // Buscar CrmLead y marcar como unsubscribed
+        const crmLead = await CrmLead.findOne({ leadRef: coreLead._id });
+        if (crmLead) {
+            crmLead.emailPreferences = crmLead.emailPreferences || {};
+            crmLead.emailPreferences.unsubscribed = true;
+            crmLead.emailPreferences.unsubscribedAt = new Date();
+            // Limpiar engagement inflado por click en unsub
+            if (crmLead.emailEngagement) {
+                crmLead.emailEngagement.engagementLevel = 'cold';
+            }
+            await crmLead.save();
+
+            // Registrar interacción
+            await CrmInteraction.create({
+                leadRef: crmLead._id,
+                type: 'email_unsubscribe',
+                channel: 'email',
+                metadata: { email },
+                timestamp: new Date()
+            });
+            console.log(`[CRM Tracking] 🚫 Unsubscribe por email: ${email}`);
+        }
+
+        res.send(buildUnsubPageHtml(true));
+    } catch (err) {
+        console.error('[CRM Tracking] Error en unsubscribe por email:', err.message);
+        res.status(500).send(buildUnsubPageHtml(false, 'Error interno'));
+    }
+});
+
+/**
  * GET /api/crm/tracking/email/unsubscribe/:trackingId
  * Desuscribe al lead de la secuencia y muestra página de confirmación.
  */

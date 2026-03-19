@@ -241,6 +241,11 @@ exports.receiveResendEvent = async (req, res) => {
                     console.log(`[Email Tracking] Click en link propio /t/, ya procesado — ignorando`);
                     break;
                 }
+                // Ignorar clicks en link de unsubscribe — no cuentan como engagement
+                if (clickedLink.includes('/unsubscribe') || clickedLink.includes('unsubscribe')) {
+                    console.log(`[Email Tracking] Click en link de unsub, ignorando para engagement`);
+                    break;
+                }
                 eng.totalClicked = (eng.totalClicked || 0) + 1;
                 eng.lastClickedAt = new Date();
                 eng.engagementLevel = 'super_hot';
