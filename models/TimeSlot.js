@@ -32,6 +32,14 @@ const timeSlotSchema = mongoose.Schema({
         type: Number,  // minutos
         required: true
     },
+
+    // Snapshot de la timezone con la que se creó el slot (FASE 4 hardening).
+    // Permite re-renderizar la hora local original aunque el profesor cambie
+    // luego la TZ del template. Default America/Santiago para registros legados.
+    sourceTimezone: {
+        type: String,
+        default: 'America/Santiago'
+    },
     
     // ==================== ESTADO ====================
     status: {

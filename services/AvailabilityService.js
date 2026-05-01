@@ -93,7 +93,8 @@ class AvailabilityService {
                     duration,
                     status: 'available',
                     classType: daySlotConfig.maxStudents > 1 ? 'group' : 'individual',
-                    maxParticipants: daySlotConfig.maxStudents
+                    maxParticipants: daySlotConfig.maxStudents,
+                    sourceTimezone: timezone
                 });
                 slots.push(newSlot);
             }

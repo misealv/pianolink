@@ -522,7 +522,8 @@ router.post('/slots', protect, async (req, res) => {
                     endTime: endDateTime,
                     duration: Math.round((endDateTime - startDateTime) / 60000),
                     status: 'available',
-                    source: 'manual'
+                    source: 'manual',
+                    sourceTimezone: teacherTimezone
                 });
                 
                 createdSlots.push(newSlot);
@@ -1044,6 +1045,7 @@ router.post('/quick-block', protect, async (req, res) => {
                     duration: Math.round((endDT - startDT) / 60000),
                     status: 'available',
                     source: 'quick-block',
+                    sourceTimezone: teacherTimezone,
                     isRecurring: !!isRecurring,
                     recurringGroupId
                 });
