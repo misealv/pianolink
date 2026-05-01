@@ -85,6 +85,11 @@ class AvailabilityService {
             });
             
             if (!existingSlot) {
+                // Slots generados desde plantilla son una serie recurrente:
+                // mismo templateId + día de semana + hora de inicio = misma serie
+                const dayOfWeek = slotStart.day();
+                const recurringGroupId = `tpl_${template._id}_${dayOfWeek}_${daySlotConfig.startTime}`;
+
                 const newSlot = await TimeSlot.create({
                     teacherId: template.teacherId,
                     templateId: template._id,
@@ -94,7 +99,9 @@ class AvailabilityService {
                     status: 'available',
                     classType: daySlotConfig.maxStudents > 1 ? 'group' : 'individual',
                     maxParticipants: daySlotConfig.maxStudents,
-                    sourceTimezone: timezone
+                    sourceTimezone: timezone,
+                    isRecurring: true,
+                    recurringGroupId
                 });
                 slots.push(newSlot);
             }
