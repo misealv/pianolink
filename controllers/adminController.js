@@ -1500,6 +1500,7 @@ exports.manualGrantSubscription = async (req, res) => {
             type: 'class_payment',
             userId: studentId,
             provider: 'manual',
+            externalPaymentId: `manual_${Date.now()}_${studentId}`,
             status: 'approved',
             amount: amountReceivedUSD,
             currency: 'USD',
