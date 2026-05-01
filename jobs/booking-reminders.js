@@ -241,22 +241,12 @@ async function sendReminder(booking, reminderType) {
 }
 
 /**
- * Proceso principal
+ * Lógica core (asume conexión Mongo activa). Para uso desde CronService.
+ * @param {Object} opts - { dryRun }
  */
-async function runBookingReminders() {
-    console.log('='.repeat(60));
-    console.log('📧 JOB DE RECORDATORIOS DE CLASES');
-    console.log('='.repeat(60));
-    console.log(`Modo: ${DRY_RUN ? '🔍 DRY RUN (sin envíos)' : '🚀 PRODUCCIÓN'}`);
-    console.log(`Fecha: ${new Date().toISOString()}`);
-    console.log('');
-
+async function processReminders(opts = {}) {
+    const dryRun = opts.dryRun === true;
     try {
-        // Conectar a MongoDB
-        await mongoose.connect(process.env.MONGODB_URI);
-        console.log('✅ Conectado a MongoDB');
-        console.log('');
-
         const now = new Date();
         let sent24h = 0;
         let sent1h = 0;
@@ -283,7 +273,7 @@ async function runBookingReminders() {
         for (const booking of bookings24h) {
             console.log(`   → Booking ${booking._id}...`);
             
-            if (!DRY_RUN) {
+            if (!dryRun) {
                 const success = await sendReminder(booking, '24h');
                 
                 if (success) {
@@ -326,7 +316,7 @@ async function runBookingReminders() {
         for (const booking of bookings1h) {
             console.log(`   → Booking ${booking._id}...`);
             
-            if (!DRY_RUN) {
+            if (!dryRun) {
                 const success = await sendReminder(booking, '1h');
                 
                 if (success) {
@@ -356,14 +346,38 @@ async function runBookingReminders() {
         console.log(`   Errores:                    ${errors}`);
         console.log('='.repeat(60));
         
-        await mongoose.disconnect();
-        console.log('✅ Desconectado de MongoDB');
-        
         return { success: true, sent24h, sent1h, errors };
         
     } catch (error) {
-        console.error('❌ Error fatal:', error);
+        console.error('❌ Error en processReminders:', error.message);
+        return { success: false, error: error.message, sent24h: 0, sent1h: 0, errors: 1 };
+    }
+}
+
+/**
+ * Wrapper standalone (CLI): conecta + ejecuta + desconecta.
+ */
+async function runBookingReminders() {
+    console.log('='.repeat(60));
+    console.log('📧 JOB DE RECORDATORIOS DE CLASES');
+    console.log('='.repeat(60));
+    console.log(`Modo: ${DRY_RUN ? '🔍 DRY RUN (sin envíos)' : '🚀 PRODUCCIÓN'}`);
+    console.log(`Fecha: ${new Date().toISOString()}`);
+    console.log('');
+
+    try {
+        await mongoose.connect(process.env.MONGODB_URI);
+        console.log('✅ Conectado a MongoDB');
+        console.log('');
+
+        const result = await processReminders({ dryRun: DRY_RUN });
+
         await mongoose.disconnect();
+        console.log('✅ Desconectado de MongoDB');
+        return result;
+    } catch (error) {
+        console.error('❌ Error fatal:', error);
+        try { await mongoose.disconnect(); } catch (_) {}
         return { success: false, error: error.message };
     }
 }
@@ -383,3 +397,5 @@ if (require.main === module) {
 }
 
 module.exports = runBookingReminders;
+module.exports.processReminders = processReminders;
+module.exports.runBookingReminders = runBookingReminders;

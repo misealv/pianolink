@@ -10,6 +10,7 @@ const PayoutCronService = require('./PayoutCronService');
 const MembershipReminderService = require('./MembershipReminderService');
 const packageExpirationJob = require('../jobs/package-expiration');
 const balanceReconciliationJob = require('../jobs/balance-reconciliation');
+const { processReminders: processBookingReminders } = require('../jobs/booking-reminders');
 const PlanPermissionService = require('./PlanPermissionService');
 const TeacherInvite = require('../models/TeacherInvite');
 const User = require('../models/User');
@@ -242,6 +243,21 @@ class CronService {
             timezone: 'America/Santiago'
         });
         this.jobs.push(packageExpirationCron);
+
+        // 9b. Recordatorios de clases (24h y 1h antes) - Cada 15 minutos
+        const bookingRemindersJob = cron.schedule('*/15 * * * *', async () => {
+            try {
+                const result = await processBookingReminders({ dryRun: false });
+                if (result.sent24h > 0 || result.sent1h > 0 || result.errors > 0) {
+                    console.log(`[Cron] 📧 Recordatorios: ${result.sent24h} de 24h, ${result.sent1h} de 1h, ${result.errors} errores`);
+                }
+            } catch (error) {
+                console.error('[Cron] ❌ Error en recordatorios de clases:', error);
+            }
+        }, {
+            timezone: 'UTC'
+        });
+        this.jobs.push(bookingRemindersJob);
 
         // 10. CRM: Procesar secuencias de email - Cada 10 minutos
         const sequenceRunnerJob = cron.schedule('*/10 * * * *', async () => {
