@@ -1,6 +1,11 @@
 /**
  * routes/subscription.js
  * API de Suscripciones - PianoLink v2.0
+ *
+ * @deprecated FASE 5 — Este módulo usa el modelo `Subscription` (viejo).
+ *   El flujo activo es `routes/subscriptionRoutes.js` con `StudentSubscription`.
+ *   Montado en /api/subscription (singular). Retiro planificado: 60 días.
+ *   No agregar nuevas rutas aquí.
  */
 
 const express = require('express');

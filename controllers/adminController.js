@@ -344,8 +344,11 @@ exports.deleteClient = async (req, res) => {
     }
 };
 
-// Agregar clases a un cliente (pago manual)
+// @deprecated FASE 5 — Usar POST /api/admin/subscriptions/manual-grant en su lugar.
+//   Este endpoint modifica User.classesRemaining (legacy). Ya no hay saldos activos
+//   en User.classesRemaining salvo guardians. Mantener por compatibilidad 60 días.
 exports.addClassesToClient = async (req, res) => {
+    console.warn('[DEPRECATED] addClassesToClient: Usar /api/admin/subscriptions/manual-grant. Este endpoint será retirado.');
     try {
         const { id } = req.params;
         const { studentIndex, classesToAdd, payment } = req.body;

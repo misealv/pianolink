@@ -149,6 +149,9 @@ class BookingService {
                 } else {
                     availableClasses = payer.classesRemaining || 0;
                     studentName = payer.name;
+                    if (availableClasses > 0) {
+                        console.warn(`[LEGACY FALLBACK] bookSlot: usando User.classesRemaining para ${payer.email} con teacherId ${teacherId}. Verificar migración FASE 5.`);
+                    }
                     
                     // Fallback enrollment: si el alumno fue invitado y tiene clases en Enrollment
                     if (availableClasses <= 0 && payer.studentData?.source === 'invited') {
