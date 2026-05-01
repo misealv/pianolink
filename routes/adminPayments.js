@@ -604,4 +604,21 @@ router.post('/sync-paypal-products', adminAuth, async (req, res) => {
     }
 });
 
+/**
+ * GET /api/admin/payments/teachers-list
+ * Lista de profesores activos (para selects en panel admin)
+ */
+router.get('/teachers-list', adminAuth, async (req, res) => {
+    try {
+        const User = require('../models/User');
+        const teachers = await User.find(
+            { role: 'teacher', isActive: { $ne: false } },
+            'name email teacherData.plan'
+        ).sort({ name: 1 }).lean();
+        res.json({ success: true, teachers });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
