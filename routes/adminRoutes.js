@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const { protect, adminOnly } = require('../middleware/authMiddleware');
 const Feedback = require('../models/Feedback'); // Importante para leer mensajes
 const Message = require('../models/Message');
 const GlobalConfig = require('../models/GlobalConfig');
@@ -250,7 +251,15 @@ router.get('/clients/:id/payments', adminController.getClientPayments);
 
 // Crear suscripción prepagada por transferencia bancaria / efectivo
 // POST /admin/subscriptions/manual-grant
-router.post('/subscriptions/manual-grant', adminController.manualGrantSubscription);
+// [SECURITY] Endpoint financiero — exige JWT válido + role admin.
+// Nota: el resto de adminRoutes.js queda sin auth por compatibilidad con
+// public/js/admin.js (deuda técnica, ver FASE 5).
+router.post(
+    '/subscriptions/manual-grant',
+    protect,
+    adminOnly,
+    adminController.manualGrantSubscription
+);
 
 
 // Obtener configuración de precios
