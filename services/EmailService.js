@@ -293,6 +293,26 @@ class EmailService {
     }
 
     /**
+     * Envía notificación al profesor cuando un alumno agenda una clase.
+     * @param {Object} data - { teacherName, teacherEmail, studentName, classDate, classTime, timezone, duration, dashboardUrl }
+     */
+    async sendBookingCreatedTeacher(data) {
+        try {
+            const generateEmail = require('../templates/emails/bookingCreatedTeacher');
+            const html = generateEmail(data);
+
+            return await this.sendSafe({
+                to: data.teacherEmail,
+                subject: `📅 Nueva clase agendada — ${data.studentName} el ${data.classDate} a las ${data.classTime}`,
+                html
+            });
+        } catch (error) {
+            console.error('[EMAIL] Error enviando notificación de booking al profesor:', error.message);
+            return false;
+        }
+    }
+
+    /**
      * Envía notificación al estudiante cuando el profesor cancela una clase
      * @param {Object} data - { studentName, studentEmail, teacherName, classDate, classTime, reason, rescheduleUrl }
      */

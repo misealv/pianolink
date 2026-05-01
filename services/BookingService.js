@@ -694,14 +694,39 @@ class BookingService {
     }
     
     /**
-     * Envía notificaciones de reserva (email, push).
+     * Envía notificaciones de reserva (email al profesor).
      * @private
      */
     static async _sendBookingNotifications(booking, slot, student) {
-        // TODO: Implementar con servicio de email
-        console.log(`📧 Notificación: Clase reservada para ${student.name}`);
-        console.log(`   Fecha: ${booking.scheduledStart}`);
-        console.log(`   Sesión: ${slot.midiSession.sessionId}`);
+        try {
+            // El slot trae teacherId populado con name+timezone; necesitamos el email.
+            const teacherDoc = await User.findById(booking.teacherId).select('name email timezone').lean();
+            if (!teacherDoc || !teacherDoc.email) {
+                console.warn(`[BookingService] No se envía email: profesor ${booking.teacherId} sin email`);
+                return;
+            }
+
+            const tz = booking.teacherTimezone || teacherDoc.timezone || 'America/Santiago';
+            const start = new Date(booking.scheduledStart);
+            const classDate = start.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: tz });
+            const classTime = start.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz });
+            const baseUrl = process.env.APP_URL || process.env.PUBLIC_URL || 'https://pianolink.net';
+
+            const emailService = require('./EmailService');
+            await emailService.sendBookingCreatedTeacher({
+                teacherName: teacherDoc.name,
+                teacherEmail: teacherDoc.email,
+                studentName: student?.name || booking.studentName || 'Alumno',
+                classDate,
+                classTime,
+                timezone: tz,
+                duration: booking.duration,
+                dashboardUrl: `${baseUrl}/profesor.html`
+            });
+            console.log(`[BookingService] 📧 Email de booking enviado a ${teacherDoc.email}`);
+        } catch (err) {
+            console.error('[BookingService] Error enviando email de booking al profesor:', err.message);
+        }
     }
 
     // ==================== SISTEMA DE RECUPERACIÓN DE CLASES ====================
