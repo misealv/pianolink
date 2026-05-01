@@ -1,6 +1,7 @@
 /* routes/availabilityRoutes.js */
 const express = require('express');
 const router = express.Router();
+const moment = require('moment-timezone');
 const { protect } = require('../middleware/authMiddleware');
 const AvailabilityService = require('../services/AvailabilityService');
 const AvailabilityTemplate = require('../models/AvailabilityTemplate');
@@ -465,6 +466,8 @@ router.post('/slots', protect, async (req, res) => {
         
         const defaultDuration = template?.defaultDuration || 45;
         const bufferMinutes = template?.bufferMinutes || 10;
+        // Timezone del profesor para interpretar la hora local correctamente (FASE 4 fix)
+        const teacherTimezone = template?.timezone || 'America/Santiago';
         const createdSlots = [];
         const errors = [];
         
@@ -477,13 +480,15 @@ router.post('/slots', protect, async (req, res) => {
                     continue;
                 }
                 
-                // Construir datetime completo
-                const startDateTime = new Date(`${date}T${startTime}:00`);
+                // Construir datetime en la timezone del profesor y convertir a UTC
+                // ANTES: new Date(`${date}T${startTime}:00`) → interpretaba como UTC del server (bug)
+                // AHORA: moment.tz interpreta la hora local del profesor y convierte a UTC
+                const startDateTime = moment.tz(`${date} ${startTime}`, 'YYYY-MM-DD HH:mm', teacherTimezone).toDate();
                 
                 // Si no hay endTime, usar duración default
                 let endDateTime;
                 if (endTime) {
-                    endDateTime = new Date(`${date}T${endTime}:00`);
+                    endDateTime = moment.tz(`${date} ${endTime}`, 'YYYY-MM-DD HH:mm', teacherTimezone).toDate();
                 } else {
                     endDateTime = new Date(startDateTime.getTime() + defaultDuration * 60 * 1000);
                 }
@@ -983,31 +988,35 @@ router.post('/quick-block', protect, async (req, res) => {
             isActive: true
         });
         const defaultDuration = template?.defaultDuration || 45;
+        // Timezone del profesor para interpretar horas y días correctamente (FASE 4 fix)
+        const teacherTimezone = template?.timezone || 'America/Santiago';
 
         const createdSlots = [];
         const errors = [];
         const now = new Date();
 
-        // Encontrar próxima fecha con ese dayOfWeek
-        const today = new Date();
-        let nextDate = new Date(today);
-        const currentDay = today.getDay();
+        // Encontrar próxima fecha con ese dayOfWeek EN LA TIMEZONE DEL PROFESOR
+        // ANTES: usaba today.getDay() (UTC del server) → el día podía ser incorrecto en Chile
+        // AHORA: moment.tz determina el día de hoy en la TZ del profesor
+        const todayInTZ = moment.tz(teacherTimezone);
+        const currentDay = todayInTZ.day();
         const daysUntil = (dayOfWeek - currentDay + 7) % 7;
-        nextDate.setDate(today.getDate() + (daysUntil === 0 ? 0 : daysUntil));
-        nextDate.setHours(0, 0, 0, 0);
+        const startMoment = todayInTZ.clone().add(daysUntil === 0 ? 0 : daysUntil, 'days').startOf('day');
 
         const step = recurrence === 'biweekly' ? 14 : 7;
 
         for (let w = 0; w < weeks; w++) {
-            const dateStr = nextDate.toISOString().split('T')[0];
-            const startDT = new Date(`${dateStr}T${startTime}:00`);
+            // Construir fecha local del profesor + hora local del profesor → UTC
+            // ANTES: new Date(`${dateStr}T${startTime}:00`) → UTC del server (bug)
+            // AHORA: moment.tz interpreta hora en TZ del profesor
+            const dateStr = startMoment.clone().add(w * step, 'days').format('YYYY-MM-DD');
+            const startDT = moment.tz(`${dateStr} ${startTime}`, 'YYYY-MM-DD HH:mm', teacherTimezone).toDate();
             const endDT = endTime
-                ? new Date(`${dateStr}T${endTime}:00`)
+                ? moment.tz(`${dateStr} ${endTime}`, 'YYYY-MM-DD HH:mm', teacherTimezone).toDate()
                 : new Date(startDT.getTime() + defaultDuration * 60 * 1000);
 
             // Saltar fechas pasadas
             if (startDT < now) {
-                nextDate.setDate(nextDate.getDate() + step);
                 continue;
             }
 
@@ -1024,7 +1033,6 @@ router.post('/quick-block', protect, async (req, res) => {
 
             if (conflict) {
                 errors.push({ date: dateStr, error: 'Conflicto con slot existente' });
-                nextDate.setDate(nextDate.getDate() + step);
                 continue;
             }
 
@@ -1043,8 +1051,6 @@ router.post('/quick-block', protect, async (req, res) => {
             } catch (err) {
                 errors.push({ date: dateStr, error: err.message });
             }
-
-            nextDate.setDate(nextDate.getDate() + step);
         }
 
         res.json({
