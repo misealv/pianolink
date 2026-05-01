@@ -93,6 +93,20 @@ router.get('/me', protect, async (req, res) => {
                     if (totalClassesRemaining === 0) {
                         totalClassesRemaining = subscription.classesRemaining;
                     }
+                    // Sincronizar legacy fields en background para que admin/otros endpoints
+                    // que leen User directamente vean el estado consistente
+                    const syncOps = {};
+                    if ((user.classesRemaining || 0) !== subscription.classesRemaining) {
+                        syncOps.classesRemaining = subscription.classesRemaining;
+                    }
+                    if (subscription.teacherId && !user.studentData?.assignedTeacher) {
+                        syncOps['studentData.assignedTeacher'] = subscription.teacherId._id;
+                    }
+                    if (Object.keys(syncOps).length > 0) {
+                        User.updateOne({ _id: user._id }, { $set: syncOps }).catch(err => {
+                            console.error('[CLIENT] Error sincronizando desde StudentSubscription:', err.message);
+                        });
+                    }
                     enrollmentData = {
                         id: subscription._id,
                         source: 'StudentSubscription',
@@ -184,10 +198,11 @@ router.get('/subscription', protect, async (req, res) => {
 
         // Leer desde StudentSubscription (fuente de verdad moderna)
         if (totalClassesRemaining === 0) {
+            const mongoose = require('mongoose');
             const subs = await StudentSubscription.aggregate([
                 {
                     $match: {
-                        studentId: user._id,
+                        studentId: new mongoose.Types.ObjectId(user._id),
                         status: { $in: ['active', 'paused'] },
                         classesRemaining: { $gt: 0 }
                     }
