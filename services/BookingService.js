@@ -108,7 +108,7 @@ class BookingService {
                 teacherId: teacherId,
                 status: 'active',
                 classesRemaining: { $gt: 0 },
-                validUntil: { $gt: new Date() }
+                expiresAt: { $gt: new Date() }
             }).session(session);
             
             if (subscription) {
@@ -443,7 +443,7 @@ class BookingService {
                     if (subscription) {
                         subscription.classesRemaining++;
                         // Si estaba exhausted, reactivar
-                        if (subscription.status === 'exhausted' && subscription.validUntil > new Date()) {
+                        if (subscription.status === 'exhausted' && subscription.expiresAt > new Date()) {
                             subscription.status = 'active';
                         }
                         await subscription.save({ session });
@@ -777,7 +777,7 @@ class BookingService {
                     const subscription = await StudentSubscription.findById(booking.subscriptionId).session(session);
                     if (subscription) {
                         subscription.classesRemaining++;
-                        if (subscription.status === 'exhausted' && subscription.validUntil > new Date()) {
+                        if (subscription.status === 'exhausted' && subscription.expiresAt > new Date()) {
                             subscription.status = 'active';
                         }
                         await subscription.save({ session });
@@ -889,7 +889,7 @@ class BookingService {
                     // Además, el profesor debe una clase de compensación por cancelar
                     subscription.classesCancelledByTeacher = (subscription.classesCancelledByTeacher || 0) + 1;
                     subscription.compensationClassesOwed = (subscription.compensationClassesOwed || 0) + 1;
-                    if (subscription.status === 'exhausted' && subscription.validUntil > new Date()) {
+                    if (subscription.status === 'exhausted' && subscription.expiresAt > new Date()) {
                         subscription.status = 'active';
                     }
                     await subscription.save({ session });
