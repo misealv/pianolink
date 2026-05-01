@@ -710,6 +710,22 @@
             display: flex;
         }
 
+        /* ── Opciones estilo Google Calendar para eliminación de recurrencia ── */
+        .gcal-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .gcal-option:hover { background: rgba(255,255,255,0.06); }
+        .gcal-option input[type=radio] { margin-top: 3px; accent-color: #4ade80; width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; }
+        .gcal-option-text { display: flex; flex-direction: column; }
+        .gcal-option-text strong { color: var(--text-main); font-size: 14px; font-weight: 500; }
+        .gcal-option-text small { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+
         /* ── Fase 6: Mobile bottom-sheet + responsive ── */
         @media (max-width: 768px) {
             /* Modals → bottom-sheet en mobile */
@@ -1218,16 +1234,36 @@
             </div>
         </div>
 
-        <!-- Modal confirmar eliminación de serie recurrente (Fase 5) -->
+        <!-- Modal eliminar recurrente — estilo Google Calendar -->
         <div id="seriesDeleteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1001; justify-content:center; align-items:center;">
-            <div style="background:var(--panel-bg); border:1px solid var(--border); border-radius:12px; padding:24px; max-width:360px; width:90%; position:relative;">
-                <button onclick="closeSeriesDeleteModal()" style="position:absolute; top:10px; right:14px; background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;">✕</button>
-                <h3 style="color: #f87171; margin-bottom: 12px;">🗑️ Eliminar Slot Recurrente</h3>
-                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">Este slot forma parte de una serie. ¿Qué deseas eliminar?</p>
-                <div style="display:flex; flex-direction:column; gap:10px;">
-                    <button id="deleteOnlyThis" class="btn" style="background:#ef4444; color:white;">Solo este horario</button>
-                    <button id="deleteAllSeries" class="btn" style="background:#dc2626; color:white;">↻ Toda la serie futura</button>
+            <div style="background:var(--panel-bg); border:1px solid var(--border); border-radius:12px; padding:24px; max-width:380px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+                <h3 style="color:var(--text-main); font-size:16px; font-weight:600; margin-bottom:20px;">¿Eliminar disponibilidad recurrente?</h3>
+                <div style="display:flex; flex-direction:column; gap:2px; margin-bottom:20px;">
+                    <label class="gcal-option">
+                        <input type="radio" name="deleteScope" value="single" checked>
+                        <div class="gcal-option-text">
+                            <strong>Solo este evento</strong>
+                            <small>Elimina únicamente este horario</small>
+                        </div>
+                    </label>
+                    <label class="gcal-option">
+                        <input type="radio" name="deleteScope" value="following">
+                        <div class="gcal-option-text">
+                            <strong>Este y los siguientes eventos</strong>
+                            <small>Elimina este horario y todos los siguientes de la serie</small>
+                        </div>
+                    </label>
+                    <label class="gcal-option">
+                        <input type="radio" name="deleteScope" value="all">
+                        <div class="gcal-option-text">
+                            <strong>Todos los eventos</strong>
+                            <small>Elimina todos los horarios futuros de esta serie</small>
+                        </div>
+                    </label>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
                     <button onclick="closeSeriesDeleteModal()" class="btn btn-secondary">Cancelar</button>
+                    <button onclick="confirmSeriesDelete()" class="btn" style="background:#ef4444; color:white; padding:8px 20px;">Eliminar</button>
                 </div>
             </div>
         </div>
@@ -1565,7 +1601,7 @@
                 `;
             } else {
                 const deleteAction = props.isRecurring && props.recurringGroupId
-                    ? `openSeriesDeleteModal('${props.slotId}', '${props.recurringGroupId}')`
+                    ? `openSeriesDeleteModal('${props.slotId}', '${props.recurringGroupId}', '${event.start.toISOString()}')`
                     : `deleteSlotFromModal('${props.slotId}')`;
                 content.innerHTML = `
                     <h3 style="color: #4ade80; margin-bottom: 12px;">📅 Slot Disponible ${recurBadge}</h3>
@@ -1785,37 +1821,45 @@
             row.style.display = this.value !== 'none' ? 'block' : 'none';
         });
 
-        // Modal de eliminación de serie
-        function openSeriesDeleteModal(slotId, groupId) {
+        // Estado compartido para el modal de eliminación de serie
+        let _seriesDeleteState = {};
+
+        function openSeriesDeleteModal(slotId, groupId, startISO) {
             closeSlotModal();
-            const modal = document.getElementById('seriesDeleteModal');
-            // Botón "Solo este"
-            document.getElementById('deleteOnlyThis').onclick = () => {
-                closeSeriesDeleteModal();
-                deleteSlotFromModal(slotId);
-            };
-            // Botón "Toda la serie"
-            document.getElementById('deleteAllSeries').onclick = async () => {
-                closeSeriesDeleteModal();
-                try {
-                    const res = await fetch(`/api/availability/slots/series/${encodeURIComponent(groupId)}`, {
-                        method: 'DELETE',
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    const result = await res.json();
-                    if (res.ok && result.success) {
-                        showToast(`✓ ${result.cancelled} slots de la serie eliminados`);
-                        trackEvent('availability_series_deleted', { groupId, cancelled: result.cancelled });
-                        if (fcCalendar) fcCalendar.refetchEvents();
-                    } else {
-                        showToast(result.message || 'Error al eliminar serie', true);
-                    }
-                } catch (error) {
-                    console.error('Error eliminando serie:', error);
-                    showToast('Error de conexión', true);
+            _seriesDeleteState = { slotId, groupId, startISO };
+            const radio = document.querySelector('input[name="deleteScope"][value="single"]');
+            if (radio) radio.checked = true;
+            document.getElementById('seriesDeleteModal').style.display = 'flex';
+        }
+
+        async function confirmSeriesDelete() {
+            const scope = document.querySelector('input[name="deleteScope"]:checked')?.value || 'single';
+            const { slotId, groupId, startISO } = _seriesDeleteState;
+            closeSeriesDeleteModal();
+            if (scope === 'single') {
+                await deleteSlotFromModal(slotId);
+                return;
+            }
+            const url = scope === 'following'
+                ? `/api/availability/slots/series/${encodeURIComponent(groupId)}?from=${encodeURIComponent(startISO)}`
+                : `/api/availability/slots/series/${encodeURIComponent(groupId)}`;
+            try {
+                const res = await fetch(url, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await res.json();
+                if (res.ok && result.success) {
+                    showToast(`✓ ${result.cancelled} slots eliminados`);
+                    trackEvent('availability_series_deleted', { groupId, scope, cancelled: result.cancelled });
+                    if (fcCalendar) fcCalendar.refetchEvents();
+                } else {
+                    showToast(result.message || 'Error al eliminar', true);
                 }
-            };
-            modal.style.display = 'flex';
+            } catch (err) {
+                console.error('Error eliminando serie:', err);
+                showToast('Error de conexión', true);
+            }
         }
 
         function closeSeriesDeleteModal() {

@@ -1075,12 +1075,14 @@ router.post('/quick-block', protect, async (req, res) => {
  */
 router.delete('/slots/series/:groupId', protect, async (req, res) => {
     try {
+        // ?from=ISO → "este y los siguientes"; sin param → todos los futuros desde ahora
+        const fromDate = req.query.from ? new Date(req.query.from) : new Date();
         const result = await TimeSlot.updateMany(
             {
                 teacherId: req.user._id,
                 recurringGroupId: req.params.groupId,
                 status: 'available',
-                startTime: { $gte: new Date() }
+                startTime: { $gte: fromDate }
             },
             { $set: { status: 'cancelled' } }
         );
