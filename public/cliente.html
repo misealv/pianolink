@@ -2746,7 +2746,7 @@
 
             // Cargar paquetes del profesor asignado (si aplica)
             if (user.enrollment?.teacher?.id) {
-                loadTeacherPackages(user.enrollment.teacher.id, user.enrollment.teacher.name);
+                loadTeacherPackages(user.enrollment.teacher.id, user.enrollment.teacher.name, classesRemaining);
             }
 
             // Si el kit está en estado de agendar entrevista, cargar slots disponibles
@@ -4890,7 +4890,7 @@
         // ============================================
         // PAQUETES DEL PROFESOR ASIGNADO
         // ============================================
-        async function loadTeacherPackages(teacherId, teacherName) {
+        async function loadTeacherPackages(teacherId, teacherName, classesRemaining = 0) {
             const section = document.getElementById('teacherPackagesSection');
             if (!section) return;
 
@@ -4910,12 +4910,24 @@
                     ? packages[0].basePricePerClassUSD / 100
                     : (packages.length > 0 ? Math.max(...packages.map(p => (p.priceUSD / 100) / p.classCount)) : 0);
 
+                // Auto-abrir si quedan pocas clases (< 4) o ninguna
+                const shouldOpen = classesRemaining < 4;
+                const headerHint = classesRemaining === 0
+                    ? 'Compra un paquete para agendar tus clases'
+                    : classesRemaining < 4
+                        ? `Te quedan ${classesRemaining} clase(s) — recarga aquí`
+                        : `Cuando quieras, recarga clases con ${teacherName}`;
+
                 section.innerHTML = `
-                    <section class="packages-section" id="packagesAnchor">
-                        <div class="section-header">
-                            <h2 class="section-title">🎹 Paquetes de clases</h2>
-                            <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">Elige un paquete y agenda tus clases con ${teacherName}</p>
-                        </div>
+                    <details class="packages-section" id="packagesAnchor" ${shouldOpen ? 'open' : ''} style="border:1px solid var(--border); border-radius:12px; padding:0; overflow:hidden;">
+                        <summary style="cursor:pointer; padding:16px 20px; list-style:none; display:flex; justify-content:space-between; align-items:center; background:var(--surface); user-select:none;">
+                            <div>
+                                <h2 class="section-title" style="margin:0; font-size:16px;">🎹 Paquetes de clases</h2>
+                                <p style="color:var(--text-muted); font-size:12px; margin:4px 0 0;">${headerHint}</p>
+                            </div>
+                            <span style="color:var(--text-muted); font-size:12px;">▼</span>
+                        </summary>
+                        <div style="padding:16px 20px;">
                         <div class="packages-grid">
                             ${packages.map((p, i) => {
                                 const totalUSD = (p.priceUSD / 100).toFixed(0);
@@ -4960,7 +4972,8 @@
                                 </div>
                             `}).join('')}
                         </div>
-                    </section>
+                        </div>
+                    </details>
                 `;
             } catch (err) {
                 console.error('[Packages] Error cargando paquetes:', err);
