@@ -51,3 +51,6 @@ _exchange_token.js
 scripts/_exchange_token.js
 scripts/_oauth_server.js
 scripts/_oauth_server_miseal.js
+
+# Backups locales de colecciones (FASE 0)
+scripts/backups/
