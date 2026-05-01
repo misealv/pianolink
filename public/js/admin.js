@@ -6067,6 +6067,7 @@ function renderIndividualCard(client) {
                 <button class="btn btn-small" onclick="viewClientDetails('${client._id}')" style="flex:1; font-size:11px;">👁️ Ver</button>
                 <button class="btn btn-small" onclick="editClient('${client._id}')" style="flex:1; font-size:11px;">✏️ Editar</button>
                 <button class="btn btn-small" onclick="quickAddClasses('${client._id}')" style="flex:1; font-size:11px; background:rgba(34,197,94,0.2); color:#22c55e;">➕ Clases</button>
+                <button class="btn btn-small" onclick="openManualGrant('${client._id}', '${client.name}')" style="flex:1; font-size:11px; background:rgba(99,102,241,0.2); color:#a5b4fc;" title="Suscripción prepagada (sin comisión)">🎹</button>
                 <button class="btn btn-small" onclick="deleteClient('${client._id}')" style="font-size:11px; background:rgba(239,68,68,0.2); color:#ef4444;">🗑️</button>
             </div>
         </div>
@@ -8415,6 +8416,151 @@ async function loadCommissionReport() {
         if (el('cr-count')) el('cr-count').textContent = s.totalTransactions || 0;
     } catch (error) {
         console.error('[Admin] Error loadCommissionReport:', error);
+    }
+}
+
+// ==================== SUSCRIPCIÓN MANUAL (prepago externo) ====================
+
+async function openManualGrant(studentId, studentName) {
+    document.getElementById('mg-student-id').value = studentId;
+    document.getElementById('mg-student-name').textContent = studentName;
+    document.getElementById('mg-class-count').value = 50;
+    document.getElementById('mg-validity-days').value = 365;
+    document.getElementById('mg-amount').value = 0;
+    document.getElementById('mg-payment-method').value = 'bank_transfer';
+    document.getElementById('mg-notes').value = '';
+
+    // Cargar profesores activos en el select
+    const teacherSel = document.getElementById('mg-teacher-id');
+    teacherSel.innerHTML = '<option value="">Cargando…</option>';
+    document.getElementById('mg-package-id').innerHTML = '<option value="">Selecciona un profesor primero</option>';
+
+    try {
+        const res = await fetch('/api/admin/payments/teachers-list', {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        let teachers = [];
+        if (res.ok) {
+            const data = await res.json();
+            teachers = data.teachers || data || [];
+        }
+        // Fallback: usar allTeachersData si ya fue cargado
+        if (!teachers.length && typeof allTeachersData !== 'undefined' && allTeachersData.length) {
+            teachers = allTeachersData;
+        }
+        teacherSel.innerHTML = '<option value="">Selecciona profesor…</option>' +
+            teachers.map(t => `<option value="${t._id}">${t.name}</option>`).join('');
+    } catch (_) {
+        // Fallback directo a allTeachersData
+        if (typeof allTeachersData !== 'undefined' && allTeachersData.length) {
+            teacherSel.innerHTML = '<option value="">Selecciona profesor…</option>' +
+                allTeachersData.map(t => `<option value="${t._id}">${t.name}</option>`).join('');
+        } else {
+            teacherSel.innerHTML = '<option value="">Error cargando profesores</option>';
+        }
+    }
+
+    teacherSel.onchange = () => loadPackagesForTeacher(teacherSel.value);
+    openModal('manual-grant-modal');
+}
+
+async function loadPackagesForTeacher(teacherId) {
+    const pkgSel = document.getElementById('mg-package-id');
+    if (!teacherId) {
+        pkgSel.innerHTML = '<option value="">Selecciona un profesor primero</option>';
+        return;
+    }
+    pkgSel.innerHTML = '<option value="">Cargando paquetes…</option>';
+    try {
+        const res = await fetch(`/api/teacher-packages/teacher/${teacherId}`, {
+            headers: { 'Authorization': `Bearer ${userSession.token}` }
+        });
+        if (res.ok) {
+            const packages = await res.json();
+            const all = packages.packages || packages || [];
+            if (!all.length) {
+                pkgSel.innerHTML = '<option value="">Sin paquetes (usar ID manual)</option>';
+                return;
+            }
+            pkgSel.innerHTML = all.map(p =>
+                `<option value="${p._id}">${p.name} (${p.classCount} clases / ${p.validityDays}d)</option>`
+            ).join('');
+            // Pre-rellenar cantidad y vigencia con los del paquete seleccionado
+            const first = all[0];
+            document.getElementById('mg-class-count').value = first.classCount || 50;
+            document.getElementById('mg-validity-days').value = first.validityDays || 365;
+            pkgSel.onchange = () => {
+                const sel = all.find(p => p._id === pkgSel.value);
+                if (sel) {
+                    document.getElementById('mg-class-count').value = sel.classCount;
+                    document.getElementById('mg-validity-days').value = sel.validityDays;
+                }
+            };
+        } else {
+            pkgSel.innerHTML = '<option value="">No se pudieron cargar paquetes</option>';
+        }
+    } catch (_) {
+        pkgSel.innerHTML = '<option value="">Error cargando paquetes</option>';
+    }
+}
+
+async function confirmManualGrant() {
+    const studentId    = document.getElementById('mg-student-id').value;
+    const teacherId    = document.getElementById('mg-teacher-id').value;
+    const packageId    = document.getElementById('mg-package-id').value;
+    const classCount   = parseInt(document.getElementById('mg-class-count').value) || 0;
+    const validityDays = parseInt(document.getElementById('mg-validity-days').value) || 0;
+    const amountRaw    = parseFloat(document.getElementById('mg-amount').value) || 0;
+    const paymentMethod = document.getElementById('mg-payment-method').value;
+    const notes        = document.getElementById('mg-notes').value.trim();
+
+    if (!teacherId) { showNotification('Selecciona un profesor', 'error'); return; }
+    if (!packageId) { showNotification('Selecciona un paquete', 'error'); return; }
+    if (classCount < 1) { showNotification('Cantidad de clases inválida', 'error'); return; }
+    if (validityDays < 1) { showNotification('Vigencia inválida', 'error'); return; }
+
+    const btn = document.getElementById('mg-confirm-btn');
+    btn.disabled = true;
+    btn.textContent = 'Creando…';
+
+    try {
+        const res = await fetch('/admin/subscriptions/manual-grant', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userSession.token}`
+            },
+            body: JSON.stringify({
+                studentId,
+                teacherId,
+                packageId,
+                classCount,
+                validityDays,
+                amountReceivedUSD: Math.round(amountRaw * 100), // centavos
+                paymentMethod,
+                notes
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            closeModal('manual-grant-modal');
+            loadClients();
+            const exp = data.expiresAt ? new Date(data.expiresAt).toLocaleDateString('es-ES') : '—';
+            showNotification(
+                `✅ ${data.classesGranted} clases creadas para ${data.student?.name}. Vence: ${exp}`,
+                'success'
+            );
+        } else {
+            showNotification(data.error || 'Error creando suscripción', 'error');
+        }
+    } catch (error) {
+        console.error('[ManualGrant] Error:', error);
+        showNotification('Error de conexión', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🎹 Crear Suscripción';
     }
 }
 
