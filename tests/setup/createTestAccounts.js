@@ -261,9 +261,9 @@ async function createTestSubscription() {
     autoRenew: false
   });
 
-  // BookingService busca por validUntil (discrepancia con modelo que usa expiresAt)
-  // Añadir campo directo para compatibilidad
-  await StudentSubscription.updateOne({ _id: sub._id }, { $set: { validUntil } });
+  // Nota: previamente se forzaba un campo extra `validUntil` vía $set para
+  // compensar el bug B1 en BookingService. Ese bug se corrigió en FASE 1
+  // (commit 221deaf), por lo que el workaround ya no es necesario.
 
   saveTestData({ subscriptionId: sub._id.toString() });
   console.log(`${c.green}✅ Suscripción creada: ${sub._id} (5 clases, válida hasta ${validUntil.toLocaleDateString()})${c.reset}`);
