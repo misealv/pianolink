@@ -2,6 +2,10 @@
 
 // Importamos el modelo User para poder buscar en la base de datos
 const User = require('../models/User');
+const mongoose = require('mongoose');
+const StudentSubscription = require('../models/StudentSubscription');
+const TeacherPackage = require('../models/TeacherPackage');
+const Payment = require('../models/Payment');
 const Feedback = require('../models/Feedback'); 
 const Message = require('../models/Message');
 const TeacherApplication = require('../models/TeacherApplication');
@@ -1431,5 +1435,133 @@ exports.registerTeacherWithCode = async (req, res) => {
             return res.status(400).json({ error: 'Email o slug duplicado' });
         }
         res.status(500).json({ error: 'Error al registrar profesor' });
+    }
+};
+
+/* -------------------------------------------------------------------------- */
+/* MANUAL GRANT — Crear suscripción prepagada por transferencia / efectivo     */
+/* POST /api/admin/subscriptions/manual-grant                                  */
+/* Body: { studentId, teacherId, packageId, classCount, validityDays,          */
+/*         amountReceivedUSD, paymentMethod, notes }                           */
+/* -------------------------------------------------------------------------- */
+exports.manualGrantSubscription = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const {
+            studentId, teacherId, packageId,
+            classCount, validityDays,
+            amountReceivedUSD,
+            paymentMethod,
+            notes
+        } = req.body;
+
+        // Validación de campos requeridos
+        if (!studentId || !teacherId || !packageId) {
+            await session.abortTransaction();
+            return res.status(400).json({ error: 'studentId, teacherId y packageId son requeridos' });
+        }
+        if (!classCount || classCount < 1) {
+            await session.abortTransaction();
+            return res.status(400).json({ error: 'classCount debe ser >= 1' });
+        }
+        if (!validityDays || validityDays < 1) {
+            await session.abortTransaction();
+            return res.status(400).json({ error: 'validityDays debe ser >= 1' });
+        }
+        if (amountReceivedUSD === undefined || amountReceivedUSD === null || amountReceivedUSD < 0) {
+            await session.abortTransaction();
+            return res.status(400).json({ error: 'amountReceivedUSD debe ser >= 0' });
+        }
+
+        // Verificar que los actores existen
+        const student = await User.findById(studentId).session(session);
+        if (!student || student.role !== 'client') {
+            await session.abortTransaction();
+            return res.status(404).json({ error: 'Alumno no encontrado o no tiene role client' });
+        }
+        const teacher = await User.findById(teacherId).session(session);
+        if (!teacher || teacher.role !== 'teacher') {
+            await session.abortTransaction();
+            return res.status(404).json({ error: 'Profesor no encontrado o no tiene role teacher' });
+        }
+        const pkg = await TeacherPackage.findById(packageId).session(session);
+        if (!pkg) {
+            await session.abortTransaction();
+            return res.status(404).json({ error: 'Paquete no encontrado' });
+        }
+
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + validityDays * 24 * 60 * 60 * 1000);
+        const adminId = req.user?._id || req.user?.id || null;
+
+        // Crear registro de pago para auditoría
+        const payment = await new Payment({
+            type: 'class_payment',
+            userId: studentId,
+            provider: 'manual',
+            status: 'approved',
+            amount: amountReceivedUSD,
+            currency: 'USD',
+            description: `Manual grant: ${classCount} clases con ${teacher.name}`,
+            metadata: {
+                grantedBy: adminId,
+                teacherId,
+                packageId,
+                paymentMethod: paymentMethod || 'bank_transfer',
+                notes: notes || '',
+                commissionWaived: true
+            }
+        }).save({ session });
+
+        // Crear suscripción activa sin escrow (pago ya recibido externamente)
+        const subscription = await new StudentSubscription({
+            studentId,
+            teacherId,
+            packageId,
+            category: pkg.category || 'piano',
+            classesTotal: classCount,
+            classesRemaining: classCount,
+            classesCompleted: 0,
+            totalPaidUSD: amountReceivedUSD,
+            escrowBalanceUSD: 0,               // pagado directo al profesor, fuera de plataforma
+            releasedToTeacherUSD: amountReceivedUSD,
+            platformFeeCollectedUSD: 0,        // sin comisión PianoLink
+            paymentProvider: 'manual',
+            autoRenew: false,
+            status: 'active',
+            startsAt: now,
+            expiresAt,
+            statusHistory: [{
+                status: 'active',
+                changedAt: now,
+                changedBy: adminId,
+                reason: `Manual grant por admin. Método: ${paymentMethod || 'bank_transfer'}. ${notes || ''}`.trim()
+            }]
+        }).save({ session });
+
+        // Vincular el pago a la suscripción creada
+        await Payment.findByIdAndUpdate(payment._id, { subscriptionId: subscription._id }, { session });
+
+        await session.commitTransaction();
+
+        console.log(`[Admin] Manual grant OK: ${classCount} clases → ${student.name} ↔ ${teacher.name}. Sub: ${subscription._id}`);
+
+        res.status(201).json({
+            success: true,
+            subscriptionId: subscription._id,
+            paymentId: payment._id,
+            student: { id: student._id, name: student.name, email: student.email },
+            teacher: { id: teacher._id, name: teacher.name },
+            classesGranted: classCount,
+            expiresAt,
+            commissionWaived: true
+        });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error('[Admin] Error manual-grant:', error);
+        res.status(500).json({ error: 'Error al crear suscripción manual', detail: error.message });
+    } finally {
+        session.endSession();
     }
 };

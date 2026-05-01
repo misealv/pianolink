@@ -245,8 +245,13 @@ router.post('/clients/:id/add-classes', adminController.addClassesToClient);
 router.get('/clients/:id/payments', adminController.getClientPayments);
 
 /* -------------------------------------------------------------------------- */
-/* RUTAS DE CONFIGURACIÓN DE PRECIOS                                          */
+/* RUTAS DE SUSCRIPCIONES MANUALES (prepago externo, sin comisión)             */
 /* -------------------------------------------------------------------------- */
+
+// Crear suscripción prepagada por transferencia bancaria / efectivo
+// POST /admin/subscriptions/manual-grant
+router.post('/subscriptions/manual-grant', adminController.manualGrantSubscription);
+
 
 // Obtener configuración de precios
 router.get('/config/pricing', adminController.getPricingConfig);

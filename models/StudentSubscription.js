@@ -100,7 +100,7 @@ const studentSubscriptionSchema = new mongoose.Schema({
     },
     paymentProvider: {
         type: String,
-        enum: ['mercadopago', 'stripe', 'paypal'],
+        enum: ['mercadopago', 'stripe', 'paypal', 'manual'],
         default: 'mercadopago'
     },
     // ID de la suscripción en el proveedor (si usa preapproval)
