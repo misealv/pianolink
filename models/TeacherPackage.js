@@ -96,6 +96,13 @@ const teacherPackageSchema = new mongoose.Schema({
         default: false  // Destacado en el perfil del profesor
     },
 
+    // Paquete solo para uso interno (manual-grant por admin).
+    // Si true, no aparece en el catálogo público al alumno.
+    isManualOnly: {
+        type: Boolean,
+        default: false
+    },
+
     // === ESTADÍSTICAS ===
     stats: {
         totalSold: { type: Number, default: 0 },

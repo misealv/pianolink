@@ -88,7 +88,8 @@ router.get('/teacher/:teacherId', async (req, res) => {
 
         let packages = await TeacherPackage.find({
             teacherId: req.params.teacherId,
-            isActive: true
+            isActive: true,
+            isManualOnly: { $ne: true }
         }).sort({ isFeatured: -1, priceUSD: 1 });
 
         // Fallback: si no hay paquetes en TeacherPackage, usar teacherData.packages
@@ -159,7 +160,8 @@ router.get('/teacher/:teacherId', async (req, res) => {
 router.get('/available', async (req, res) => {
     try {
         const packages = await TeacherPackage.find({
-            isActive: true
+            isActive: true,
+            isManualOnly: { $ne: true }
         })
         .populate('teacherId', 'name brandName slug branding teacherData')
         .sort({ isFeatured: -1, priceUSD: 1, createdAt: -1 });
