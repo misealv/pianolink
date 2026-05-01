@@ -10,6 +10,7 @@ const User = require('../models/User');
 const WelcomeKit = require('../models/WelcomeKit');
 const Coupon = require('../models/Coupon');
 const Enrollment = require('../models/Enrollment');
+const StudentSubscription = require('../models/StudentSubscription');
 
 /**
  * GET /api/client/me
@@ -78,6 +79,34 @@ router.get('/me', protect, async (req, res) => {
                     commission: enrollment.appliedCommission,
                     status: enrollment.status
                 };
+            } else {
+                // Fallback a StudentSubscription (fuente de verdad moderna)
+                const subscription = await StudentSubscription.findOne({
+                    studentId: user._id,
+                    status: { $in: ['active', 'paused'] },
+                    classesRemaining: { $gt: 0 }
+                }).sort({ classesRemaining: -1 })
+                  .populate('teacherId', 'name email teacherData.plan teacherData.hourlyRate')
+                  .lean();
+
+                if (subscription) {
+                    if (totalClassesRemaining === 0) {
+                        totalClassesRemaining = subscription.classesRemaining;
+                    }
+                    enrollmentData = {
+                        id: subscription._id,
+                        source: 'StudentSubscription',
+                        classesRemaining: subscription.classesRemaining,
+                        preloadedClasses: subscription.classesTotal,
+                        teacher: subscription.teacherId ? {
+                            id: subscription.teacherId._id,
+                            name: subscription.teacherId.name,
+                            email: subscription.teacherId.email,
+                            plan: subscription.teacherId.teacherData?.plan
+                        } : null,
+                        status: subscription.status
+                    };
+                }
             }
         }
 
@@ -143,16 +172,33 @@ router.get('/subscription', protect, async (req, res) => {
     try {
         const user = await User.findById(req.user._id).lean();
 
-        // Determinar estado de pago basado en clases restantes
+        // Determinar estado de pago — prioridad: StudentSubscription → managedStudents → User legacy
         let totalClassesRemaining = 0;
-        
+
         if (user.clientData?.managedStudents?.length > 0) {
             // Guardian con estudiantes gestionados
             user.clientData.managedStudents.forEach(student => {
                 totalClassesRemaining += student.classesRemaining || 0;
             });
-        } else {
-            // Cliente individual o estudiante directo
+        }
+
+        // Leer desde StudentSubscription (fuente de verdad moderna)
+        if (totalClassesRemaining === 0) {
+            const subs = await StudentSubscription.aggregate([
+                {
+                    $match: {
+                        studentId: user._id,
+                        status: { $in: ['active', 'paused'] },
+                        classesRemaining: { $gt: 0 }
+                    }
+                },
+                { $group: { _id: null, total: { $sum: '$classesRemaining' } } }
+            ]);
+            totalClassesRemaining = subs[0]?.total || 0;
+        }
+
+        // Fallback legacy
+        if (totalClassesRemaining === 0) {
             totalClassesRemaining = user.classesRemaining || 0;
         }
 
