@@ -252,7 +252,7 @@ class CrmResendService {
   <tr><td bgcolor="#0a0a0a" style="padding:24px 48px;" align="center">
     <p style="color:#888;font-size:12px;margin:0 0 8px;">El 29 de marzo abre PianoLink. Solo 88 cupos.</p>
     <p style="margin:0;"><a href="{{unsubscribe_url}}" style="color:#666;font-size:11px;">Cancelar suscripción</a></p>
-    <p style="color:#555;font-size:11px;margin:8px 0 0;">© 2026 PianoLink · hola@pianolink.pro</p>
+    <p style="color:#555;font-size:11px;margin:8px 0 0;">© 2026 PianoLink · hola@pianolink.net</p>
   </td></tr>
 </table>
 </td></tr>

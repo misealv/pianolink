@@ -32,8 +32,8 @@ const crmConfigSchema = new mongoose.Schema({
     // === EMAIL ===
     email: {
         fromName: { type: String, default: 'Miguel Antonio' },
-        fromEmail: { type: String, default: 'hola@pianolink.pro' },
-        replyTo: { type: String, default: 'hola@pianolink.pro' }
+        fromEmail: { type: String, default: 'hola@pianolink.net' },
+        replyTo: { type: String, default: 'hola@pianolink.net' }
     },
     
     // === SITE ===
