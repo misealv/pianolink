@@ -100,6 +100,17 @@ class CronService {
      * Iniciar todas las tareas programadas
      */
     static start() {
+        // GUARD MODO CLUSTER (PM2 ecosystem.config.js usa instances:'max' + exec_mode:'cluster').
+        // Cada worker es un proceso Node independiente: sin esta guarda, TODOS los workers
+        // registran los mismos cron jobs y cada tarea (y cada email que dispara) se ejecuta
+        // una vez por worker, causando envíos duplicados (ej. recordatorios de clase,
+        // secuencias CRM). PM2 asigna NODE_APP_INSTANCE (0,1,2...) a cada worker en modo
+        // cluster; solo la instancia 0 debe ejecutar los cron jobs.
+        if (process.env.NODE_APP_INSTANCE !== undefined && process.env.NODE_APP_INSTANCE !== '0') {
+            console.log(`[CronService] Instancia PM2 ${process.env.NODE_APP_INSTANCE} — cron jobs omitidos (solo instancia 0 los ejecuta) para evitar tareas/emails duplicados`);
+            return;
+        }
+
         console.log('[CronService] Iniciando tareas programadas...');
 
         // 1. Limpiar salas inactivas - Diario a las 3 AM

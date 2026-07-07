@@ -274,13 +274,20 @@ async function processReminders(opts = {}) {
             console.log(`   → Booking ${booking._id}...`);
             
             if (!dryRun) {
+                // Claim atómico ANTES de enviar: evita duplicados si dos procesos
+                // (ej. workers de PM2 en modo cluster) corren el cron casi al mismo tiempo.
+                const claimed = await Booking.findOneAndUpdate(
+                    { _id: booking._id, 'reminders.sent24h': { $ne: true } },
+                    { $set: { 'reminders.sent24h': true, 'reminders.sent24hAt': new Date() } }
+                );
+                if (!claimed) {
+                    console.log(`     ⏭️  Ya reclamado por otro proceso, se omite`);
+                    continue;
+                }
+
                 const success = await sendReminder(booking, '24h');
                 
                 if (success) {
-                    // Marcar como enviado
-                    await Booking.findByIdAndUpdate(booking._id, {
-                        $set: { 'reminders.sent24h': true, 'reminders.sent24hAt': new Date() }
-                    });
                     sent24h++;
                     console.log(`     ✅ Enviado`);
                 } else {
@@ -317,13 +324,20 @@ async function processReminders(opts = {}) {
             console.log(`   → Booking ${booking._id}...`);
             
             if (!dryRun) {
+                // Claim atómico ANTES de enviar: evita duplicados si dos procesos
+                // (ej. workers de PM2 en modo cluster) corren el cron casi al mismo tiempo.
+                const claimed = await Booking.findOneAndUpdate(
+                    { _id: booking._id, 'reminders.sent1h': { $ne: true } },
+                    { $set: { 'reminders.sent1h': true, 'reminders.sent1hAt': new Date() } }
+                );
+                if (!claimed) {
+                    console.log(`     ⏭️  Ya reclamado por otro proceso, se omite`);
+                    continue;
+                }
+
                 const success = await sendReminder(booking, '1h');
                 
                 if (success) {
-                    // Marcar como enviado
-                    await Booking.findByIdAndUpdate(booking._id, {
-                        $set: { 'reminders.sent1h': true, 'reminders.sent1hAt': new Date() }
-                    });
                     sent1h++;
                     console.log(`     ✅ Enviado`);
                 } else {
